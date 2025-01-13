@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useChat } from "@/hooks/use-chat";
-import { Link } from "wouter";
-import { ArrowLeft, Plus, Mic, ArrowUpCircle, Expand, Circle } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { ArrowLeft, Plus, Mic, ArrowUpCircle, Expand, Circle, Clock } from "lucide-react";
 import { format } from "date-fns";
 
 const theme = {
@@ -36,7 +36,9 @@ const Avatar = ({ sender }: { sender: 'user' | 'assistant' }) => (
 export default function ChatView() {
   const { messages, sendMessage, isLoading } = useChat();
   const [inputText, setInputText] = useState('');
+  const [isExpanded, setIsExpanded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [, navigate] = useLocation();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -50,6 +52,7 @@ export default function ChatView() {
     if (inputText.trim()) {
       const text = inputText.trim();
       setInputText('');
+      setIsExpanded(false);
       await sendMessage(text);
     }
   };
@@ -61,20 +64,34 @@ export default function ChatView() {
     }
   };
 
+  const startNewChat = () => {
+    navigate('/chat', { replace: true });
+    window.location.reload(); // Force a reload to start fresh
+  };
+
   return (
     <div className="flex-1 flex flex-col bg-white">
       {/* Header */}
       <div className="w-full px-4 py-3 flex items-center justify-between border-b border-gray-200 bg-white">
-        <Link href="/">
-          <button className="p-2 hover:bg-gray-100 rounded-lg">
-            <ArrowLeft className="w-6 h-6 text-gray-600" />
-          </button>
-        </Link>
-        <Link href="/chat">
-          <button className={`p-2 ${theme.accent} hover:bg-[#4A7566] rounded-full`}>
-            <Plus className="w-6 h-6 text-white" />
-          </button>
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link href="/">
+            <button className="p-2 hover:bg-gray-100 rounded-lg">
+              <ArrowLeft className="w-6 h-6 text-gray-600" />
+            </button>
+          </Link>
+          <Link href="/chat/history">
+            <button className="flex items-center gap-2 text-gray-600 hover:text-gray-800">
+              <Clock className="w-5 h-5" />
+              <span>Geschiedenis</span>
+            </button>
+          </Link>
+        </div>
+        <button 
+          onClick={startNewChat}
+          className={`p-2 ${theme.accent} hover:bg-[#4A7566] rounded-full`}
+        >
+          <Plus className="w-6 h-6 text-white" />
+        </button>
       </div>
 
       {/* Messages */}
@@ -120,13 +137,15 @@ export default function ChatView() {
           <button className="p-2 hover:bg-gray-100 rounded-full">
             <Mic className="w-6 h-6 text-[#629785]" />
           </button>
-          <input
-            type="text"
+          <textarea
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Typ een boodschap..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#629785] focus:border-transparent"
+            className={`flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#629785] focus:border-transparent resize-none transition-all duration-200 ${
+              isExpanded ? 'h-40' : 'h-10'
+            }`}
+            style={{ lineHeight: '2.5rem' }}
           />
           <button 
             onClick={handleSend}
@@ -135,8 +154,11 @@ export default function ChatView() {
           >
             <ArrowUpCircle className="w-6 h-6 text-[#629785]" />
           </button>
-          <button className="p-2 hover:bg-gray-100 rounded-full">
-            <Expand className="w-6 h-6 text-[#629785]" />
+          <button 
+            onClick={() => setIsExpanded(!isExpanded)}
+            className={`p-2 hover:bg-gray-100 rounded-full ${isExpanded ? 'bg-gray-100' : ''}`}
+          >
+            <Expand className={`w-6 h-6 text-[#629785] transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
           </button>
         </div>
       </div>
