@@ -16,6 +16,26 @@ const theme = {
   }
 };
 
+// Format message content with markdown-style syntax
+const formatMessageContent = (content: string) => {
+  return content
+    .split('\n\n')
+    .map(paragraph => {
+      // Handle italics
+      paragraph = paragraph.replace(/\*(.*?)\*/g, '<em>$1</em>');
+      // Handle bold
+      paragraph = paragraph.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      return paragraph;
+    })
+    .map((paragraph, i) => (
+      <p
+        key={i}
+        className={`${i > 0 ? 'mt-4' : ''}`}
+        dangerouslySetInnerHTML={{ __html: paragraph }}
+      />
+    ));
+};
+
 const TypingIndicator = () => (
   <div className="flex space-x-2 p-3 bg-gray-100 rounded-2xl w-16">
     <Circle className="w-2 h-2 animate-bounce" />
@@ -66,7 +86,7 @@ export default function ChatView() {
   };
 
   const startNewChat = () => {
-    window.localStorage.removeItem('chat-messages'); // Clear stored messages
+    window.localStorage.removeItem('chat-messages');
     navigate('/chat', { replace: true });
   };
 
@@ -100,20 +120,26 @@ export default function ChatView() {
         {messages.map((message, index) => (
           <div
             key={index}
-            className={`flex items-end space-x-2 ${
+            className={`flex items-start space-x-2 ${
               message.role === 'user' ? 'flex-row-reverse space-x-reverse' : 'flex-row'
             }`}
           >
             <Avatar sender={message.role} />
             <div className="flex flex-col">
               <div
-                className={`px-4 py-2 rounded-2xl max-w-[280px] ${
+                className={`px-4 py-3 rounded-2xl max-w-[280px] ${
                   message.role === 'user'
                     ? `${theme.primary} ${theme.text.primary}`
-                    : `${theme.secondary} ${theme.text.secondary} font-baskerville`
+                    : `${theme.secondary} ${theme.text.secondary} chat-message`
                 }`}
               >
-                {message.content}
+                {message.role === 'assistant' ? (
+                  <div className="prose prose-sm prose-p:mt-4 prose-p:first:mt-0">
+                    {formatMessageContent(message.content)}
+                  </div>
+                ) : (
+                  <p>{message.content}</p>
+                )}
                 {message.role === 'assistant' && (
                   <MessageFeedback
                     messageId={index}
@@ -133,7 +159,7 @@ export default function ChatView() {
           </div>
         ))}
         {isLoading && (
-          <div className="flex items-end space-x-2">
+          <div className="flex items-start space-x-2">
             <Avatar sender="assistant" />
             <TypingIndicator />
           </div>

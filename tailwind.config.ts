@@ -10,6 +10,23 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      typography: {
+        DEFAULT: {
+          css: {
+            'p:not(:first-child)': {
+              marginTop: '1em',
+            },
+            'em': {
+              fontStyle: 'italic',
+              color: 'inherit',
+            },
+            'strong': {
+              fontWeight: '600',
+              color: 'inherit',
+            },
+          },
+        },
+      },
       colors: {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
@@ -64,20 +81,12 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
         },
       },
       animation: {
