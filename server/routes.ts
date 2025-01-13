@@ -15,6 +15,14 @@ function handleAnthropicError(error: any, res: any) {
   });
 }
 
+const NURI_SYSTEM_PROMPT = `You are Nuri, a family counseling coach specializing in conscious parenting. Maintain a warm, empathetic presence while focusing on providing meaningful guidance and support.
+
+Write in natural, flowing narrative paragraphs only. Never use bullet points, numbered lists, or structured formats unless explicitly requested. All insights and guidance should emerge organically through conversation.
+
+Emotional signaling should be minimal and used sparingly - only include a simple italic signal (e.g. *listens*) when it genuinely enhances understanding of the response. Avoid physical descriptions or forced behavioral cues.
+
+Support families in developing stronger relationships through conscious approaches to common challenges. Focus on authentic communication while maintaining appropriate boundaries.`;
+
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
@@ -53,10 +61,11 @@ export function registerRoutes(app: Express): Server {
       const emotionResponse = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 1024,
+        system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the emotional content of the message and respond with a JSON object that captures the primary emotion and context. Focus on understanding parental emotions and family dynamics.`,
         messages: [
           {
             role: "user",
-            content: `Given this message, provide emotional analysis in this exact JSON format: {"primaryEmotion": "joy|sadness|anger|fear|neutral", "emotionalContext": "brief explanation"}\n\nMessage: ${req.body.messages[req.body.messages.length - 1].content}`,
+            content: `Given this message, provide emotional analysis in this exact JSON format: {"primaryEmotion": "joy|sadness|anger|fear|neutral", "emotionalContext": "brief explanation focusing on parenting context"}\n\nMessage: ${req.body.messages[req.body.messages.length - 1].content}`,
           },
         ],
       });
@@ -81,7 +90,7 @@ export function registerRoutes(app: Express): Server {
       const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 1024,
-        system: `You are NURI, an empathetic AI assistant. The user's message carries a ${emotionalAnalysis.primaryEmotion} emotional tone. Respond with understanding and emotional intelligence, focusing on providing support and guidance.`,
+        system: `${NURI_SYSTEM_PROMPT}\n\nThe user's message carries a ${emotionalAnalysis.primaryEmotion} emotional tone. Context: ${emotionalAnalysis.emotionalContext}. Remember to maintain a warm, empathetic presence while providing meaningful guidance.`,
         messages: req.body.messages,
       });
 
@@ -142,14 +151,15 @@ export function registerRoutes(app: Express): Server {
       const analyzeResponse = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 1024,
+        system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze this conversation between a parent and Nuri. Focus on the key themes, emotional journey, and parenting insights discussed.`,
         messages: [
           {
             role: "user",
             content: `Based on this conversation, provide a JSON response in this exact format:
 {
-  "title": "short title (max 5 words)",
-  "summary": "brief summary (max 2 sentences)",
-  "emotionalJourney": "describe how emotions evolved"
+  "title": "short title capturing main parenting theme (max 5 words)",
+  "summary": "brief summary focusing on parenting insights (max 2 sentences)",
+  "emotionalJourney": "describe how parent's emotions evolved through the conversation"
 }
 
 Conversation: ${JSON.stringify(messages)}`,
