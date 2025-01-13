@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useChat } from "@/hooks/use-chat";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, Plus, Mic, ArrowUpCircle, Expand, Circle, Clock } from "lucide-react";
+import { ArrowLeft, Plus, Mic, ArrowUpCircle, Expand, Circle } from "lucide-react";
 import { format } from "date-fns";
 
 const theme = {
@@ -65,8 +65,8 @@ export default function ChatView() {
   };
 
   const startNewChat = () => {
+    window.localStorage.removeItem('chat-messages'); // Clear stored messages
     navigate('/chat', { replace: true });
-    window.location.reload(); // Force a reload to start fresh
   };
 
   return (
@@ -80,8 +80,8 @@ export default function ChatView() {
             </button>
           </Link>
           <Link href="/chat/history">
-            <button className="flex items-center gap-2 text-gray-600 hover:text-gray-800">
-              <Clock className="w-5 h-5" />
+            <button className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200">
+              <Circle className="w-4 h-4" />
               <span>Geschiedenis</span>
             </button>
           </Link>
@@ -142,10 +142,14 @@ export default function ChatView() {
             onChange={(e) => setInputText(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Typ een boodschap..."
-            className={`flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#629785] focus:border-transparent resize-none transition-all duration-200 ${
-              isExpanded ? 'h-40' : 'h-10'
+            className={`flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#629785] focus:border-transparent resize-none transition-all duration-200 ease-in-out ${
+              isExpanded ? 'h-[150px]' : 'h-[40px]'
             }`}
-            style={{ lineHeight: '2.5rem' }}
+            style={{ 
+              lineHeight: '1.5rem', 
+              overflowY: isExpanded ? 'auto' : 'hidden',
+              paddingTop: isExpanded ? '0.75rem' : '0.5rem'
+            }}
           />
           <button 
             onClick={handleSend}
