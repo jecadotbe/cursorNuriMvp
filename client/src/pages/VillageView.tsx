@@ -1,14 +1,38 @@
 import { useState } from "react";
 import { useVillage } from "@/hooks/use-village";
 import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import Draggable from "react-draggable";
 import { Link } from "wouter";
 
 export default function VillageView() {
-  const { members } = useVillage();
+  const { members, addMember } = useVillage();
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [newMember, setNewMember] = useState({
+    name: "",
+    type: "individual",
+    circle: 1,
+    interactionFrequency: 1,
+  });
 
   const handleZoomIn = () => {
     setScale((prev) => Math.min(prev + 0.1, 3)); // max 3x zoom
@@ -56,6 +80,18 @@ export default function VillageView() {
 
   const handlePanEnd = () => {
     setIsDragging(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await addMember(newMember);
+    setIsOpen(false);
+    setNewMember({
+      name: "",
+      type: "individual",
+      circle: 1,
+      interactionFrequency: 1,
+    });
   };
 
   return (
@@ -181,12 +217,72 @@ export default function VillageView() {
         </div>
       </div>
 
-      {/* Add Member Button */}
-      <Link href="/village/add">
-        <button className="fixed bottom-20 right-4 w-12 h-12 bg-[#2F4644] rounded-full flex items-center justify-center shadow-lg">
-          <Plus className="w-6 h-6 text-white" />
-        </button>
-      </Link>
+      {/* Add Member Dialog */}
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
+          <button className="fixed bottom-20 right-4 w-12 h-12 bg-[#2F4644] rounded-full flex items-center justify-center shadow-lg hover:bg-[#3a5452]">
+            <Plus className="w-6 h-6 text-white" />
+          </button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Village Member</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={newMember.name}
+                onChange={(e) =>
+                  setNewMember({ ...newMember, name: e.target.value })
+                }
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="type">Type</Label>
+              <Select
+                value={newMember.type}
+                onValueChange={(value) =>
+                  setNewMember({ ...newMember, type: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="individual">Individual</SelectItem>
+                  <SelectItem value="group">Group</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="circle">Circle</Label>
+              <Select
+                value={String(newMember.circle)}
+                onValueChange={(value) =>
+                  setNewMember({ ...newMember, circle: Number(value) })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <SelectItem key={n} value={String(n)}>
+                      Circle {n}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button type="submit" className="w-full">
+              Add Member
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
