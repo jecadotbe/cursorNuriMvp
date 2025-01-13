@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
-import { villageMembers, chats } from "@db/schema";
+import { villageMembers, chats, messageFeedback } from "@db/schema";
 import { eq, desc } from "drizzle-orm";
 import { anthropic } from "./anthropic";
 
@@ -198,6 +198,48 @@ Conversation: ${JSON.stringify(messages)}`,
     }).returning();
 
     res.json(chat[0]);
+  });
+
+  app.post("/api/message-feedback", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    try {
+      const feedback = await db.insert(messageFeedback).values({
+        userId: req.user.id,
+        messageId: req.body.messageId,
+        feedbackType: req.body.feedbackType,
+        chatId: req.body.chatId,
+      }).returning();
+
+      res.json(feedback[0]);
+    } catch (error) {
+      console.error("Failed to save feedback:", error);
+      res.status(500).json({ message: "Failed to save feedback" });
+    }
+  });
+
+  app.get("/api/chats/:chatId/emotional-context", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const chat = await db.query.chats.findFirst({
+      where: eq(chats.id, parseInt(req.params.chatId)),
+      columns: {
+        metadata: true,
+      },
+    });
+
+    if (!chat) {
+      return res.status(404).json({ message: "Chat not found" });
+    }
+
+    // Return the emotional context from the chat metadata
+    res.json({
+      emotionalContext: chat.metadata?.emotionalContext || null,
+    });
   });
 
   const httpServer = createServer(app);

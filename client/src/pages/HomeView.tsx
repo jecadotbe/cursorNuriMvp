@@ -177,16 +177,16 @@ const learningVideos = [
   {
     title: "Wat is Aware Parenting?",
     duration: "10 min",
-    image: "/images/aware_parenting.png",
+    image: "/images/bg_test.jpg",
   },
   {
     title: "Niet straffen en belonen; hoe dan?",
     duration: "5 min",
-    image: "/images/parenting_methods.png",
+    image: "/images/bg_test.jpg",
   },
   {
     title: "Hoe je kind begeleiden bij een driftbui",
     duration: "7 min",
-    image: "/images/tantrum_guidance.png",
+    image: "/images/bg_test.jpg",
   },
 ];

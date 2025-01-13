@@ -25,10 +25,20 @@ export const chats = pgTable("chats", {
   title: text("title"),
   summary: text("summary"),
   messages: jsonb("messages").notNull(),
-  metadata: jsonb("metadata"), // For additional filtering/organization
+  metadata: jsonb("metadata"), // For additional filtering/organization and emotional context
   tags: text("tags").array(), // For categorizing conversations
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// New table for storing message feedback
+export const messageFeedback = pgTable("message_feedback", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  chatId: integer("chat_id").references(() => chats.id).notNull(),
+  messageId: text("message_id").notNull(), // Reference to the specific message in the chat
+  feedbackType: text("feedback_type").notNull(), // 'positive' or 'negative'
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const insertUserSchema = createInsertSchema(users);
@@ -37,6 +47,8 @@ export const insertVillageMemberSchema = createInsertSchema(villageMembers);
 export const selectVillageMemberSchema = createSelectSchema(villageMembers);
 export const insertChatSchema = createInsertSchema(chats);
 export const selectChatSchema = createSelectSchema(chats);
+export const insertMessageFeedbackSchema = createInsertSchema(messageFeedback);
+export const selectMessageFeedbackSchema = createSelectSchema(messageFeedback);
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -44,3 +56,5 @@ export type VillageMember = typeof villageMembers.$inferSelect;
 export type InsertVillageMember = typeof villageMembers.$inferInsert;
 export type Chat = typeof chats.$inferSelect;
 export type InsertChat = typeof chats.$inferInsert;
+export type MessageFeedback = typeof messageFeedback.$inferSelect;
+export type InsertMessageFeedback = typeof messageFeedback.$inferInsert;

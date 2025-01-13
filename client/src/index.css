@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -9,5 +11,13 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+  }
+
+  .font-baskerville {
+    font-family: 'Libre Baskerville', serif;
+  }
+
+  .chat-message {
+    @apply font-baskerville;
   }
 }

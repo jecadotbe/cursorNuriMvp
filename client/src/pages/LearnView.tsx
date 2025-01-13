@@ -60,7 +60,7 @@ export default function LearnView() {
       <div className="px-4">
         <div className="w-full aspect-video bg-gray-200 relative rounded-lg overflow-hidden">
           <img 
-            src="/images/nuri-basics-cover.jpg" 
+            src="/images/brooke-cagle-109PiObJQSw-unsplash.jpg" 
             alt="Course cover"
             className="w-full h-full object-cover"
           />
@@ -87,7 +87,7 @@ export default function LearnView() {
         <div className="flex items-center space-x-3">
           <div className="w-12 h-12 rounded-full overflow-hidden shadow-sm">
             <img 
-              src="/images/lynn-profile.jpg"
+              src="/images/lynn-profiel.jpg"
               alt="Lynn Geerinck"
               className="w-full h-full object-cover"
             />
@@ -102,7 +102,7 @@ export default function LearnView() {
         <div className="bg-white rounded-lg p-4">
           <div className="flex items-center space-x-3">
             <img 
-              src="/images/nuri-basics-welcome.jpg"
+              src="/images/bg_test.jpg"
               alt="Nuri Basics Welkom"
               className="w-16 h-16 rounded-lg object-cover"
             />

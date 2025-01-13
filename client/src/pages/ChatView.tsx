@@ -3,6 +3,7 @@ import { useChat } from "@/hooks/use-chat";
 import { Link, useLocation } from "wouter";
 import { ArrowLeft, Plus, Mic, ArrowUpCircle, Expand, Circle } from "lucide-react";
 import { format } from "date-fns";
+import { MessageFeedback } from "@/components/MessageFeedback";
 
 const theme = {
   primary: 'bg-[#F2F0E5]',
@@ -86,7 +87,7 @@ export default function ChatView() {
             </button>
           </Link>
         </div>
-        <button 
+        <button
           onClick={startNewChat}
           className={`p-2 ${theme.accent} hover:bg-[#4A7566] rounded-full`}
         >
@@ -109,10 +110,19 @@ export default function ChatView() {
                 className={`px-4 py-2 rounded-2xl max-w-[280px] ${
                   message.role === 'user'
                     ? `${theme.primary} ${theme.text.primary}`
-                    : `${theme.secondary} ${theme.text.secondary}`
+                    : `${theme.secondary} ${theme.text.secondary} font-baskerville`
                 }`}
               >
                 {message.content}
+                {message.role === 'assistant' && (
+                  <MessageFeedback
+                    messageId={index}
+                    onFeedback={(feedback) => {
+                      console.log(`Feedback for message ${index}: ${feedback}`);
+                      // TODO: Send feedback to server
+                    }}
+                  />
+                )}
               </div>
               <span className={`text-xs ${theme.text.muted} mt-1 ${
                 message.role === 'user' ? 'text-right' : 'text-left'
@@ -145,20 +155,20 @@ export default function ChatView() {
             className={`flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#629785] focus:border-transparent resize-none transition-all duration-200 ease-in-out ${
               isExpanded ? 'h-[150px]' : 'h-[40px]'
             }`}
-            style={{ 
-              lineHeight: '1.5rem', 
+            style={{
+              lineHeight: '1.5rem',
               overflowY: isExpanded ? 'auto' : 'hidden',
               paddingTop: isExpanded ? '0.75rem' : '0.5rem'
             }}
           />
-          <button 
+          <button
             onClick={handleSend}
             disabled={isLoading || !inputText.trim()}
             className="p-2 hover:bg-gray-100 rounded-full disabled:opacity-50"
           >
             <ArrowUpCircle className="w-6 h-6 text-[#629785]" />
           </button>
-          <button 
+          <button
             onClick={() => setIsExpanded(!isExpanded)}
             className={`p-2 hover:bg-gray-100 rounded-full ${isExpanded ? 'bg-gray-100' : ''}`}
           >
