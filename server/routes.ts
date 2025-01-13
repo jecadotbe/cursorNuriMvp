@@ -97,9 +97,18 @@ Keep responses concise and focused. Aim for 2-3 paragraphs maximum unless the to
 
       // Save the chat session if it's new or update existing
       if (req.body.chatId) {
+        // Update existing chat
         const chatId = parseChatId(req.body.chatId);
         if (chatId === null) {
           return res.status(400).json({ message: "Invalid chat ID" });
+        }
+
+        const existingChat = await db.query.chats.findFirst({
+          where: eq(chats.id, chatId),
+        });
+
+        if (!existingChat || existingChat.userId !== req.user.id) {
+          return res.status(403).json({ message: "Unauthorized" });
         }
 
         await db.update(chats)
@@ -121,21 +130,26 @@ Keep responses concise and focused. Aim for 2-3 paragraphs maximum unless the to
 
           const title = titleResponse.content[0].text.replace(/"/g, '').trim();
 
-          await db.insert(chats).values({
+          const [newChat] = await db.insert(chats).values({
             userId: req.user.id,
             title: title,
             messages: req.body.messages.concat([{ role: 'assistant', content: messageContent }]),
             updatedAt: new Date()
-          });
+          }).returning();
+
+          // Log the newly created chat for debugging
+          console.log("Created new chat:", newChat);
         } catch (titleError) {
           console.error("Error generating title:", titleError);
           // Fallback to a timestamp-based title if title generation fails
-          await db.insert(chats).values({
+          const [newChat] = await db.insert(chats).values({
             userId: req.user.id,
             title: `Chat ${new Date().toLocaleDateString()}`,
             messages: req.body.messages.concat([{ role: 'assistant', content: messageContent }]),
             updatedAt: new Date()
-          });
+          }).returning();
+
+          console.log("Created new chat with fallback title:", newChat);
         }
       }
 
