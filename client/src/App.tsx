@@ -8,6 +8,7 @@ import { useUser } from "@/hooks/use-user";
 import { Loader2 } from "lucide-react";
 import HomeView from "@/pages/HomeView";
 import ChatView from "@/pages/ChatView";
+import ChatHistoryView from "@/pages/ChatHistoryView";
 import VillageView from "@/pages/VillageView";
 import LearnView from "@/pages/LearnView";
 import ProfileView from "@/pages/ProfileView";
@@ -34,6 +35,7 @@ function Router() {
         <Switch>
           <Route path="/" component={HomeView} />
           <Route path="/chat" component={ChatView} />
+          <Route path="/chat/history" component={ChatHistoryView} />
           <Route path="/village" component={VillageView} />
           <Route path="/learn" component={LearnView} />
           <Route path="/profile" component={ProfileView} />
