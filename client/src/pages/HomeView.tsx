@@ -5,6 +5,17 @@ import { useChatHistory } from "@/hooks/use-chat-history";
 import { MessageSquare, Users, GraduationCap, Star, Clock, ChevronRight } from "lucide-react";
 import { Link } from "wouter";
 
+// Add image load success handler
+const handleImageLoad = (imageName: string) => {
+  console.log(`Successfully loaded image: ${imageName}`);
+};
+
+// Add detailed error handling
+const handleImageError = (imageName: string, error: any) => {
+  console.error(`Failed to load image: ${imageName}`, error);
+  console.log('Image path attempted:', `/images/${imageName}`);
+};
+
 export default function HomeView() {
   const { user } = useUser();
   const { getLatestPrompt } = useChatHistory();
@@ -36,23 +47,18 @@ export default function HomeView() {
         <span className="text-black">{currentTime}</span>
       </div>
 
-      {/* Greeting Section */}
-      <div
-        className="w-full"
-        style={{
-          background: "linear-gradient(45deg, #F8DD9F 0%, #F2F0E5 35%)",
-        }}
-      >
+      {/* Greeting Section with Logo */}
+      <div className="w-full bg-gradient-to-r from-[#F8DD9F] to-[#F2F0E5] via-[#F2F0E5] via-35%">
         <div className="px-4 py-6">
           <div className="flex items-start gap-4">
             <div className="w-18 h-24">
-              {/* Add error handling and logging for image loading */}
               <img
                 src="/images/nuri_logo.png"
                 alt="Nuri Logo"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
+                onLoad={() => handleImageLoad('nuri_logo.png')}
                 onError={(e) => {
-                  console.error('Failed to load Nuri logo');
+                  handleImageError('nuri_logo.png', e);
                   e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='200' viewBox='0 0 150 200'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui' font-size='16' fill='%23666'%3ENuri%3C/text%3E%3C/svg%3E";
                 }}
               />
@@ -141,8 +147,9 @@ export default function HomeView() {
                         src={video.image}
                         alt={video.title}
                         className="w-20 h-20 object-cover rounded-lg"
+                        onLoad={() => handleImageLoad(video.image.split('/').pop()!)}
                         onError={(e) => {
-                          console.error(`Failed to load video thumbnail: ${video.title}`);
+                          handleImageError(video.image.split('/').pop()!, e);
                           e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui' font-size='12' fill='%23666'%3EThumbnail%3C/text%3E%3C/svg%3E";
                         }}
                       />
