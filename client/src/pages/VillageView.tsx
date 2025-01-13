@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useVillage } from "@/hooks/use-village";
-import { ChevronLeft, Plus, ZoomIn, ZoomOut } from "lucide-react";
+import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import Draggable from "react-draggable";
 import { Link } from "wouter";
 
@@ -18,8 +18,13 @@ export default function VillageView() {
     setScale((prev) => Math.max(prev - 0.1, 0.3)); // min 0.3x zoom
   };
 
+  const handleReset = () => {
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  };
+
   const getCircleRadius = (index: number) => {
-    const baseRadius = 120;
+    const baseRadius = 80; // Reduced from 120 to bring circles closer
     return baseRadius * (index + 1);
   };
 
@@ -80,15 +85,21 @@ export default function VillageView() {
       <div className="fixed top-32 right-4 flex flex-col space-y-2 z-10">
         <button
           onClick={handleZoomIn}
-          className="w-10 h-10 flex items-center justify-center bg-white rounded shadow"
+          className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow hover:bg-gray-50"
         >
           <ZoomIn className="w-5 h-5 text-gray-700" />
         </button>
         <button
           onClick={handleZoomOut}
-          className="w-10 h-10 flex items-center justify-center bg-white rounded shadow"
+          className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow hover:bg-gray-50"
         >
           <ZoomOut className="w-5 h-5 text-gray-700" />
+        </button>
+        <button
+          onClick={handleReset}
+          className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow hover:bg-gray-50"
+        >
+          <RotateCcw className="w-5 h-5 text-gray-700" />
         </button>
       </div>
 
