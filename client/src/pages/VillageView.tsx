@@ -71,11 +71,21 @@ export default function VillageView() {
   const handlePanMove = (e: React.MouseEvent | React.TouchEvent) => {
     if (!isDragging) return;
 
-    const moveEvent = 'touches' in e ? e.touches[0] : e;
-    setPosition(prev => ({
-      x: prev.x + moveEvent.movementX,
-      y: prev.y + moveEvent.movementY
-    }));
+    if ('touches' in e) {
+      // Touch event
+      const touch = e.touches[0];
+      const prevTouch = e.touches[1] || e.touches[0]; // Use the same touch if only one touch point
+      setPosition(prev => ({
+        x: prev.x + (touch.clientX - prevTouch.clientX),
+        y: prev.y + (touch.clientY - prevTouch.clientY)
+      }));
+    } else {
+      // Mouse event
+      setPosition(prev => ({
+        x: prev.x + e.movementX,
+        y: prev.y + e.movementY
+      }));
+    }
   };
 
   const handlePanEnd = () => {
