@@ -21,10 +21,10 @@ async function fetchChatHistory(): Promise<Chat[]> {
 export function useChatHistory() {
   const { toast } = useToast();
 
-  const { data: chats = [], isLoading, error } = useQuery<Chat[], Error>({
+  const { data: chats = [], isLoading, error, refetch } = useQuery<Chat[], Error>({
     queryKey: ["chats"],
     queryFn: fetchChatHistory,
-    staleTime: Infinity,
+    staleTime: 0, // Always fetch fresh data
     retry: false,
     onError: (error) => {
       toast({
@@ -38,8 +38,8 @@ export function useChatHistory() {
   const getLatestPrompt = () => {
     if (chats.length === 0) {
       return {
-        title: "LATEN WE BEGINNEN",
-        message: "Laten we praten over jouw uitdagingen!",
+        title: "Start a conversation",
+        message: "Let's talk about your parenting journey",
       };
     }
 
@@ -48,8 +48,8 @@ export function useChatHistory() {
     const lastUserMessage = messages.findLast(m => m.role === "user");
 
     return {
-      title: "OP BASIS VAN ONS GESPREK",
-      message: lastUserMessage?.content || "Laten we verder praten over jouw uitdagingen!",
+      title: latestChat.title || "Continue our conversation",
+      message: lastUserMessage?.content || "Let's continue our discussion",
     };
   };
 
@@ -57,6 +57,7 @@ export function useChatHistory() {
     chats,
     isLoading,
     error,
+    refetch,
     getLatestPrompt,
   };
 }
