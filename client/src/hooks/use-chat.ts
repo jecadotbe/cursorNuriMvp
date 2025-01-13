@@ -27,10 +27,11 @@ export function useChat() {
   useEffect(() => {
     if (chatData?.messages) {
       setMessages(chatData.messages as Message[]);
-    } else {
-      setMessages([]); // Reset messages for new chat
+    } else if (!chatId && !isChatLoading) {
+      // Only reset messages if we're in a new chat and not loading
+      setMessages([]);
     }
-  }, [chatData]);
+  }, [chatData, chatId, isChatLoading]);
 
   const mutation = useMutation({
     mutationFn: async (content: string) => {
