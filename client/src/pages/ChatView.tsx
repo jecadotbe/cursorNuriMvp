@@ -55,7 +55,7 @@ const Avatar = ({ sender }: { sender: 'user' | 'assistant' }) => (
 );
 
 export default function ChatView() {
-  const { messages, sendMessage, isLoading } = useChat();
+  const { messages, sendMessage, isLoading, chatId } = useChat();
   const [inputText, setInputText] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -86,8 +86,10 @@ export default function ChatView() {
   };
 
   const startNewChat = () => {
+    // Clear local storage and navigate to new chat
     window.localStorage.removeItem('chat-messages');
     navigate('/chat', { replace: true });
+    window.location.reload(); // Force reload to clear the chat state
   };
 
   return (
@@ -142,7 +144,7 @@ export default function ChatView() {
                 )}
                 {message.role === 'assistant' && (
                   <MessageFeedback
-                    messageId={index}
+                    messageId={`${chatId}-${index}`}
                     onFeedback={(feedback) => {
                       console.log(`Feedback for message ${index}: ${feedback}`);
                       // TODO: Send feedback to server

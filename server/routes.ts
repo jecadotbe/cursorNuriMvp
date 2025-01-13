@@ -73,6 +73,45 @@ export function registerRoutes(app: Express): Server {
 
       const messageContent = response.content[0].text;
 
+      // Save the chat session if it's new or update existing
+      if (req.body.chatId) {
+        await db.update(chats)
+          .set({ 
+            messages: req.body.messages.concat([{ role: 'assistant', content: messageContent }]),
+            updatedAt: new Date()
+          })
+          .where(eq(chats.id, req.body.chatId));
+      } else {
+        // Create a new chat with auto-generated title
+        try {
+          const titleResponse = await anthropic.messages.create({
+            model: "claude-3-5-sonnet-20241022",
+            max_tokens: 50,
+            temperature: 0.7,
+            system: "Generate a very short (3-5 words) title that captures the main theme of this conversation.",
+            messages: [{ role: 'user', content: req.body.messages[0].content }],
+          });
+
+          const title = titleResponse.content[0].text.replace(/"/g, '').trim();
+
+          await db.insert(chats).values({
+            userId: req.user.id,
+            title: title,
+            messages: req.body.messages.concat([{ role: 'assistant', content: messageContent }]),
+            updatedAt: new Date()
+          });
+        } catch (titleError) {
+          console.error("Error generating title:", titleError);
+          // Fallback to a timestamp-based title if title generation fails
+          await db.insert(chats).values({
+            userId: req.user.id,
+            title: `Chat ${new Date().toLocaleDateString()}`,
+            messages: req.body.messages.concat([{ role: 'assistant', content: messageContent }]),
+            updatedAt: new Date()
+          });
+        }
+      }
+
       res.json({
         content: messageContent,
       });
