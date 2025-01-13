@@ -4,13 +4,22 @@ import { setupAuth } from "./auth";
 import { db } from "@db";
 import { villageMembers, chats } from "@db/schema";
 import { eq, desc } from "drizzle-orm";
-import { anthropic, handleAnthropicError } from "./anthropic";
+import { anthropic } from "./anthropic";
+
+// Helper function to handle Anthropic API errors
+function handleAnthropicError(error: any, res: any) {
+  console.error("Anthropic API error:", error);
+  res.status(500).json({
+    message: "Failed to process request",
+    error: error.message
+  });
+}
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
   app.get("/api/village", async (req, res) => {
-    if (!req.isAuthenticated()) {
+    if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
     }
 
@@ -22,7 +31,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   app.post("/api/village", async (req, res) => {
-    if (!req.isAuthenticated()) {
+    if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
     }
 
@@ -35,7 +44,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   app.post("/api/chat", async (req, res) => {
-    if (!req.isAuthenticated()) {
+    if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
     }
 
@@ -75,7 +84,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   app.get("/api/chats", async (req, res) => {
-    if (!req.isAuthenticated()) {
+    if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
     }
 
@@ -88,7 +97,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   app.get("/api/chats/latest", async (req, res) => {
-    if (!req.isAuthenticated()) {
+    if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
     }
 
@@ -105,7 +114,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   app.post("/api/chats", async (req, res) => {
-    if (!req.isAuthenticated()) {
+    if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
     }
 
@@ -141,7 +150,7 @@ All in Dutch:\n\n${JSON.stringify(messages)}`,
 
     const chat = await db.insert(chats).values({
       userId: req.user.id,
-      messages: req.body.messages,
+      messages: messages,
       title,
       summary,
       metadata: {

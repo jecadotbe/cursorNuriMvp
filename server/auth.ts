@@ -30,7 +30,8 @@ const crypto = {
 
 declare global {
   namespace Express {
-    interface User extends User {}
+    // Use the imported User type directly
+    interface User extends Omit<User, 'User'> {}
   }
 }
 

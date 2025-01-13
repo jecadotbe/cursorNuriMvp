@@ -43,7 +43,7 @@ export function useChatHistory() {
       };
     }
 
-    const latestChat = chats[0]; 
+    const latestChat = chats[0];
     const messages = latestChat.messages as { role: string; content: string }[];
     const lastUserMessage = messages.findLast(m => m.role === "user");
 
