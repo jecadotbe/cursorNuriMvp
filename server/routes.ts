@@ -79,16 +79,22 @@ export function registerRoutes(app: Express): Server {
         console.log('Retrieved relevant memories:', relevantMemories);
 
         if (relevantMemories && relevantMemories.length > 0) {
-          contextualizedPrompt += `\n\nRelevant context from previous conversations:\n${
-            relevantMemories.map(m => m.content).join('\n')
-          }`;
+          // Format memories for context
+          const memoryContext = relevantMemories
+            .map(m => `Previous conversation: ${m.content}`)
+            .join('\n\n');
+
+          contextualizedPrompt += `\n\nRelevant context from previous conversations:\n${memoryContext}`;
+
+          console.log('Added memory context to prompt:', memoryContext);
         }
       } catch (memoryError) {
         console.error("Error fetching memories:", memoryError);
       }
 
+      // Generate response with context-aware prompt
       const response = await anthropic.messages.create({
-        model: "claude-2.1",
+        model: "claude-3-5-sonnet-20241022", // Using latest model
         max_tokens: 512,
         temperature: 0.7,
         system: contextualizedPrompt,
@@ -130,7 +136,7 @@ export function registerRoutes(app: Express): Server {
         console.error("Error storing memories:", memoryError);
       }
 
-      // Save the chat session if it's new or update existing
+      // Save to database
       if (req.body.chatId) {
         // Update existing chat
         const chatId = parseChatId(req.body.chatId);
