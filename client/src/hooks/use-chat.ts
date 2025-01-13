@@ -15,10 +15,9 @@ export function useChat() {
   const params = useParams();
   const chatId = params?.id;
 
-  // Load existing chat messages
+  // Load existing chat messages or latest chat if no ID is provided
   const { data: chatData, isLoading: isChatLoading } = useQuery<Chat>({
     queryKey: chatId ? [`/api/chats/${chatId}`] : ["/api/chats/latest"],
-    enabled: !!chatId, // Only fetch if we have a chatId
     retry: false,
   });
 
@@ -28,6 +27,8 @@ export function useChat() {
   useEffect(() => {
     if (chatData?.messages) {
       setMessages(chatData.messages as Message[]);
+    } else {
+      setMessages([]); // Reset messages for new chat
     }
   }, [chatData]);
 
