@@ -31,12 +31,15 @@ export function useChat() {
         throw new Error(await response.text());
       }
 
-      const assistantMessage = await response.json();
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: assistantMessage },
-      ]);
-      return assistantMessage;
+      const messageContent = await response.text();
+
+      const assistantMessage: Message = {
+        role: "assistant",
+        content: messageContent
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+      return messageContent;
     },
     onError: (error: Error) => {
       toast({

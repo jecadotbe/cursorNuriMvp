@@ -46,12 +46,15 @@ export function registerRoutes(app: Express): Server {
         messages: req.body.messages,
       });
 
+      // Extract the text content from the response
+      const messageContent = response.content[0].text;
+
       const chat = await db.insert(chats).values({
         userId: req.user.id,
-        messages: [...req.body.messages, response.content],
+        messages: [...req.body.messages, { role: "assistant", content: messageContent }],
       }).returning();
 
-      res.json(response.content);
+      res.json(messageContent);
     } catch (error) {
       handleAnthropicError(error, res);
     }
