@@ -103,15 +103,16 @@ export function registerRoutes(app: Express): Server {
 
       const messageContent = response.content[0].type === 'text' ? response.content[0].text : '';
 
-      // Store the entire conversation context
+      // Store both the user's message and assistant's response
       try {
         // Store the user's message with full context
         await memoryService.createMemory(
           user.id,
           req.body.messages[req.body.messages.length - 1].content,
           {
-            type: 'conversation',
-            role: 'user',
+            category: "chat_history",
+            type: "conversation",
+            role: "user",
             messageIndex: req.body.messages.length - 1,
             chatId: req.body.chatId || 'new',
             conversationContext: req.body.messages.slice(0, -1).map(m => m.content).join('\n')
@@ -123,8 +124,9 @@ export function registerRoutes(app: Express): Server {
           user.id,
           messageContent,
           {
-            type: 'conversation',
-            role: 'assistant',
+            category: "chat_history",
+            type: "conversation",
+            role: "assistant",
             messageIndex: req.body.messages.length,
             chatId: req.body.chatId || 'new',
             conversationContext: req.body.messages.map(m => m.content).join('\n')

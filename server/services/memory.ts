@@ -5,7 +5,25 @@ if (!process.env.MEM0_API_KEY) {
   throw new Error("MEM0_API_KEY environment variable is required");
 }
 
-const client = new MemoryClient({ apiKey: process.env.MEM0_API_KEY });
+if (!process.env.ANTHROPIC_API_KEY) {
+  throw new Error("ANTHROPIC_API_KEY environment variable is required");
+}
+
+const config = {
+  llm: {
+    provider: "anthropic",
+    config: {
+      model: "claude-3-5-sonnet-20241022", // Using latest model
+      temperature: 0.1,
+      max_tokens: 2000,
+    }
+  }
+};
+
+const client = new MemoryClient({ 
+  apiKey: process.env.MEM0_API_KEY,
+  config: config
+});
 
 export interface Memory {
   id: string;
@@ -50,19 +68,20 @@ export class MemoryService {
 
       console.log('Formatted messages for mem0ai:', JSON.stringify(messages, null, 2));
 
-      // Add memory using the SDK
+      // Add memory using the SDK with metadata categories
       const memory = await client.add(messages, {
         user_id: userId.toString(),
         metadata: {
           ...metadata,
           source: 'nuri-chat',
-          type: 'conversation'
+          type: 'conversation',
+          category: 'chat_history'
         }
       });
 
       return {
         id: memory.id,
-        content,
+        content: memory.content,
         metadata: memory.metadata,
         createdAt: new Date(memory.created_at)
       };
@@ -76,13 +95,14 @@ export class MemoryService {
     try {
       console.log('Getting relevant memories for context:', currentContext.substring(0, 100) + '...');
 
-      // Search for relevant memories using the SDK
+      // Search for relevant memories using the SDK with category filter
       const memories = await client.search(currentContext, {
         user_id: userId.toString(),
         limit: 5,
         metadata: {
           source: 'nuri-chat',
-          type: 'conversation'
+          type: 'conversation',
+          category: 'chat_history'
         }
       });
 
@@ -106,7 +126,8 @@ export class MemoryService {
         user_id: userId.toString(),
         metadata: {
           source: 'nuri-chat',
-          type: 'conversation'
+          type: 'conversation',
+          category: 'chat_history'
         }
       });
 
