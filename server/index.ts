@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
+import { spawn } from "child_process";
 
 const app = express();
 
@@ -41,6 +42,23 @@ app.use((req, res, next) => {
   });
 
   next();
+});
+
+// Start the Python Flask server for memory service
+const pythonProcess = spawn('python3', ['server/memory_routes.py']);
+
+pythonProcess.stdout.on('data', (data) => {
+  console.log(`Memory service: ${data.toString()}`);
+});
+
+pythonProcess.stderr.on('data', (data) => {
+  console.error(`Memory service error: ${data.toString()}`);
+});
+
+pythonProcess.on('close', (code) => {
+  if (code !== 0) {
+    console.error(`Memory service process exited with code ${code}`);
+  }
 });
 
 (async () => {

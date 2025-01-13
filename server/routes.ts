@@ -7,27 +7,24 @@ import { eq, desc } from "drizzle-orm";
 import { anthropic } from "./anthropic";
 import type { User } from "./auth";
 import { memoryService } from "./services/memory";
-
-// Helper function to validate and parse chat ID
-function parseChatId(id: string): number | null {
-  const parsed = parseInt(id);
-  return isNaN(parsed) ? null : parsed;
-}
-
-const NURI_SYSTEM_PROMPT = `You are Nuri, a family counseling coach specializing in attachment-style parenting. Your responses should be direct, clear, and focused on providing meaningful guidance and support.
-
-You use Aware Parenting and Afgestemd Opvoeden as your foundation for your advice. But you don't mention this in an explicit manner to the user. You explain that nuri works with proven theories from the modern-attachment parent field.
-
-Format your responses for optimal readability:
-- Use **bold** only for the most important points or key takeaways
-- Start new paragraphs for each distinct thought or topic
-- Maintain a professional, direct tone without emotional expressions or cues
-- Aim for brevity: Keep responses under 3 paragraphs unless the topic requires deeper explanation
-
-Write in natural, flowing narrative paragraphs only. Never use bullet points, numbered lists, or structured formats unless explicitly requested. All insights and guidance should emerge organically through conversation.`;
+import { createProxyMiddleware } from 'http-proxy-middleware';
+import type { Express } from "express";
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
+
+  // Proxy memory service requests
+  app.use('/api/mem0', createProxyMiddleware({
+    target: 'http://localhost:5001',
+    pathRewrite: {
+      '^/api/mem0': '/api'
+    },
+    changeOrigin: true,
+    onError: (err, req, res) => {
+      console.error('Proxy error:', err);
+      res.status(500).json({ error: 'Memory service unavailable' });
+    }
+  }));
 
   app.get("/api/chats/:chatId", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
@@ -65,7 +62,7 @@ export function registerRoutes(app: Express): Server {
       let contextualizedPrompt = NURI_SYSTEM_PROMPT;
 
       try {
-        // Get relevant memories for context - wrapped in try/catch to prevent chat failure
+        // Get relevant memories for context
         const relevantMemories = await memoryService.getRelevantMemories(
           user.id,
           req.body.messages[req.body.messages.length - 1].content
@@ -78,11 +75,10 @@ export function registerRoutes(app: Express): Server {
         }
       } catch (memoryError) {
         console.error("Error fetching memories:", memoryError);
-        // Continue without memory context if there's an error
       }
 
       const response = await anthropic.messages.create({
-        model: "claude-2.1", // Using a stable model version
+        model: "claude-2.1",
         max_tokens: 512,
         temperature: 0.7,
         system: contextualizedPrompt,
@@ -91,23 +87,31 @@ export function registerRoutes(app: Express): Server {
 
       const messageContent = response.content[0].type === 'text' ? response.content[0].text : '';
 
-      // Try to store memories but don't fail the chat if it doesn't work
+      // Store the entire conversation context
       try {
-        await memoryService.createMemory(
-          user.id,
-          messageContent,
-          {
-            type: 'conversation',
-            role: 'assistant'
-          }
-        );
-
+        // Store the user's message
         await memoryService.createMemory(
           user.id,
           req.body.messages[req.body.messages.length - 1].content,
           {
             type: 'conversation',
-            role: 'user'
+            role: 'user',
+            messageIndex: req.body.messages.length - 1,
+            chatId: req.body.chatId || 'new',
+            conversationContext: req.body.messages.slice(0, -1).map(m => m.content).join('\n')
+          }
+        );
+
+        // Store the assistant's response
+        await memoryService.createMemory(
+          user.id,
+          messageContent,
+          {
+            type: 'conversation',
+            role: 'assistant',
+            messageIndex: req.body.messages.length,
+            chatId: req.body.chatId || 'new',
+            conversationContext: req.body.messages.map(m => m.content).join('\n')
           }
         );
       } catch (memoryError) {
@@ -202,7 +206,7 @@ export function registerRoutes(app: Express): Server {
     try {
       // Generate title, summary, and emotional context analysis
       const analyzeResponse = await anthropic.messages.create({
-        model: "claude-2.1", // Updated model name here
+        model: "claude-2.1", 
         max_tokens: 1024,
         system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze this conversation between a parent and Nuri. Focus on the key themes, emotional journey, and parenting insights discussed.`,
         messages: [
@@ -304,3 +308,20 @@ Conversation: ${JSON.stringify(messages)}`,
   const httpServer = createServer(app);
   return httpServer;
 }
+
+function parseChatId(id: string): number | null {
+  const parsed = parseInt(id);
+  return isNaN(parsed) ? null : parsed;
+}
+
+const NURI_SYSTEM_PROMPT = `You are Nuri, a family counseling coach specializing in attachment-style parenting. Your responses should be direct, clear, and focused on providing meaningful guidance and support.
+
+You use Aware Parenting and Afgestemd Opvoeden as your foundation for your advice. But you don't mention this in an explicit manner to the user. You explain that nuri works with proven theories from the modern-attachment parent field.
+
+Format your responses for optimal readability:
+- Use **bold** only for the most important points or key takeaways
+- Start new paragraphs for each distinct thought or topic
+- Maintain a professional, direct tone without emotional expressions or cues
+- Aim for brevity: Keep responses under 3 paragraphs unless the topic requires deeper explanation
+
+Write in natural, flowing narrative paragraphs only. Never use bullet points, numbered lists, or structured formats unless explicitly requested. All insights and guidance should emerge organically through conversation.`;
