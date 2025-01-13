@@ -34,9 +34,9 @@ function Router() {
       <div className="flex-1 pb-16">
         <Switch>
           <Route path="/" component={HomeView} />
-          <Route path="/chat" component={ChatView} />
-          <Route path="/chat/:chatId" component={ChatView} />
+          <Route path="/chat/:id" component={ChatView} />
           <Route path="/chat/history" component={ChatHistoryView} />
+          <Route path="/chat" component={ChatView} />
           <Route path="/village" component={VillageView} />
           <Route path="/learn" component={LearnView} />
           <Route path="/profile" component={ProfileView} />

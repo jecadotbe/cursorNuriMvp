@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "./use-toast";
 import type { Chat } from "@db/schema";
-import { useLocation } from "wouter";
+import { useParams, useLocation } from "wouter";
 
 interface Message {
   role: "user" | "assistant";
@@ -12,14 +12,14 @@ interface Message {
 export function useChat() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [location] = useLocation();
-  const chatId = location.startsWith('/chat/') ? location.split('/')[2] : undefined;
+  const params = useParams();
+  const chatId = params?.id;
 
   // Load existing chat messages
   const { data: chatData, isLoading: isChatLoading } = useQuery<Chat>({
     queryKey: chatId ? [`/api/chats/${chatId}`] : ["/api/chats/latest"],
-    retry: false,
     enabled: !!chatId, // Only fetch if we have a chatId
+    retry: false,
   });
 
   const [messages, setMessages] = useState<Message[]>([]);
