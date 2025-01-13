@@ -1,17 +1,17 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useUser } from "@/hooks/use-user";
+import { useChatHistory } from "@/hooks/use-chat-history";
 import { MessageSquare, Users, GraduationCap, Star, Clock, ChevronRight } from "lucide-react";
 import { Link } from "wouter";
 
 export default function HomeView() {
   const { user } = useUser();
+  const { getLatestPrompt } = useChatHistory();
   const [currentTime, setCurrentTime] = useState<string>("");
 
   useEffect(() => {
-    // Update time immediately
     updateTime();
-    // Update time every minute
     const interval = setInterval(updateTime, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -45,6 +45,8 @@ export default function HomeView() {
     },
   ];
 
+  const prompt = getLatestPrompt();
+
   return (
     <div className="flex-1 bg-[#F2F0E5] overflow-y-auto">
       {/* Status Bar */}
@@ -62,7 +64,6 @@ export default function HomeView() {
         <div className="px-4 py-6">
           <div className="flex items-start gap-4">
             <div className="w-18 h-24">
-              {/* We need the Nuri logo asset */}
               <img
                 src="/images/nuri_logo.png"
                 alt="Nuri Logo"
@@ -94,11 +95,9 @@ export default function HomeView() {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-orange-500 font-medium text-sm mb-2">
-                    OP BASIS VAN ONS GESPREK
+                    {prompt?.title}
                   </div>
-                  <p className="text-lg pr-8">
-                    Hoe gaat het met de zorgen rond je dochter en haar relatie met Donna?
-                  </p>
+                  <p className="text-lg pr-8">{prompt?.message}</p>
                 </div>
                 <ChevronRight className="w-6 h-6 text-gray-400" />
               </div>
