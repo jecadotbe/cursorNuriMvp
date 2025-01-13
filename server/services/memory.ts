@@ -1,15 +1,11 @@
 import { env } from "process";
+import MemoryClient from 'mem0ai';
 
 if (!process.env.MEM0_API_KEY) {
   throw new Error("MEM0_API_KEY environment variable is required");
 }
 
-// Ensure we have a proper base URL that includes protocol and host
-const BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://' + process.env.REPL_SLUG + '.' + process.env.REPL_OWNER + '.repl.co'
-  : 'http://localhost:5000';
-
-const MEMORY_SERVICE_URL = `${BASE_URL}/api/mem0`;
+const client = new MemoryClient({ apiKey: process.env.MEM0_API_KEY });
 
 export interface Memory {
   id: string;
@@ -33,35 +29,42 @@ export class MemoryService {
   async createMemory(userId: number, content: string, metadata?: Record<string, any>): Promise<Memory> {
     try {
       console.log('Creating memory with content:', content.substring(0, 100) + '...');
-      console.log('Memory service URL:', MEMORY_SERVICE_URL);
       console.log('Metadata:', JSON.stringify(metadata, null, 2));
 
-      const url = new URL('/memories', MEMORY_SERVICE_URL);
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          content,
-          metadata: {
-            ...metadata,
-            source: 'nuri-chat',
-            type: 'conversation'
-          }
-        })
-      });
+      // Format messages for mem0ai
+      const messages = [];
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to create memory: ${response.status} ${errorText}`);
+      // Add previous context as system message if available
+      if (metadata?.conversationContext) {
+        messages.push({
+          role: "system",
+          content: `Previous conversation context:\n${metadata.conversationContext}`
+        });
       }
 
-      const memory = await response.json();
+      // Add the current message
+      messages.push({
+        role: metadata?.role || "user",
+        content: content
+      });
+
+      console.log('Formatted messages for mem0ai:', JSON.stringify(messages, null, 2));
+
+      // Add memory using the SDK
+      const memory = await client.add(messages, {
+        user_id: userId.toString(),
+        metadata: {
+          ...metadata,
+          source: 'nuri-chat',
+          type: 'conversation'
+        }
+      });
+
       return {
-        ...memory,
-        createdAt: new Date(memory.createdAt)
+        id: memory.id,
+        content,
+        metadata: memory.metadata,
+        createdAt: new Date(memory.created_at)
       };
     } catch (error) {
       console.error('Error creating memory:', error);
@@ -72,33 +75,24 @@ export class MemoryService {
   async getRelevantMemories(userId: number, currentContext: string): Promise<Memory[]> {
     try {
       console.log('Getting relevant memories for context:', currentContext.substring(0, 100) + '...');
-      console.log('Memory service URL:', MEMORY_SERVICE_URL);
 
-      const url = new URL('/memories/relevant', MEMORY_SERVICE_URL);
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          context: currentContext,
-          metadata: {
-            source: 'nuri-chat',
-            type: 'conversation'
-          }
-        })
+      // Search for relevant memories using the SDK
+      const memories = await client.search(currentContext, {
+        user_id: userId.toString(),
+        limit: 5,
+        metadata: {
+          source: 'nuri-chat',
+          type: 'conversation'
+        }
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to get relevant memories: ${response.status} ${errorText}`);
-      }
+      console.log('Found memories:', memories);
 
-      const memories = await response.json();
-      return memories.map((memory: any) => ({
-        ...memory,
-        createdAt: new Date(memory.createdAt)
+      return memories.map(memory => ({
+        id: memory.id,
+        content: memory.content,
+        metadata: memory.metadata,
+        createdAt: new Date(memory.created_at)
       }));
     } catch (error) {
       console.error('Error getting relevant memories:', error);
@@ -108,31 +102,19 @@ export class MemoryService {
 
   async searchMemories(userId: number, query: string): Promise<Memory[]> {
     try {
-      const url = new URL('/memories/search', MEMORY_SERVICE_URL);
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          query,
-          metadata: {
-            source: 'nuri-chat',
-            type: 'conversation'
-          }
-        })
+      const memories = await client.search(query, {
+        user_id: userId.toString(),
+        metadata: {
+          source: 'nuri-chat',
+          type: 'conversation'
+        }
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to search memories: ${response.status} ${errorText}`);
-      }
-
-      const memories = await response.json();
-      return memories.map((memory: any) => ({
-        ...memory,
-        createdAt: new Date(memory.createdAt)
+      return memories.map(memory => ({
+        id: memory.id,
+        content: memory.content,
+        metadata: memory.metadata,
+        createdAt: new Date(memory.created_at)
       }));
     } catch (error) {
       console.error('Error searching memories:', error);
@@ -142,15 +124,7 @@ export class MemoryService {
 
   async deleteMemory(memoryId: string): Promise<void> {
     try {
-      const url = new URL(`/memories/${memoryId}`, MEMORY_SERVICE_URL);
-      const response = await fetch(url, {
-        method: 'DELETE'
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to delete memory: ${response.status} ${errorText}`);
-      }
+      await client.delete(memoryId);
     } catch (error) {
       console.error('Error deleting memory:', error);
       throw error;

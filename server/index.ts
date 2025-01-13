@@ -2,7 +2,6 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
-import { spawn } from "child_process";
 
 const app = express();
 
@@ -44,49 +43,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Start the Python Flask server for memory service
-let memoryServiceAttempts = 0;
-const MAX_RESTART_ATTEMPTS = 3;
-
-function startMemoryService() {
-  console.log('Starting memory service...');
-  const pythonProcess = spawn('python3', ['server/memory_routes.py']);
-
-  pythonProcess.stdout.on('data', (data) => {
-    console.log(`Memory service: ${data.toString()}`);
-  });
-
-  pythonProcess.stderr.on('data', (data) => {
-    console.error(`Memory service error: ${data.toString()}`);
-  });
-
-  pythonProcess.on('close', (code) => {
-    console.error(`Memory service process exited with code ${code}`);
-    if (memoryServiceAttempts < MAX_RESTART_ATTEMPTS) {
-      console.log('Attempting to restart memory service...');
-      memoryServiceAttempts++;
-      setTimeout(startMemoryService, 1000 * memoryServiceAttempts); // Exponential backoff
-    } else {
-      console.error('Memory service failed to start after maximum attempts');
-    }
-  });
-
-  // Reset attempts after 30 seconds of successful running
-  setTimeout(() => {
-    memoryServiceAttempts = 0;
-  }, 30000);
-
-  return pythonProcess;
-}
-
 (async () => {
   try {
-    // Start memory service first
-    const memoryService = startMemoryService();
-
-    // Wait for memory service to be ready
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
     const server = registerRoutes(app);
 
     // Error handling middleware
@@ -112,10 +70,9 @@ function startMemoryService() {
       log(`serving on port ${PORT}`);
     });
 
-    // Cleanup on exit
+    // Cleanup on exit - simplified because memoryService is removed
     process.on('SIGTERM', () => {
       console.log('Shutting down...');
-      memoryService.kill();
       server.close();
       process.exit(0);
     });
