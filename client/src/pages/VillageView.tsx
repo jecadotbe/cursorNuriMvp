@@ -1,127 +1,154 @@
 import { useState } from "react";
 import { useVillage } from "@/hooks/use-village";
-import VillageCircle from "@/components/VillageCircle";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Plus } from "lucide-react";
+import { ChevronLeft, Plus, ZoomIn, ZoomOut } from "lucide-react";
+import Draggable from "react-draggable";
+import { Link } from "wouter";
+
+interface MemberPill {
+  id: number;
+  label: string;
+  type: string;
+  circle: number;
+  x: number;
+  y: number;
+}
 
 export default function VillageView() {
-  const { members, addMember } = useVillage();
-  const [isOpen, setIsOpen] = useState(false);
-  const [newMember, setNewMember] = useState({
-    name: "",
-    type: "individual",
-    circle: 1,
-    interactionFrequency: 1,
-  });
+  const { members } = useVillage();
+  const [scale, setScale] = useState(1);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await addMember(newMember);
-    setIsOpen(false);
-    setNewMember({
-      name: "",
-      type: "individual",
-      circle: 1,
-      interactionFrequency: 1,
-    });
+  const handleZoomIn = () => {
+    setScale((prev) => Math.min(prev + 0.1, 3)); // max 3x zoom
+  };
+
+  const handleZoomOut = () => {
+    setScale((prev) => Math.max(prev - 0.1, 0.3)); // min 0.3x zoom
+  };
+
+  const getCircleRadius = (index: number) => {
+    const baseRadius = 80; // Adjust based on your needs
+    return baseRadius * (index + 1);
+  };
+
+  const getMemberPosition = (circle: number) => {
+    const angle = Math.random() * 2 * Math.PI;
+    const radius = getCircleRadius(circle - 1);
+    return {
+      x: Math.cos(angle) * radius,
+      y: Math.sin(angle) * radius,
+    };
   };
 
   return (
-    <div className="min-h-screen p-4">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Mijn Village</h1>
-          <p className="text-gray-500">
-            Een bloeiende Village als middel tegen 'Village Armoede'
-          </p>
+    <div className="flex-1 flex flex-col bg-[#F2F0E5] relative">
+      {/* Header */}
+      <div
+        className="relative p-4 min-h-[200px]"
+        style={{
+          background: `url('/images/village_circles_page.png'), linear-gradient(45deg, #C2ECD1 0%, #F8DE9F 35%)`,
+          backgroundPosition: "left",
+          backgroundRepeat: "no-repeat",
+          backgroundSize: "contain",
+        }}
+      >
+        <Link href="/">
+          <div className="flex items-center space-x-4 cursor-pointer">
+            <ChevronLeft className="w-6 h-6 text-gray-800" />
+            <span className="text-xl text-gray-800">Mijn Village</span>
+          </div>
+        </Link>
+        <h1 className="text-2xl font-medium mt-6 text-[#2F4644] max-w-[280px]">
+          Een bloeiende Village als middel tegen 'Village Armoede'
+        </h1>
+      </div>
+
+      {/* Zoom Controls */}
+      <div className="absolute top-32 right-4 flex flex-col space-y-2 z-10">
+        <button
+          onClick={handleZoomIn}
+          className="w-10 h-10 flex items-center justify-center bg-white rounded shadow"
+        >
+          <ZoomIn className="w-5 h-5 text-gray-700" />
+        </button>
+        <button
+          onClick={handleZoomOut}
+          className="w-10 h-10 flex items-center justify-center bg-white rounded shadow"
+        >
+          <ZoomOut className="w-5 h-5 text-gray-700" />
+        </button>
+      </div>
+
+      {/* Village Visualization */}
+      <div className="flex-1 relative overflow-hidden">
+        <div
+          className="absolute inset-0 flex items-center justify-center"
+          style={{
+            transform: `scale(${scale})`,
+            transformOrigin: "center center",
+          }}
+        >
+          {/* Concentric Circles */}
+          {[1, 2, 3, 4, 5].map((circle) => (
+            <div
+              key={circle}
+              className="absolute border border-[#D9E7DA] rounded-full"
+              style={{
+                width: getCircleRadius(circle - 1) * 2,
+                height: getCircleRadius(circle - 1) * 2,
+                left: "50%",
+                top: "50%",
+                transform: "translate(-50%, -50%)",
+              }}
+            />
+          ))}
+
+          {/* Center Circle */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-[#2F4644] rounded-full flex items-center justify-center text-white text-sm">
+            Kerngezin
+          </div>
+
+          {/* Member Pills */}
+          {members.map((member) => {
+            const pos = getMemberPosition(member.circle);
+            return (
+              <Draggable
+                key={member.id}
+                defaultPosition={pos}
+                bounds="parent"
+              >
+                <div className="absolute cursor-move" style={{ transform: "translate(-50%, -50%)" }}>
+                  <div className="flex items-center space-x-2 bg-white rounded-full px-3 py-1 shadow-sm">
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        member.type === "individual" ? "bg-[#22c55e]" : "bg-[#3b82f6]"
+                      }`}
+                    />
+                    <span className="text-sm text-gray-800">{member.name}</span>
+                  </div>
+                </div>
+              </Draggable>
+            );
+          })}
         </div>
-
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild>
-            <Button size="icon" className="rounded-full">
-              <Plus className="h-4 w-4" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Village Member</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  value={newMember.name}
-                  onChange={(e) =>
-                    setNewMember({ ...newMember, name: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="type">Type</Label>
-                <Select
-                  value={newMember.type}
-                  onValueChange={(value) =>
-                    setNewMember({ ...newMember, type: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="individual">Individual</SelectItem>
-                    <SelectItem value="group">Group</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="circle">Circle</Label>
-                <Select
-                  value={String(newMember.circle)}
-                  onValueChange={(value) =>
-                    setNewMember({ ...newMember, circle: Number(value) })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <SelectItem key={n} value={String(n)}>
-                        Circle {n}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button type="submit" className="w-full">
-                Add Member
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
       </div>
 
-      <div className="relative aspect-square w-full max-w-2xl mx-auto">
-        <VillageCircle members={members} />
+      {/* Village Suggestions */}
+      <div className="p-4 flex">
+        <div className="flex items-center justify-between bg-white rounded-full px-6 py-3 shadow-md w-auto">
+          <span>
+            Er zijn <strong className="text-orange-500">3</strong> village
+            suggesties
+          </span>
+          <ChevronLeft className="w-5 h-5 transform rotate-90 ml-2" />
+        </div>
       </div>
+
+      {/* Add Member Button */}
+      <Link href="/village/add">
+        <button className="absolute bottom-20 right-4 w-12 h-12 bg-[#2F4644] rounded-full flex items-center justify-center shadow-lg">
+          <Plus className="w-6 h-6 text-white" />
+        </button>
+      </Link>
     </div>
   );
 }
