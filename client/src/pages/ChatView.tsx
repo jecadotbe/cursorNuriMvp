@@ -96,14 +96,13 @@ export default function ChatView() {
   };
 
   const startNewChat = () => {
-    // Clear local storage and navigate to new chat
+    setShowNewChatDialog(false);
     window.localStorage.removeItem('chat-messages');
     navigate('/chat', { replace: true });
-    window.location.reload(); // Force reload to clear the chat state
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-white">
+    <div className="flex flex-col h-screen bg-white">
       {/* Header */}
       <div className="w-full px-4 py-3 flex items-center justify-between border-b border-gray-200 bg-white">
         <div className="flex items-center gap-4">
@@ -157,7 +156,6 @@ export default function ChatView() {
                     messageId={`${chatId}-${index}`}
                     onFeedback={(feedback) => {
                       console.log(`Feedback for message ${index}: ${feedback}`);
-                      // TODO: Send feedback to server
                     }}
                   />
                 )}
@@ -179,39 +177,42 @@ export default function ChatView() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input area */}
-      <div className="w-full px-4 py-3 border-t border-gray-200 bg-white">
-        <div className="flex items-center space-x-2">
-          <button className="p-2 hover:bg-gray-100 rounded-full">
-            <Mic className="w-6 h-6 text-[#629785]" />
-          </button>
-          <textarea
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Typ een boodschap..."
-            className={`flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#629785] focus:border-transparent resize-none transition-all duration-200 ease-in-out ${
-              isExpanded ? 'h-[150px]' : 'h-[40px]'
-            }`}
-            style={{
-              lineHeight: '1.5rem',
-              overflowY: isExpanded ? 'auto' : 'hidden',
-              paddingTop: isExpanded ? '0.75rem' : '0.5rem'
-            }}
-          />
-          <button
-            onClick={handleSend}
-            disabled={isLoading || !inputText.trim()}
-            className="p-2 hover:bg-gray-100 rounded-full disabled:opacity-50"
-          >
-            <ArrowUpCircle className="w-6 h-6 text-[#629785]" />
-          </button>
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className={`p-2 hover:bg-gray-100 rounded-full ${isExpanded ? 'bg-gray-100' : ''}`}
-          >
-            <Expand className={`w-6 h-6 text-[#629785] transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-          </button>
+      {/* Input area - Fixed to bottom */}
+      <div className="w-full border-t border-gray-200 bg-white">
+        <div className="max-w-screen-lg mx-auto px-4 py-3">
+          <div className="flex items-start space-x-2">
+            <button className="p-2 hover:bg-gray-100 rounded-full flex-shrink-0">
+              <Mic className="w-6 h-6 text-[#629785]" />
+            </button>
+            <textarea
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Typ een boodschap..."
+              className={`flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#629785] focus:border-transparent resize-none transition-all duration-200 ease-in-out ${
+                isExpanded ? 'h-24' : 'h-10'
+              }`}
+              style={{
+                lineHeight: '1.5rem',
+                overflowY: isExpanded ? 'auto' : 'hidden',
+              }}
+            />
+            <div className="flex-shrink-0 flex items-center space-x-2">
+              <button
+                onClick={handleSend}
+                disabled={isLoading || !inputText.trim()}
+                className="p-2 hover:bg-gray-100 rounded-full disabled:opacity-50"
+              >
+                <ArrowUpCircle className="w-6 h-6 text-[#629785]" />
+              </button>
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className={`p-2 hover:bg-gray-100 rounded-full ${isExpanded ? 'bg-gray-100' : ''}`}
+              >
+                <Expand className={`w-6 h-6 text-[#629785] transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -231,12 +232,7 @@ export default function ChatView() {
             >
               Cancel
             </Button>
-            <Button
-              onClick={() => {
-                setShowNewChatDialog(false);
-                startNewChat();
-              }}
-            >
+            <Button onClick={startNewChat}>
               Start New Chat
             </Button>
           </AlertDialogFooter>
