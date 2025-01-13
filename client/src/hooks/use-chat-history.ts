@@ -20,7 +20,7 @@ async function fetchChatHistory(): Promise<Chat[]> {
 
 export function useChatHistory() {
   const { toast } = useToast();
-  
+
   const { data: chats = [], isLoading, error } = useQuery<Chat[], Error>({
     queryKey: ["chats"],
     queryFn: fetchChatHistory,
@@ -43,7 +43,7 @@ export function useChatHistory() {
       };
     }
 
-    const latestChat = chats[chats.length - 1];
+    const latestChat = chats[0]; 
     const messages = latestChat.messages as { role: string; content: string }[];
     const lastUserMessage = messages.findLast(m => m.role === "user");
 

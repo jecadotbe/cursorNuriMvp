@@ -22,8 +22,13 @@ export const villageMembers = pgTable("village_members", {
 export const chats = pgTable("chats", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
+  title: text("title"),
+  summary: text("summary"),
   messages: jsonb("messages").notNull(),
+  metadata: jsonb("metadata"), // For additional filtering/organization
+  tags: text("tags").array(), // For categorizing conversations
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const insertUserSchema = createInsertSchema(users);

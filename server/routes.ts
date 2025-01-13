@@ -90,9 +90,40 @@ export function registerRoutes(app: Express): Server {
       return res.status(401).send("Not authenticated");
     }
 
+    // Generate a title and summary from the chat content
+    const messages = req.body.messages;
+    let title = null;
+    let summary = null;
+
+    try {
+      const response = await anthropic.messages.create({
+        model: "claude-3-5-sonnet-20241022",
+        max_tokens: 1024,
+        messages: [
+          {
+            role: "user",
+            content: `Based on this conversation, generate a short title (max 5 words) and a brief summary (max 2 sentences) in Dutch. Format your response as JSON with "title" and "summary" fields:\n\n${JSON.stringify(messages)}`,
+          },
+        ],
+      });
+
+      const { title: generatedTitle, summary: generatedSummary } = JSON.parse(response.content[0].text);
+      title = generatedTitle;
+      summary = generatedSummary;
+    } catch (error) {
+      console.error("Failed to generate title/summary:", error);
+    }
+
     const chat = await db.insert(chats).values({
       userId: req.user.id,
       messages: req.body.messages,
+      title,
+      summary,
+      metadata: {
+        messageCount: messages.length,
+        lastMessageRole: messages[messages.length - 1].role,
+      },
+      updatedAt: new Date(),
     }).returning();
 
     res.json(chat[0]);
