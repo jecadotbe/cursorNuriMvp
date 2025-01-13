@@ -1,0 +1,207 @@
+import React, { useState, useEffect } from 'react';
+import { Star, Clock, ChevronRight, BookOpen } from 'lucide-react';
+import { useRouter } from 'next/router';
+
+type LearningVideo = {
+  title: string;
+  duration: string;
+  image: string;
+};
+
+const HomeView: React.FC = () => {
+  const [currentTime, setCurrentTime] = useState<string>('');
+  const router = useRouter();
+
+  useEffect(() => {
+    // Update time immediately
+    updateTime();
+    // Update time every minute
+    const interval = setInterval(updateTime, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const updateTime = () => {
+    const now = new Date();
+    setCurrentTime(now.toLocaleTimeString('nl-NL', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }));
+  };
+
+  const learningVideos: LearningVideo[] = [
+    {
+      title: "Wat is Aware Parenting?",
+      duration: "10 min",
+      image: "/images/bg_test.jpg"
+    },
+    {
+      title: "Niet straffen en belonen; hoe dan?",
+      duration: "5 min",
+      image: "/images/bg_test.jpg"
+    },
+    {
+      title: "Hoe je kind begeleiden bij een driftbui",
+      duration: "7 min",
+      image: "/images/bg_test.jpg"
+    }
+  ];
+
+  return (
+    <div className="flex-1 bg-[#F2F0E5] overflow-y-auto">
+      {/* Status Bar */}
+      <div className="flex justify-between items-center p-4">
+        <span className="text-black">{currentTime}</span>
+      </div>
+
+      {/* Greeting Section */}
+      <div 
+        className="w-full"
+        style={{
+          background: 'linear-gradient(45deg, #F8DD9F 0%, #F2F0E5 35%)'
+        }}
+      >
+        <div className="px-4 py-6">
+          <div className="flex items-start gap-4">
+            <div className="w-18 h-24">
+              <img 
+                src="/images/nuri_logo.png"
+                alt="Nuri Logo"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = "/images/fallback-logo.png";
+                  console.log('Image failed to load');
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <h1 className="text-2xl text-[#2F4644]">Dag John,</h1>
+              <p className="text-xl text-[#2F4644]">
+                Fijn je weer te zien.
+                <br />
+                Waarover wil je praten?  
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Chat Prompt */}
+      <div className="px-4 py-6">
+        <div 
+          className="bg-white rounded-xl shadow-sm p-4 cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => router.push('/chat')}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-orange-500 font-medium text-sm mb-2">
+                OP BASIS VAN ONS GESPREK
+              </div>
+              <p className="text-lg pr-8">
+                Hoe gaat het met de zorgen rond je dochter en haar relatie met je Donna?
+              </p>
+            </div>
+            <ChevronRight className="w-6 h-6 text-gray-400" />
+          </div>
+        </div>
+      </div>
+
+      {/* Village Section */}
+              <div className="w-full">
+                <div 
+                  className="rounded-xl p-4 relative overflow-hidden min-h-[200px]" // Added min-height to ensure visibility
+                  style={{
+                    backgroundImage: `url('/images/village_circles.png'), linear-gradient(180deg, #D9E7DA 0%, #F2F0E5 35%)`, // Changed order: image first, then gradient
+                    backgroundPosition: 'right top',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: 'contain',
+              
+                  }}
+                >
+          <div className="flex items-center gap-2 mb-2">
+            <Star className="w-5 h-5" />
+            <h2 className="text-xl">Village</h2>
+          </div>
+          <h3 className="text-xl mb-4">Laat je Village bloeien</h3>
+          <div className="flex justify-between items-center">
+            <div className="relative w-48 h-48">
+              {/* Concentric circles */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-48 h-48 rounded-full border-2 border-[#D9E7DA] opacity-20" />
+                <div className="absolute w-36 h-36 rounded-full border-2 border-[#D9E7DA] opacity-40" />
+                <div className="absolute w-24 h-24 rounded-full border-2 border-[#D9E7DA] opacity-60" />
+
+                {/* Small dots */}
+                <div className="absolute w-2 h-2 bg-[#D9E7DA] rounded-full" 
+                     style={{ top: '20%', right: '30%' }} />
+                <div className="absolute w-2 h-2 bg-[#D9E7DA] rounded-full"
+                     style={{ bottom: '30%', left: '25%' }} />
+                <div className="absolute w-2 h-2 bg-[#D9E7DA] rounded-full"
+                     style={{ top: '40%', left: '20%' }} />
+
+                {/* Image placeholders */}
+                <div className="absolute w-12 h-12 rounded-full bg-white shadow-md overflow-hidden"
+                     style={{ top: '15%', right: '20%' }}>
+                  {/* Add actual images here later */}
+                </div>
+                <div className="absolute w-12 h-12 rounded-full bg-white shadow-md overflow-hidden"
+                     style={{ bottom: '20%', left: '30%' }}>
+                  {/* Add actual images here later */}
+                </div>
+
+                {/* Center star icon */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full bg-[#D9E7DA] flex items-center justify-center">
+                    <Star className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button className="bg-white rounded-full px-4 py-2 shadow-sm flex items-center gap-2">
+              <span>Er zijn <strong className="text-orange-500">3</strong> village suggesties</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Learning Section */}
+      <div className="w-full">
+        <div 
+          className="rounded-xl p-4"
+          style={{
+            background: 'linear-gradient(180deg, #F8DD9F 0%, #F2F0E5 35%)'
+          }}
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <BookOpen className="w-5 h-5" />
+            <h2 className="text-xl">Verder leren?</h2>
+          </div>
+          <div className="space-y-4">
+            {learningVideos.map((video, index) => (
+              <div key={index} className="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div className="flex items-center gap-4 p-4">
+                  <img
+                    src={video.image}
+                    alt={video.title}
+                    className="w-20 h-20 object-cover rounded-lg"
+                  />
+                  <div className="flex-1">
+                    <h3 className="text-lg mb-2">{video.title}</h3>
+                    <div className="flex items-center text-gray-500">
+                      <Clock className="w-4 h-4 mr-1" />
+                      <span>{video.duration}</span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-6 h-6 text-gray-400" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default HomeView;
