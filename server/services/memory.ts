@@ -34,16 +34,15 @@ export class MemoryService {
       console.log('Content:', content.substring(0, 100) + '...');
       console.log('Metadata:', JSON.stringify(metadata, null, 2));
 
-      // Format single message according to mem0ai docs
-      const message = [{
+      // Format message array according to mem0ai docs
+      const messages = [{
         role: metadata?.role || "user",
         content: content
       }];
 
-      console.log('Adding memory:', JSON.stringify(message, null, 2));
+      console.log('Adding memory with messages:', JSON.stringify(messages, null, 2));
 
-      // Add memory using the client
-      const result = await client.add(message, {
+      const result = await client.add(messages, {
         user_id: userId.toString(),
         metadata: {
           ...metadata,
@@ -55,11 +54,19 @@ export class MemoryService {
 
       console.log('Memory creation result:', result);
 
+      // According to mem0ai docs, result is an array of events
+      const memoryId = result[0]?.id || result.id; // Handle both array and single result
+
       return {
-        id: result.id,
+        id: memoryId,
         content,
-        metadata: result.metadata,
-        createdAt: new Date(result.created_at)
+        metadata: {
+          ...metadata,
+          source: 'nuri-chat',
+          type: 'conversation',
+          category: 'chat_history'
+        },
+        createdAt: new Date()
       };
     } catch (error) {
       console.error('Error creating memory:', error);
@@ -71,7 +78,7 @@ export class MemoryService {
     try {
       console.log('Getting relevant memories for context:', currentContext.substring(0, 100) + '...');
 
-      // Search for memories using the client
+      // Search for memories using mem0ai search API
       const memories = await client.search(currentContext, {
         user_id: userId.toString(),
         metadata: {
@@ -85,7 +92,9 @@ export class MemoryService {
 
       return memories.map(memory => ({
         id: memory.id,
-        content: Array.isArray(memory.content) ? memory.content[0].content : memory.content,
+        content: Array.isArray(memory.content) ? 
+          memory.content[0].content : 
+          (memory.memory || memory.content), // Handle different response formats
         metadata: memory.metadata,
         createdAt: new Date(memory.created_at)
       }));
@@ -108,7 +117,9 @@ export class MemoryService {
 
       return memories.map(memory => ({
         id: memory.id,
-        content: Array.isArray(memory.content) ? memory.content[0].content : memory.content,
+        content: Array.isArray(memory.content) ? 
+          memory.content[0].content : 
+          (memory.memory || memory.content), // Handle different response formats
         metadata: memory.metadata,
         createdAt: new Date(memory.created_at)
       }));

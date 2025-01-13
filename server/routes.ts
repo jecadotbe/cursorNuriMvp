@@ -7,31 +7,9 @@ import { eq, desc } from "drizzle-orm";
 import { anthropic } from "./anthropic";
 import type { User } from "./auth";
 import { memoryService } from "./services/memory";
-import { createProxyMiddleware } from 'http-proxy-middleware';
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
-
-  // Proxy memory service requests
-  app.use('/api/mem0', createProxyMiddleware({
-    target: 'http://localhost:5001',
-    pathRewrite: {
-      '^/api/mem0': '/api'
-    },
-    changeOrigin: true,
-    logLevel: 'debug',
-    onProxyReq: (proxyReq, req) => {
-      console.log('Proxying request:', {
-        method: req.method,
-        path: req.path,
-        targetPath: proxyReq.path
-      });
-    },
-    onError: (err, req, res) => {
-      console.error('Proxy error:', err);
-      res.status(500).json({ error: 'Memory service unavailable', details: err.message });
-    }
-  }));
 
   app.get("/api/chats/:chatId", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
