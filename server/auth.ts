@@ -5,7 +5,7 @@ import session from "express-session";
 import createMemoryStore from "memorystore";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { users, insertUserSchema, type User } from "@db/schema";
+import { users, type User } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
 
@@ -30,8 +30,7 @@ const crypto = {
 
 declare global {
   namespace Express {
-    // Use the imported User type directly
-    interface User extends Omit<User, 'User'> {}
+    interface User extends User {}
   }
 }
 
@@ -100,31 +99,25 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
-      const result = insertUserSchema.safeParse(req.body);
-      if (!result.success) {
-        return res
-          .status(400)
-          .send("Invalid input: " + result.error.issues.map(i => i.message).join(", "));
+      if (!req.body.username || !req.body.password) {
+        return res.status(400).send("Username and password are required");
       }
-
-      const { username, password } = result.data;
 
       const [existingUser] = await db
         .select()
         .from(users)
-        .where(eq(users.username, username))
+        .where(eq(users.username, req.body.username))
         .limit(1);
 
       if (existingUser) {
         return res.status(400).send("Username already exists");
       }
 
-      const hashedPassword = await crypto.hash(password);
-
+      const hashedPassword = await crypto.hash(req.body.password);
       const [newUser] = await db
         .insert(users)
         .values({
-          ...result.data,
+          username: req.body.username,
           password: hashedPassword,
         })
         .returning();
@@ -144,14 +137,11 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    const result = insertUserSchema.safeParse(req.body);
-    if (!result.success) {
-      return res
-        .status(400)
-        .send("Invalid input: " + result.error.issues.map(i => i.message).join(", "));
+    if (!req.body.username || !req.body.password) {
+      return res.status(400).send("Username and password are required");
     }
 
-    passport.authenticate("local", (err: any, user: Express.User, info: IVerifyOptions) => {
+    passport.authenticate("local", (err: any, user: Express.User | false, info: IVerifyOptions) => {
       if (err) {
         return next(err);
       }
@@ -189,3 +179,5 @@ export function setupAuth(app: Express) {
     res.status(401).send("Not logged in");
   });
 }
+
+export { User };

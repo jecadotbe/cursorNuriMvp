@@ -5,6 +5,7 @@ import { db } from "@db";
 import { villageMembers, chats, messageFeedback } from "@db/schema";
 import { eq, desc } from "drizzle-orm";
 import { anthropic } from "./anthropic";
+import type { User } from "./auth";
 
 // Helper function to validate and parse chat ID
 function parseChatId(id: string): number | null {
@@ -38,6 +39,7 @@ export function registerRoutes(app: Express): Server {
       return res.status(400).json({ message: "Invalid chat ID" });
     }
 
+    const user = req.user as User;
     const chat = await db.query.chats.findFirst({
       where: eq(chats.id, chatId),
     });
@@ -46,7 +48,7 @@ export function registerRoutes(app: Express): Server {
       return res.status(404).json({ message: "Chat not found" });
     }
 
-    if (chat.userId !== req.user.id) {
+    if (chat.userId !== user.id) {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
@@ -58,8 +60,9 @@ export function registerRoutes(app: Express): Server {
       return res.status(401).send("Not authenticated");
     }
 
+    const user = req.user as User;
     const members = await db.query.villageMembers.findMany({
-      where: eq(villageMembers.userId, req.user.id),
+      where: eq(villageMembers.userId, user.id),
     });
 
     res.json(members);
@@ -70,9 +73,10 @@ export function registerRoutes(app: Express): Server {
       return res.status(401).send("Not authenticated");
     }
 
+    const user = req.user as User;
     const member = await db.insert(villageMembers).values({
       ...req.body,
-      userId: req.user.id,
+      userId: user.id,
     }).returning();
 
     res.json(member[0]);
@@ -85,7 +89,7 @@ export function registerRoutes(app: Express): Server {
 
     try {
       const response = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
+        model: "claude-3-sonnet-20240110",
         max_tokens: 512,
         temperature: 0.7,
         system: `${NURI_SYSTEM_PROMPT}
@@ -93,8 +97,9 @@ Keep responses concise and focused. Aim for 2-3 paragraphs maximum unless the to
         messages: req.body.messages,
       });
 
-      const messageContent = response.content[0].text;
+      const messageContent = response.content[0].type === 'text' ? response.content[0].text : '';
 
+      const user = req.user as User;
       // Save the chat session if it's new or update existing
       if (req.body.chatId) {
         // Update existing chat
@@ -107,7 +112,7 @@ Keep responses concise and focused. Aim for 2-3 paragraphs maximum unless the to
           where: eq(chats.id, chatId),
         });
 
-        if (!existingChat || existingChat.userId !== req.user.id) {
+        if (!existingChat || existingChat.userId !== user.id) {
           return res.status(403).json({ message: "Unauthorized" });
         }
 
@@ -121,29 +126,28 @@ Keep responses concise and focused. Aim for 2-3 paragraphs maximum unless the to
         // Create a new chat with auto-generated title
         try {
           const titleResponse = await anthropic.messages.create({
-            model: "claude-3-5-sonnet-20241022",
+            model: "claude-3-sonnet-20240110",
             max_tokens: 50,
             temperature: 0.7,
             system: "Generate a very short (3-5 words) title that captures the main theme of this conversation.",
             messages: [{ role: 'user', content: req.body.messages[0].content }],
           });
 
-          const title = titleResponse.content[0].text.replace(/"/g, '').trim();
+          const title = titleResponse.content[0].type === 'text' ? titleResponse.content[0].text.replace(/"/g, '').trim() : '';
 
           const [newChat] = await db.insert(chats).values({
-            userId: req.user.id,
+            userId: user.id,
             title: title,
             messages: req.body.messages.concat([{ role: 'assistant', content: messageContent }]),
             updatedAt: new Date()
           }).returning();
 
-          // Log the newly created chat for debugging
           console.log("Created new chat:", newChat);
         } catch (titleError) {
           console.error("Error generating title:", titleError);
           // Fallback to a timestamp-based title if title generation fails
           const [newChat] = await db.insert(chats).values({
-            userId: req.user.id,
+            userId: user.id,
             title: `Chat ${new Date().toLocaleDateString()}`,
             messages: req.body.messages.concat([{ role: 'assistant', content: messageContent }]),
             updatedAt: new Date()
@@ -156,7 +160,7 @@ Keep responses concise and focused. Aim for 2-3 paragraphs maximum unless the to
       res.json({
         content: messageContent,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("API error:", error);
       res.status(500).json({
         message: "Failed to process request",
@@ -170,8 +174,9 @@ Keep responses concise and focused. Aim for 2-3 paragraphs maximum unless the to
       return res.status(401).send("Not authenticated");
     }
 
+    const user = req.user as User;
     const userChats = await db.query.chats.findMany({
-      where: eq(chats.userId, req.user.id),
+      where: eq(chats.userId, user.id),
       orderBy: desc(chats.createdAt),
     });
 
@@ -183,8 +188,9 @@ Keep responses concise and focused. Aim for 2-3 paragraphs maximum unless the to
       return res.status(401).send("Not authenticated");
     }
 
+    const user = req.user as User;
     const latestChat = await db.query.chats.findFirst({
-      where: eq(chats.userId, req.user.id),
+      where: eq(chats.userId, user.id),
       orderBy: desc(chats.createdAt),
     });
 
@@ -200,6 +206,7 @@ Keep responses concise and focused. Aim for 2-3 paragraphs maximum unless the to
       return res.status(401).send("Not authenticated");
     }
 
+    const user = req.user as User;
     const messages = req.body.messages;
     let title = null;
     let summary = null;
@@ -208,7 +215,7 @@ Keep responses concise and focused. Aim for 2-3 paragraphs maximum unless the to
     try {
       // Generate title, summary, and emotional context analysis
       const analyzeResponse = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
+        model: "claude-3-sonnet-20240110",
         max_tokens: 1024,
         system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze this conversation between a parent and Nuri. Focus on the key themes, emotional journey, and parenting insights discussed.`,
         messages: [
@@ -227,7 +234,7 @@ Conversation: ${JSON.stringify(messages)}`,
       });
 
       try {
-        const jsonMatch = analyzeResponse.content[0].text.match(/\{.*\}/s);
+        const jsonMatch = analyzeResponse.content[0].type === 'text' ? analyzeResponse.content[0].text.match(/\{.*\}/s) : null;
         if (jsonMatch) {
           const analysis = JSON.parse(jsonMatch[0]);
           title = analysis.title;
@@ -242,7 +249,7 @@ Conversation: ${JSON.stringify(messages)}`,
     }
 
     const chat = await db.insert(chats).values({
-      userId: req.user.id,
+      userId: user.id,
       messages: messages,
       title,
       summary,
@@ -262,9 +269,10 @@ Conversation: ${JSON.stringify(messages)}`,
       return res.status(401).send("Not authenticated");
     }
 
+    const user = req.user as User;
     try {
       const feedback = await db.insert(messageFeedback).values({
-        userId: req.user.id,
+        userId: user.id,
         messageId: req.body.messageId,
         feedbackType: req.body.feedbackType,
         chatId: req.body.chatId,
@@ -298,9 +306,11 @@ Conversation: ${JSON.stringify(messages)}`,
       return res.status(404).json({ message: "Chat not found" });
     }
 
+    const metadata = chat.metadata as { emotionalContext?: string } | null;
+
     // Return the emotional context from the chat metadata
     res.json({
-      emotionalContext: chat.metadata?.emotionalContext || null,
+      emotionalContext: metadata?.emotionalContext || null,
     });
   });
 
