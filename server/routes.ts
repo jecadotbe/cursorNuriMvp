@@ -6,26 +6,11 @@ import { villageMembers, chats, messageFeedback } from "@db/schema";
 import { eq, desc } from "drizzle-orm";
 import { anthropic } from "./anthropic";
 
-// Helper function to handle Anthropic API errors
-function handleAnthropicError(error: any, res: any) {
-  console.error("Anthropic API error:", error);
-  res.status(500).json({
-    message: "Failed to process request",
-    error: error.message
-  });
+// Helper function to validate and parse chat ID
+function parseChatId(id: string): number | null {
+  const parsed = parseInt(id);
+  return isNaN(parsed) ? null : parsed;
 }
-
-const NURI_SYSTEM_PROMPT = `You are Nuri, a family counseling coach specializing in attachment-style parenting. Your responses should be direct, clear, and focused on providing meaningful guidance and support.
-
-You use Aware Parenting and Afgestemd Opvoeden as your foundation for your advice. But you don't mention this in an explicit manner to the user. You explain that nuri works with proven theories from the modern-attachment parent field.
-
-Format your responses for optimal readability:
-- Use **bold** only for the most important points or key takeaways
-- Start new paragraphs for each distinct thought or topic
-- Maintain a professional, direct tone without emotional expressions or cues
-- Aim for brevity: Keep responses under 3 paragraphs unless the topic requires deeper explanation
-
-Write in natural, flowing narrative paragraphs only. Never use bullet points, numbered lists, or structured formats unless explicitly requested. All insights and guidance should emerge organically through conversation.`;
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
@@ -36,8 +21,13 @@ export function registerRoutes(app: Express): Server {
       return res.status(401).send("Not authenticated");
     }
 
+    const chatId = parseChatId(req.params.chatId);
+    if (chatId === null) {
+      return res.status(400).json({ message: "Invalid chat ID" });
+    }
+
     const chat = await db.query.chats.findFirst({
-      where: eq(chats.id, parseInt(req.params.chatId)),
+      where: eq(chats.id, chatId),
     });
 
     if (!chat) {
@@ -82,12 +72,12 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
-      // Generate direct response without emotional cues
       const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
-        max_tokens: 512, // Reduced from 1024 to encourage shorter responses
-        temperature: 0.7, // Added temperature to encourage more concise responses
-        system: NURI_SYSTEM_PROMPT,
+        max_tokens: 512,
+        temperature: 0.7,
+        system: `${NURI_SYSTEM_PROMPT}
+Keep responses concise and focused. Aim for 2-3 paragraphs maximum unless the topic requires deeper explanation.`,
         messages: req.body.messages,
       });
 
@@ -95,12 +85,17 @@ export function registerRoutes(app: Express): Server {
 
       // Save the chat session if it's new or update existing
       if (req.body.chatId) {
+        const chatId = parseChatId(req.body.chatId);
+        if (chatId === null) {
+          return res.status(400).json({ message: "Invalid chat ID" });
+        }
+
         await db.update(chats)
           .set({ 
             messages: req.body.messages.concat([{ role: 'assistant', content: messageContent }]),
             updatedAt: new Date()
           })
-          .where(eq(chats.id, req.body.chatId));
+          .where(eq(chats.id, chatId));
       } else {
         // Create a new chat with auto-generated title
         try {
@@ -136,7 +131,11 @@ export function registerRoutes(app: Express): Server {
         content: messageContent,
       });
     } catch (error) {
-      handleAnthropicError(error, res);
+      console.error("API error:", error);
+      res.status(500).json({
+        message: "Failed to process request",
+        error: error.message
+      });
     }
   });
 
@@ -257,8 +256,13 @@ Conversation: ${JSON.stringify(messages)}`,
       return res.status(401).send("Not authenticated");
     }
 
+    const chatId = parseChatId(req.params.chatId);
+    if (chatId === null) {
+      return res.status(400).json({ message: "Invalid chat ID" });
+    }
+
     const chat = await db.query.chats.findFirst({
-      where: eq(chats.id, parseInt(req.params.chatId)),
+      where: eq(chats.id, chatId),
       columns: {
         metadata: true,
       },
