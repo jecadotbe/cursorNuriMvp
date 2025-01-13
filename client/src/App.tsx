@@ -13,6 +13,8 @@ import VillageView from "@/pages/VillageView";
 import LearnView from "@/pages/LearnView";
 import ProfileView from "@/pages/ProfileView";
 import Navigation from "@/components/Navigation";
+import { OnboardingProvider } from "@/context/onboarding-context";
+import OnboardingTooltip from "@/components/OnboardingTooltip";
 
 function Router() {
   const { user, isLoading } = useUser();
@@ -44,6 +46,7 @@ function Router() {
         </Switch>
       </div>
       <Navigation />
+      <OnboardingTooltip />
     </div>
   );
 }
@@ -51,8 +54,10 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router />
-      <Toaster />
+      <OnboardingProvider>
+        <Router />
+        <Toaster />
+      </OnboardingProvider>
     </QueryClientProvider>
   );
 }

@@ -10,17 +10,18 @@ export default function Navigation() {
 
   const items = [
     { icon: Home, label: "Home", href: "/" },
-    { icon: MessageSquare, label: "Chat", href: "/chat" },
-    { icon: Users, label: "Village", href: "/village" },
-    { icon: GraduationCap, label: "Learn", href: "/learn" },
+    { icon: MessageSquare, label: "Chat", href: "/chat", onboarding: "chat" },
+    { icon: Users, label: "Village", href: "/village", onboarding: "village" },
+    { icon: GraduationCap, label: "Learn", href: "/learn", onboarding: "learn" },
   ];
 
   return (
     <div className="fixed bottom-0 left-0 right-0 border-t bg-background">
       <nav className="flex justify-between items-center px-4 py-2">
-        {items.map(({ icon: Icon, label, href }) => (
+        {items.map(({ icon: Icon, label, href, onboarding }) => (
           <Link key={href} href={href}>
             <a
+              data-onboarding={onboarding}
               className={cn(
                 "flex flex-col items-center gap-1 p-2",
                 location === href
@@ -47,7 +48,7 @@ export default function Navigation() {
                 {user?.username[0]}
               </AvatarFallback>
             </Avatar>
-            <span className="text-xs">Lucia</span>
+            <span className="text-xs">Profile</span>
           </a>
         </Link>
       </nav>
