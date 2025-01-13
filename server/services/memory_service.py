@@ -1,13 +1,28 @@
 import os
 import json
 from typing import Dict, List, Optional, Any
-from mem0 import MemoryClient
+from mem0 import Memory
 
 if not os.getenv("MEM0_API_KEY"):
     raise ValueError("MEM0_API_KEY environment variable is required")
 
+if not os.getenv("ANTHROPIC_API_KEY"):
+    raise ValueError("ANTHROPIC_API_KEY environment variable is required")
+
 print(f"Initializing memory service with API key: {'*' * len(os.getenv('MEM0_API_KEY', ''))}")
-client = MemoryClient(api_key=os.getenv("MEM0_API_KEY"))
+
+config = {
+    "llm": {
+        "provider": "anthropic",
+        "config": {
+            "model": "claude-3-5-sonnet-20241022",  # Latest model
+            "temperature": 0.1,
+            "max_tokens": 2000,
+        }
+    }
+}
+
+memory_client = Memory.from_config(config)
 
 def create_memory(user_id: int, content: str, metadata: Optional[Dict[str, Any]] = None) -> Dict:
     try:
@@ -15,42 +30,24 @@ def create_memory(user_id: int, content: str, metadata: Optional[Dict[str, Any]]
         print(f"Content: {content[:100]}...")
         print(f"Metadata: {json.dumps(metadata, indent=2)}")
 
-        # Format messages for mem0ai with previous context
-        messages = []
-
-        # Add previous context as system message if available
-        if metadata and metadata.get("conversationContext"):
-            messages.append({
-                "role": "system",
-                "content": f"Previous conversation context:\n{metadata['conversationContext']}"
-            })
-
-        # Add the current message
-        messages.append({
-            "role": metadata.get("role", "user") if metadata else "user",
-            "content": content
-        })
-
-        print(f"Formatted messages for mem0ai: {json.dumps(messages, indent=2)}")
-
-        # Add memory using the SDK
-        memory = client.add(
-            messages,
+        # Create the memory
+        result = memory_client.add(
+            content,
             user_id=str(user_id),
             metadata={
                 **(metadata or {}),
                 "source": "nuri-chat",
-                "type": "conversation"
+                "type": "conversation",
+                "category": "chat_history"
             }
         )
 
-        print(f"Successfully created memory with ID: {memory.id}")
-
+        print(f"Successfully created memory: {result}")
         return {
-            "id": memory.id,
+            "id": result.id,
             "content": content,
-            "metadata": memory.metadata,
-            "createdAt": memory.created_at.isoformat()
+            "metadata": result.metadata,
+            "createdAt": result.created_at.isoformat()
         }
     except Exception as e:
         print(f"Error creating memory: {str(e)}")
@@ -61,14 +58,15 @@ def get_relevant_memories(user_id: int, current_context: str) -> List[Dict]:
         print(f"Getting relevant memories for user {user_id}")
         print(f"Context: {current_context[:100]}...")
 
-        # Search for relevant memories using the SDK
-        memories = client.search(
+        # Search for relevant memories
+        memories = memory_client.search(
             current_context,
             user_id=str(user_id),
             limit=5,
             metadata={
                 "source": "nuri-chat",
-                "type": "conversation"
+                "type": "conversation",
+                "category": "chat_history"
             }
         )
 
@@ -89,12 +87,13 @@ def get_relevant_memories(user_id: int, current_context: str) -> List[Dict]:
 
 def search_memories(user_id: int, query: str) -> List[Dict]:
     try:
-        memories = client.search(
+        memories = memory_client.search(
             query,
             user_id=str(user_id),
             metadata={
                 "source": "nuri-chat",
-                "type": "conversation"
+                "type": "conversation",
+                "category": "chat_history"
             }
         )
 
@@ -110,7 +109,7 @@ def search_memories(user_id: int, query: str) -> List[Dict]:
 
 def delete_memory(memory_id: str) -> None:
     try:
-        client.delete(memory_id)
+        memory_client.delete(memory_id)
     except Exception as e:
         print(f"Error deleting memory: {str(e)}")
         raise

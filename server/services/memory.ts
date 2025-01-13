@@ -1,28 +1,12 @@
-import { env } from "process";
-import MemoryClient from 'mem0ai';
+import { MemoryClient } from 'mem0ai';
 
 if (!process.env.MEM0_API_KEY) {
   throw new Error("MEM0_API_KEY environment variable is required");
 }
 
-if (!process.env.ANTHROPIC_API_KEY) {
-  throw new Error("ANTHROPIC_API_KEY environment variable is required");
-}
-
-const config = {
-  llm: {
-    provider: "anthropic",
-    config: {
-      model: "claude-3-5-sonnet-20241022", // Using latest model
-      temperature: 0.1,
-      max_tokens: 2000,
-    }
-  }
-};
-
+// Initialize the memory client according to documentation
 const client = new MemoryClient({ 
   apiKey: process.env.MEM0_API_KEY,
-  config: config
 });
 
 export interface Memory {
@@ -46,30 +30,20 @@ export class MemoryService {
 
   async createMemory(userId: number, content: string, metadata?: Record<string, any>): Promise<Memory> {
     try {
-      console.log('Creating memory with content:', content.substring(0, 100) + '...');
+      console.log('Creating memory for user:', userId);
+      console.log('Content:', content.substring(0, 100) + '...');
       console.log('Metadata:', JSON.stringify(metadata, null, 2));
 
-      // Format messages for mem0ai
-      const messages = [];
-
-      // Add previous context as system message if available
-      if (metadata?.conversationContext) {
-        messages.push({
-          role: "system",
-          content: `Previous conversation context:\n${metadata.conversationContext}`
-        });
-      }
-
-      // Add the current message
-      messages.push({
+      // Format single message according to mem0ai docs
+      const message = [{
         role: metadata?.role || "user",
         content: content
-      });
+      }];
 
-      console.log('Formatted messages for mem0ai:', JSON.stringify(messages, null, 2));
+      console.log('Adding memory:', JSON.stringify(message, null, 2));
 
-      // Add memory using the SDK with metadata categories
-      const memory = await client.add(messages, {
+      // Add memory using the client
+      const result = await client.add(message, {
         user_id: userId.toString(),
         metadata: {
           ...metadata,
@@ -79,11 +53,13 @@ export class MemoryService {
         }
       });
 
+      console.log('Memory creation result:', result);
+
       return {
-        id: memory.id,
-        content: memory.content,
-        metadata: memory.metadata,
-        createdAt: new Date(memory.created_at)
+        id: result.id,
+        content,
+        metadata: result.metadata,
+        createdAt: new Date(result.created_at)
       };
     } catch (error) {
       console.error('Error creating memory:', error);
@@ -95,10 +71,9 @@ export class MemoryService {
     try {
       console.log('Getting relevant memories for context:', currentContext.substring(0, 100) + '...');
 
-      // Search for relevant memories using the SDK with category filter
+      // Search for memories using the client
       const memories = await client.search(currentContext, {
         user_id: userId.toString(),
-        limit: 5,
         metadata: {
           source: 'nuri-chat',
           type: 'conversation',
@@ -106,11 +81,11 @@ export class MemoryService {
         }
       });
 
-      console.log('Found memories:', memories);
+      console.log('Found memories:', memories.length);
 
       return memories.map(memory => ({
         id: memory.id,
-        content: memory.content,
+        content: Array.isArray(memory.content) ? memory.content[0].content : memory.content,
         metadata: memory.metadata,
         createdAt: new Date(memory.created_at)
       }));
@@ -133,7 +108,7 @@ export class MemoryService {
 
       return memories.map(memory => ({
         id: memory.id,
-        content: memory.content,
+        content: Array.isArray(memory.content) ? memory.content[0].content : memory.content,
         metadata: memory.metadata,
         createdAt: new Date(memory.created_at)
       }));

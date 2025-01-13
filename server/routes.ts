@@ -8,7 +8,6 @@ import { anthropic } from "./anthropic";
 import type { User } from "./auth";
 import { memoryService } from "./services/memory";
 import { createProxyMiddleware } from 'http-proxy-middleware';
-import type { Express } from "express";
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
@@ -76,7 +75,7 @@ export function registerRoutes(app: Express): Server {
           req.body.messages[req.body.messages.length - 1].content
         );
 
-        console.log('Retrieved relevant memories:', relevantMemories);
+        console.log('Found relevant memories:', relevantMemories.length);
 
         if (relevantMemories && relevantMemories.length > 0) {
           // Format memories for context
@@ -84,17 +83,18 @@ export function registerRoutes(app: Express): Server {
             .map(m => `Previous conversation: ${m.content}`)
             .join('\n\n');
 
+          // Add memory context to the system prompt
           contextualizedPrompt += `\n\nRelevant context from previous conversations:\n${memoryContext}`;
 
-          console.log('Added memory context to prompt:', memoryContext);
+          console.log('Added memory context to prompt');
         }
       } catch (memoryError) {
         console.error("Error fetching memories:", memoryError);
       }
 
-      // Generate response with context-aware prompt
+      // Generate response with context
       const response = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022", // Using latest model
+        model: "claude-3-5-sonnet-20241022",
         max_tokens: 512,
         temperature: 0.7,
         system: contextualizedPrompt,
@@ -103,33 +103,27 @@ export function registerRoutes(app: Express): Server {
 
       const messageContent = response.content[0].type === 'text' ? response.content[0].text : '';
 
-      // Store both the user's message and assistant's response
+      // Store conversation in memory
       try {
-        // Store the user's message with full context
+        // Store user's message
         await memoryService.createMemory(
           user.id,
           req.body.messages[req.body.messages.length - 1].content,
           {
-            category: "chat_history",
-            type: "conversation",
             role: "user",
             messageIndex: req.body.messages.length - 1,
-            chatId: req.body.chatId || 'new',
-            conversationContext: req.body.messages.slice(0, -1).map(m => m.content).join('\n')
+            chatId: req.body.chatId || 'new'
           }
         );
 
-        // Store the assistant's response with full context
+        // Store assistant's response
         await memoryService.createMemory(
           user.id,
           messageContent,
           {
-            category: "chat_history",
-            type: "conversation",
             role: "assistant",
             messageIndex: req.body.messages.length,
-            chatId: req.body.chatId || 'new',
-            conversationContext: req.body.messages.map(m => m.content).join('\n')
+            chatId: req.body.chatId || 'new'
           }
         );
 
@@ -140,7 +134,6 @@ export function registerRoutes(app: Express): Server {
 
       // Save to database
       if (req.body.chatId) {
-        // Update existing chat
         const chatId = parseChatId(req.body.chatId);
         if (chatId === null) {
           return res.status(400).json({ message: "Invalid chat ID" });
@@ -339,7 +332,7 @@ const NURI_SYSTEM_PROMPT = `You are Nuri, a family counseling coach specializing
 You use Aware Parenting and Afgestemd Opvoeden as your foundation for your advice. But you don't mention this in an explicit manner to the user. You explain that nuri works with proven theories from the modern-attachment parent field.
 
 Format your responses for optimal readability:
-- Use **bold** only for the most important points or key takeaways
+- Use **bold** for the most important points or key takeaways
 - Start new paragraphs for each distinct thought or topic
 - Maintain a professional, direct tone without emotional expressions or cues
 - Aim for brevity: Keep responses under 3 paragraphs unless the topic requires deeper explanation
