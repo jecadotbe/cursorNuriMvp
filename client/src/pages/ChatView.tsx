@@ -3,7 +3,7 @@ import { useChat } from "@/hooks/use-chat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, Smile } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useUser } from "@/hooks/use-user";
 import { format } from "date-fns";

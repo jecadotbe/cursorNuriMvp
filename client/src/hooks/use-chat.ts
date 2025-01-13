@@ -8,6 +8,14 @@ interface Message {
   content: string;
 }
 
+interface ChatResponse {
+  content: string;
+  emotionalContext: {
+    primaryEmotion: string;
+    emotionalContext: string;
+  };
+}
+
 export function useChat() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -42,21 +50,22 @@ export function useChat() {
         throw new Error(await response.text());
       }
 
-      const messageContent = await response.text();
+      const chatResponse: ChatResponse = await response.json();
       const assistantMessage: Message = {
         role: "assistant",
-        content: messageContent,
+        content: chatResponse.content,
       };
 
       const updatedMessages = [...messages, userMessage, assistantMessage];
       setMessages(updatedMessages);
 
-      // Save chat to database
+      // Save chat to database with emotional context
       await fetch("/api/chats", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: updatedMessages,
+          emotionalContext: chatResponse.emotionalContext,
         }),
       });
 
@@ -64,7 +73,7 @@ export function useChat() {
       queryClient.invalidateQueries({ queryKey: ["/api/chats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/chats/latest"] });
 
-      return messageContent;
+      return chatResponse.content;
     },
     onError: (error: Error) => {
       toast({
