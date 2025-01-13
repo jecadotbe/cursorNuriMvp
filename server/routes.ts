@@ -20,7 +20,6 @@ const NURI_SYSTEM_PROMPT = `You are Nuri, a family counseling coach specializing
 You use Aware Parenting and Afgestemd Opvoeden as your foundation for your advice. But you don't mention this in an explicit manner to the user. You explain that nuri works with proven theories from the modern-attachment parent field.
 
 Format your responses for optimal readability:
-- Keep paragraphs focused and concise (2-3 sentences maximum)
 - Use **bold** only for the most important points or key takeaways
 - Start new paragraphs for each distinct thought or topic
 - Maintain a professional, direct tone without emotional expressions or cues
@@ -30,6 +29,27 @@ Write in natural, flowing narrative paragraphs only. Never use bullet points, nu
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
+
+  // Get specific chat
+  app.get("/api/chats/:chatId", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const chat = await db.query.chats.findFirst({
+      where: eq(chats.id, parseInt(req.params.chatId)),
+    });
+
+    if (!chat) {
+      return res.status(404).json({ message: "Chat not found" });
+    }
+
+    if (chat.userId !== req.user.id) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    res.json(chat);
+  });
 
   app.get("/api/village", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {

@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "./use-toast";
 import type { Chat } from "@db/schema";
+import { useLocation } from "wouter";
 
 interface Message {
   role: "user" | "assistant";
@@ -11,16 +12,23 @@ interface Message {
 export function useChat() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [location] = useLocation();
+  const chatIdFromUrl = location.startsWith('/chat/') ? location.split('/')[2] : undefined;
 
   // Load existing chat messages
   const { data: chatData } = useQuery<Chat>({
-    queryKey: ["/api/chats/latest"],
+    queryKey: chatIdFromUrl ? [`/api/chats/${chatIdFromUrl}`] : ["/api/chats/latest"],
     retry: false,
   });
 
-  const [messages, setMessages] = useState<Message[]>(
-    chatData?.messages as Message[] || []
-  );
+  const [messages, setMessages] = useState<Message[]>([]);
+
+  // Initialize messages when chatData changes
+  useEffect(() => {
+    if (chatData?.messages) {
+      setMessages(chatData.messages as Message[]);
+    }
+  }, [chatData]);
 
   const mutation = useMutation({
     mutationFn: async (content: string) => {
@@ -37,6 +45,7 @@ export function useChat() {
           })),
           chatId: chatData?.id // Include chat ID if this is an existing chat
         }),
+        credentials: "include",
       });
 
       if (!response.ok) {
@@ -54,6 +63,9 @@ export function useChat() {
       // Invalidate chat queries to reload the latest chat
       queryClient.invalidateQueries({ queryKey: ["/api/chats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/chats/latest"] });
+      if (chatIdFromUrl) {
+        queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatIdFromUrl}`] });
+      }
 
       return chatResponse.content;
     },

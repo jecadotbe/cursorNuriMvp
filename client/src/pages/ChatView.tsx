@@ -4,6 +4,15 @@ import { Link, useLocation } from "wouter";
 import { ArrowLeft, Plus, Mic, ArrowUpCircle, Expand, Circle } from "lucide-react";
 import { format } from "date-fns";
 import { MessageFeedback } from "@/components/MessageFeedback";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 
 const theme = {
   primary: 'bg-[#F2F0E5]',
@@ -58,6 +67,7 @@ export default function ChatView() {
   const { messages, sendMessage, isLoading, chatId } = useChat();
   const [inputText, setInputText] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showNewChatDialog, setShowNewChatDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [, navigate] = useLocation();
 
@@ -110,7 +120,7 @@ export default function ChatView() {
           </Link>
         </div>
         <button
-          onClick={startNewChat}
+          onClick={() => setShowNewChatDialog(true)}
           className={`p-2 ${theme.accent} hover:bg-[#4A7566] rounded-full`}
         >
           <Plus className="w-6 h-6 text-white" />
@@ -204,6 +214,34 @@ export default function ChatView() {
           </button>
         </div>
       </div>
+
+      {/* New Chat Dialog */}
+      <AlertDialog open={showNewChatDialog} onOpenChange={setShowNewChatDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Start a New Conversation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your current conversation will be saved and you can access it later from the history tab.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowNewChatDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                setShowNewChatDialog(false);
+                startNewChat();
+              }}
+            >
+              Start New Chat
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
