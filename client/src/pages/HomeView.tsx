@@ -46,12 +46,14 @@ export default function HomeView() {
         <div className="px-4 py-6">
           <div className="flex items-start gap-4">
             <div className="w-18 h-24">
+              {/* Add error handling and logging for image loading */}
               <img
                 src="/images/nuri_logo.png"
                 alt="Nuri Logo"
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  e.currentTarget.src = "https://placehold.co/150x200/png";
+                  console.error('Failed to load Nuri logo');
+                  e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='200' viewBox='0 0 150 200'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui' font-size='16' fill='%23666'%3ENuri%3C/text%3E%3C/svg%3E";
                 }}
               />
             </div>
@@ -93,7 +95,8 @@ export default function HomeView() {
         <div
           className="rounded-xl p-4 relative overflow-hidden min-h-[200px]"
           style={{
-            backgroundImage: `url('/images/village_circles.png'), linear-gradient(180deg, #D9E7DA 0%, #F2F0E5 35%)`,
+            backgroundImage: `url('/images/village_circles.png')`,
+            backgroundColor: '#D9E7DA',
             backgroundPosition: "right top",
             backgroundRepeat: "no-repeat",
             backgroundSize: "contain",
@@ -138,6 +141,10 @@ export default function HomeView() {
                         src={video.image}
                         alt={video.title}
                         className="w-20 h-20 object-cover rounded-lg"
+                        onError={(e) => {
+                          console.error(`Failed to load video thumbnail: ${video.title}`);
+                          e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui' font-size='12' fill='%23666'%3EThumbnail%3C/text%3E%3C/svg%3E";
+                        }}
                       />
                       <div className="flex-1">
                         <h3 className="text-lg mb-2">{video.title}</h3>
@@ -163,16 +170,16 @@ const learningVideos = [
   {
     title: "Wat is Aware Parenting?",
     duration: "10 min",
-    image: "https://placehold.co/600x400/png",
+    image: "/images/aware_parenting.png",
   },
   {
     title: "Niet straffen en belonen; hoe dan?",
     duration: "5 min",
-    image: "https://placehold.co/600x400/png",
+    image: "/images/parenting_methods.png",
   },
   {
     title: "Hoe je kind begeleiden bij een driftbui",
     duration: "7 min",
-    image: "https://placehold.co/600x400/png",
+    image: "/images/tantrum_guidance.png",
   },
 ];
