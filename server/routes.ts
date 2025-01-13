@@ -20,9 +20,17 @@ export function registerRoutes(app: Express): Server {
       '^/api/mem0': '/api'
     },
     changeOrigin: true,
+    logLevel: 'debug',
+    onProxyReq: (proxyReq, req) => {
+      console.log('Proxying request:', {
+        method: req.method,
+        path: req.path,
+        targetPath: proxyReq.path
+      });
+    },
     onError: (err, req, res) => {
       console.error('Proxy error:', err);
-      res.status(500).json({ error: 'Memory service unavailable' });
+      res.status(500).json({ error: 'Memory service unavailable', details: err.message });
     }
   }));
 
@@ -68,6 +76,8 @@ export function registerRoutes(app: Express): Server {
           req.body.messages[req.body.messages.length - 1].content
         );
 
+        console.log('Retrieved relevant memories:', relevantMemories);
+
         if (relevantMemories && relevantMemories.length > 0) {
           contextualizedPrompt += `\n\nRelevant context from previous conversations:\n${
             relevantMemories.map(m => m.content).join('\n')
@@ -89,7 +99,7 @@ export function registerRoutes(app: Express): Server {
 
       // Store the entire conversation context
       try {
-        // Store the user's message
+        // Store the user's message with full context
         await memoryService.createMemory(
           user.id,
           req.body.messages[req.body.messages.length - 1].content,
@@ -102,7 +112,7 @@ export function registerRoutes(app: Express): Server {
           }
         );
 
-        // Store the assistant's response
+        // Store the assistant's response with full context
         await memoryService.createMemory(
           user.id,
           messageContent,
@@ -114,6 +124,8 @@ export function registerRoutes(app: Express): Server {
             conversationContext: req.body.messages.map(m => m.content).join('\n')
           }
         );
+
+        console.log('Successfully stored conversation in memory');
       } catch (memoryError) {
         console.error("Error storing memories:", memoryError);
       }

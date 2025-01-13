@@ -4,8 +4,12 @@ if (!process.env.MEM0_API_KEY) {
   throw new Error("MEM0_API_KEY environment variable is required");
 }
 
-// Use relative URL to ensure it works in all environments
-const MEMORY_SERVICE_URL = '/api/mem0';
+// Ensure we have a proper base URL that includes protocol and host
+const BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://' + process.env.REPL_SLUG + '.' + process.env.REPL_OWNER + '.repl.co'
+  : 'http://localhost:5000';
+
+const MEMORY_SERVICE_URL = `${BASE_URL}/api/mem0`;
 
 export interface Memory {
   id: string;
@@ -29,9 +33,11 @@ export class MemoryService {
   async createMemory(userId: number, content: string, metadata?: Record<string, any>): Promise<Memory> {
     try {
       console.log('Creating memory with content:', content.substring(0, 100) + '...');
+      console.log('Memory service URL:', MEMORY_SERVICE_URL);
       console.log('Metadata:', JSON.stringify(metadata, null, 2));
 
-      const response = await fetch(`${MEMORY_SERVICE_URL}/memories`, {
+      const url = new URL('/memories', MEMORY_SERVICE_URL);
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -66,8 +72,10 @@ export class MemoryService {
   async getRelevantMemories(userId: number, currentContext: string): Promise<Memory[]> {
     try {
       console.log('Getting relevant memories for context:', currentContext.substring(0, 100) + '...');
+      console.log('Memory service URL:', MEMORY_SERVICE_URL);
 
-      const response = await fetch(`${MEMORY_SERVICE_URL}/memories/relevant`, {
+      const url = new URL('/memories/relevant', MEMORY_SERVICE_URL);
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -100,7 +108,8 @@ export class MemoryService {
 
   async searchMemories(userId: number, query: string): Promise<Memory[]> {
     try {
-      const response = await fetch(`${MEMORY_SERVICE_URL}/memories/search`, {
+      const url = new URL('/memories/search', MEMORY_SERVICE_URL);
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -133,7 +142,8 @@ export class MemoryService {
 
   async deleteMemory(memoryId: string): Promise<void> {
     try {
-      const response = await fetch(`${MEMORY_SERVICE_URL}/memories/${memoryId}`, {
+      const url = new URL(`/memories/${memoryId}`, MEMORY_SERVICE_URL);
+      const response = await fetch(url, {
         method: 'DELETE'
       });
 

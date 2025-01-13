@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import os
+import json
 from mem0 import MemoryClient
 from waitress import serve
 
@@ -8,12 +9,15 @@ app = Flask(__name__)
 if not os.getenv("MEM0_API_KEY"):
     raise ValueError("MEM0_API_KEY environment variable is required")
 
+print(f"Initializing memory service with API key: {'*' * len(os.getenv('MEM0_API_KEY', ''))}")
 client = MemoryClient(api_key=os.getenv("MEM0_API_KEY"))
 
 @app.route('/api/memories', methods=['POST'])
 def create_memory():
     try:
         data = request.get_json()
+        print(f"Received create memory request: {json.dumps(data, indent=2)}")
+
         user_id = data.get('userId')
         content = data.get('content')
         metadata = data.get('metadata', {})
@@ -23,9 +27,11 @@ def create_memory():
 
         # Format messages for mem0ai
         messages = [{
-            "role": metadata.get("role", "system"),
+            "role": metadata.get("role", "user"),
             "content": content
         }]
+
+        print(f"Adding memory for user {user_id} with messages: {json.dumps(messages, indent=2)}")
 
         # Add memory using the SDK
         memory = client.add(
@@ -37,6 +43,7 @@ def create_memory():
                 "type": "conversation"
             }
         )
+        print(f"Successfully added memory with ID: {memory.id}")
 
         return jsonify({
             "id": memory.id,
@@ -52,11 +59,15 @@ def create_memory():
 def get_relevant_memories():
     try:
         data = request.get_json()
+        print(f"Received relevant memories request: {json.dumps(data, indent=2)}")
+
         user_id = data.get('userId')
         context = data.get('context')
 
         if not all([user_id, context]):
             return jsonify({"error": "Missing required fields"}), 400
+
+        print(f"Searching memories for user {user_id} with context: {context[:100]}...")
 
         # Search for relevant memories using the SDK
         memories = client.search(
@@ -68,13 +79,17 @@ def get_relevant_memories():
                 "type": "conversation"
             }
         )
+        print(f"Found {len(memories)} relevant memories")
 
-        return jsonify([{
+        result = [{
             "id": memory.id,
             "content": memory.content,
             "metadata": memory.metadata,
             "createdAt": memory.created_at.isoformat()
-        } for memory in memories])
+        } for memory in memories]
+
+        print(f"Returning memories: {json.dumps(result, indent=2)}")
+        return jsonify(result)
     except Exception as e:
         print(f"Error getting relevant memories: {str(e)}")
         return jsonify({"error": str(e)}), 500
@@ -118,6 +133,5 @@ def delete_memory(memory_id):
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    # Run on port 5001 to avoid conflict with the main server
     print("Starting memory service on port 5001...")
     serve(app, host='0.0.0.0', port=5001)
