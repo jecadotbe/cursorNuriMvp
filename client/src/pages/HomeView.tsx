@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { useUser } from "@/hooks/use-user";
 import { useChatHistory } from "@/hooks/use-chat-history";
 import { MessageSquare, Users, GraduationCap, Star, Clock, ChevronRight } from "lucide-react";
@@ -26,24 +26,6 @@ export default function HomeView() {
       })
     );
   };
-
-  const learningVideos = [
-    {
-      title: "Wat is Aware Parenting?",
-      duration: "10 min",
-      image: "https://placehold.co/600x400/png",
-    },
-    {
-      title: "Niet straffen en belonen; hoe dan?",
-      duration: "5 min",
-      image: "https://placehold.co/600x400/png",
-    },
-    {
-      title: "Hoe je kind begeleiden bij een driftbui",
-      duration: "7 min",
-      image: "https://placehold.co/600x400/png",
-    },
-  ];
 
   const prompt = getLatestPrompt();
 
@@ -93,13 +75,13 @@ export default function HomeView() {
           <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <div>
+                <div className="flex-1">
                   <div className="text-orange-500 font-medium text-sm mb-2">
                     {prompt?.title}
                   </div>
                   <p className="text-lg pr-8">{prompt?.message}</p>
                 </div>
-                <ChevronRight className="w-6 h-6 text-gray-400" />
+                <ChevronRight className="w-6 h-6 text-gray-400 flex-shrink-0" />
               </div>
             </CardContent>
           </Card>
@@ -176,3 +158,21 @@ export default function HomeView() {
     </div>
   );
 }
+
+const learningVideos = [
+  {
+    title: "Wat is Aware Parenting?",
+    duration: "10 min",
+    image: "https://placehold.co/600x400/png",
+  },
+  {
+    title: "Niet straffen en belonen; hoe dan?",
+    duration: "5 min",
+    image: "https://placehold.co/600x400/png",
+  },
+  {
+    title: "Hoe je kind begeleiden bij een driftbui",
+    duration: "7 min",
+    image: "https://placehold.co/600x400/png",
+  },
+];
