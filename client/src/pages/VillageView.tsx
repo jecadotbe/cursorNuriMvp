@@ -4,15 +4,6 @@ import { ChevronLeft, Plus, ZoomIn, ZoomOut } from "lucide-react";
 import Draggable from "react-draggable";
 import { Link } from "wouter";
 
-interface MemberPill {
-  id: number;
-  label: string;
-  type: string;
-  circle: number;
-  x: number;
-  y: number;
-}
-
 export default function VillageView() {
   const { members } = useVillage();
   const [scale, setScale] = useState(1);
@@ -26,7 +17,8 @@ export default function VillageView() {
   };
 
   const getCircleRadius = (index: number) => {
-    const baseRadius = 80; // Adjust based on your needs
+    // Increased base radius to make circles more visible
+    const baseRadius = 120;
     return baseRadius * (index + 1);
   };
 
@@ -40,10 +32,10 @@ export default function VillageView() {
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-[#F2F0E5] relative">
+    <div className="flex flex-col h-screen bg-[#F2F0E5]">
       {/* Header */}
       <div
-        className="relative p-4 min-h-[200px]"
+        className="p-4 h-[200px]"
         style={{
           background: `url('/images/village_circles_page.png'), linear-gradient(45deg, #C2ECD1 0%, #F8DE9F 35%)`,
           backgroundPosition: "left",
@@ -63,7 +55,7 @@ export default function VillageView() {
       </div>
 
       {/* Zoom Controls */}
-      <div className="absolute top-32 right-4 flex flex-col space-y-2 z-10">
+      <div className="fixed top-32 right-4 flex flex-col space-y-2 z-10">
         <button
           onClick={handleZoomIn}
           className="w-10 h-10 flex items-center justify-center bg-white rounded shadow"
@@ -79,62 +71,64 @@ export default function VillageView() {
       </div>
 
       {/* Village Visualization */}
-      <div className="flex-1 relative overflow-hidden">
+      <div className="flex-1 relative min-h-[500px] overflow-hidden">
         <div
-          className="absolute inset-0 flex items-center justify-center"
+          className="absolute inset-0"
           style={{
             transform: `scale(${scale})`,
             transformOrigin: "center center",
           }}
         >
           {/* Concentric Circles */}
-          {[1, 2, 3, 4, 5].map((circle) => (
-            <div
-              key={circle}
-              className="absolute border border-[#D9E7DA] rounded-full"
-              style={{
-                width: getCircleRadius(circle - 1) * 2,
-                height: getCircleRadius(circle - 1) * 2,
-                left: "50%",
-                top: "50%",
-                transform: "translate(-50%, -50%)",
-              }}
-            />
-          ))}
+          <div className="absolute inset-0 flex items-center justify-center">
+            {[1, 2, 3, 4, 5].map((circle) => (
+              <div
+                key={circle}
+                className="absolute border border-[#D9E7DA] rounded-full"
+                style={{
+                  width: getCircleRadius(circle - 1) * 2,
+                  height: getCircleRadius(circle - 1) * 2,
+                  left: "50%",
+                  top: "50%",
+                  transform: "translate(-50%, -50%)",
+                }}
+              />
+            ))}
 
-          {/* Center Circle */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-[#2F4644] rounded-full flex items-center justify-center text-white text-sm">
-            Kerngezin
-          </div>
+            {/* Center Circle */}
+            <div className="absolute w-16 h-16 bg-[#2F4644] rounded-full flex items-center justify-center text-white text-sm">
+              Kerngezin
+            </div>
 
-          {/* Member Pills */}
-          {members.map((member) => {
-            const pos = getMemberPosition(member.circle);
-            return (
-              <Draggable
-                key={member.id}
-                defaultPosition={pos}
-                bounds="parent"
-              >
-                <div className="absolute cursor-move" style={{ transform: "translate(-50%, -50%)" }}>
-                  <div className="flex items-center space-x-2 bg-white rounded-full px-3 py-1 shadow-sm">
-                    <span
-                      className={`w-2 h-2 rounded-full ${
-                        member.type === "individual" ? "bg-[#22c55e]" : "bg-[#3b82f6]"
-                      }`}
-                    />
-                    <span className="text-sm text-gray-800">{member.name}</span>
+            {/* Member Pills */}
+            {members.map((member) => {
+              const pos = getMemberPosition(member.circle);
+              return (
+                <Draggable
+                  key={member.id}
+                  defaultPosition={pos}
+                  bounds="parent"
+                >
+                  <div className="absolute cursor-move" style={{ transform: "translate(-50%, -50%)" }}>
+                    <div className="flex items-center space-x-2 bg-white rounded-full px-3 py-1 shadow-sm">
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          member.type === "individual" ? "bg-[#22c55e]" : "bg-[#3b82f6]"
+                        }`}
+                      />
+                      <span className="text-sm text-gray-800">{member.name}</span>
+                    </div>
                   </div>
-                </div>
-              </Draggable>
-            );
-          })}
+                </Draggable>
+              );
+            })}
+          </div>
         </div>
       </div>
 
       {/* Village Suggestions */}
-      <div className="p-4 flex">
-        <div className="flex items-center justify-between bg-white rounded-full px-6 py-3 shadow-md w-auto">
+      <div className="p-4">
+        <div className="flex items-center justify-between bg-white rounded-full px-6 py-3 shadow-md w-auto max-w-xs">
           <span>
             Er zijn <strong className="text-orange-500">3</strong> village
             suggesties
@@ -145,7 +139,7 @@ export default function VillageView() {
 
       {/* Add Member Button */}
       <Link href="/village/add">
-        <button className="absolute bottom-20 right-4 w-12 h-12 bg-[#2F4644] rounded-full flex items-center justify-center shadow-lg">
+        <button className="fixed bottom-20 right-4 w-12 h-12 bg-[#2F4644] rounded-full flex items-center justify-center shadow-lg">
           <Plus className="w-6 h-6 text-white" />
         </button>
       </Link>
