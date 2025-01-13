@@ -55,33 +55,6 @@ export function registerRoutes(app: Express): Server {
     res.json(chat);
   });
 
-  app.get("/api/village", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).send("Not authenticated");
-    }
-
-    const user = req.user as User;
-    const members = await db.query.villageMembers.findMany({
-      where: eq(villageMembers.userId, user.id),
-    });
-
-    res.json(members);
-  });
-
-  app.post("/api/village", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).send("Not authenticated");
-    }
-
-    const user = req.user as User;
-    const member = await db.insert(villageMembers).values({
-      ...req.body,
-      userId: user.id,
-    }).returning();
-
-    res.json(member[0]);
-  });
-
   app.post("/api/chat", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
@@ -89,19 +62,23 @@ export function registerRoutes(app: Express): Server {
 
     try {
       const user = req.user as User;
-
-      // Get relevant memories for context
-      const relevantMemories = await memoryService.getRelevantMemories(
-        user.id,
-        req.body.messages[req.body.messages.length - 1].content
-      );
-
-      // Add memory context to the system prompt
       let contextualizedPrompt = NURI_SYSTEM_PROMPT;
-      if (relevantMemories.length > 0) {
-        contextualizedPrompt += `\n\nRelevant context from previous conversations:\n${
-          relevantMemories.map(m => m.content).join('\n')
-        }`;
+
+      try {
+        // Get relevant memories for context - wrapped in try/catch to prevent chat failure
+        const relevantMemories = await memoryService.getRelevantMemories(
+          user.id,
+          req.body.messages[req.body.messages.length - 1].content
+        );
+
+        if (relevantMemories && relevantMemories.length > 0) {
+          contextualizedPrompt += `\n\nRelevant context from previous conversations:\n${
+            relevantMemories.map(m => m.content).join('\n')
+          }`;
+        }
+      } catch (memoryError) {
+        console.error("Error fetching memories:", memoryError);
+        // Continue without memory context if there's an error
       }
 
       const response = await anthropic.messages.create({
@@ -114,25 +91,28 @@ export function registerRoutes(app: Express): Server {
 
       const messageContent = response.content[0].type === 'text' ? response.content[0].text : '';
 
-      // Store the conversation as a memory
-      await memoryService.createMemory(
-        user.id,
-        messageContent,
-        {
-          type: 'conversation',
-          role: 'assistant'
-        }
-      );
+      // Try to store memories but don't fail the chat if it doesn't work
+      try {
+        await memoryService.createMemory(
+          user.id,
+          messageContent,
+          {
+            type: 'conversation',
+            role: 'assistant'
+          }
+        );
 
-      // Save user's message as a memory too
-      await memoryService.createMemory(
-        user.id,
-        req.body.messages[req.body.messages.length - 1].content,
-        {
-          type: 'conversation',
-          role: 'user'
-        }
-      );
+        await memoryService.createMemory(
+          user.id,
+          req.body.messages[req.body.messages.length - 1].content,
+          {
+            type: 'conversation',
+            role: 'user'
+          }
+        );
+      } catch (memoryError) {
+        console.error("Error storing memories:", memoryError);
+      }
 
       // Save the chat session if it's new or update existing
       if (req.body.chatId) {
@@ -157,38 +137,15 @@ export function registerRoutes(app: Express): Server {
           })
           .where(eq(chats.id, chatId));
       } else {
-        // Create a new chat with auto-generated title
-        try {
-          const titleResponse = await anthropic.messages.create({
-            model: "claude-3-sonnet-20240110",
-            max_tokens: 50,
-            temperature: 0.7,
-            system: "Generate a very short (3-5 words) title that captures the main theme of this conversation.",
-            messages: [{ role: 'user', content: req.body.messages[0].content }],
-          });
+        // Create a new chat
+        const [newChat] = await db.insert(chats).values({
+          userId: user.id,
+          title: `Chat ${new Date().toLocaleDateString()}`,
+          messages: req.body.messages.concat([{ role: 'assistant', content: messageContent }]),
+          updatedAt: new Date()
+        }).returning();
 
-          const title = titleResponse.content[0].type === 'text' ? titleResponse.content[0].text.replace(/"/g, '').trim() : '';
-
-          const [newChat] = await db.insert(chats).values({
-            userId: user.id,
-            title: title,
-            messages: req.body.messages.concat([{ role: 'assistant', content: messageContent }]),
-            updatedAt: new Date()
-          }).returning();
-
-          console.log("Created new chat:", newChat);
-        } catch (titleError) {
-          console.error("Error generating title:", titleError);
-          // Fallback to a timestamp-based title if title generation fails
-          const [newChat] = await db.insert(chats).values({
-            userId: user.id,
-            title: `Chat ${new Date().toLocaleDateString()}`,
-            messages: req.body.messages.concat([{ role: 'assistant', content: messageContent }]),
-            updatedAt: new Date()
-          }).returning();
-
-          console.log("Created new chat with fallback title:", newChat);
-        }
+        console.log("Created new chat:", newChat);
       }
 
       res.json({
@@ -228,11 +185,7 @@ export function registerRoutes(app: Express): Server {
       orderBy: desc(chats.createdAt),
     });
 
-    if (!latestChat) {
-      return res.json(null);
-    }
-
-    res.json(latestChat);
+    res.json(latestChat || null);
   });
 
   app.post("/api/chats", async (req, res) => {

@@ -32,8 +32,18 @@ export class MemoryService {
     return MemoryService.instance;
   }
 
+  private async handleResponse(response: Response): Promise<any> {
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API Error (${response.status}):`, errorText);
+      throw new Error(`${response.statusText}: ${errorText}`);
+    }
+    return response.json();
+  }
+
   async createMemory(userId: number, content: string, metadata?: Record<string, any>): Promise<Memory> {
     try {
+      console.log('Creating memory with content:', content.substring(0, 100) + '...');
       const response = await fetch(`${BASE_URL}/memories`, {
         method: "POST",
         headers: this.headers,
@@ -48,11 +58,7 @@ export class MemoryService {
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to create memory: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await this.handleResponse(response);
       return {
         id: data.id,
         content: data.content,
@@ -65,6 +71,38 @@ export class MemoryService {
     }
   }
 
+  async getRelevantMemories(userId: number, currentContext: string): Promise<Memory[]> {
+    try {
+      console.log('Getting relevant memories for context:', currentContext.substring(0, 100) + '...');
+      const response = await fetch(`${BASE_URL}/memories/search`, {
+        method: "POST",
+        headers: this.headers,
+        body: JSON.stringify({
+          query: currentContext,
+          filter: {
+            metadata: {
+              userId: userId.toString(),
+              source: 'nuri-chat'
+            }
+          },
+          limit: 5
+        })
+      });
+
+      const data = await this.handleResponse(response);
+      return data.memories.map((memory: any) => ({
+        id: memory.id,
+        content: memory.content,
+        metadata: memory.metadata,
+        createdAt: new Date(memory.createdAt)
+      }));
+    } catch (error) {
+      console.error('Error getting relevant memories:', error);
+      // Return empty array instead of throwing to prevent chat from failing
+      return [];
+    }
+  }
+
   async searchMemories(userId: number, query: string): Promise<Memory[]> {
     try {
       const response = await fetch(`${BASE_URL}/memories/search`, {
@@ -74,17 +112,14 @@ export class MemoryService {
           query,
           filter: {
             metadata: {
-              userId: userId.toString()
+              userId: userId.toString(),
+              source: 'nuri-chat'
             }
           }
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to search memories: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await this.handleResponse(response);
       return data.memories.map((memory: any) => ({
         id: memory.id,
         content: memory.content,
@@ -93,40 +128,7 @@ export class MemoryService {
       }));
     } catch (error) {
       console.error('Error searching memories:', error);
-      throw new Error('Failed to search memories');
-    }
-  }
-
-  async getRelevantMemories(userId: number, currentContext: string): Promise<Memory[]> {
-    try {
-      const response = await fetch(`${BASE_URL}/memories/search`, {
-        method: "POST",
-        headers: this.headers,
-        body: JSON.stringify({
-          query: currentContext,
-          filter: {
-            metadata: {
-              userId: userId.toString()
-            }
-          },
-          limit: 5 // Get top 5 most relevant memories
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to get relevant memories: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return data.memories.map((memory: any) => ({
-        id: memory.id,
-        content: memory.content,
-        metadata: memory.metadata,
-        createdAt: new Date(memory.createdAt)
-      }));
-    } catch (error) {
-      console.error('Error getting relevant memories:', error);
-      throw new Error('Failed to get relevant memories');
+      return [];
     }
   }
 
@@ -137,9 +139,7 @@ export class MemoryService {
         headers: this.headers
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to delete memory: ${response.statusText}`);
-      }
+      await this.handleResponse(response);
     } catch (error) {
       console.error('Error deleting memory:', error);
       throw new Error('Failed to delete memory');
