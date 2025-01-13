@@ -24,6 +24,7 @@ Format your responses for optimal readability:
 - Use **bold** only for the most important points or key takeaways
 - Start new paragraphs for each distinct thought or topic
 - Maintain a professional, direct tone without emotional expressions or cues
+- Aim for brevity: Keep responses under 3 paragraphs unless the topic requires deeper explanation
 
 Write in natural, flowing narrative paragraphs only. Never use bullet points, numbered lists, or structured formats unless explicitly requested. All insights and guidance should emerge organically through conversation.`;
 
@@ -64,7 +65,8 @@ export function registerRoutes(app: Express): Server {
       // Generate direct response without emotional cues
       const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
-        max_tokens: 1024,
+        max_tokens: 512, // Reduced from 1024 to encourage shorter responses
+        temperature: 0.7, // Added temperature to encourage more concise responses
         system: NURI_SYSTEM_PROMPT,
         messages: req.body.messages,
       });
