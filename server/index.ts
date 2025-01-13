@@ -45,24 +45,48 @@ app.use((req, res, next) => {
 });
 
 // Start the Python Flask server for memory service
-const pythonProcess = spawn('python3', ['server/memory_routes.py']);
+let memoryServiceAttempts = 0;
+const MAX_RESTART_ATTEMPTS = 3;
 
-pythonProcess.stdout.on('data', (data) => {
-  console.log(`Memory service: ${data.toString()}`);
-});
+function startMemoryService() {
+  console.log('Starting memory service...');
+  const pythonProcess = spawn('python3', ['server/memory_routes.py']);
 
-pythonProcess.stderr.on('data', (data) => {
-  console.error(`Memory service error: ${data.toString()}`);
-});
+  pythonProcess.stdout.on('data', (data) => {
+    console.log(`Memory service: ${data.toString()}`);
+  });
 
-pythonProcess.on('close', (code) => {
-  if (code !== 0) {
+  pythonProcess.stderr.on('data', (data) => {
+    console.error(`Memory service error: ${data.toString()}`);
+  });
+
+  pythonProcess.on('close', (code) => {
     console.error(`Memory service process exited with code ${code}`);
-  }
-});
+    if (memoryServiceAttempts < MAX_RESTART_ATTEMPTS) {
+      console.log('Attempting to restart memory service...');
+      memoryServiceAttempts++;
+      setTimeout(startMemoryService, 1000 * memoryServiceAttempts); // Exponential backoff
+    } else {
+      console.error('Memory service failed to start after maximum attempts');
+    }
+  });
+
+  // Reset attempts after 30 seconds of successful running
+  setTimeout(() => {
+    memoryServiceAttempts = 0;
+  }, 30000);
+
+  return pythonProcess;
+}
 
 (async () => {
   try {
+    // Start memory service first
+    const memoryService = startMemoryService();
+
+    // Wait for memory service to be ready
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
     const server = registerRoutes(app);
 
     // Error handling middleware
@@ -81,9 +105,19 @@ pythonProcess.on('close', (code) => {
       serveStatic(app);
     }
 
+    // ALWAYS serve the app on port 5000
+    // this serves both the API and the client
     const PORT = 5000;
     server.listen(PORT, "0.0.0.0", () => {
       log(`serving on port ${PORT}`);
+    });
+
+    // Cleanup on exit
+    process.on('SIGTERM', () => {
+      console.log('Shutting down...');
+      memoryService.kill();
+      server.close();
+      process.exit(0);
     });
   } catch (error) {
     console.error("Server startup error:", error);

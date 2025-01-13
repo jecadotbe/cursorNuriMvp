@@ -1,7 +1,19 @@
-from flask import Flask, request, jsonify
+import sys
 import os
 import json
-from mem0 import MemoryClient
+from pathlib import Path
+
+# Add the server directory to Python path
+server_dir = Path(__file__).parent.parent
+sys.path.append(str(server_dir))
+
+from flask import Flask, request, jsonify
+from server.services.memory_service import (
+    create_memory,
+    get_relevant_memories,
+    search_memories,
+    delete_memory
+)
 from waitress import serve
 
 app = Flask(__name__)
@@ -9,11 +21,8 @@ app = Flask(__name__)
 if not os.getenv("MEM0_API_KEY"):
     raise ValueError("MEM0_API_KEY environment variable is required")
 
-print(f"Initializing memory service with API key: {'*' * len(os.getenv('MEM0_API_KEY', ''))}")
-client = MemoryClient(api_key=os.getenv("MEM0_API_KEY"))
-
 @app.route('/api/memories', methods=['POST'])
-def create_memory():
+def create_memory_route():
     try:
         data = request.get_json()
         print(f"Received create memory request: {json.dumps(data, indent=2)}")
@@ -25,38 +34,14 @@ def create_memory():
         if not all([user_id, content]):
             return jsonify({"error": "Missing required fields"}), 400
 
-        # Format messages for mem0ai
-        messages = [{
-            "role": metadata.get("role", "user"),
-            "content": content
-        }]
-
-        print(f"Adding memory for user {user_id} with messages: {json.dumps(messages, indent=2)}")
-
-        # Add memory using the SDK
-        memory = client.add(
-            messages,
-            user_id=str(user_id),
-            metadata={
-                **metadata,
-                "source": "nuri-chat",
-                "type": "conversation"
-            }
-        )
-        print(f"Successfully added memory with ID: {memory.id}")
-
-        return jsonify({
-            "id": memory.id,
-            "content": content,
-            "metadata": memory.metadata,
-            "createdAt": memory.created_at.isoformat()
-        })
+        memory = create_memory(user_id, content, metadata)
+        return jsonify(memory)
     except Exception as e:
         print(f"Error creating memory: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/memories/relevant', methods=['POST'])
-def get_relevant_memories():
+def get_relevant_memories_route():
     try:
         data = request.get_json()
         print(f"Received relevant memories request: {json.dumps(data, indent=2)}")
@@ -67,35 +52,14 @@ def get_relevant_memories():
         if not all([user_id, context]):
             return jsonify({"error": "Missing required fields"}), 400
 
-        print(f"Searching memories for user {user_id} with context: {context[:100]}...")
-
-        # Search for relevant memories using the SDK
-        memories = client.search(
-            context,
-            user_id=str(user_id),
-            limit=5,
-            metadata={
-                "source": "nuri-chat",
-                "type": "conversation"
-            }
-        )
-        print(f"Found {len(memories)} relevant memories")
-
-        result = [{
-            "id": memory.id,
-            "content": memory.content,
-            "metadata": memory.metadata,
-            "createdAt": memory.created_at.isoformat()
-        } for memory in memories]
-
-        print(f"Returning memories: {json.dumps(result, indent=2)}")
-        return jsonify(result)
+        memories = get_relevant_memories(user_id, context)
+        return jsonify(memories)
     except Exception as e:
         print(f"Error getting relevant memories: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/memories/search', methods=['POST'])
-def search_memories():
+def search_memories_route():
     try:
         data = request.get_json()
         user_id = data.get('userId')
@@ -104,29 +68,16 @@ def search_memories():
         if not all([user_id, query]):
             return jsonify({"error": "Missing required fields"}), 400
 
-        memories = client.search(
-            query,
-            user_id=str(user_id),
-            metadata={
-                "source": "nuri-chat",
-                "type": "conversation"
-            }
-        )
-
-        return jsonify([{
-            "id": memory.id,
-            "content": memory.content,
-            "metadata": memory.metadata,
-            "createdAt": memory.created_at.isoformat()
-        } for memory in memories])
+        memories = search_memories(user_id, query)
+        return jsonify(memories)
     except Exception as e:
         print(f"Error searching memories: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/memories/<memory_id>', methods=['DELETE'])
-def delete_memory(memory_id):
+def delete_memory_route(memory_id):
     try:
-        client.delete(memory_id)
+        delete_memory(memory_id)
         return jsonify({"message": "Memory deleted successfully"})
     except Exception as e:
         print(f"Error deleting memory: {str(e)}")
