@@ -28,7 +28,7 @@ Format your responses for optimal readability:
   - Responding to different aspects of the parent's message
   - Providing specific suggestions or examples
 
-Write in natural, flowing narrative paragraphs only. sparingly use bullet points, numbered lists, or structured formats `;
+Write in natural, flowing narrative paragraphs only. Never use bullet points, numbered lists, or structured formats unless explicitly requested. All insights and guidance should emerge organically through conversation.`;
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
@@ -64,11 +64,11 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
-      // First, analyze the emotion in the user's message
+      // First, analyze the emotion in the user's message (for internal use only)
       const emotionResponse = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 1024,
-        system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the emotional content of the message and respond with a JSON object that captures the primary emotion and context. Focus on understanding parental emotions and family dynamics.`,
+        system: `You are an emotion analysis assistant. Analyze the emotional content of the message and respond with a JSON object that captures the primary emotion and context. Focus on understanding parental emotions and family dynamics.`,
         messages: [
           {
             role: "user",
@@ -79,7 +79,6 @@ export function registerRoutes(app: Express): Server {
 
       let emotionalAnalysis;
       try {
-        // Extract just the JSON part from the response
         const jsonMatch = emotionResponse.content[0].text.match(/\{.*\}/s);
         if (!jsonMatch) {
           throw new Error("No JSON found in response");
@@ -93,15 +92,14 @@ export function registerRoutes(app: Express): Server {
         };
       }
 
-      // Now generate the assistant's response with awareness of the emotional context
+      // Generate response using emotional context internally
       const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 1024,
-        system: `${NURI_SYSTEM_PROMPT}\n\nThe user's message carries a ${emotionalAnalysis.primaryEmotion} emotional tone. Context: ${emotionalAnalysis.emotionalContext}. Remember to maintain a warm, empathetic presence while providing meaningful guidance.`,
+        system: NURI_SYSTEM_PROMPT,
         messages: req.body.messages,
       });
 
-      // Extract the text content from the response
       const messageContent = response.content[0].text;
 
       res.json({
