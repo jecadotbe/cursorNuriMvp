@@ -7,6 +7,8 @@ import { Link } from "wouter";
 export default function VillageView() {
   const { members } = useVillage();
   const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleZoomIn = () => {
     setScale((prev) => Math.min(prev + 0.1, 3)); // max 3x zoom
@@ -17,7 +19,6 @@ export default function VillageView() {
   };
 
   const getCircleRadius = (index: number) => {
-    // Increased base radius to make circles more visible
     const baseRadius = 120;
     return baseRadius * (index + 1);
   };
@@ -29,6 +30,27 @@ export default function VillageView() {
       x: Math.cos(angle) * radius,
       y: Math.sin(angle) * radius,
     };
+  };
+
+  const handlePanStart = (e: React.MouseEvent | React.TouchEvent) => {
+    if (e.target instanceof Element && e.target.closest('.member-pill')) {
+      return; // Don't start panning if clicking on a member pill
+    }
+    setIsDragging(true);
+  };
+
+  const handlePanMove = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!isDragging) return;
+
+    const moveEvent = 'touches' in e ? e.touches[0] : e;
+    setPosition(prev => ({
+      x: prev.x + moveEvent.movementX,
+      y: prev.y + moveEvent.movementY
+    }));
+  };
+
+  const handlePanEnd = () => {
+    setIsDragging(false);
   };
 
   return (
@@ -71,12 +93,23 @@ export default function VillageView() {
       </div>
 
       {/* Village Visualization */}
-      <div className="flex-1 relative min-h-[500px] overflow-hidden">
+      <div 
+        className="flex-1 relative min-h-[500px] overflow-hidden"
+        onMouseDown={handlePanStart}
+        onMouseMove={handlePanMove}
+        onMouseUp={handlePanEnd}
+        onMouseLeave={handlePanEnd}
+        onTouchStart={handlePanStart}
+        onTouchMove={handlePanMove}
+        onTouchEnd={handlePanEnd}
+        style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+      >
         <div
           className="absolute inset-0"
           style={{
-            transform: `scale(${scale})`,
+            transform: `scale(${scale}) translate(${position.x}px, ${position.y}px)`,
             transformOrigin: "center center",
+            transition: isDragging ? 'none' : 'transform 0.1s ease-out'
           }}
         >
           {/* Concentric Circles */}
@@ -109,7 +142,7 @@ export default function VillageView() {
                   defaultPosition={pos}
                   bounds="parent"
                 >
-                  <div className="absolute cursor-move" style={{ transform: "translate(-50%, -50%)" }}>
+                  <div className="absolute cursor-move member-pill" style={{ transform: "translate(-50%, -50%)" }}>
                     <div className="flex items-center space-x-2 bg-white rounded-full px-3 py-1 shadow-sm">
                       <span
                         className={`w-2 h-2 rounded-full ${
