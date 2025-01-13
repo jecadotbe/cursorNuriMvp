@@ -35,6 +35,7 @@ function Router() {
         <Switch>
           <Route path="/" component={HomeView} />
           <Route path="/chat" component={ChatView} />
+          <Route path="/chat/:chatId" component={ChatView} />
           <Route path="/chat/history" component={ChatHistoryView} />
           <Route path="/village" component={VillageView} />
           <Route path="/learn" component={LearnView} />

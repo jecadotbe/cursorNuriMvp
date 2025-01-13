@@ -13,12 +13,13 @@ export function useChat() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [location] = useLocation();
-  const chatIdFromUrl = location.startsWith('/chat/') ? location.split('/')[2] : undefined;
+  const chatId = location.startsWith('/chat/') ? location.split('/')[2] : undefined;
 
   // Load existing chat messages
-  const { data: chatData } = useQuery<Chat>({
-    queryKey: chatIdFromUrl ? [`/api/chats/${chatIdFromUrl}`] : ["/api/chats/latest"],
+  const { data: chatData, isLoading: isChatLoading } = useQuery<Chat>({
+    queryKey: chatId ? [`/api/chats/${chatId}`] : ["/api/chats/latest"],
     retry: false,
+    enabled: !!chatId, // Only fetch if we have a chatId
   });
 
   const [messages, setMessages] = useState<Message[]>([]);
@@ -63,8 +64,8 @@ export function useChat() {
       // Invalidate chat queries to reload the latest chat
       queryClient.invalidateQueries({ queryKey: ["/api/chats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/chats/latest"] });
-      if (chatIdFromUrl) {
-        queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatIdFromUrl}`] });
+      if (chatId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatId}`] });
       }
 
       return chatResponse.content;
@@ -82,6 +83,6 @@ export function useChat() {
     messages,
     chatId: chatData?.id,
     sendMessage: mutation.mutateAsync,
-    isLoading: mutation.isPending,
+    isLoading: mutation.isPending || isChatLoading,
   };
 }
