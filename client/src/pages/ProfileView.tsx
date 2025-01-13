@@ -79,11 +79,17 @@ export default function ProfileView() {
             THE DANGER ZONE
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-2">
           <Button
             variant="destructive"
             className="w-full"
             onClick={handleLogout}
+          >
+            Uitloggen
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full border-destructive text-destructive hover:bg-destructive/10"
           >
             Account verwijderen
           </Button>
