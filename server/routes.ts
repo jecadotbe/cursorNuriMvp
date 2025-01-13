@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
 import { villageMembers, chats } from "@db/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { anthropic, handleAnthropicError } from "./anthropic";
 
 export function registerRoutes(app: Express): Server {
@@ -49,11 +49,6 @@ export function registerRoutes(app: Express): Server {
       // Extract the text content from the response
       const messageContent = response.content[0].text;
 
-      const chat = await db.insert(chats).values({
-        userId: req.user.id,
-        messages: [...req.body.messages, { role: "assistant", content: messageContent }],
-      }).returning();
-
       res.json(messageContent);
     } catch (error) {
       handleAnthropicError(error, res);
@@ -67,9 +62,40 @@ export function registerRoutes(app: Express): Server {
 
     const userChats = await db.query.chats.findMany({
       where: eq(chats.userId, req.user.id),
+      orderBy: desc(chats.createdAt),
     });
 
     res.json(userChats);
+  });
+
+  app.get("/api/chats/latest", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const latestChat = await db.query.chats.findFirst({
+      where: eq(chats.userId, req.user.id),
+      orderBy: desc(chats.createdAt),
+    });
+
+    if (!latestChat) {
+      return res.json(null);
+    }
+
+    res.json(latestChat);
+  });
+
+  app.post("/api/chats", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const chat = await db.insert(chats).values({
+      userId: req.user.id,
+      messages: req.body.messages,
+    }).returning();
+
+    res.json(chat[0]);
   });
 
   const httpServer = createServer(app);

@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "./use-toast";
+import type { Chat } from "@db/schema";
 
 interface Message {
   role: "user" | "assistant";
@@ -8,8 +9,18 @@ interface Message {
 }
 
 export function useChat() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Load existing chat messages
+  const { data: chatData } = useQuery<Chat>({
+    queryKey: ["/api/chats/latest"],
+    retry: false,
+  });
+
+  const [messages, setMessages] = useState<Message[]>(
+    chatData?.messages as Message[] || []
+  );
 
   const mutation = useMutation({
     mutationFn: async (content: string) => {
@@ -32,13 +43,27 @@ export function useChat() {
       }
 
       const messageContent = await response.text();
-
       const assistantMessage: Message = {
         role: "assistant",
-        content: messageContent
+        content: messageContent,
       };
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      const updatedMessages = [...messages, userMessage, assistantMessage];
+      setMessages(updatedMessages);
+
+      // Save chat to database
+      await fetch("/api/chats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: updatedMessages,
+        }),
+      });
+
+      // Invalidate chat queries to reload the latest chat
+      queryClient.invalidateQueries({ queryKey: ["/api/chats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/chats/latest"] });
+
       return messageContent;
     },
     onError: (error: Error) => {
