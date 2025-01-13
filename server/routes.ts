@@ -6,6 +6,7 @@ import { villageMembers, chats, messageFeedback } from "@db/schema";
 import { eq, desc } from "drizzle-orm";
 import { anthropic } from "./anthropic";
 import type { User } from "./auth";
+import { memoryService } from "./services/memory";
 
 // Helper function to validate and parse chat ID
 function parseChatId(id: string): number | null {
@@ -28,7 +29,6 @@ Write in natural, flowing narrative paragraphs only. Never use bullet points, nu
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
-  // Get specific chat
   app.get("/api/chats/:chatId", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
@@ -88,18 +88,52 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
+      const user = req.user as User;
+
+      // Get relevant memories for context
+      const relevantMemories = await memoryService.getRelevantMemories(
+        user.id,
+        req.body.messages[req.body.messages.length - 1].content
+      );
+
+      // Add memory context to the system prompt
+      let contextualizedPrompt = NURI_SYSTEM_PROMPT;
+      if (relevantMemories.length > 0) {
+        contextualizedPrompt += `\n\nRelevant context from previous conversations:\n${
+          relevantMemories.map(m => m.content).join('\n')
+        }`;
+      }
+
       const response = await anthropic.messages.create({
         model: "claude-3-sonnet-20240110",
         max_tokens: 512,
         temperature: 0.7,
-        system: `${NURI_SYSTEM_PROMPT}
-Keep responses concise and focused. Aim for 2-3 paragraphs maximum unless the topic requires deeper explanation.`,
+        system: contextualizedPrompt,
         messages: req.body.messages,
       });
 
       const messageContent = response.content[0].type === 'text' ? response.content[0].text : '';
 
-      const user = req.user as User;
+      // Store the conversation as a memory
+      await memoryService.createMemory(
+        user.id,
+        messageContent,
+        {
+          type: 'conversation',
+          role: 'assistant'
+        }
+      );
+
+      // Save user's message as a memory too
+      await memoryService.createMemory(
+        user.id,
+        req.body.messages[req.body.messages.length - 1].content,
+        {
+          type: 'conversation',
+          role: 'user'
+        }
+      );
+
       // Save the chat session if it's new or update existing
       if (req.body.chatId) {
         // Update existing chat
