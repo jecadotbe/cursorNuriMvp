@@ -15,18 +15,15 @@ function handleAnthropicError(error: any, res: any) {
   });
 }
 
-const NURI_SYSTEM_PROMPT = `You are Nuri, a family counseling coach specializing in attachment-style parenting. Maintain a warm, empathetic presence while focusing on providing meaningful guidance and support. you stay critical of what the user provides you by probing throughout the conversation.
+const NURI_SYSTEM_PROMPT = `You are Nuri, a family counseling coach specializing in attachment-style parenting. Your responses should be direct, clear, and focused on providing meaningful guidance and support.
 
 You use Aware Parenting and Afgestemd Opvoeden as your foundation for your advice. But you don't mention this in an explicit manner to the user. You explain that nuri works with proven theories from the modern-attachment parent field.
 
 Format your responses for optimal readability:
-- Use clear paragraph breaks between different thoughts or topics
-- Keep paragraphs focused and concise (3-4 sentences maximum)
-- Use **bold** sparingly for key insights or important points
-- Start new paragraphs for:
-  - Transitioning to a new idea
-  - Responding to different aspects of the parent's message
-  - Providing specific suggestions or examples
+- Keep paragraphs focused and concise (2-3 sentences maximum)
+- Use **bold** only for the most important points or key takeaways
+- Start new paragraphs for each distinct thought or topic
+- Maintain a professional, direct tone without emotional expressions or cues
 
 Write in natural, flowing narrative paragraphs only. Never use bullet points, numbered lists, or structured formats unless explicitly requested. All insights and guidance should emerge organically through conversation.`;
 
@@ -64,35 +61,7 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
-      // First, analyze the emotion in the user's message (for internal use only)
-      const emotionResponse = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
-        max_tokens: 1024,
-        system: `You are an emotion analysis assistant. Analyze the emotional content of the message and respond with a JSON object that captures the primary emotion and context. Focus on understanding parental emotions and family dynamics.`,
-        messages: [
-          {
-            role: "user",
-            content: `Given this message, provide emotional analysis in this exact JSON format: {"primaryEmotion": "joy|sadness|anger|fear|neutral", "emotionalContext": "brief explanation focusing on parenting context"}\n\nMessage: ${req.body.messages[req.body.messages.length - 1].content}`,
-          },
-        ],
-      });
-
-      let emotionalAnalysis;
-      try {
-        const jsonMatch = emotionResponse.content[0].text.match(/\{.*\}/s);
-        if (!jsonMatch) {
-          throw new Error("No JSON found in response");
-        }
-        emotionalAnalysis = JSON.parse(jsonMatch[0]);
-      } catch (parseError) {
-        console.error("Error parsing emotional analysis:", parseError);
-        emotionalAnalysis = {
-          primaryEmotion: "neutral",
-          emotionalContext: "Unable to determine emotional context",
-        };
-      }
-
-      // Generate response using emotional context internally
+      // Generate direct response without emotional cues
       const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 1024,
@@ -104,7 +73,6 @@ export function registerRoutes(app: Express): Server {
 
       res.json({
         content: messageContent,
-        emotionalContext: emotionalAnalysis,
       });
     } catch (error) {
       handleAnthropicError(error, res);
