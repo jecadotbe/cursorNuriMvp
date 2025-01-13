@@ -56,18 +56,32 @@ export function registerRoutes(app: Express): Server {
         messages: [
           {
             role: "user",
-            content: `Analyze the emotional content of this message and respond with a JSON object containing 'primaryEmotion' and 'emotionalContext'. Keep it simple and focus on basic emotions (joy, sadness, anger, fear, neutral, etc.):\n\n${req.body.messages[req.body.messages.length - 1].content}`,
+            content: `Given this message, provide emotional analysis in this exact JSON format: {"primaryEmotion": "joy|sadness|anger|fear|neutral", "emotionalContext": "brief explanation"}\n\nMessage: ${req.body.messages[req.body.messages.length - 1].content}`,
           },
         ],
       });
 
-      const emotionalAnalysis = JSON.parse(emotionResponse.content[0].text);
+      let emotionalAnalysis;
+      try {
+        // Extract just the JSON part from the response
+        const jsonMatch = emotionResponse.content[0].text.match(/\{.*\}/s);
+        if (!jsonMatch) {
+          throw new Error("No JSON found in response");
+        }
+        emotionalAnalysis = JSON.parse(jsonMatch[0]);
+      } catch (parseError) {
+        console.error("Error parsing emotional analysis:", parseError);
+        emotionalAnalysis = {
+          primaryEmotion: "neutral",
+          emotionalContext: "Unable to determine emotional context",
+        };
+      }
 
       // Now generate the assistant's response with awareness of the emotional context
       const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 1024,
-        system: `You are NURI, an empathetic AI assistant. The user's message carries a ${emotionalAnalysis.primaryEmotion} emotional tone. Respond with understanding and emotional intelligence.`,
+        system: `You are NURI, an empathetic AI assistant. The user's message carries a ${emotionalAnalysis.primaryEmotion} emotional tone. Respond with understanding and emotional intelligence, focusing on providing support and guidance.`,
         messages: req.body.messages,
       });
 
@@ -131,19 +145,29 @@ export function registerRoutes(app: Express): Server {
         messages: [
           {
             role: "user",
-            content: `Based on this conversation, provide a JSON response with:
-1. A short title (max 5 words)
-2. A brief summary (max 2 sentences)
-3. An emotional journey summary (describe how emotions evolved in the conversation)
-All in Dutch:\n\n${JSON.stringify(messages)}`,
+            content: `Based on this conversation, provide a JSON response in this exact format:
+{
+  "title": "short title (max 5 words)",
+  "summary": "brief summary (max 2 sentences)",
+  "emotionalJourney": "describe how emotions evolved"
+}
+
+Conversation: ${JSON.stringify(messages)}`,
           },
         ],
       });
 
-      const analysis = JSON.parse(analyzeResponse.content[0].text);
-      title = analysis.title;
-      summary = analysis.summary;
-      emotionalSummary = analysis.emotionalJourney;
+      try {
+        const jsonMatch = analyzeResponse.content[0].text.match(/\{.*\}/s);
+        if (jsonMatch) {
+          const analysis = JSON.parse(jsonMatch[0]);
+          title = analysis.title;
+          summary = analysis.summary;
+          emotionalSummary = analysis.emotionalJourney;
+        }
+      } catch (parseError) {
+        console.error("Failed to parse analysis:", parseError);
+      }
     } catch (error) {
       console.error("Failed to generate analysis:", error);
     }
