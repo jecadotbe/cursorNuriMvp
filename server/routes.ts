@@ -1,6 +1,5 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { setupAuth } from "./auth";
 import { db } from "@db";
 import { villageMembers, type InsertVillageMember, chats, messageFeedback } from "@db/schema";
 import { eq, desc } from "drizzle-orm";
@@ -9,8 +8,6 @@ import type { User } from "./auth";
 import { memoryService } from "./services/memory";
 
 export function registerRoutes(app: Express): Server {
-  setupAuth(app);
-
   // Add village member routes
   app.get("/api/village", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
