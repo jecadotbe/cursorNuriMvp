@@ -16,30 +16,25 @@ export function registerRoutes(app: Express): Server {
       return res.status(401).send("Not authenticated");
     }
 
-    try {
-      const chatId = parseChatId(req.params.chatId);
-      if (chatId === null) {
-        return res.status(400).json({ message: "Invalid chat ID" });
-      }
-
-      const user = req.user as User;
-      const chat = await db.query.chats.findFirst({
-        where: eq(chats.id, chatId),
-      });
-
-      if (!chat) {
-        return res.status(404).json({ message: "Chat not found" });
-      }
-
-      if (chat.userId !== user.id) {
-        return res.status(403).json({ message: "Unauthorized" });
-      }
-
-      res.json(chat);
-    } catch (error) {
-      console.error("Error fetching chat:", error);
-      res.status(500).json({ message: "Internal server error" });
+    const chatId = parseChatId(req.params.chatId);
+    if (chatId === null) {
+      return res.status(400).json({ message: "Invalid chat ID" });
     }
+
+    const user = req.user as User;
+    const chat = await db.query.chats.findFirst({
+      where: eq(chats.id, chatId),
+    });
+
+    if (!chat) {
+      return res.status(404).json({ message: "Chat not found" });
+    }
+
+    if (chat.userId !== user.id) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    res.json(chat);
   });
 
   app.post("/api/chat", async (req, res) => {
@@ -52,6 +47,7 @@ export function registerRoutes(app: Express): Server {
       let contextualizedPrompt = NURI_SYSTEM_PROMPT;
 
       try {
+        // Get relevant memories for context
         const relevantMemories = await memoryService.getRelevantMemories(
           user.id,
           req.body.messages[req.body.messages.length - 1].content
@@ -60,15 +56,21 @@ export function registerRoutes(app: Express): Server {
         console.log('Found relevant memories:', relevantMemories.length);
 
         if (relevantMemories && relevantMemories.length > 0) {
+          // Format memories for context
           const memoryContext = relevantMemories
             .map(m => `Previous conversation: ${m.content}`)
             .join('\n\n');
+
+          // Add memory context to the system prompt
           contextualizedPrompt += `\n\nRelevant context from previous conversations:\n${memoryContext}`;
+
+          console.log('Added memory context to prompt');
         }
       } catch (memoryError) {
         console.error("Error fetching memories:", memoryError);
       }
 
+      // Generate response with context
       const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 512,
@@ -79,7 +81,9 @@ export function registerRoutes(app: Express): Server {
 
       const messageContent = response.content[0].type === 'text' ? response.content[0].text : '';
 
+      // Store conversation in memory
       try {
+        // Store user's message
         await memoryService.createMemory(
           user.id,
           req.body.messages[req.body.messages.length - 1].content,
@@ -90,6 +94,7 @@ export function registerRoutes(app: Express): Server {
           }
         );
 
+        // Store assistant's response
         await memoryService.createMemory(
           user.id,
           messageContent,
@@ -99,10 +104,13 @@ export function registerRoutes(app: Express): Server {
             chatId: req.body.chatId || 'new'
           }
         );
+
+        console.log('Successfully stored conversation in memory');
       } catch (memoryError) {
         console.error("Error storing memories:", memoryError);
       }
 
+      // Save to database
       if (req.body.chatId) {
         const chatId = parseChatId(req.body.chatId);
         if (chatId === null) {
@@ -123,12 +131,8 @@ export function registerRoutes(app: Express): Server {
             updatedAt: new Date()
           })
           .where(eq(chats.id, chatId));
-
-        res.json({
-          content: messageContent,
-          chatId: chatId
-        });
       } else {
+        // Create a new chat
         const [newChat] = await db.insert(chats).values({
           userId: user.id,
           title: `Chat ${new Date().toLocaleDateString()}`,
@@ -137,12 +141,11 @@ export function registerRoutes(app: Express): Server {
         }).returning();
 
         console.log("Created new chat:", newChat);
-
-        res.json({
-          content: messageContent,
-          chatId: newChat.id
-        });
       }
+
+      res.json({
+        content: messageContent,
+      });
     } catch (error: any) {
       console.error("API error:", error);
       res.status(500).json({
@@ -157,18 +160,27 @@ export function registerRoutes(app: Express): Server {
       return res.status(401).send("Not authenticated");
     }
 
-    try {
-      const user = req.user as User;
-      const userChats = await db.query.chats.findMany({
-        where: eq(chats.userId, user.id),
-        orderBy: desc(chats.createdAt),
-      });
+    const user = req.user as User;
+    const userChats = await db.query.chats.findMany({
+      where: eq(chats.userId, user.id),
+      orderBy: desc(chats.createdAt),
+    });
 
-      res.json(userChats);
-    } catch (error) {
-      console.error("Error fetching chats:", error);
-      res.status(500).json({ message: "Internal server error" });
+    res.json(userChats);
+  });
+
+  app.get("/api/chats/latest", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
     }
+
+    const user = req.user as User;
+    const latestChat = await db.query.chats.findFirst({
+      where: eq(chats.userId, user.id),
+      orderBy: desc(chats.createdAt),
+    });
+
+    res.json(latestChat || null);
   });
 
   app.post("/api/chats", async (req, res) => {
@@ -176,20 +188,86 @@ export function registerRoutes(app: Express): Server {
       return res.status(401).send("Not authenticated");
     }
 
+    const user = req.user as User;
+    const messages = req.body.messages || [];
+    let title = null;
+    let summary = null;
+    let emotionalSummary = null;
+
     try {
-      const user = req.user as User;
-      const [newChat] = await db.insert(chats).values({
+      // Generate title, summary, and emotional context analysis only if there are messages
+      if (messages.length > 0) {
+        const analyzeResponse = await anthropic.messages.create({
+          model: "claude-2.1", 
+          max_tokens: 1024,
+          system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze this conversation between a parent and Nuri. Focus on the key themes, emotional journey, and parenting insights discussed.`,
+          messages: [
+            {
+              role: "user",
+              content: `Based on this conversation, provide a JSON response in this exact format:
+{
+  "title": "short title capturing main parenting theme (max 5 words)",
+  "summary": "brief summary focusing on parenting insights (max 2 sentences)",
+  "emotionalJourney": "describe how parent's emotions evolved through the conversation"
+}
+
+Conversation: ${JSON.stringify(messages)}`,
+            },
+          ],
+        });
+
+        try {
+          const jsonMatch = analyzeResponse.content[0].type === 'text' ? analyzeResponse.content[0].text.match(/\{.*\}/s) : null;
+          if (jsonMatch) {
+            const analysis = JSON.parse(jsonMatch[0]);
+            title = analysis.title;
+            summary = analysis.summary;
+            emotionalSummary = analysis.emotionalJourney;
+          }
+        } catch (parseError) {
+          console.error("Failed to parse analysis:", parseError);
+        }
+      }
+
+      // Create chat with safe metadata handling
+      const chat = await db.insert(chats).values({
         userId: user.id,
-        title: `Chat ${new Date().toLocaleDateString()}`,
-        messages: [],
-        updatedAt: new Date()
+        messages: messages,
+        title: title || `Chat ${new Date().toLocaleDateString()}`,
+        summary,
+        metadata: {
+          messageCount: messages.length,
+          lastMessageRole: messages.length > 0 ? messages[messages.length - 1].role : null,
+          emotionalContext: emotionalSummary,
+        },
+        updatedAt: new Date(),
       }).returning();
 
-      console.log("Created new chat:", newChat);
-      res.json(newChat);
+      res.json(chat[0]);
     } catch (error) {
       console.error("Failed to create chat:", error);
       res.status(500).json({ message: "Failed to create chat" });
+    }
+  });
+
+  app.post("/api/message-feedback", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const user = req.user as User;
+    try {
+      const feedback = await db.insert(messageFeedback).values({
+        userId: user.id,
+        messageId: req.body.messageId,
+        feedbackType: req.body.feedbackType,
+        chatId: req.body.chatId,
+      }).returning();
+
+      res.json(feedback[0]);
+    } catch (error) {
+      console.error("Failed to save feedback:", error);
+      res.status(500).json({ message: "Failed to save feedback" });
     }
   });
 

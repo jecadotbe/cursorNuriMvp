@@ -16,10 +16,6 @@ app.use(express.static(path.join(process.cwd(), "public")));
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-
-  // Log request start
-  console.log(`${req.method} ${path} - Request started`);
-
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
   const originalResJson = res.json;
@@ -49,7 +45,6 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    console.log("Starting server initialization...");
     const server = registerRoutes(app);
 
     // Error handling middleware
@@ -63,21 +58,19 @@ app.use((req, res, next) => {
 
     // Setup Vite or serve static files
     if (app.get("env") === "development") {
-      console.log("Setting up Vite for development...");
       await setupVite(app, server);
     } else {
-      console.log("Setting up static file serving...");
       serveStatic(app);
     }
 
     // ALWAYS serve the app on port 5000
+    // this serves both the API and the client
     const PORT = 5000;
     server.listen(PORT, "0.0.0.0", () => {
-      console.log(`Server started successfully on port ${PORT}`);
       log(`serving on port ${PORT}`);
     });
 
-    // Cleanup on exit
+    // Cleanup on exit - simplified because memoryService is removed
     process.on('SIGTERM', () => {
       console.log('Shutting down...');
       server.close();
