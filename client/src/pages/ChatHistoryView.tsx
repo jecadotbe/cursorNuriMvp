@@ -5,10 +5,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import type { Chat } from "@db/schema";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ChatHistoryView() {
   const { chats = [], isLoading } = useChatHistory();
   const [, navigate] = useLocation();
+  const { toast } = useToast();
 
   const startNewChat = async () => {
     try {
@@ -21,6 +23,7 @@ export default function ChatHistoryView() {
           title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
           messages: [],
         }),
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -28,9 +31,19 @@ export default function ChatHistoryView() {
       }
 
       const newChat = await response.json();
+      if (!newChat.id) {
+        throw new Error('No chat ID received from server');
+      }
+
+      // Navigate to the new chat using the ID
       navigate(`/chat/${newChat.id}`);
     } catch (error) {
       console.error('Error creating new chat:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not create a new chat. Please try again.",
+      });
     }
   };
 

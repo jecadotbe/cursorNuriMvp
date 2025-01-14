@@ -13,6 +13,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 const theme = {
   primary: 'bg-[#F2F0E5]',
@@ -71,6 +72,7 @@ export default function ChatView() {
   const [isInitializing, setIsInitializing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [, navigate] = useLocation();
+  const { toast } = useToast();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -93,6 +95,7 @@ export default function ChatView() {
             title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
             messages: [],
           }),
+          credentials: 'include',
         });
 
         if (!response.ok) {
@@ -100,9 +103,17 @@ export default function ChatView() {
         }
 
         const newChat = await response.json();
+        if (!newChat.id) {
+          throw new Error('No chat ID received from server');
+        }
         navigate(`/chat/${newChat.id}`, { replace: true });
       } catch (error) {
         console.error('Error creating new chat:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Could not create a new chat. Please try again.",
+        });
       } finally {
         setIsInitializing(false);
       }
@@ -119,8 +130,8 @@ export default function ChatView() {
   const handleSend = async () => {
     if (inputText.trim()) {
       if (!chatId) {
-        // If somehow we still don't have a chatId, initialize it
         await initializeChat();
+        if (!chatId) return; // Don't proceed if chat initialization failed
       }
       const text = inputText.trim();
       setInputText('');
@@ -136,10 +147,39 @@ export default function ChatView() {
     }
   };
 
-  const startNewChat = () => {
-    setShowNewChatDialog(false);
-    window.localStorage.removeItem('chat-messages');
-    navigate('/chat', { replace: true });
+  const startNewChat = async () => {
+    try {
+      const response = await fetch('/api/chats', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
+          messages: [],
+        }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create new chat');
+      }
+
+      const newChat = await response.json();
+      if (!newChat.id) {
+        throw new Error('No chat ID received from server');
+      }
+
+      navigate(`/chat/${newChat.id}`, { replace: true });
+      setShowNewChatDialog(false);
+    } catch (error) {
+      console.error('Error creating new chat:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not create a new chat. Please try again.",
+      });
+    }
   };
 
   return (
@@ -147,7 +187,7 @@ export default function ChatView() {
       {/* Header */}
       <div className="w-full px-4 py-3 flex items-center justify-between border-b border-gray-200 bg-white">
         <div className="flex items-center gap-4">
-          <Link href="/">
+          <Link href="/chat/history">
             <button className="p-2 hover:bg-gray-100 rounded-lg">
               <ArrowLeft className="w-6 h-6 text-gray-600" />
             </button>
@@ -218,7 +258,7 @@ export default function ChatView() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input area - Fixed to bottom */}
+      {/* Input area */}
       <div className="w-full border-t border-gray-200 bg-white">
         <div className="max-w-screen-lg mx-auto px-4 py-3">
           <div className="flex items-start space-x-2">
