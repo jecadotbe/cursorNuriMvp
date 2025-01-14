@@ -64,7 +64,7 @@ export default function HomeView() {
               />
             </div>
             <div className="space-y-1">
-              <h1 className="text-2xl text-[#2F4644]">
+              <h1 className="text-2xl text-[#2F4644] font-baskerville">
                 Dag {user?.username},
               </h1>
               <p className="text-xl text-[#2F4644]">
@@ -109,7 +109,7 @@ export default function HomeView() {
         >
           <div className="flex items-center gap-2 mb-2">
             <Star className="w-5 h-5" />
-            <h2 className="text-xl">Village</h2>
+            <h2 className="text-xl font-baskerville">Village</h2>
           </div>
           <h3 className="text-xl mb-4">Laat je Village bloeien</h3>
           <Link href="/village">
@@ -134,7 +134,7 @@ export default function HomeView() {
         >
           <div className="flex items-center gap-2 mb-4">
             <GraduationCap className="w-5 h-5" />
-            <h2 className="text-xl">Verder leren?</h2>
+            <h2 className="text-xl font-baskerville">Verder leren?</h2>
           </div>
           <div className="grid grid-cols-2 gap-4">
             {learningVideos.map((video, index) => (
