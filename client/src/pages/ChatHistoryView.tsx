@@ -35,7 +35,6 @@ export default function ChatHistoryView() {
         throw new Error('No chat ID received from server');
       }
 
-      // Navigate to the new chat using the ID
       navigate(`/chat/${newChat.id}`);
     } catch (error) {
       console.error('Error creating new chat:', error);
