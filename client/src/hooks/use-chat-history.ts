@@ -22,7 +22,7 @@ export function useChatHistory() {
   const { toast } = useToast();
 
   const { data: chats = [], isLoading, error, refetch } = useQuery<Chat[], Error>({
-    queryKey: ["chats"],
+    queryKey: ["/api/chats"],
     queryFn: fetchChatHistory,
     staleTime: 0, // Always fetch fresh data
     retry: false,
