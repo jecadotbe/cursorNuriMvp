@@ -97,7 +97,7 @@ export default function HomeView() {
       </div>
 
       {/* Village Section */}
-      <div className="w-full">
+      <div className="w-full px-4 pt-8">
         <div
           className="rounded-xl p-4 relative overflow-hidden min-h-[200px]"
           style={{
@@ -126,7 +126,7 @@ export default function HomeView() {
       </div>
 
       {/* Learning Section */}
-      <div className="w-full p-4">
+      <div className="w-full p-4 pt-8">
         <div
           className="rounded-xl p-4"
           style={{
@@ -137,7 +137,7 @@ export default function HomeView() {
             <GraduationCap className="w-5 h-5" />
             <h2 className="text-xl">Verder leren?</h2>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-6">
             {learningVideos.map((video, index) => (
               <Link key={index} href="/learn">
                 <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer">
