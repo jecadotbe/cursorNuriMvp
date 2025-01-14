@@ -39,7 +39,6 @@ export default function HomeView() {
   };
 
   const prompt = getLatestPrompt();
-  const latestChat = chats && Array.isArray(chats) && chats.length > 0 ? chats[0] : null;
 
   return (
     <div className="flex-1 bg-[#F2F0E5] overflow-y-auto">
@@ -80,7 +79,7 @@ export default function HomeView() {
 
       {/* Chat Prompt */}
       <div className="px-4 py-6">
-        <Link href={latestChat ? `/chat/${latestChat.id}` : "/chat/history"}>
+        <Link href={chats?.length > 0 ? `/chat/${chats[0].id}` : "/chat/history"}>
           <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -98,7 +97,7 @@ export default function HomeView() {
       </div>
 
       {/* Village Section */}
-      <div className="w-full px-4 pt-8">
+      <div className="w-full">
         <div
           className="rounded-xl p-4 relative overflow-hidden min-h-[200px]"
           style={{
@@ -127,7 +126,7 @@ export default function HomeView() {
       </div>
 
       {/* Learning Section */}
-      <div className="w-full p-4 pt-8">
+      <div className="w-full p-4">
         <div
           className="rounded-xl p-4"
           style={{
@@ -138,7 +137,7 @@ export default function HomeView() {
             <GraduationCap className="w-5 h-5" />
             <h2 className="text-xl">Verder leren?</h2>
           </div>
-          <div className="space-y-6">
+          <div className="space-y-4">
             {learningVideos.map((video, index) => (
               <Link key={index} href="/learn">
                 <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer">
