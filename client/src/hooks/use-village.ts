@@ -8,13 +8,11 @@ async function fetchVillageMembers(): Promise<VillageMember[]> {
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    try {
-      const errorJson = JSON.parse(errorText);
-      throw new Error(errorJson.message || `${response.status}: ${response.statusText}`);
-    } catch (e) {
-      throw new Error(`${response.status}: ${errorText}`);
+    if (response.status >= 500) {
+      throw new Error(`${response.status}: ${response.statusText}`);
     }
+
+    throw new Error(`${response.status}: ${await response.text()}`);
   }
 
   return response.json();
@@ -31,13 +29,11 @@ async function createVillageMember(member: Omit<InsertVillageMember, 'userId'>):
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    try {
-      const errorJson = JSON.parse(errorText);
-      throw new Error(errorJson.message || `${response.status}: ${response.statusText}`);
-    } catch (e) {
-      throw new Error(`${response.status}: ${errorText}`);
+    if (response.status >= 500) {
+      throw new Error(`${response.status}: ${response.statusText}`);
     }
+
+    throw new Error(`${response.status}: ${await response.text()}`);
   }
 
   return response.json();
