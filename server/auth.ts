@@ -5,9 +5,10 @@ import session from "express-session";
 import createMemoryStore from "memorystore";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { users, type User } from "@db/schema";
+import { users } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
+import type { User } from "@db/schema";
 
 const scryptAsync = promisify(scrypt);
 const crypto = {
@@ -30,7 +31,13 @@ const crypto = {
 
 declare global {
   namespace Express {
-    interface User extends User {}
+    // Define a custom User interface that doesn't extend itself
+    interface User {
+      id: number;
+      username: string;
+      password: string;
+      createdAt: Date | null;
+    }
   }
 }
 
@@ -100,7 +107,7 @@ export function setupAuth(app: Express) {
   app.post("/api/register", async (req, res, next) => {
     try {
       if (!req.body.username || !req.body.password) {
-        return res.status(400).send("Username and password are required");
+        return res.status(400).json({ message: "Username and password are required" });
       }
 
       const [existingUser] = await db
@@ -110,7 +117,7 @@ export function setupAuth(app: Express) {
         .limit(1);
 
       if (existingUser) {
-        return res.status(400).send("Username already exists");
+        return res.status(400).json({ message: "Username already exists" });
       }
 
       const hashedPassword = await crypto.hash(req.body.password);
@@ -138,7 +145,7 @@ export function setupAuth(app: Express) {
 
   app.post("/api/login", (req, res, next) => {
     if (!req.body.username || !req.body.password) {
-      return res.status(400).send("Username and password are required");
+      return res.status(400).json({ message: "Username and password are required" });
     }
 
     passport.authenticate("local", (err: any, user: Express.User | false, info: IVerifyOptions) => {
@@ -147,7 +154,7 @@ export function setupAuth(app: Express) {
       }
 
       if (!user) {
-        return res.status(400).send(info.message ?? "Login failed");
+        return res.status(400).json({ message: info.message ?? "Login failed" });
       }
 
       req.logIn(user, (err) => {
@@ -166,7 +173,7 @@ export function setupAuth(app: Express) {
   app.post("/api/logout", (req, res) => {
     req.logout((err) => {
       if (err) {
-        return res.status(500).send("Logout failed");
+        return res.status(500).json({ message: "Logout failed" });
       }
       res.json({ message: "Logout successful" });
     });
@@ -174,10 +181,11 @@ export function setupAuth(app: Express) {
 
   app.get("/api/user", (req, res) => {
     if (req.isAuthenticated()) {
-      return res.json(req.user);
+      const { id, username } = req.user;
+      return res.json({ id, username });
     }
-    res.status(401).send("Not logged in");
+    res.status(401).json({ message: "Not logged in" });
   });
 }
 
-export { User };
+export type { User };
