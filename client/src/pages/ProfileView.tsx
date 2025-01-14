@@ -46,7 +46,7 @@ export default function ProfileView() {
           <div>
             <CardTitle className="text-2xl">Je profiel</CardTitle>
             <CardDescription>
-              Fijn je weer te zien. Waarover wil je praten?
+              Hier kan je alles van je account managen.
             </CardDescription>
           </div>
         </CardHeader>

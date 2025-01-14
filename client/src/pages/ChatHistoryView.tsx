@@ -1,38 +1,70 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useChatHistory } from "@/hooks/use-chat-history";
-import { ArrowLeft, MessageSquare, Clock } from "lucide-react";
+import { ArrowLeft, MessageSquare, Clock, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import type { Chat } from "@db/schema";
+import { Button } from "@/components/ui/button";
 
 export default function ChatHistoryView() {
-  const { chats, isLoading } = useChatHistory();
+  const { chats = [], isLoading } = useChatHistory();
+  const [, navigate] = useLocation();
+
+  const startNewChat = async () => {
+    try {
+      const response = await fetch('/api/chats', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
+          messages: [],
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create new chat');
+      }
+
+      const newChat = await response.json();
+      navigate(`/chat/${newChat.id}`);
+    } catch (error) {
+      console.error('Error creating new chat:', error);
+    }
+  };
 
   return (
     <div className="flex-1 flex flex-col bg-[#F2F0E5]">
       {/* Header */}
       <div className="w-full px-4 py-3 flex items-center justify-between border-b border-gray-200 bg-white">
-        <Link href="/chat">
+        <Link href="/">
           <button className="p-2 hover:bg-gray-100 rounded-lg">
             <ArrowLeft className="w-6 h-6 text-gray-600" />
           </button>
         </Link>
         <h1 className="text-lg font-semibold">Gesprekken</h1>
-        <div className="w-10" /> {/* Spacer for alignment */}
+        <Button
+          onClick={startNewChat}
+          className="p-2 bg-[#629785] hover:bg-[#4A7566] rounded-full"
+        >
+          <Plus className="w-6 h-6 text-white" />
+        </Button>
       </div>
 
       {/* Chat List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {isLoading ? (
           <div className="text-center py-4 text-gray-500">Laden...</div>
-        ) : !chats || chats.length === 0 ? (
+        ) : chats.length === 0 ? (
           <div className="text-center py-4 text-gray-500">
             Nog geen gesprekken gevonden
           </div>
         ) : (
           chats.map((chat: Chat) => {
-            const messages = chat.messages as { role: string; content: string }[];
+            const messages = Array.isArray(chat.messages) ? chat.messages : [];
             const lastMessage = messages[messages.length - 1];
+            const chatDate = chat.updatedAt || chat.createdAt || new Date();
 
             return (
               <Link key={chat.id} href={`/chat/${chat.id}`}>
@@ -51,7 +83,7 @@ export default function ChatHistoryView() {
                         </p>
                         <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
                           <Clock className="w-4 h-4" />
-                          {format(new Date(chat.updatedAt || chat.createdAt), "d MMM yyyy, HH:mm")}
+                          {format(new Date(chatDate), "d MMM yyyy, HH:mm")}
                         </div>
                       </div>
                     </div>
