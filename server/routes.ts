@@ -189,21 +189,22 @@ export function registerRoutes(app: Express): Server {
     }
 
     const user = req.user as User;
-    const messages = req.body.messages;
+    const messages = req.body.messages || [];
     let title = null;
     let summary = null;
     let emotionalSummary = null;
 
     try {
-      // Generate title, summary, and emotional context analysis
-      const analyzeResponse = await anthropic.messages.create({
-        model: "claude-2.1", 
-        max_tokens: 1024,
-        system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze this conversation between a parent and Nuri. Focus on the key themes, emotional journey, and parenting insights discussed.`,
-        messages: [
-          {
-            role: "user",
-            content: `Based on this conversation, provide a JSON response in this exact format:
+      // Generate title, summary, and emotional context analysis only if there are messages
+      if (messages.length > 0) {
+        const analyzeResponse = await anthropic.messages.create({
+          model: "claude-2.1", 
+          max_tokens: 1024,
+          system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze this conversation between a parent and Nuri. Focus on the key themes, emotional journey, and parenting insights discussed.`,
+          messages: [
+            {
+              role: "user",
+              content: `Based on this conversation, provide a JSON response in this exact format:
 {
   "title": "short title capturing main parenting theme (max 5 words)",
   "summary": "brief summary focusing on parenting insights (max 2 sentences)",
@@ -211,39 +212,42 @@ export function registerRoutes(app: Express): Server {
 }
 
 Conversation: ${JSON.stringify(messages)}`,
-          },
-        ],
-      });
+            },
+          ],
+        });
 
-      try {
-        const jsonMatch = analyzeResponse.content[0].type === 'text' ? analyzeResponse.content[0].text.match(/\{.*\}/s) : null;
-        if (jsonMatch) {
-          const analysis = JSON.parse(jsonMatch[0]);
-          title = analysis.title;
-          summary = analysis.summary;
-          emotionalSummary = analysis.emotionalJourney;
+        try {
+          const jsonMatch = analyzeResponse.content[0].type === 'text' ? analyzeResponse.content[0].text.match(/\{.*\}/s) : null;
+          if (jsonMatch) {
+            const analysis = JSON.parse(jsonMatch[0]);
+            title = analysis.title;
+            summary = analysis.summary;
+            emotionalSummary = analysis.emotionalJourney;
+          }
+        } catch (parseError) {
+          console.error("Failed to parse analysis:", parseError);
         }
-      } catch (parseError) {
-        console.error("Failed to parse analysis:", parseError);
       }
+
+      // Create chat with safe metadata handling
+      const chat = await db.insert(chats).values({
+        userId: user.id,
+        messages: messages,
+        title: title || `Chat ${new Date().toLocaleDateString()}`,
+        summary,
+        metadata: {
+          messageCount: messages.length,
+          lastMessageRole: messages.length > 0 ? messages[messages.length - 1].role : null,
+          emotionalContext: emotionalSummary,
+        },
+        updatedAt: new Date(),
+      }).returning();
+
+      res.json(chat[0]);
     } catch (error) {
-      console.error("Failed to generate analysis:", error);
+      console.error("Failed to create chat:", error);
+      res.status(500).json({ message: "Failed to create chat" });
     }
-
-    const chat = await db.insert(chats).values({
-      userId: user.id,
-      messages: messages,
-      title,
-      summary,
-      metadata: {
-        messageCount: messages.length,
-        lastMessageRole: messages[messages.length - 1].role,
-        emotionalContext: emotionalSummary,
-      },
-      updatedAt: new Date(),
-    }).returning();
-
-    res.json(chat[0]);
   });
 
   app.post("/api/message-feedback", async (req, res) => {
