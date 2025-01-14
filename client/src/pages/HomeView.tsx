@@ -4,7 +4,6 @@ import { useUser } from "@/hooks/use-user";
 import { useChatHistory } from "@/hooks/use-chat-history";
 import { MessageSquare, Users, GraduationCap, Star, Clock, ChevronRight } from "lucide-react";
 import { Link } from "wouter";
-import type { Chat } from "@db/schema";
 
 // Add image load success handler
 const handleImageLoad = (imageName: string) => {
@@ -19,7 +18,7 @@ const handleImageError = (imageName: string, error: any) => {
 
 export default function HomeView() {
   const { user } = useUser();
-  const { getLatestPrompt, chats = [] } = useChatHistory();
+  const { getLatestPrompt, chats } = useChatHistory();
   const [currentTime, setCurrentTime] = useState<string>("");
 
   useEffect(() => {
@@ -40,7 +39,6 @@ export default function HomeView() {
   };
 
   const prompt = getLatestPrompt();
-  const latestChat = chats && chats.length > 0 ? chats[0] : null;
 
   return (
     <div className="flex-1 bg-[#F2F0E5] overflow-y-auto">
@@ -80,13 +78,13 @@ export default function HomeView() {
       </div>
 
       {/* Chat Prompt */}
-      <div className="px-4 py-8">
-        <Link href={latestChat ? `/chat/${latestChat.id}` : "/chat/history"}>
+      <div className="px-4 py-6">
+        <Link href={chats?.length > 0 ? `/chat/${chats[0].id}` : "/chat/history"}>
           <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-6">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <div className="text-orange-500 font-medium text-sm mb-3">
+                  <div className="text-orange-500 font-medium text-sm mb-2">
                     {prompt?.title}
                   </div>
                   <p className="text-lg pr-8">{prompt?.message}</p>
@@ -99,9 +97,9 @@ export default function HomeView() {
       </div>
 
       {/* Village Section */}
-      <div className="w-full px-4 pt-8 pb-8">
+      <div className="w-full px-4 pt-8">
         <div
-          className="rounded-xl p-6 relative overflow-hidden min-h-[200px]"
+          className="rounded-xl p-4 relative overflow-hidden min-h-[200px]"
           style={{
             backgroundImage: `url('/images/village_circles.png')`,
             backgroundColor: '#D9E7DA',
@@ -110,11 +108,11 @@ export default function HomeView() {
             backgroundSize: "contain",
           }}
         >
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-2">
             <Star className="w-5 h-5" />
             <h2 className="text-xl">Village</h2>
           </div>
-          <h3 className="text-xl mb-6">Laat je Village bloeien</h3>
+          <h3 className="text-xl mb-4">Laat je Village bloeien</h3>
           <Link href="/village">
             <div className="bg-white rounded-full px-4 py-2 shadow-sm inline-flex items-center gap-2 cursor-pointer">
               <span>
@@ -128,23 +126,23 @@ export default function HomeView() {
       </div>
 
       {/* Learning Section */}
-      <div className="w-full px-4 pb-8">
+      <div className="w-full p-4 pt-8">
         <div
-          className="rounded-xl p-6"
+          className="rounded-xl p-4"
           style={{
             background: "linear-gradient(180deg, #F8DD9F 0%, #F2F0E5 35%)",
           }}
         >
-          <div className="flex items-center gap-2 mb-6">
+          <div className="flex items-center gap-2 mb-4">
             <GraduationCap className="w-5 h-5" />
             <h2 className="text-xl">Verder leren?</h2>
           </div>
-          <div className="space-y-8">
+          <div className="space-y-6">
             {learningVideos.map((video, index) => (
               <Link key={index} href="/learn">
                 <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer">
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-6">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
                       <img
                         src={video.image}
                         alt={video.title}
@@ -156,9 +154,9 @@ export default function HomeView() {
                         }}
                       />
                       <div className="flex-1">
-                        <h3 className="text-lg mb-3">{video.title}</h3>
+                        <h3 className="text-lg mb-2">{video.title}</h3>
                         <div className="flex items-center text-gray-500">
-                          <Clock className="w-4 h-4 mr-2" />
+                          <Clock className="w-4 h-4 mr-1" />
                           <span>{video.duration}</span>
                         </div>
                       </div>

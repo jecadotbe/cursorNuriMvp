@@ -66,7 +66,7 @@ export default function ChatHistoryView() {
       </div>
 
       {/* Chat List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-8">
+      <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {isLoading ? (
           <div className="text-center py-4 text-gray-500">Laden...</div>
         ) : chats.length === 0 ? (
@@ -82,19 +82,19 @@ export default function ChatHistoryView() {
             return (
               <Link key={chat.id} href={`/chat/${chat.id}`}>
                 <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                  <CardContent className="p-6">
+                  <CardContent className="p-4">
                     <div className="flex items-start gap-4">
                       <div className="w-10 h-10 rounded-full bg-[#FFC74A] flex items-center justify-center flex-shrink-0">
                         <MessageSquare className="w-5 h-5 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium truncate text-lg">
+                        <h3 className="font-medium truncate">
                           {chat.title || "Gesprek"}
                         </h3>
-                        <p className="text-sm text-gray-500 line-clamp-2 mt-2">
+                        <p className="text-sm text-gray-500 line-clamp-2 mt-1">
                           {lastMessage?.content || "Geen berichten"}
                         </p>
-                        <div className="flex items-center gap-2 mt-3 text-xs text-gray-500">
+                        <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
                           <Clock className="w-4 h-4" />
                           {format(new Date(chatDate), "d MMM yyyy, HH:mm")}
                         </div>
