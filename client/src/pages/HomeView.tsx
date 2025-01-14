@@ -137,7 +137,7 @@ export default function HomeView() {
             <GraduationCap className="w-5 h-5" />
             <h2 className="text-xl">Verder leren?</h2>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-6">
             {learningVideos.map((video, index) => (
               <Link key={index} href="/learn">
                 <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer">
