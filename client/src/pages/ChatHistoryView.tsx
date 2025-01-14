@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ChatHistoryView() {
-  const { chats = [], isLoading } = useChatHistory();
+  const { chats, isLoading } = useChatHistory();
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
@@ -35,7 +35,6 @@ export default function ChatHistoryView() {
         throw new Error('No chat ID received from server');
       }
 
-      // Navigate to the new chat using the ID
       navigate(`/chat/${newChat.id}`);
     } catch (error) {
       console.error('Error creating new chat:', error);
@@ -69,7 +68,7 @@ export default function ChatHistoryView() {
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {isLoading ? (
           <div className="text-center py-4 text-gray-500">Laden...</div>
-        ) : chats.length === 0 ? (
+        ) : !chats || !chats.length ? (
           <div className="text-center py-4 text-gray-500">
             Nog geen gesprekken gevonden
           </div>

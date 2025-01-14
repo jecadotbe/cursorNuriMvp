@@ -39,6 +39,7 @@ export default function HomeView() {
   };
 
   const prompt = getLatestPrompt();
+  const latestChat = chats && Array.isArray(chats) && chats.length > 0 ? chats[0] : null;
 
   return (
     <div className="flex-1 bg-[#F2F0E5] overflow-y-auto">
@@ -79,7 +80,7 @@ export default function HomeView() {
 
       {/* Chat Prompt */}
       <div className="px-4 py-6">
-        <Link href={chats?.length > 0 ? `/chat/${chats[0].id}` : "/chat/history"}>
+        <Link href={latestChat ? `/chat/${latestChat.id}` : "/chat/history"}>
           <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
