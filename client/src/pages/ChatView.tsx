@@ -68,6 +68,7 @@ export default function ChatView() {
   const [inputText, setInputText] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [, navigate] = useLocation();
 
@@ -79,8 +80,48 @@ export default function ChatView() {
     scrollToBottom();
   }, [messages, isLoading]);
 
+  const initializeChat = async () => {
+    if (!chatId && !isInitializing) {
+      setIsInitializing(true);
+      try {
+        const response = await fetch('/api/chats', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
+            messages: [],
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create new chat');
+        }
+
+        const newChat = await response.json();
+        navigate(`/chat/${newChat.id}`, { replace: true });
+      } catch (error) {
+        console.error('Error creating new chat:', error);
+      } finally {
+        setIsInitializing(false);
+      }
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputText(e.target.value);
+    if (e.target.value.trim() && !chatId) {
+      initializeChat();
+    }
+  };
+
   const handleSend = async () => {
     if (inputText.trim()) {
+      if (!chatId) {
+        // If somehow we still don't have a chatId, initialize it
+        await initializeChat();
+      }
       const text = inputText.trim();
       setInputText('');
       setIsExpanded(false);
@@ -186,7 +227,7 @@ export default function ChatView() {
             </button>
             <textarea
               value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
+              onChange={handleInputChange}
               onKeyPress={handleKeyPress}
               placeholder="Typ een boodschap..."
               className={`flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#629785] focus:border-transparent resize-none transition-all duration-200 ease-in-out chat-message ${
