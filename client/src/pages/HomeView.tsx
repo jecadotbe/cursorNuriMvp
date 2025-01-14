@@ -18,7 +18,7 @@ const handleImageError = (imageName: string, error: any) => {
 
 export default function HomeView() {
   const { user } = useUser();
-  const { getLatestPrompt } = useChatHistory();
+  const { getLatestPrompt, chats } = useChatHistory();
   const [currentTime, setCurrentTime] = useState<string>("");
 
   useEffect(() => {
@@ -79,7 +79,7 @@ export default function HomeView() {
 
       {/* Chat Prompt */}
       <div className="px-4 py-6">
-        <Link href="/chat">
+        <Link href={chats?.length > 0 ? `/chat/${chats[0].id}` : "/chat/history"}>
           <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
