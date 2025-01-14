@@ -101,7 +101,7 @@ export default function HomeView() {
         <div
           className="rounded-xl p-4 relative overflow-hidden min-h-[200px]"
           style={{
-            backgroundImage: `linear-gradient(180deg, #C9E1D4 0%, #F2F0E5 35%), url('/images/village_circles.png')`,
+            backgroundImage: `url('/images/village_circles.png'), linear-gradient(180deg, #C9E1D4 0%, #F2F0E5 35%)`,
             backgroundPosition: "right top",
             backgroundRepeat: "no-repeat",
             backgroundSize: "contain",
