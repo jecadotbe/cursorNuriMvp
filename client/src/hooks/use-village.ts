@@ -9,17 +9,16 @@ async function fetchVillageMembers(): Promise<VillageMember[]> {
 
   if (!response.ok) {
     if (response.status >= 500) {
-      throw new Error(`Server error: ${response.status}`);
+      throw new Error(`${response.status}: ${response.statusText}`);
     }
-    const errorText = await response.text();
-    throw new Error(`Request failed: ${errorText}`);
+
+    throw new Error(`${response.status}: ${await response.text()}`);
   }
 
   return response.json();
 }
 
 async function createVillageMember(member: Omit<InsertVillageMember, 'userId'>): Promise<VillageMember> {
-  console.log('Sending member data:', member);
   const response = await fetch('/api/village', {
     method: 'POST',
     headers: {
@@ -30,9 +29,11 @@ async function createVillageMember(member: Omit<InsertVillageMember, 'userId'>):
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Failed to create member:', errorText);
-    throw new Error(errorText);
+    if (response.status >= 500) {
+      throw new Error(`${response.status}: ${response.statusText}`);
+    }
+
+    throw new Error(`${response.status}: ${await response.text()}`);
   }
 
   return response.json();
@@ -59,11 +60,10 @@ export function useVillage() {
       });
     },
     onError: (error: Error) => {
-      console.error('Mutation error:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to add member",
+        description: error.message,
       });
     },
   });

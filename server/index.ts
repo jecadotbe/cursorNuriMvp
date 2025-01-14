@@ -1,7 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { setupAuth } from "./auth";
 import path from "path";
 
 const app = express();
@@ -9,6 +8,9 @@ const app = express();
 // Essential middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Add static file serving for public directory
+app.use(express.static(path.join(process.cwd(), "public")));
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -41,18 +43,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Error handling for JSON parsing
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-  if (err instanceof SyntaxError && 'body' in err) {
-    console.error('JSON Parse Error:', err);
-    return res.status(400).json({ message: 'Invalid JSON payload' });
-  }
-  next(err);
-});
-
-// Setup authentication before adding routes
-setupAuth(app);
-
 (async () => {
   try {
     const server = registerRoutes(app);
@@ -73,12 +63,14 @@ setupAuth(app);
       serveStatic(app);
     }
 
+    // ALWAYS serve the app on port 5000
+    // this serves both the API and the client
     const PORT = 5000;
     server.listen(PORT, "0.0.0.0", () => {
-      log(`Server started on port ${PORT}`);
+      log(`serving on port ${PORT}`);
     });
 
-    // Cleanup on exit
+    // Cleanup on exit - simplified because memoryService is removed
     process.on('SIGTERM', () => {
       console.log('Shutting down...');
       server.close();

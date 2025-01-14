@@ -1,90 +1,15 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { setupAuth } from "./auth";
 import { db } from "@db";
-import { villageMembers, type InsertVillageMember, chats, messageFeedback } from "@db/schema";
+import { villageMembers, chats, messageFeedback } from "@db/schema";
 import { eq, desc } from "drizzle-orm";
 import { anthropic } from "./anthropic";
 import type { User } from "./auth";
 import { memoryService } from "./services/memory";
 
 export function registerRoutes(app: Express): Server {
-  // Add village member routes
-  app.get("/api/village", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-
-    try {
-      const user = req.user as User;
-      const members = await db.query.villageMembers.findMany({
-        where: eq(villageMembers.userId, user.id),
-      });
-      res.json(members);
-    } catch (error) {
-      console.error("Failed to fetch village members:", error);
-      res.status(500).json({ 
-        message: "Failed to fetch village members",
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
-
-  app.post("/api/village", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-
-    try {
-      const user = req.user as User;
-
-      // Validate request body
-      if (!req.body || typeof req.body !== 'object') {
-        return res.status(400).json({ message: "Invalid request body" });
-      }
-
-      const memberData: Omit<InsertVillageMember, 'userId'> = {
-        name: req.body.name,
-        type: req.body.type,
-        circle: parseInt(req.body.circle),
-        interactionFrequency: 1, // Default value for new members
-        metadata: {},
-        createdAt: new Date(),
-      };
-
-      // Validate required fields
-      if (!memberData.name || !memberData.type || isNaN(memberData.circle)) {
-        return res.status(400).json({ message: "Missing required fields" });
-      }
-
-      // Validate circle range
-      if (memberData.circle < 1 || memberData.circle > 5) {
-        return res.status(400).json({ message: "Circle must be between 1 and 5" });
-      }
-
-      // Validate type
-      if (memberData.type !== 'individual' && memberData.type !== 'group') {
-        return res.status(400).json({ message: "Type must be either 'individual' or 'group'" });
-      }
-
-      console.log('Creating village member:', memberData);
-
-      const [newMember] = await db.insert(villageMembers)
-        .values({
-          ...memberData,
-          userId: user.id,
-        })
-        .returning();
-
-      console.log('Created village member:', newMember);
-      res.json(newMember);
-    } catch (error) {
-      console.error("Failed to create village member:", error);
-      res.status(500).json({ 
-        message: "Failed to create village member",
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
+  setupAuth(app);
 
   app.get("/api/chats/:chatId", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
@@ -374,7 +299,6 @@ Conversation: ${JSON.stringify(messages)}`,
       emotionalContext: metadata?.emotionalContext || null,
     });
   });
-
 
   const httpServer = createServer(app);
   return httpServer;
