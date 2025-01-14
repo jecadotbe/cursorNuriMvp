@@ -138,10 +138,10 @@ export default function ChatView() {
             <Avatar sender={message.role} />
             <div className="flex flex-col">
               <div
-                className={`px-4 py-3 rounded-2xl max-w-[280px] ${
+                className={`px-4 py-3 rounded-2xl max-w-[280px] chat-message ${
                   message.role === 'user'
                     ? `${theme.primary} ${theme.text.primary}`
-                    : `${theme.secondary} ${theme.text.secondary} chat-message`
+                    : `${theme.secondary} ${theme.text.secondary}`
                 }`}
               >
                 {message.role === 'assistant' ? (
@@ -189,7 +189,7 @@ export default function ChatView() {
               onChange={(e) => setInputText(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Typ een boodschap..."
-              className={`flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#629785] focus:border-transparent resize-none transition-all duration-200 ease-in-out ${
+              className={`flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#629785] focus:border-transparent resize-none transition-all duration-200 ease-in-out chat-message ${
                 isExpanded ? 'h-24' : 'h-10'
               }`}
               style={{
