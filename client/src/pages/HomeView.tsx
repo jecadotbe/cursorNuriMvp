@@ -125,9 +125,9 @@ export default function HomeView() {
       </div>
 
       {/* Learning Section */}
-      <div className="w-full p-4">
+      <div className="w-full">
         <div
-          className="rounded-xl p-4"
+          className="rounded-xl p-4 relative overflow-hidden"
           style={{
             background: "linear-gradient(180deg, #F8DD9F 0%, #F2F0E5 35%)",
           }}
