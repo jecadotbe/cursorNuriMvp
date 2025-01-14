@@ -30,7 +30,10 @@ const crypto = {
 
 declare global {
   namespace Express {
-    interface User extends User {}
+    interface User extends User {
+      id: number;
+      username: string;
+    }
   }
 }
 
@@ -40,7 +43,11 @@ export function setupAuth(app: Express) {
     secret: process.env.REPL_ID || "village-app-secret",
     resave: false,
     saveUninitialized: false,
-    cookie: {},
+    cookie: {
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      secure: app.get("env") === "production",
+      sameSite: "lax"
+    },
     store: new MemoryStore({
       checkPeriod: 86400000,
     }),
@@ -48,9 +55,6 @@ export function setupAuth(app: Express) {
 
   if (app.get("env") === "production") {
     app.set("trust proxy", 1);
-    sessionSettings.cookie = {
-      secure: true,
-    };
   }
 
   app.use(session(sessionSettings));
@@ -95,6 +99,14 @@ export function setupAuth(app: Express) {
     } catch (err) {
       done(err);
     }
+  });
+
+  // API route middleware to check authentication and return JSON responses
+  app.use('/api', (req, res, next) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+    next();
   });
 
   app.post("/api/register", async (req, res, next) => {
