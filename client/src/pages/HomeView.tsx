@@ -137,30 +137,29 @@ export default function HomeView() {
             <GraduationCap className="w-5 h-5" />
             <h2 className="text-xl">Verder leren?</h2>
           </div>
-          <div className="space-y-12">
+          <div className="grid grid-cols-2 gap-4">
             {learningVideos.map((video, index) => (
               <Link key={index} href="/learn">
                 <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
+                  <CardContent className="p-0">
+                    <div className="flex flex-col">
                       <img
                         src={video.image}
                         alt={video.title}
-                        className="w-20 h-20 object-cover rounded-lg"
+                        className="w-full h-48 object-cover rounded-t-lg"
                         onLoad={() => handleImageLoad(video.image.split('/').pop()!)}
                         onError={(e) => {
                           handleImageError(video.image.split('/').pop()!, e);
                           e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui' font-size='12' fill='%23666'%3EThumbnail%3C/text%3E%3C/svg%3E";
                         }}
                       />
-                      <div className="flex-1">
+                      <div className="p-4">
                         <h3 className="text-lg mb-2">{video.title}</h3>
                         <div className="flex items-center text-gray-500">
                           <Clock className="w-4 h-4 mr-1" />
                           <span>{video.duration}</span>
                         </div>
                       </div>
-                      <ChevronRight className="w-6 h-6 text-gray-400" />
                     </div>
                   </CardContent>
                 </Card>
