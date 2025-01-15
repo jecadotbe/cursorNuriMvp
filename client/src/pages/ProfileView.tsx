@@ -35,7 +35,7 @@ export default function ProfileView() {
   ];
 
   return (
-    <div className="min-h-screen p-4 space-y-6">
+    <div className="min-h-screen p-4 space-y-6 bg-[#F2F0E5]">
       <Card className="bg-gradient-to-br from-yellow-50 to-orange-50">
         <CardHeader className="flex flex-row items-center gap-4">
           <Avatar className="h-16 w-16">
