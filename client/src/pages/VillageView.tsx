@@ -146,12 +146,12 @@ export default function VillageView() {
         }}
       >
         <Link href="/">
-          <div className="flex items-center space-x-4 cursor-pointer">
+          <div className="flex items-center space-x-4 cursor-pointer mb-8">
             <ChevronLeft className="w-6 h-6 text-gray-800" />
             <span className="text-xl text-gray-800">Mijn Village</span>
           </div>
         </Link>
-        <h1 className="text-2xl font-medium mt-6 text-[#2F4644] max-w-[280px]">
+        <h1 className="text-2xl font-medium pl-14 text-[#2F4644] max-w-[380px] leading-tight">
           Een bloeiende Village als middel tegen 'Village Armoede'
         </h1>
       </div>
