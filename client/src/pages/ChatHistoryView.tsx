@@ -48,7 +48,7 @@ export default function ChatHistoryView() {
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-[#F2F0E5]">
+    <div className="flex-1 flex flex-col bg-[#F2F0E5] min-h-screen">
       {/* Header */}
       <div className="w-full px-4 py-3 flex items-center justify-between border-b border-gray-200 bg-white">
         <Link href="/">
@@ -71,9 +71,14 @@ export default function ChatHistoryView() {
         {isLoading ? (
           <div className="text-center py-4 text-gray-500">Laden...</div>
         ) : chats.length === 0 ? (
-          <div className="text-center py-4 text-gray-500">
-            Nog geen gesprekken gevonden
-          </div>
+          <Card className="bg-white hover:shadow-md transition-all rounded-2xl shadow-sm border-0 cursor-pointer" onClick={startNewChat}>
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Start a new chat</span>
+                <Plus className="w-5 h-5 text-gray-400" />
+              </div>
+            </CardContent>
+          </Card>
         ) : (
           chats.map((chat: Chat) => {
             const messages = Array.isArray(chat.messages) ? chat.messages : [];
