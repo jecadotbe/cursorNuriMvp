@@ -130,7 +130,7 @@ export default function LearnView() {
 
         {/* Chapter 1 */}
         <div>
-          <h2 className="text-xl font-semibold mb-4">Hoofdstuk 1: De basis</h2>
+          <h2 className="text-xl font-semibold mb-4 font-baskerville">Hoofdstuk 1: De basis</h2>
           <div className="grid grid-cols-2 gap-4">
             {chapters1.map((chapter, index) => (
               <Link href={`/learn/${index + 1}`} key={index}>
@@ -160,7 +160,7 @@ export default function LearnView() {
 
         {/* Chapter 2 */}
         <div>
-          <h2 className="text-xl font-semibold mb-4">Hoofdstuk 2: De visie van Nuri</h2>
+          <h2 className="text-xl font-semibold mb-4 font-baskerville">Hoofdstuk 2: De visie van Nuri</h2>
           <div className="grid grid-cols-2 gap-4">
             {chapters2.map((chapter, index) => (
               <Link href={`/learn/${index + 1}`} key={index}>
@@ -198,7 +198,7 @@ export default function LearnView() {
 
         {/* Podcasts */}
         <div>
-          <h2 className="text-xl font-semibold mb-4">Podcast and Inspiration</h2>
+          <h2 className="text-xl font-semibold mb-4 font-baskerville">Podcast and Inspiration</h2>
           <div className="space-y-4">
             {podcasts.map((podcast, index) => (
               <div key={index} className="bg-white p-4 rounded-lg">
