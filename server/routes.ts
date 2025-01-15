@@ -243,20 +243,22 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
-      const { userId, ...memberData } = req.body;
-
-      const newMember = await db.village.create({
-        data: {
-          userId,
-          ...memberData,
-        },
-      });
+      const user = req.user as User;
+      const [newMember] = await db.insert(villageMembers)
+        .values({
+          userId: user.id,
+          name: req.body.name,
+          type: req.body.type,
+          circle: req.body.circle,
+          interactionFrequency: req.body.interactionFrequency || 1
+        })
+        .returning();
 
       console.log('Created village member:', newMember);
       res.json(newMember);
     } catch (error) {
       console.error('Failed to create village member:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to create village member' });
     }
   });
 
