@@ -187,7 +187,7 @@ export default function ChatView() {
       {/* Header */}
       <div className="w-full px-4 py-3 flex items-center justify-between border-b border-gray-200 bg-white">
         <div className="flex items-center gap-4">
-          <Link href="/chat/history">
+          <Link href="/">
             <button className="p-2 hover:bg-gray-100 rounded-lg">
               <ArrowLeft className="w-6 h-6 text-gray-600" />
             </button>
