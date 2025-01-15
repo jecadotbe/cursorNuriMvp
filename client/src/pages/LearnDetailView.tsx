@@ -3,17 +3,27 @@ import { useState, useRef } from 'react';
 import { ArrowLeft } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
+import YouTube from 'react-youtube';
+
 interface VideoPlayerProps {
   videoUrl: string;
   title: string;
+  isYoutube?: boolean;
 }
 
-const VideoPlayer = ({ videoUrl, title }: VideoPlayerProps) => {
+const VideoPlayer = ({ videoUrl, title, isYoutube = false }: VideoPlayerProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const youtubeRef = useRef<YouTube>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const getYoutubeId = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
 
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60);
@@ -64,13 +74,36 @@ const VideoPlayer = ({ videoUrl, title }: VideoPlayerProps) => {
 
   return (
     <div className="relative">
-      <video
-        ref={videoRef}
-        src={videoUrl}
-        className="w-full h-auto rounded-lg"
-        onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleLoadedMetadata}
-      />
+      {isYoutube ? (
+        <YouTube
+          ref={youtubeRef}
+          videoId={getYoutubeId(videoUrl)}
+          className="w-full rounded-lg"
+          opts={{
+            width: '100%',
+            playerVars: {
+              controls: 0,
+            },
+          }}
+          onStateChange={(event) => {
+            setIsPlaying(event.data === 1);
+            if (!duration) {
+              setDuration(event.target.getDuration());
+            }
+          }}
+          onReady={(event) => {
+            setDuration(event.target.getDuration());
+          }}
+        />
+      ) : (
+        <video
+          ref={videoRef}
+          src={videoUrl}
+          className="w-full h-auto rounded-lg"
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+        />
+      )}
       <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-4 rounded-b-lg">
         <h2 className="text-white mb-2">{title}</h2>
         <div className="flex items-center gap-4">
@@ -118,8 +151,9 @@ export default function LearnDetailView() {
 
       <div className="p-4 space-y-6">
         <VideoPlayer
-          videoUrl="/videos/aware-parenting-intro.mp4"
-          title="Wat is Aware Parenting?"
+          videoUrl="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+          title="Demo Video"
+          isYoutube={true}
         />
       </div>
     </div>
