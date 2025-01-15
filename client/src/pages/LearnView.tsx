@@ -39,8 +39,20 @@ export default function LearnView() {
   ];
 
   const podcasts = [
-    { number: 5, title: "Episode 5: Valuing fathers #2", type: "PODCAST" },
-    { number: 4, title: "Episode 4: Our inner work", type: "PODCAST" }
+    { 
+      number: 5, 
+      title: "Episode 5: Valuing fathers #2", 
+      type: "PODCAST",
+      spotifyUrl: "https://open.spotify.com/episode/1dEWkaM6CMbAHBTn52BH71?si=adcd330bdbcf4df7",
+      artworkUrl: "https://i.scdn.co/image/ab67656300005f1ff5a9f4fc0c63332807b0ce61"
+    },
+    { 
+      number: 4, 
+      title: "Episode 4: Our inner work", 
+      type: "PODCAST",
+      spotifyUrl: "https://open.spotify.com/episode/1dEWkaM6CMbAHBTn52BH71?si=adcd330bdbcf4df7",
+      artworkUrl: "https://i.scdn.co/image/ab67656300005f1ff5a9f4fc0c63332807b0ce61"
+    }
   ];
 
   return (
@@ -191,22 +203,27 @@ export default function LearnView() {
             {podcasts.map((podcast, index) => (
               <div key={index} className="bg-white p-4 rounded-lg">
                 <div className="flex items-center justify-between">
-                  <div>
+                  <div className="flex-1 mr-4">
                     <h3 className="font-medium">{podcast.title}</h3>
                     <div className="flex items-center space-x-4 mt-2">
                       <span className="text-xs bg-gray-100 px-2 py-1 rounded">
                         {podcast.type}
                       </span>
-                      <button className="flex items-center text-sm text-gray-600">
+                      <a 
+                        href={podcast.spotifyUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center text-sm text-gray-600 hover:text-green-500 transition-colors"
+                      >
                         <Play className="w-4 h-4 mr-1" />
-                        PLAY
-                      </button>
+                        PLAY ON SPOTIFY
+                      </a>
                     </div>
                   </div>
                   <img 
-                    src="/images/podcast-thumbnail.jpg"
+                    src={podcast.artworkUrl}
                     alt={podcast.title}
-                    className="w-20 h-20 rounded-lg object-cover"
+                    className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
                   />
                 </div>
               </div>
