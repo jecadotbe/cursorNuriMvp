@@ -132,9 +132,14 @@ export default function HomeView() {
             background: "linear-gradient(180deg, #F8DD9F 0%, #F2F0E5 35%)",
           }}
         >
-          <div className="flex items-center gap-2 mb-4">
-            <GraduationCap className="w-5 h-5" />
-            <h2 className="text-xl font-baskerville">Verder leren?</h2>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <GraduationCap className="w-5 h-5" />
+              <h2 className="text-xl font-baskerville">Verder leren?</h2>
+            </div>
+            <Link href="/learn" className="text-sm underline">
+              Naar overzicht
+            </Link>
           </div>
           <div className="grid grid-cols-2 gap-4">
             {learningVideos.map((video, index) => (
