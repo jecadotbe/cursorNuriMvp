@@ -132,32 +132,27 @@ export default function HomeView() {
             background: "linear-gradient(180deg, #F8DD9F 0%, #F2F0E5 35%)",
           }}
         >
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <GraduationCap className="w-5 h-5" />
-              <h2 className="text-xl font-baskerville">Verder leren?</h2>
-            </div>
-            <Link href="/learn" className="text-sm underline">
-              Naar overzicht
-            </Link>
+          <div className="flex items-center gap-2 mb-4">
+            <GraduationCap className="w-5 h-5" />
+            <h2 className="text-xl font-baskerville">Verder leren?</h2>
           </div>
-          <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 -mx-4 px-4">
+          <div className="grid grid-cols-2 gap-4">
             {learningVideos.map((video, index) => (
-              <Link key={index} href="/learn" className="min-w-[280px] snap-start">
-                <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer h-full">
+              <Link key={index} href="/learn">
+                <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer">
                   <CardContent className="p-0">
-                    <div className="flex flex-col h-full">
+                    <div className="flex flex-col">
                       <img
                         src={video.image}
                         alt={video.title}
-                        className="w-full aspect-video object-cover rounded-t-lg"
+                        className="w-full h-48 object-cover rounded-t-lg"
                         onLoad={() => handleImageLoad(video.image.split('/').pop()!)}
                         onError={(e) => {
                           handleImageError(video.image.split('/').pop()!, e);
                           e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui' font-size='12' fill='%23666'%3EThumbnail%3C/text%3E%3C/svg%3E";
                         }}
                       />
-                      <div className="p-4 flex flex-col justify-between flex-1">
+                      <div className="p-4">
                         <h3 className="text-lg mb-2">{video.title}</h3>
                         <div className="flex items-center text-gray-500">
                           <Clock className="w-4 h-4 mr-1" />
