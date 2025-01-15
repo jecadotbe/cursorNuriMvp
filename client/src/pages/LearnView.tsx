@@ -96,18 +96,22 @@ export default function LearnView() {
         </p>
 
         {/* Instructor */}
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 rounded-full overflow-hidden shadow-sm">
-            <img 
-              src="/images/lynn-profiel.jpg"
-              alt="Lynn Geerinck"
-              className="w-full h-full object-cover"
-            />
+        <div className="space-y-8">
+          <div className="flex items-center space-x-4">
+            <div className="w-16 h-16 rounded-full overflow-hidden">
+              <img 
+                src="/images/lynn-profiel.jpg"
+                alt="Lynn Geerinck"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div>
+              <h3 className="text-xl text-[#2F4644] font-baskerville">Lynn Geerinck</h3>
+              <p className="text-[#2F4644]">Co-founder & methodology</p>
+            </div>
           </div>
-          <div>
-            <p className="font-medium">Lynn Geerinck</p>
-            <p className="text-sm text-gray-600">Co-founder & methodology</p>
-          </div>
+          <div className="h-px bg-gray-200" />
+          <h2 className="text-2xl font-baskerville text-[#2F4644]">Verder waar we gestopt zijn...</h2>
         </div>
 
         {/* Continue Learning */}
