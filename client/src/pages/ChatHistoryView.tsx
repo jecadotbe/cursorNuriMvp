@@ -66,7 +66,7 @@ export default function ChatHistoryView() {
       </div>
 
       {/* Chat List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-10">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {isLoading ? (
           <div className="text-center py-4 text-gray-500">Laden...</div>
         ) : chats.length === 0 ? (
@@ -81,7 +81,7 @@ export default function ChatHistoryView() {
 
             return (
               <Link key={chat.id} href={`/chat/${chat.id}`}>
-                <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                <Card className="hover:shadow-sm transition-shadow cursor-pointer bg-white rounded-2xl shadow-sm border-0">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-4">
                       <div className="w-10 h-10 rounded-full bg-[#FFC74A] flex items-center justify-center flex-shrink-0">
