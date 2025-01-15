@@ -20,9 +20,11 @@ import {
 import { Label } from "@/components/ui/label";
 import Draggable from "react-draggable";
 import { Link } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 export default function VillageView() {
   const { members, addMember } = useVillage();
+  const { toast } = useToast();
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
