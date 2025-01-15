@@ -99,20 +99,22 @@ export default function LearnView() {
         </div>
 
         {/* Continue Learning */}
-        <div className="bg-white rounded-lg p-4">
-          <div className="flex items-center space-x-3">
-            <img 
-              src="/images/bg_test.jpg"
-              alt="Nuri Basics Welkom"
-              className="w-16 h-16 rounded-lg object-cover"
-            />
-            <div className="flex-1">
-              <h3 className="font-medium">Nuri Basics Welkom</h3>
-              <p className="text-sm text-gray-600">10 min</p>
+        <Link href="/learn/0">
+          <div className="bg-white rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow">
+            <div className="flex items-center space-x-3">
+              <img 
+                src="/images/bg_test.jpg"
+                alt="Nuri Basics Welkom"
+                className="w-16 h-16 rounded-lg object-cover"
+              />
+              <div className="flex-1">
+                <h3 className="font-medium">Nuri Basics Welkom</h3>
+                <p className="text-sm text-gray-600">10 min</p>
+              </div>
+              <ChevronRight className="w-5 h-5" />
             </div>
-            <ChevronRight className="w-5 h-5" />
           </div>
-        </div>
+        </Link>
 
         {/* Chapter 1 */}
         <div>
