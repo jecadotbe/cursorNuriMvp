@@ -96,8 +96,8 @@ export default function LearnView() {
         </p>
 
         {/* Instructor */}
-        <div className="flex items-center space-x-4 bg-white rounded-lg p-4">
-          <div className="w-16 h-16 rounded-full overflow-hidden">
+        <div className="flex items-center space-x-3">
+          <div className="w-12 h-12 rounded-full overflow-hidden shadow-sm">
             <img 
               src="/images/lynn-profiel.jpg"
               alt="Lynn Geerinck"
@@ -105,8 +105,8 @@ export default function LearnView() {
             />
           </div>
           <div>
-            <h3 className="text-[#2F4644] font-baskerville text-xl">Lynn Geerinck</h3>
-            <p className="text-[#2F4644] text-base">Co-founder & methodology</p>
+            <p className="font-medium">Lynn Geerinck</p>
+            <p className="text-sm text-gray-600">Co-founder & methodology</p>
           </div>
         </div>
 
