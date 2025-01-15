@@ -19,8 +19,9 @@ async function fetchVillageMembers(): Promise<VillageMember[]> {
 }
 
 async function createVillageMember(member: Omit<InsertVillageMember, 'userId'>): Promise<VillageMember> {
+  let response;
   try {
-    const response = await fetch('/api/village', {
+    response = await fetch('/api/village', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -45,16 +46,16 @@ async function createVillageMember(member: Omit<InsertVillageMember, 'userId'>):
       }
     }
 
-    const data = await response.json();
-    return data;
+    return response.json();
   } catch (error) {
     console.error('Create member error:', error);
-    console.error('Response details:', {
-      status: response?.status,
-      statusText: response?.statusText,
-      headers: Object.fromEntries(response?.headers || []),
-      text: await response?.text(),
-    });
+    if (response) {
+      console.error('Response details:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers || []),
+      });
+    }
     throw error;
   }
 }
