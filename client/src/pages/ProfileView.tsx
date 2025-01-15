@@ -35,22 +35,26 @@ export default function ProfileView() {
   ];
 
   return (
-    <div className="min-h-screen p-4 space-y-6 bg-[#F2F0E5]">
-      <Card className="bg-gradient-to-br from-yellow-50 to-orange-50">
-        <CardHeader className="flex flex-row items-center gap-4">
-          <Avatar className="h-16 w-16">
-            <AvatarFallback className="text-xl">
-              {user?.username[0]}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <CardTitle className="text-2xl">Je profiel</CardTitle>
-            <CardDescription>
-              Hier kan je alles van je account managen.
-            </CardDescription>
+    <div className="min-h-screen space-y-6 bg-[#F2F0E5]">
+      <div className="w-full bg-gradient-to-r from-[#F8DD9F] to-[#F2F0E5] via-[#F2F0E5] via-35%">
+        <div className="px-4 py-6">
+          <div className="flex items-start gap-4">
+            <Avatar className="h-24 w-24">
+              <AvatarFallback className="text-2xl">
+                {user?.username[0]}
+              </AvatarFallback>
+            </Avatar>
+            <div className="space-y-1">
+              <h1 className="text-2xl text-[#2F4644] font-baskerville">
+                Dag {user?.username},
+              </h1>
+              <p className="text-xl text-[#2F4644]">
+                Pas instellingen aan
+              </p>
+            </div>
           </div>
-        </CardHeader>
-      </Card>
+        </div>
+      </div>
 
       {sections.map((section) => (
         <Card key={section.title}>
