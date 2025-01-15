@@ -209,7 +209,7 @@ export default function ChatView() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 pt-16 space-y-4 bg-orange-50">
+      <div className="flex-1 overflow-y-auto p-4 pt-16 pb-32 space-y-4 bg-orange-50">
         {messages.map((message, index) => (
           <div
             key={index}
@@ -260,7 +260,7 @@ export default function ChatView() {
       </div>
 
       {/* Input area */}
-      <div className="w-full border-t border-gray-200 bg-white">
+      <div className="w-full border-t border-gray-200 bg-white fixed bottom-14 left-0 z-50">
         <div className="max-w-screen-lg mx-auto px-4 py-3">
           <div className="flex items-start space-x-2">
             <button className="p-2 hover:bg-gray-100 rounded-full flex-shrink-0">
