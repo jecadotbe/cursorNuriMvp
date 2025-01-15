@@ -187,12 +187,13 @@ export default function ChatView() {
       {/* Header */}
       <div className="w-full px-4 py-3 flex items-center justify-between border-b border-gray-200 bg-white">
         <div className="flex items-center gap-4">
-          <Link href="/">
-            <button className="p-2 hover:bg-gray-100 rounded-lg">
-              <ArrowLeft className="w-6 h-6 text-gray-600" />
-            </button>
-          </Link>
-          <Link href="/chat/history">
+          <button 
+            onClick={() => window.history.back()} 
+            className="p-2 hover:bg-gray-100 rounded-lg"
+          >
+            <ArrowLeft className="w-6 h-6 text-gray-600" />
+          </button>
+          <Link href="/chat">
             <button className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200">
               <Circle className="w-4 h-4" />
               <span>Geschiedenis</span>
