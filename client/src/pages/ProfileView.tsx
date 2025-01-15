@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ChevronRight } from "lucide-react";
 
 export default function ProfileView() {
   const { user, logout } = useUser();
@@ -57,33 +58,38 @@ export default function ProfileView() {
       </div>
 
       {sections.map((section) => (
-        <Card key={section.title}>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-gray-500">
+        <Card key={section.title} className="mx-4">
+          <CardHeader className="pb-0">
+            <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${
+                section.title.includes('PRIVACY') ? 'bg-green-500' : 'bg-orange-500'
+              }`} />
               {section.title}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-2 pt-4">
             {section.items.map((item) => (
               <Button
                 key={item.label}
                 variant="ghost"
-                className="w-full justify-start"
+                className="w-full justify-between text-lg font-normal hover:bg-transparent"
               >
                 {item.label}
+                <ChevronRight className="h-5 w-5" />
               </Button>
             ))}
           </CardContent>
         </Card>
       ))}
 
-      <Card className="border-destructive">
-        <CardHeader>
-          <CardTitle className="text-sm font-medium text-destructive">
+      <Card className="border-destructive mx-4">
+        <CardHeader className="pb-0">
+          <CardTitle className="text-sm font-medium text-destructive flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-red-500" />
             THE DANGER ZONE
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-2 pt-4">
           <Button
             variant="destructive"
             className="w-full"
