@@ -94,14 +94,28 @@ export default function VillageView() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await addMember(newMember);
-    setIsOpen(false);
-    setNewMember({
-      name: "",
-      type: "individual",
-      circle: 1,
-      interactionFrequency: 1,
-    });
+    try {
+      await addMember({
+        name: newMember.name,
+        type: newMember.type,
+        circle: newMember.circle,
+        interactionFrequency: newMember.interactionFrequency
+      });
+      setIsOpen(false);
+      setNewMember({
+        name: "",
+        type: "individual",
+        circle: 1,
+        interactionFrequency: 1,
+      });
+    } catch (error) {
+      console.error('Submit error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to add member",
+      });
+    }
   };
 
   return (

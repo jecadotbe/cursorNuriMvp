@@ -19,24 +19,38 @@ async function fetchVillageMembers(): Promise<VillageMember[]> {
 }
 
 async function createVillageMember(member: Omit<InsertVillageMember, 'userId'>): Promise<VillageMember> {
-  const response = await fetch('/api/village', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-    body: JSON.stringify(member),
-  });
+  try {
+    const response = await fetch('/api/village', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        name: member.name,
+        type: member.type,
+        circle: member.circle,
+        interactionFrequency: member.interactionFrequency || 1
+      }),
+    });
 
-  if (!response.ok) {
-    if (response.status >= 500) {
-      throw new Error(`${response.status}: ${response.statusText}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      try {
+        const errorJson = JSON.parse(errorText);
+        throw new Error(errorJson.message || `Error: ${response.status}`);
+      } catch (e) {
+        throw new Error(`Request failed: ${response.status}`);
+      }
     }
 
-    throw new Error(`${response.status}: ${await response.text()}`);
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Create member error:', error);
+    throw error;
   }
-
-  return response.json();
 }
 
 export function useVillage() {
