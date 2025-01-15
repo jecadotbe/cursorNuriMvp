@@ -96,6 +96,15 @@ export default function VillageView() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newMember.name.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Name is required"
+      });
+      return;
+    }
+    
     try {
       await addMember({
         name: newMember.name,
@@ -110,12 +119,16 @@ export default function VillageView() {
         circle: 1,
         interactionFrequency: 1,
       });
+      toast({
+        title: "Success",
+        description: "Member added successfully"
+      });
     } catch (error) {
       console.error('Submit error:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to add member",
+        description: error instanceof Error ? error.message : "Failed to add member. Please try again."
       });
     }
   };
