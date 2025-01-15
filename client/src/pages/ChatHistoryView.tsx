@@ -66,7 +66,8 @@ export default function ChatHistoryView() {
       </div>
 
       {/* Chat List */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="grid grid-cols-1 gap-5">
         {isLoading ? (
           <div className="text-center py-4 text-gray-500">Laden...</div>
         ) : chats.length === 0 ? (
@@ -106,6 +107,7 @@ export default function ChatHistoryView() {
             );
           })
         )}
+        </div>
       </div>
     </div>
   );
