@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/hooks/use-user";
 
 const theme = {
   primary: 'bg-[#F2F0E5]',
@@ -54,15 +55,18 @@ const TypingIndicator = () => (
   </div>
 );
 
-const Avatar = ({ sender }: { sender: 'user' | 'assistant' }) => (
-  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-    sender === 'assistant' ? 'bg-[#FFC74A]' : 'bg-yellow-100'
-  }`}>
-    <span className="text-white text-sm">
-      {sender === 'assistant' ? 'N' : 'U'}
-    </span>
-  </div>
-);
+const Avatar = ({ sender }: { sender: 'user' | 'assistant' }) => {
+  const { user } = useUser();
+  return (
+    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+      sender === 'assistant' ? 'bg-[#FFC74A]' : 'bg-[#294636]'
+    }`}>
+      <span className="text-white text-sm">
+        {sender === 'assistant' ? 'N' : user?.username[0].toUpperCase()}
+      </span>
+    </div>
+  );
+};
 
 export default function ChatView() {
   const { messages, sendMessage, isLoading, chatId } = useChat();
