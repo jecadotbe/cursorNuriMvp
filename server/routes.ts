@@ -237,6 +237,28 @@ export function registerRoutes(app: Express): Server {
     res.json(latestChat || null);
   });
 
+  app.post("/api/village", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    try {
+      const user = req.user as User;
+      const [newMember] = await db.insert(villageMembers).values({
+        userId: user.id,
+        name: req.body.name,
+        type: req.body.type,
+        circle: req.body.circle,
+        interactionFrequency: req.body.interactionFrequency
+      }).returning();
+
+      res.json(newMember);
+    } catch (error) {
+      console.error("Failed to create village member:", error);
+      res.status(500).json({ message: "Failed to create village member" });
+    }
+  });
+
   app.post("/api/chats", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
