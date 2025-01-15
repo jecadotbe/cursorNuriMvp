@@ -49,6 +49,12 @@ async function createVillageMember(member: Omit<InsertVillageMember, 'userId'>):
     return data;
   } catch (error) {
     console.error('Create member error:', error);
+    console.error('Response details:', {
+      status: response?.status,
+      statusText: response?.statusText,
+      headers: Object.fromEntries(response?.headers || []),
+      text: await response?.text(),
+    });
     throw error;
   }
 }
