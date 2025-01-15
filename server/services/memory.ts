@@ -140,3 +140,29 @@ export class MemoryService {
 }
 
 export const memoryService = MemoryService.getInstance();
+
+export async function addVillageMember(userId: number, memberData: any) {
+  try {
+    const response = await fetch('/api/village', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ...memberData,
+        userId,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('Failed to add village member:', error);
+      throw new Error(error.message);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Village member creation failed:', error);
+    throw error;
+  }
+}
