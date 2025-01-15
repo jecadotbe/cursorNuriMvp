@@ -119,25 +119,27 @@ export default function LearnView() {
           <h2 className="text-xl font-semibold mb-4">Hoofdstuk 1: De basis</h2>
           <div className="grid grid-cols-2 gap-4">
             {chapters1.map((chapter, index) => (
-              <div key={index} className="bg-white rounded-lg overflow-hidden">
-                <div className="relative">
-                  <img 
-                    src={chapter.image}
-                    alt={chapter.title}
-                    className="w-full aspect-video object-cover"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Play className="w-8 h-8 text-white opacity-80" />
+              <Link href={`/learn/${index + 1}`} key={index}>
+                <div className="bg-white rounded-lg overflow-hidden">
+                  <div className="relative">
+                    <img 
+                      src={chapter.image}
+                      alt={chapter.title}
+                      className="w-full aspect-video object-cover"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Play className="w-8 h-8 text-white opacity-80" />
+                    </div>
+                  </div>
+                  <div className="p-3">
+                    <h3 className="font-medium text-sm">{chapter.title}</h3>
+                    <p className="text-xs text-gray-600 mt-1">
+                      <Clock className="w-3 h-3 inline mr-1" />
+                      {chapter.duration}
+                    </p>
                   </div>
                 </div>
-                <div className="p-3">
-                  <h3 className="font-medium text-sm">{chapter.title}</h3>
-                  <p className="text-xs text-gray-600 mt-1">
-                    <Clock className="w-3 h-3 inline mr-1" />
-                    {chapter.duration}
-                  </p>
-                </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -147,25 +149,27 @@ export default function LearnView() {
           <h2 className="text-xl font-semibold mb-4">Hoofdstuk 2: De visie van Nuri</h2>
           <div className="grid grid-cols-2 gap-4">
             {chapters2.map((chapter, index) => (
-              <div key={index} className="bg-white rounded-lg overflow-hidden">
-                <div className="relative">
-                  <img 
-                    src={chapter.image}
-                    alt={chapter.title}
-                    className="w-full aspect-video object-cover"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Play className="w-8 h-8 text-white opacity-80" />
+              <Link href={`/learn/${index + 1}`} key={index}>
+                <div className="bg-white rounded-lg overflow-hidden">
+                  <div className="relative">
+                    <img 
+                      src={chapter.image}
+                      alt={chapter.title}
+                      className="w-full aspect-video object-cover"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Play className="w-8 h-8 text-white opacity-80" />
+                    </div>
+                  </div>
+                  <div className="p-3">
+                    <h3 className="font-medium text-sm">{chapter.title}</h3>
+                    <p className="text-xs text-gray-600 mt-1">
+                      <Clock className="w-3 h-3 inline mr-1" />
+                      {chapter.duration}
+                    </p>
                   </div>
                 </div>
-                <div className="p-3">
-                  <h3 className="font-medium text-sm">{chapter.title}</h3>
-                  <p className="text-xs text-gray-600 mt-1">
-                    <Clock className="w-3 h-3 inline mr-1" />
-                    {chapter.duration}
-                  </p>
-                </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

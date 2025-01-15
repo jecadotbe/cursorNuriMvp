@@ -15,6 +15,7 @@ import ProfileView from "@/pages/ProfileView";
 import Navigation from "@/components/Navigation";
 import { OnboardingProvider } from "@/context/onboarding-context";
 import OnboardingTooltip from "@/components/OnboardingTooltip";
+import LearnDetailView from "./pages/LearnDetailView"; // Added import
 
 function Router() {
   const { user, isLoading } = useUser();
@@ -41,6 +42,7 @@ function Router() {
           <Route path="/chat/history" component={ChatHistoryView} />
           <Route path="/village" component={VillageView} />
           <Route path="/learn" component={LearnView} />
+          <Route path="/learn/:id" component={LearnDetailView} /> {/* Added route for LearnDetailView */}
           <Route path="/profile" component={ProfileView} />
           <Route component={NotFound} />
         </Switch>
