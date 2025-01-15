@@ -81,29 +81,64 @@ export default function ChatHistoryView() {
             const chatDate = chat.updatedAt || chat.createdAt || new Date();
 
             return (
-              <Link key={chat.id} href={`/chat/${chat.id}`}>
-                <Card className="hover:shadow-md transition-all cursor-pointer bg-white rounded-2xl shadow-sm border-0">
-                  <CardContent className="p-5">
-                    <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-full bg-[#FFC74A] flex items-center justify-center flex-shrink-0">
-                        <MessageSquare className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium truncate">
-                          {chat.title || "Gesprek"}
-                        </h3>
-                        <p className="text-sm text-gray-500 line-clamp-2 mt-1">
-                          {lastMessage?.content || "Geen berichten"}
-                        </p>
-                        <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
-                          <Clock className="w-4 h-4" />
-                          {format(new Date(chatDate), "d MMM yyyy, HH:mm")}
+              <Card key={chat.id} className="hover:shadow-md transition-all bg-white rounded-2xl shadow-sm border-0">
+                <CardContent className="p-5">
+                  <div className="flex items-start gap-4">
+                    <Link href={`/chat/${chat.id}`} className="flex-1">
+                      <div className="flex gap-4">
+                        <div className="w-10 h-10 rounded-full bg-[#FFC74A] flex items-center justify-center flex-shrink-0">
+                          <MessageSquare className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-medium truncate">
+                              {chat.title || "Gesprek"}
+                            </h3>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                const newTitle = prompt("Enter new title:", chat.title);
+                                if (newTitle && newTitle !== chat.title) {
+                                  fetch(`/api/chats/${chat.id}`, {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ title: newTitle })
+                                  }).then(() => window.location.reload());
+                                }
+                              }}
+                              className="text-xs text-gray-500 hover:text-gray-700"
+                            >
+                              Edit
+                            </button>
+                          </div>
+                          <p className="text-sm text-gray-500 line-clamp-2 mt-1">
+                            {lastMessage?.content || "Geen berichten"}
+                          </p>
+                          <div className="flex items-center justify-between gap-2 mt-2">
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <Clock className="w-4 h-4" />
+                              {format(new Date(chatDate), "d MMM yyyy, HH:mm")}
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                if (confirm("Are you sure you want to delete this conversation? This action cannot be undone.")) {
+                                  fetch(`/api/chats/${chat.id}`, {
+                                    method: 'DELETE'
+                                  }).then(() => window.location.reload());
+                                }
+                              }}
+                              className="text-xs text-red-500 hover:text-red-700"
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
             );
           })
         )}

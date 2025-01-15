@@ -155,6 +155,60 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.delete("/api/chats/:chatId", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const chatId = parseChatId(req.params.chatId);
+    if (chatId === null) {
+      return res.status(400).json({ message: "Invalid chat ID" });
+    }
+
+    const user = req.user as User;
+    const chat = await db.query.chats.findFirst({
+      where: eq(chats.id, chatId),
+    });
+
+    if (!chat || chat.userId !== user.id) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    await db.delete(chats).where(eq(chats.id, chatId));
+    res.status(204).send();
+  });
+
+  app.patch("/api/chats/:chatId", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const chatId = parseChatId(req.params.chatId);
+    if (chatId === null) {
+      return res.status(400).json({ message: "Invalid chat ID" });
+    }
+
+    const user = req.user as User;
+    const chat = await db.query.chats.findFirst({
+      where: eq(chats.id, chatId),
+    });
+
+    if (!chat || chat.userId !== user.id) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    const { title } = req.body;
+    if (!title) {
+      return res.status(400).json({ message: "Title is required" });
+    }
+
+    await db.update(chats)
+      .set({ title })
+      .where(eq(chats.id, chatId));
+
+    res.json({ message: "Chat updated successfully" });
+  });
+
   app.get("/api/chats", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
