@@ -118,7 +118,7 @@ export default function LearnDetailView() {
 
       <div className="p-4 space-y-6">
         <VideoPlayer
-          videoUrl="/videos/wat-is-aware-parenting.mp4"
+          videoUrl="/videos/aware-parenting-intro.mp4"
           title="Wat is Aware Parenting?"
         />
       </div>
