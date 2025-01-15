@@ -209,7 +209,7 @@ export default function ChatView() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 pt-16 pb-32 space-y-4 bg-orange-50">
+      <div className="flex-1 overflow-y-auto p-4 pt-20 pb-32 space-y-4 bg-orange-50">
         {messages.map((message, index) => (
           <div
             key={index}
