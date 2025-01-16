@@ -44,7 +44,13 @@ const VideoPlayer = ({ videoUrl, title, isYoutube = false }: VideoPlayerProps) =
   };
 
   const togglePlay = () => {
-    if (videoRef.current) {
+    if (isYoutube && youtubeRef.current?.internalPlayer) {
+      if (isPlaying) {
+        youtubeRef.current.internalPlayer.pauseVideo();
+      } else {
+        youtubeRef.current.internalPlayer.playVideo();
+      }
+    } else if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
       } else {
@@ -55,8 +61,11 @@ const VideoPlayer = ({ videoUrl, title, isYoutube = false }: VideoPlayerProps) =
   };
 
   const handleProgress = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (videoRef.current) {
-      const time = parseFloat(e.target.value);
+    const time = parseFloat(e.target.value);
+    if (isYoutube && youtubeRef.current?.internalPlayer) {
+      youtubeRef.current.internalPlayer.seekTo(time, true);
+      setCurrentTime(time);
+    } else if (videoRef.current) {
       videoRef.current.currentTime = time;
       setCurrentTime(time);
     }
@@ -87,12 +96,18 @@ const VideoPlayer = ({ videoUrl, title, isYoutube = false }: VideoPlayerProps) =
           }}
           onStateChange={(event) => {
             setIsPlaying(event.data === 1);
+            setCurrentTime(event.target.getCurrentTime());
             if (!duration) {
               setDuration(event.target.getDuration());
             }
           }}
           onReady={(event) => {
             setDuration(event.target.getDuration());
+            // Start time update interval for YouTube
+            const interval = setInterval(() => {
+              setCurrentTime(event.target.getCurrentTime());
+            }, 1000);
+            return () => clearInterval(interval);
           }}
         />
       ) : (
