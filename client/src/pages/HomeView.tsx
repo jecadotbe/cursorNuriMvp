@@ -40,27 +40,35 @@ export default function HomeView() {
 
   const [prompt, setPrompt] = useState<{ text: string; type: string; context?: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let mounted = true;
-    
-    const loadPrompt = async () => {
+    const intervalId = setInterval(async () => {
       try {
         const result = await getLatestPrompt();
-        if (mounted) {
-          setPrompt(result.prompt);
-          setIsLoading(false);
-        }
-      } catch (error) {
-        console.error('Failed to load prompt:', error);
-        if (mounted) {
-          setIsLoading(false);
-        }
+        setPrompt(result.prompt);
+        setError(null);
+      } catch (err) {
+        console.error('Failed to load prompt:', err);
+        setError('Failed to load recommendation');
+      } finally {
+        setIsLoading(false);
       }
-    };
-    
-    loadPrompt();
-    return () => { mounted = false; };
+    }, 30000); // Refresh every 30 seconds
+
+    // Initial load
+    getLatestPrompt()
+      .then(result => {
+        setPrompt(result.prompt);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error('Failed to load initial prompt:', err);
+        setError('Failed to load recommendation');
+        setIsLoading(false);
+      });
+
+    return () => clearInterval(intervalId);
   }, [getLatestPrompt]);
 
   return (
@@ -105,6 +113,12 @@ export default function HomeView() {
         {isLoading ? (
           <Card className="bg-white animate-pulse">
             <CardContent className="p-4 h-24" />
+          </Card>
+        ) : error ? (
+          <Card className="bg-white">
+            <CardContent className="p-4">
+              <p className="text-red-500">{error}</p>
+            </CardContent>
           </Card>
         ) : prompt && (
           <Link href={chats?.length > 0 ? `/chat/${chats[0].id}` : "/chat/history"}>
