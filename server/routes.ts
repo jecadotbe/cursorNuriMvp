@@ -186,7 +186,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const { messages } = req.body;
       const response = await anthropic.messages.create({
-        model: "claude-2.1",
+        model: "claude-3-5-sonnet-20241022",
         max_tokens: 300,
         system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the conversation and extract actionable insights and follow-up prompts.`,
         messages: [{
@@ -319,7 +319,7 @@ export function registerRoutes(app: Express): Server {
       // Generate title, summary, and emotional context analysis only if there are messages
       if (messages.length > 0) {
         const analyzeResponse = await anthropic.messages.create({
-          model: "claude-2.1", 
+          model: "claude-3-5-sonnet-20241022",
           max_tokens: 1024,
           system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze this conversation between a parent and Nuri. Focus on the key themes, emotional journey, and parenting insights discussed.`,
           messages: [
