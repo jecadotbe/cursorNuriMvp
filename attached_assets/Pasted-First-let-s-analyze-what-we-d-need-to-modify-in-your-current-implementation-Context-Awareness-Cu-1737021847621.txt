@@ -1,0 +1,89 @@
+First, let's analyze what we'd need to modify in your current implementation:
+
+Context Awareness:
+Currently, your code loads chat messages but doesn't analyze them for generating contextual prompts. We'll need to add this capability.
+Prompt Generation:
+We'll need to create a system to generate relevant follow-up prompts based on conversation history.
+
+Here's how we could modify your code to implement this:
+typescriptCopyinterface ContextualPrompt {
+  text: string;
+  type: 'follow_up' | 'suggestion' | 'action';
+  relevance: number;
+}
+
+export function useChat() {
+  // ... existing code ...
+
+  // Add new state for contextual prompt
+  const [contextualPrompt, setContextualPrompt] = useState<ContextualPrompt | null>(null);
+
+  // Add function to analyze conversation and generate prompt
+  const generateContextualPrompt = useCallback((messageHistory: Message[]) => {
+    if (messageHistory.length === 0) return null;
+
+    // Get last few messages for context (e.g., last 3)
+    const recentMessages = messageHistory.slice(-3);
+    
+    // Send to your AI service for analysis
+    const analyzeContext = async () => {
+      try {
+        const response = await fetch('/api/analyze-context', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: recentMessages }),
+        });
+        
+        if (!response.ok) throw new Error('Failed to analyze context');
+        
+        const prompt: ContextualPrompt = await response.json();
+        setContextualPrompt(prompt);
+      } catch (error) {
+        console.error('Failed to generate contextual prompt:', error);
+      }
+    };
+
+    analyzeContext();
+  }, []);
+
+  // Update useEffect to generate new prompts when messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      generateContextualPrompt(messages);
+    }
+  }, [messages, generateContextualPrompt]);
+
+  return {
+    messages,
+    chatId: chatData?.id,
+    sendMessage: mutation.mutateAsync,
+    isLoading: mutation.isPending || isChatLoading || isProcessing,
+    contextualPrompt, // Return the contextual prompt
+  };
+}
+To implement this fully, you'd also need:
+
+An API endpoint (/api/analyze-context) that processes conversation history and generates relevant prompts. This could use:
+
+Natural Language Processing to identify conversation themes
+Pattern matching to detect user interests
+AI models to generate contextually relevant suggestions
+
+
+A component to display the contextual prompt:
+
+typescriptCopyinterface ContextualPromptCardProps {
+  prompt: ContextualPrompt | null;
+  onAction: (prompt: string) => void;
+}
+
+function ContextualPromptCard({ prompt, onAction }: ContextualPromptCardProps) {
+  if (!prompt) return null;
+
+  return (
+    <div className="prompt-card" onClick={() => onAction(prompt.text)}>
+      <h3>Based on our conversation...</h3>
+      <p>{prompt.text}</p>
+    </div>
+  );
+}
