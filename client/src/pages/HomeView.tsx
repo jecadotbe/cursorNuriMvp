@@ -43,18 +43,29 @@ export default function HomeView() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Single initial load of prompt
-    getLatestPrompt()
-      .then(result => {
-        setPrompt(result.prompt);
-        setIsLoading(false);
-      })
-      .catch(err => {
-        console.error('Failed to load initial prompt:', err);
-        setError('Failed to load recommendation');
-        setIsLoading(false);
-      });
-  }, [getLatestPrompt]); // Only runs once on mount and when getLatestPrompt changes
+    let mounted = true;
+    
+    if (isLoading && !prompt) {
+      getLatestPrompt()
+        .then(result => {
+          if (mounted) {
+            setPrompt(result.prompt);
+            setIsLoading(false);
+          }
+        })
+        .catch(err => {
+          if (mounted) {
+            console.error('Failed to load initial prompt:', err);
+            setError('Failed to load recommendation');
+            setIsLoading(false);
+          }
+        });
+    }
+
+    return () => {
+      mounted = false;
+    };
+  }, []); // Run only once on mount
 
   return (
     <div className="flex-1 bg-[#F2F0E5] overflow-y-auto">

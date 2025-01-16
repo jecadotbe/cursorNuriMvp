@@ -48,11 +48,14 @@ export function useChatHistory() {
     }
 
     const latestChat = chats[0];
+    // Return cached prompt if available
+    if (latestChat._lastPrompt) {
+      return { prompt: latestChat._lastPrompt };
+    }
+
     const messages = latestChat.messages as { role: string; content: string }[];
 
     try {
-      // Always get fresh prompt
-
       const response = await fetch('/api/analyze-context', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
