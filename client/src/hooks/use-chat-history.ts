@@ -48,27 +48,34 @@ export function useChatHistory() {
     }
 
     const latestChat = chats[0];
-    // Return cached prompt if available
-    if (latestChat._lastPrompt) {
-      return { prompt: latestChat._lastPrompt };
-    }
-
     const messages = latestChat.messages as { role: string; content: string }[];
 
-    try {
-      const response = await fetch('/api/analyze-context', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ messages })
-      });
+    // Only fetch if we have messages to analyze
+    if (messages && messages.length > 0) {
+      try {
+        const response = await fetch('/api/analyze-context', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ messages })
+        });
 
-      if (!response.ok) throw new Error('Failed to analyze context');
-      const data = await response.json();
-      
-      // Cache the prompt
-      chats[0]._lastPrompt = data.prompt;
-      return data;
+        if (!response.ok) throw new Error('Failed to analyze context');
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Failed to get prompt:', error);
+      }
+    }
+    
+    // Return default prompt if no messages or error
+    return {
+      prompt: {
+        text: "Let's talk about your parenting journey",
+        type: "action",
+        context: "Start a conversation"
+      }
+    };
     } catch (error) {
       console.error('Failed to get prompts:', error);
       return {
