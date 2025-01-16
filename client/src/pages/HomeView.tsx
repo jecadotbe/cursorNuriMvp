@@ -77,23 +77,28 @@ export default function HomeView() {
         </div>
       </div>
 
-      {/* Chat Prompt */}
-      <div className="px-4 py-6">
-        <Link href={chats?.length > 0 ? `/chat/${chats[0].id}` : "/chat/history"}>
-          <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="text-orange-500 font-medium text-sm mb-2">
-                    {prompt?.title}
+      {/* Chat Prompts */}
+      <div className="px-4 py-6 space-y-4">
+        {prompt?.prompts?.map((p, index) => (
+          <Link key={index} href={chats?.length > 0 ? `/chat/${chats[0].id}` : "/chat/history"}>
+            <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="text-orange-500 font-medium text-sm mb-2">
+                      {p.type === 'action' ? 'ACTIE' : p.type === 'reflection' ? 'REFLECTIE' : 'VERVOLG'}
+                    </div>
+                    <p className="text-lg pr-8">{p.text}</p>
+                    {p.context && (
+                      <p className="text-sm text-gray-500 mt-2">{p.context}</p>
+                    )}
                   </div>
-                  <p className="text-lg pr-8">{prompt?.message}</p>
+                  <ChevronRight className="w-6 h-6 text-gray-400 flex-shrink-0" />
                 </div>
-                <ChevronRight className="w-6 h-6 text-gray-400 flex-shrink-0" />
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
       </div>
 
       {/* Village Section */}

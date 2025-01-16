@@ -187,18 +187,23 @@ export function registerRoutes(app: Express): Server {
       const { messages } = req.body;
       const response = await anthropic.messages.create({
         model: "claude-2.1",
-        max_tokens: 150,
-        system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the recent conversation and generate a natural follow-up prompt or suggestion.`,
+        max_tokens: 300,
+        system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the conversation and extract actionable insights and follow-up prompts.`,
         messages: [{
           role: "user",
-          content: `Based on these recent messages, generate a JSON response with a relevant follow-up prompt:
+          content: `Based on these messages, generate 2-3 actionable follow-up prompts that would be valuable to explore:
           ${JSON.stringify(messages)}
           
           Response format:
           {
-            "text": "natural follow-up question or suggestion",
-            "type": "follow_up",
-            "relevance": 0.9
+            "prompts": [
+              {
+                "text": "specific follow-up question or suggestion",
+                "type": "action" | "reflection" | "follow_up",
+                "relevance": 0.0-1.0,
+                "context": "brief context why this is relevant"
+              }
+            ]
           }`
         }]
       });

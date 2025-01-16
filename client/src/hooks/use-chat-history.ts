@@ -35,32 +35,42 @@ export function useChatHistory() {
     },
   });
 
-  const getLatestPrompt = () => {
+  const getLatestPrompt = async () => {
     if (chats.length === 0) {
       return {
-        title: "Start a conversation",
-        message: "Let's talk about your parenting journey",
+        prompts: [{
+          text: "Let's talk about your parenting journey",
+          type: "action",
+          relevance: 1,
+          context: "Start your first conversation"
+        }]
       };
     }
 
     const latestChat = chats[0];
     const messages = latestChat.messages as { role: string; content: string }[];
-    const lastUserMessage = messages.findLast(m => m.role === "user");
-    const lastAssistantMessage = messages.findLast(m => m.role === "assistant");
     
-    // If we have an assistant response, suggest continuing that thread
-    if (lastAssistantMessage?.content) {
-      const topic = lastAssistantMessage.content.split('.')[0]; // Get first sentence
+    try {
+      const response = await fetch('/api/analyze-context', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ messages })
+      });
+      
+      if (!response.ok) throw new Error('Failed to analyze context');
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to get prompts:', error);
       return {
-        title: "OP BASIS VAN ONS GESPREK",
-        message: `${topic.toLowerCase()}?`,
+        prompts: [{
+          text: messages[messages.length - 1]?.content?.split('.')[0] || "Continue our conversation",
+          type: "follow_up",
+          relevance: 1,
+          context: "Based on our last conversation"
+        }]
       };
     }
-
-    return {
-      title: latestChat.title || "VERDER GAAN WAAR WE GESTOPT WAREN",
-      message: lastUserMessage?.content || "prompt 2",
-    };
   };
 
   return {
