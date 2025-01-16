@@ -51,6 +51,11 @@ export function useChatHistory() {
     const messages = latestChat.messages as { role: string; content: string }[];
 
     try {
+      // Return static prompt if we've already fetched one
+      if (chats[0]._lastPrompt) {
+        return { prompt: chats[0]._lastPrompt };
+      }
+
       const response = await fetch('/api/analyze-context', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -59,7 +64,11 @@ export function useChatHistory() {
       });
 
       if (!response.ok) throw new Error('Failed to analyze context');
-      return await response.json();
+      const data = await response.json();
+      
+      // Cache the prompt
+      chats[0]._lastPrompt = data.prompt;
+      return data;
     } catch (error) {
       console.error('Failed to get prompts:', error);
       return {

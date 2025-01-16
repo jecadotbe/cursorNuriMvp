@@ -100,21 +100,29 @@ export function useChat() {
     relevance: number;
   } | null>(null);
 
-  // Generate contextual prompt when messages change
-  useEffect(() => {
+  // Only generate contextual prompt on manual refresh or initial load
+  const generateContextualPrompt = useCallback(async () => {
     if (messages.length > 0) {
-      const recentMessages = messages.slice(-3);
-      fetch('/api/analyze-context', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: recentMessages }),
-        credentials: 'include'
-      })
-      .then(res => res.json())
-      .then(prompt => setContextualPrompt(prompt))
-      .catch(err => console.error('Failed to generate prompt:', err));
+      try {
+        const recentMessages = messages.slice(-3);
+        const res = await fetch('/api/analyze-context', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: recentMessages }),
+          credentials: 'include'
+        });
+        const prompt = await res.json();
+        setContextualPrompt(prompt);
+      } catch (err) {
+        console.error('Failed to generate prompt:', err);
+      }
     }
   }, [messages]);
+
+  useEffect(() => {
+    // Only generate on initial load
+    generateContextualPrompt();
+  }, []); // Empty dependency array
 
   return {
     messages,
