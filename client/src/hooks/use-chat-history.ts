@@ -49,7 +49,7 @@ export function useChatHistory() {
 
     const latestChat = chats[0];
     const messages = latestChat.messages as { role: string; content: string }[];
-    
+
     try {
       const response = await fetch('/api/analyze-context', {
         method: 'POST',
@@ -57,7 +57,7 @@ export function useChatHistory() {
         credentials: 'include',
         body: JSON.stringify({ messages })
       });
-      
+
       if (!response.ok) throw new Error('Failed to analyze context');
       return await response.json();
     } catch (error) {

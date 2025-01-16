@@ -188,35 +188,45 @@ export function registerRoutes(app: Express): Server {
       const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 300,
-        system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the conversation and extract actionable insights and follow-up prompts.`,
+        system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the conversation and provide a single, most relevant follow-up prompt.`,
         messages: [{
           role: "user",
-          content: `Based on these messages, generate 2-3 actionable follow-up prompts that would be valuable to explore:
-          ${JSON.stringify(messages)}
-          
-          Response format:
+          content: `Based on these messages, generate a single follow-up prompt formatted exactly like this:
           {
-            "prompts": [
-              {
-                "text": "specific follow-up question or suggestion",
-                "type": "action" | "reflection" | "follow_up",
-                "relevance": 0.0-1.0,
-                "context": "brief context why this is relevant"
-              }
-            ]
+            "prompt": {
+              "text": "most relevant follow-up question",
+              "type": "action",
+              "relevance": 1.0,
+              "context": "brief context"
+            }
           }`
         }]
       });
 
-      const jsonMatch = response.content[0].type === 'text' ? response.content[0].text.match(/\{.*\}/s) : null;
-      if (jsonMatch) {
-        res.json(JSON.parse(jsonMatch[0]));
-      } else {
-        throw new Error('Failed to parse AI response');
+      const responseText = response.content[0].type === 'text' ? response.content[0].text : '';
+      let parsedResponse;
+
+      try {
+        parsedResponse = JSON.parse(responseText);
+      } catch (parseError) {
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          throw new Error('Could not extract valid JSON from response');
+        }
+        parsedResponse = JSON.parse(jsonMatch[0]);
       }
+
+      if (!parsedResponse?.prompt?.text) {
+        throw new Error('Response missing required prompt structure');
+      }
+
+      res.json(parsedResponse);
     } catch (error) {
       console.error('Context analysis error:', error);
-      res.status(500).json({ error: 'Failed to analyze context' });
+      res.status(500).json({ 
+        error: 'Failed to analyze context',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
@@ -441,4 +451,3 @@ Format your responses for optimal readability:
 - Aim for brevity: Keep responses under 3 paragraphs unless the topic requires deeper explanation
 
 Write in natural, flowing narrative paragraphs only. Never use bullet points, numbered lists, or structured formats unless explicitly requested. All insights and guidance should emerge organically through conversation.`;
-
