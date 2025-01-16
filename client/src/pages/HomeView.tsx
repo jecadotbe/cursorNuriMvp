@@ -38,18 +38,29 @@ export default function HomeView() {
     );
   };
 
-  const [prompts, setPrompts] = useState<{ prompts: Array<{ text: string; type: string; context?: string }> } | null>(null);
-  
+  const [prompt, setPrompt] = useState<{ text: string; type: string; context?: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
-    const loadPrompts = async () => {
+    let mounted = true;
+    
+    const loadPrompt = async () => {
       try {
         const result = await getLatestPrompt();
-        setPrompts(result);
+        if (mounted) {
+          setPrompt(result.prompt);
+          setIsLoading(false);
+        }
       } catch (error) {
-        console.error('Failed to load prompts:', error);
+        console.error('Failed to load prompt:', error);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
-    loadPrompts();
+    
+    loadPrompt();
+    return () => { mounted = false; };
   }, [getLatestPrompt]);
 
   return (
@@ -89,20 +100,24 @@ export default function HomeView() {
         </div>
       </div>
 
-      {/* Chat Prompts */}
-      <div className="px-4 py-6 space-y-4">
-        {prompts?.prompts?.map((p, index) => (
-          <Link key={index} href={chats?.length > 0 ? `/chat/${chats[0].id}` : "/chat/history"}>
+      {/* Chat Prompt */}
+      <div className="px-4 py-6">
+        {isLoading ? (
+          <Card className="bg-white animate-pulse">
+            <CardContent className="p-4 h-24" />
+          </Card>
+        ) : prompt && (
+          <Link href={chats?.length > 0 ? `/chat/${chats[0].id}` : "/chat/history"}>
             <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="text-orange-500 font-medium text-sm mb-2">
-                      {p.type === 'action' ? 'ACTIE' : p.type === 'reflection' ? 'REFLECTIE' : 'VERVOLG'}
+                      {prompt.type === 'action' ? 'ACTIE' : prompt.type === 'reflection' ? 'REFLECTIE' : 'VERVOLG'}
                     </div>
-                    <p className="text-lg pr-8">{p.text}</p>
-                    {p.context && (
-                      <p className="text-sm text-gray-500 mt-2">{p.context}</p>
+                    <p className="text-lg pr-8">{prompt.text}</p>
+                    {prompt.context && (
+                      <p className="text-sm text-gray-500 mt-2">{prompt.context}</p>
                     )}
                   </div>
                   <ChevronRight className="w-6 h-6 text-gray-400 flex-shrink-0" />
@@ -110,7 +125,7 @@ export default function HomeView() {
               </CardContent>
             </Card>
           </Link>
-        ))}
+        )}
       </div>
 
       {/* Village Section */}

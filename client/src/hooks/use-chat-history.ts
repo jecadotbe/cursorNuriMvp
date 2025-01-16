@@ -38,12 +38,12 @@ export function useChatHistory() {
   const getLatestPrompt = async () => {
     if (chats.length === 0) {
       return {
-        prompts: [{
+        prompt: {
           text: "Let's talk about your parenting journey",
           type: "action",
           relevance: 1,
           context: "Start your first conversation"
-        }]
+        }
       };
     }
 
