@@ -139,8 +139,8 @@ const VideoPlayer = ({ videoUrl, title, isYoutube = false }: VideoPlayerProps) =
 
 export default function LearnDetailView() {
   return (
-    <div className="flex-1 bg-[#F2F0E5] overflow-y-auto">
-      <div className="px-4 py-2 flex items-center">
+    <div className="flex flex-col min-h-screen w-full bg-[#F2F0E5]">
+      <div className="px-4 py-2">
         <Link href="/learn">
           <div className="flex items-center space-x-2 cursor-pointer">
             <ArrowLeft className="w-6 h-6" />
@@ -149,12 +149,14 @@ export default function LearnDetailView() {
         </Link>
       </div>
 
-      <div className="p-4 space-y-6">
-        <VideoPlayer
-          videoUrl="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-          title="Demo Video"
-          isYoutube={true}
-        />
+      <div className="flex-1 flex items-center justify-center px-4 py-6">
+        <div className="w-full max-w-4xl">
+          <VideoPlayer
+            videoUrl="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+            title="Demo Video"
+            isYoutube={true}
+          />
+        </div>
       </div>
     </div>
   );
