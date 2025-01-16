@@ -43,20 +43,7 @@ export default function HomeView() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const intervalId = setInterval(async () => {
-      try {
-        const result = await getLatestPrompt();
-        setPrompt(result.prompt);
-        setError(null);
-      } catch (err) {
-        console.error('Failed to load prompt:', err);
-        setError('Failed to load recommendation');
-      } finally {
-        setIsLoading(false);
-      }
-    }, 30000); // Refresh every 30 seconds
-
-    // Initial load
+    // Single initial load of prompt
     getLatestPrompt()
       .then(result => {
         setPrompt(result.prompt);
@@ -67,9 +54,7 @@ export default function HomeView() {
         setError('Failed to load recommendation');
         setIsLoading(false);
       });
-
-    return () => clearInterval(intervalId);
-  }, [getLatestPrompt]);
+  }, [getLatestPrompt]); // Only runs once on mount and when getLatestPrompt changes
 
   return (
     <div className="flex-1 bg-[#F2F0E5] overflow-y-auto">
