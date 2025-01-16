@@ -52,14 +52,14 @@ export function useChatHistory() {
     if (lastAssistantMessage?.content) {
       const topic = lastAssistantMessage.content.split('.')[0]; // Get first sentence
       return {
-        title: "Continue our discussion",
-        message: `Would you like to explore more about ${topic.toLowerCase()}?`,
+        title: "OP BASIS VAN ONS GESPREK",
+        message: `${topic.toLowerCase()}?`,
       };
     }
 
     return {
-      title: latestChat.title || "Pick up where we left off",
-      message: lastUserMessage?.content || "Let's continue our discussion",
+      title: latestChat.title || "VERDER GAAN WAAR WE GESTOPT WAREN",
+      message: lastUserMessage?.content || "prompt 2",
     };
   };
 
