@@ -38,7 +38,19 @@ export default function HomeView() {
     );
   };
 
-  const prompt = getLatestPrompt();
+  const [prompts, setPrompts] = useState<{ prompts: Array<{ text: string; type: string; context?: string }> } | null>(null);
+  
+  useEffect(() => {
+    const loadPrompts = async () => {
+      try {
+        const result = await getLatestPrompt();
+        setPrompts(result);
+      } catch (error) {
+        console.error('Failed to load prompts:', error);
+      }
+    };
+    loadPrompts();
+  }, [getLatestPrompt]);
 
   return (
     <div className="flex-1 bg-[#F2F0E5] overflow-y-auto">
@@ -79,7 +91,7 @@ export default function HomeView() {
 
       {/* Chat Prompts */}
       <div className="px-4 py-6 space-y-4">
-        {prompt?.prompts?.map((p, index) => (
+        {prompts?.prompts?.map((p, index) => (
           <Link key={index} href={chats?.length > 0 ? `/chat/${chats[0].id}` : "/chat/history"}>
             <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer">
               <CardContent className="p-4">
