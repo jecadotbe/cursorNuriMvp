@@ -72,14 +72,28 @@ const VideoPlayer = ({ videoUrl, title, isYoutube = false }: VideoPlayerProps) =
   };
 
   const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      videoRef.current?.requestFullscreen();
+    const videoContainer = videoRef.current?.parentElement;
+    if (!document.fullscreenElement && videoContainer) {
+      if (videoContainer.requestFullscreen) {
+        videoContainer.requestFullscreen();
+      }
       setIsFullscreen(true);
-    } else {
+    } else if (document.exitFullscreen) {
       document.exitFullscreen();
       setIsFullscreen(false);
     }
   };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
   return (
     <div className="relative">
@@ -167,9 +181,9 @@ export default function LearnDetailView() {
       <div className="flex-1 flex items-center justify-center px-4 py-6">
         <div className="w-full max-w-4xl">
           <VideoPlayer
-            videoUrl="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-            title="Demo Video"
-            isYoutube={true}
+            videoUrl="/videos/aware-parenting-into.mp4"
+            title="Aware Parenting Introduction"
+            isYoutube={false}
           />
         </div>
       </div>
