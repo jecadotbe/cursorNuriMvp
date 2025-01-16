@@ -185,13 +185,23 @@ export function registerRoutes(app: Express): Server {
 
     try {
       const { messages } = req.body;
+      const user = req.user as User;
+      const relevantMemories = await memoryService.getRelevantMemories(
+        user.id,
+        messages[messages.length - 1]?.content || ""
+      );
+
+      const memoryContext = relevantMemories
+        .map(m => `Previous conversation: ${m.content}`)
+        .join('\n\n');
+
       const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 300,
-        system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the conversation and provide a single, most relevant follow-up prompt.`,
+        system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the conversation and provide a single, most relevant follow-up prompt. Consider this historical context:\n${memoryContext}`,
         messages: [{
-          role: "user",
-          content: `Based on these messages, generate a single follow-up prompt formatted exactly like this:
+          role: "user", 
+          content: `Based on these messages and the user's conversation history, generate a single follow-up prompt formatted exactly like this:
           {
             "prompt": {
               "text": "most relevant follow-up question",

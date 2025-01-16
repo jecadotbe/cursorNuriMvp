@@ -51,10 +51,7 @@ export function useChatHistory() {
     const messages = latestChat.messages as { role: string; content: string }[];
 
     try {
-      // Return static prompt if we've already fetched one
-      if (chats[0]._lastPrompt) {
-        return { prompt: chats[0]._lastPrompt };
-      }
+      // Always get fresh prompt
 
       const response = await fetch('/api/analyze-context', {
         method: 'POST',
