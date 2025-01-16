@@ -46,9 +46,19 @@ export function useChatHistory() {
     const latestChat = chats[0];
     const messages = latestChat.messages as { role: string; content: string }[];
     const lastUserMessage = messages.findLast(m => m.role === "user");
+    const lastAssistantMessage = messages.findLast(m => m.role === "assistant");
+    
+    // If we have an assistant response, suggest continuing that thread
+    if (lastAssistantMessage?.content) {
+      const topic = lastAssistantMessage.content.split('.')[0]; // Get first sentence
+      return {
+        title: "Continue our discussion",
+        message: `Would you like to explore more about ${topic.toLowerCase()}?`,
+      };
+    }
 
     return {
-      title: latestChat.title || "Continue our conversation",
+      title: latestChat.title || "Pick up where we left off",
       message: lastUserMessage?.content || "Let's continue our discussion",
     };
   };
