@@ -178,6 +178,43 @@ export function registerRoutes(app: Express): Server {
     res.status(204).send();
   });
 
+  app.post("/api/analyze-context", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    try {
+      const { messages } = req.body;
+      const response = await anthropic.messages.create({
+        model: "claude-2.1",
+        max_tokens: 150,
+        system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the recent conversation and generate a natural follow-up prompt or suggestion.`,
+        messages: [{
+          role: "user",
+          content: `Based on these recent messages, generate a JSON response with a relevant follow-up prompt:
+          ${JSON.stringify(messages)}
+          
+          Response format:
+          {
+            "text": "natural follow-up question or suggestion",
+            "type": "follow_up",
+            "relevance": 0.9
+          }`
+        }]
+      });
+
+      const jsonMatch = response.content[0].type === 'text' ? response.content[0].text.match(/\{.*\}/s) : null;
+      if (jsonMatch) {
+        res.json(JSON.parse(jsonMatch[0]));
+      } else {
+        throw new Error('Failed to parse AI response');
+      }
+    } catch (error) {
+      console.error('Context analysis error:', error);
+      res.status(500).json({ error: 'Failed to analyze context' });
+    }
+  });
+
   app.patch("/api/chats/:chatId", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
@@ -399,35 +436,4 @@ Format your responses for optimal readability:
 - Aim for brevity: Keep responses under 3 paragraphs unless the topic requires deeper explanation
 
 Write in natural, flowing narrative paragraphs only. Never use bullet points, numbered lists, or structured formats unless explicitly requested. All insights and guidance should emerge organically through conversation.`;
-app.post('/api/analyze-context', authenticateUser, async (req, res) => {
-  try {
-    const { messages } = req.body;
-    const response = await anthropic.messages.create({
-      model: "claude-2.1",
-      max_tokens: 150,
-      system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the recent conversation and generate a natural follow-up prompt or suggestion.`,
-      messages: [{
-        role: "user",
-        content: `Based on these recent messages, generate a JSON response with a relevant follow-up prompt:
-        ${JSON.stringify(messages)}
-        
-        Response format:
-        {
-          "text": "natural follow-up question or suggestion",
-          "type": "follow_up",
-          "relevance": 0.9
-        }`
-      }]
-    });
 
-    const jsonMatch = response.content[0].type === 'text' ? response.content[0].text.match(/\{.*\}/s) : null;
-    if (jsonMatch) {
-      res.json(JSON.parse(jsonMatch[0]));
-    } else {
-      throw new Error('Failed to parse AI response');
-    }
-  } catch (error) {
-    console.error('Context analysis error:', error);
-    res.status(500).json({ error: 'Failed to analyze context' });
-  }
-});
