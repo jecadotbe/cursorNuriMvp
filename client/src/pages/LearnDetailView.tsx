@@ -1,5 +1,5 @@
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ArrowLeft } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
