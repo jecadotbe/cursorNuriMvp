@@ -58,11 +58,11 @@ const TypingIndicator = () => (
 const Avatar = ({ sender }: { sender: 'user' | 'assistant' }) => {
   const { user } = useUser();
   return (
-    <div className={`w-8 h-8 rounded-full flex items-center justify-center overflow-hidden ${
+    <div className={`w-8 ${sender === 'assistant' ? 'aspect-[4/3]' : 'h-8 rounded-full'} flex items-center justify-center overflow-hidden ${
       sender === 'assistant' ? 'bg-white' : 'bg-[#294636]'
     }`}>
       {sender === 'assistant' ? (
-        <img src="/images/nuri_chat.png" alt="Nuri" className="w-full h-full object-cover" />
+        <img src="/images/nuri_chat.png" alt="Nuri" className="w-full h-full object-contain" />
       ) : (
         <span className="text-white text-sm">
           {user?.username[0].toUpperCase()}
