@@ -25,8 +25,8 @@ export default function Navigation() {
               className={cn(
                 "flex flex-col items-center gap-1 p-2",
                 location === href
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-primary"
+                  ? "text-[#F18303]"
+                  : "text-muted-foreground hover:text-[#F18303]"
               )}
             >
               <Icon className="h-5 w-5" />
@@ -39,8 +39,8 @@ export default function Navigation() {
             className={cn(
               "flex flex-col items-center gap-1 p-2",
               location === "/profile"
-                ? "text-primary"
-                : "text-muted-foreground hover:text-primary"
+                ? "text-[#F18303]"
+                : "text-muted-foreground hover:text-[#F18303]"
             )}
           >
             <Avatar className="h-5 w-5">
