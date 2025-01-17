@@ -158,20 +158,23 @@ export default function LearnView() {
           <div className="grid grid-cols-2 gap-4">
             {chapters1.map((chapter, index) => (
               <Link href={`/learn/${index + 1}`} key={index}>
-                <div className="bg-white rounded-3xl overflow-hidden hover:shadow-md transition-shadow">
-                  <div className="aspect-[2/1] relative">
+                <div className="bg-white rounded-lg overflow-hidden">
+                  <div className="relative">
                     <img
                       src={chapter.image}
                       alt={chapter.title}
-                      className="w-full h-full object-cover"
+                      className="w-full aspect-video object-cover"
                     />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Play className="w-8 h-8 text-white opacity-80" />
+                    </div>
                   </div>
                   <div className="p-4">
-                    <h3 className="text-lg font-baskerville text-[#2F4644] mb-2">{chapter.title}</h3>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Clock className="w-4 h-4 mr-1" />
-                      <span>{chapter.duration}</span>
-                    </div>
+                    <h3 className="font-medium text-l">{chapter.title}</h3>
+                    <p className="text-xs mt-2">
+                      <Clock className="w-3 h-3 inline mr-1" />
+                      {chapter.duration}
+                    </p>
                   </div>
                 </div>
               </Link>
@@ -187,20 +190,23 @@ export default function LearnView() {
           <div className="grid grid-cols-2 gap-4">
             {chapters2.map((chapter, index) => (
               <Link href={`/learn/${index + 1}`} key={index}>
-                <div className="bg-white rounded-3xl overflow-hidden hover:shadow-md transition-shadow">
-                  <div className="aspect-[2/1] relative">
+                <div className="bg-white rounded-lg overflow-hidden">
+                  <div className="relative">
                     <img
                       src={chapter.image}
                       alt={chapter.title}
-                      className="w-full h-full object-cover"
+                      className="w-full aspect-video object-cover"
                     />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Play className="w-8 h-8 text-white opacity-80" />
+                    </div>
                   </div>
                   <div className="p-4">
-                    <h3 className="text-lg font-baskerville text-[#2F4644] mb-2">{chapter.title}</h3>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Clock className="w-4 h-4 mr-1" />
-                      <span>{chapter.duration}</span>
-                    </div>
+                    <h3 className="font-medium text-sm">{chapter.title}</h3>
+                    <p className="text-xs  mt-2">
+                      <Clock className="w-3 h-3 inline mr-1" />
+                      {chapter.duration}
+                    </p>
                   </div>
                 </div>
               </Link>
