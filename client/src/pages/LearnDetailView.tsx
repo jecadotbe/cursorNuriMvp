@@ -128,7 +128,7 @@ const VideoPlayer = ({ videoUrl, title, isYoutube = false }: VideoPlayerProps) =
         <video
           ref={videoRef}
           src={videoUrl}
-          className="w-full h-auto rounded-lg"
+          className="w-full h-full object-cover"
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
         />
@@ -168,24 +168,21 @@ const VideoPlayer = ({ videoUrl, title, isYoutube = false }: VideoPlayerProps) =
 
 export default function LearnDetailView() {
   return (
-    <div className="flex flex-col min-h-screen w-full bg-[#F2F0E5] relative z-50">
-      <div className="px-4 py-2">
+    <div className="relative h-screen w-full">
+      <div className="absolute top-0 left-0 w-full h-full">
+        <VideoPlayer
+          videoUrl="/videos/demovideo.mp4"
+          title="Aware Parenting Introduction"
+          isYoutube={false}
+        />
+      </div>
+      <div className="absolute top-0 left-0 w-full px-4 py-2 z-10 bg-gradient-to-b from-black/50 to-transparent">
         <Link href="/learn">
-          <div className="flex items-center space-x-2 cursor-pointer">
+          <div className="flex items-center space-x-2 cursor-pointer text-white">
             <ArrowLeft className="w-6 h-6" />
             <span>Terug</span>
           </div>
         </Link>
-      </div>
-
-      <div className="flex-1 flex items-center justify-center px-4 py-6">
-        <div className="w-full max-w-4xl">
-          <VideoPlayer
-            videoUrl="/videos/demovideo.mp4"
-            title="Aware Parenting Introduction"
-            isYoutube={false}
-          />
-        </div>
       </div>
     </div>
   );
