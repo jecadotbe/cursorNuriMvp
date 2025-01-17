@@ -25,7 +25,7 @@ export default function HomeView() {
 
   useEffect(() => {
     let mounted = true;
-    
+
     if (isLoading && !prompt) {
       getLatestPrompt()
         .then(result => {
@@ -83,18 +83,18 @@ export default function HomeView() {
       {/* Chat Prompt */}
       <div className="px-5 py-6">
         {isLoading ? (
-          <Card className="bg-white animate-pulse">
+          <Card className="bg-white animate-pulse mb-4">
             <CardContent className="p-4 h-24" />
           </Card>
         ) : error ? (
-          <Card className="bg-white">
+          <Card className="bg-white mb-4">
             <CardContent className="p-4">
               <p className="text-red-500">{error}</p>
             </CardContent>
           </Card>
         ) : prompt && (
           <Link href={chats?.length > 0 ? `/chat/${chats[0].id}` : "/chat/history"}>
-            <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer">
+            <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer mb-4">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
@@ -145,7 +145,7 @@ export default function HomeView() {
       {/* Learning Section */}
       <div className="w-full">
         <div
-          className="rounded-xl p-6 relative overflow-hidden"
+          className="rounded-xl p-6 relative overflow-hidden mb-4"
           style={{
             background: "linear-gradient(180deg, #F8DD9F 0%, #F2F0E5 35%)",
           }}
@@ -164,7 +164,7 @@ export default function HomeView() {
           <div className="space-y-3">
             {OneCard.map((video, index) => (
               <Link key={index} href="/learn">
-                <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer">
+                <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer mb-4">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-4">
                       <div className="w-24 h-24 flex-shrink-0">
@@ -196,7 +196,7 @@ export default function HomeView() {
           <div className="grid grid-cols-2 gap-4">
             {learningVideos.map((video, index) => (
               <Link key={index} href="/learn">
-                <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer">
+                <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer mb-4">
                   <CardContent className="p-0">
                     <div className="flex flex-col">
                       <img
