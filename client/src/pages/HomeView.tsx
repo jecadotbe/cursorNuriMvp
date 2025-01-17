@@ -196,7 +196,20 @@ export default function HomeView() {
           <div className="grid grid-cols-2 gap-4">
             {learningVideos.map((video, index) => (
               <Link key={index} href="/learn" className="h-full">
-                <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer overflow-hidden h-full">
+                <Card
+        className="
+          bg-white 
+          border-2 border-[#E5E7EB] 
+          hover:shadow-md 
+          hover:border-[#D1D5DB]
+          transition-all
+          duration-200
+          cursor-pointer 
+          overflow-hidden 
+          h-full 
+          rounded-lg
+        "
+      >
                   <CardContent className="p-4">
                     <img
                       src={video.image}
