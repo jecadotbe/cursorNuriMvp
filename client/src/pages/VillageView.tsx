@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useVillage } from "@/hooks/use-village";
-import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, Music } from "lucide-react";
+import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, Music, User } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -293,6 +293,7 @@ export default function VillageView() {
                       member.contactFrequency === 'XL' ? 'w-7 h-7' : 'w-2 h-2'
                     }`} />
                     <div className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB]">
+                      <User className="w-4 h-4 text-gray-500" />
                       <span className="text-sm font-medium text-gray-800">{member.name}</span>
                       <div className="hidden group-hover:flex items-center space-x-1">
                         <button
