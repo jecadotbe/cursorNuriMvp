@@ -51,8 +51,8 @@ export default function HomeView() {
   return (
     <div className="flex-1 bg-[#F2F0E5] overflow-y-auto">
       {/* Greeting Section with Logo */}
-      <div className="w-full bg-gradient-to-r from-[#F8DD9F] to-[#F2F0E5] via-[#F2F0E5] via-35%">
-        <div className="px-4 py-6">
+      <div className="w-full bg-gradient-to-r from-[#F8DD9F] to-[#F2F0E5] via-[#F2F0E5] via-35% mb-4">
+        <div className="px-4 pt-6 pb-4">
           <div className="flex items-end gap-4">
             <div className="w-18 h-20">
               <img
