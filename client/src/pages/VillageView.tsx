@@ -33,15 +33,16 @@ export default function VillageView() {
     name: "",
     type: "individual",
     circle: 1,
-    interactionFrequency: 1,
+    category: "informeel" as "informeel" | "formeel" | "inspiratie",
+    contactFrequency: "M" as "S" | "M" | "L" | "XL"
   });
 
   const handleZoomIn = () => {
-    setScale((prev) => Math.min(prev + 0.1, 3)); // max 3x zoom
+    setScale((prev) => Math.min(prev + 0.1, 3));
   };
 
   const handleZoomOut = () => {
-    setScale((prev) => Math.max(prev - 0.1, 0.3)); // min 0.3x zoom
+    setScale((prev) => Math.max(prev - 0.1, 0.3));
   };
 
   const handleReset = () => {
@@ -50,7 +51,7 @@ export default function VillageView() {
   };
 
   const getCircleRadius = (index: number) => {
-    const baseRadius = 80; // Reduced from 120 to bring circles closer
+    const baseRadius = 80;
     return baseRadius * (index + 1);
   };
 
@@ -65,7 +66,7 @@ export default function VillageView() {
 
   const handlePanStart = (e: React.MouseEvent | React.TouchEvent) => {
     if (e.target instanceof Element && e.target.closest('.member-pill')) {
-      return; // Don't start panning if clicking on a member pill
+      return;
     }
     setIsDragging(true);
   };
@@ -74,15 +75,13 @@ export default function VillageView() {
     if (!isDragging) return;
 
     if ('touches' in e) {
-      // Touch event
       const touch = e.touches[0];
-      const prevTouch = e.touches[1] || e.touches[0]; // Use the same touch if only one touch point
+      const prevTouch = e.touches[1] || e.touches[0];
       setPosition(prev => ({
         x: prev.x + (touch.clientX - prevTouch.clientX),
         y: prev.y + (touch.clientY - prevTouch.clientY)
       }));
     } else {
-      // Mouse event
       setPosition(prev => ({
         x: prev.x + e.movementX,
         y: prev.y + e.movementY
@@ -104,20 +103,22 @@ export default function VillageView() {
       });
       return;
     }
-    
+
     try {
       await addMember({
         name: newMember.name,
         type: newMember.type,
         circle: newMember.circle,
-        interactionFrequency: newMember.interactionFrequency
+        category: newMember.category,
+        contactFrequency: newMember.contactFrequency
       });
       setIsOpen(false);
       setNewMember({
         name: "",
         type: "individual",
         circle: 1,
-        interactionFrequency: 1,
+        category: "informeel",
+        contactFrequency: "M"
       });
       toast({
         title: "Success",
@@ -293,6 +294,43 @@ export default function VillageView() {
                 <SelectContent>
                   <SelectItem value="individual">Individual</SelectItem>
                   <SelectItem value="group">Group</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Select
+                value={newMember.category}
+                onValueChange={(value: "informeel" | "formeel" | "inspiratie") =>
+                  setNewMember({ ...newMember, category: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="informeel">Informeel</SelectItem>
+                  <SelectItem value="formeel">Formeel</SelectItem>
+                  <SelectItem value="inspiratie">Inspiratie</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contactFrequency">Contact Frequency</Label>
+              <Select
+                value={newMember.contactFrequency}
+                onValueChange={(value: "S" | "M" | "L" | "XL") =>
+                  setNewMember({ ...newMember, contactFrequency: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="S">Small</SelectItem>
+                  <SelectItem value="M">Medium</SelectItem>
+                  <SelectItem value="L">Large</SelectItem>
+                  <SelectItem value="XL">Extra Large</SelectItem>
                 </SelectContent>
               </Select>
             </div>

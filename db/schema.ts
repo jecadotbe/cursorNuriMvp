@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 
 export const users = pgTable("users", {
@@ -8,15 +8,32 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Create enum for village member categories
+export const memberCategoryEnum = pgEnum("member_category_enum", [
+  "informeel",
+  "formeel",
+  "inspiratie"
+]);
+
+// Create enum for contact frequency
+export const contactFrequencyEnum = pgEnum("contact_frequency_enum", [
+  "S",
+  "M",
+  "L",
+  "XL"
+]);
+
 export const villageMembers = pgTable("village_members", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
   name: text("name").notNull(),
   type: text("type").notNull(), // 'individual' or 'group'
   circle: integer("circle").notNull(), // 1-5
-  interactionFrequency: integer("interaction_frequency").notNull(), // 1-5
-  metadata: jsonb("metadata"),
+  category: memberCategoryEnum("category"),
+  contactFrequency: contactFrequencyEnum("contact_frequency"),
+  metadata: jsonb("metadata"), // For additional data like "Film," "Muziek," "Therapie"
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const chats = pgTable("chats", {
@@ -25,19 +42,18 @@ export const chats = pgTable("chats", {
   title: text("title"),
   summary: text("summary"),
   messages: jsonb("messages").notNull(),
-  metadata: jsonb("metadata"), // For additional filtering/organization and emotional context
-  tags: text("tags").array(), // For categorizing conversations
+  metadata: jsonb("metadata"),
+  tags: text("tags").array(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// New table for storing message feedback
 export const messageFeedback = pgTable("message_feedback", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
   chatId: integer("chat_id").references(() => chats.id).notNull(),
-  messageId: text("message_id").notNull(), // Reference to the specific message in the chat
-  feedbackType: text("feedback_type").notNull(), // 'positive' or 'negative'
+  messageId: text("message_id").notNull(),
+  feedbackType: text("feedback_type").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

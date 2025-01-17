@@ -7,9 +7,13 @@ import { eq, desc } from "drizzle-orm";
 import { anthropic } from "./anthropic";
 import type { User } from "./auth";
 import { memoryService } from "./services/memory";
+import villageRouter from "./routes/village";
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
+
+  // Register village routes
+  app.use("/api/village", villageRouter);
 
   app.get("/api/chats/:chatId", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
@@ -299,30 +303,6 @@ export function registerRoutes(app: Express): Server {
     res.json(latestChat || null);
   });
 
-  app.post("/api/village", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-
-    try {
-      const user = req.user as User;
-      const [newMember] = await db.insert(villageMembers)
-        .values({
-          userId: user.id,
-          name: req.body.name,
-          type: req.body.type,
-          circle: req.body.circle,
-          interactionFrequency: req.body.interactionFrequency || 1
-        })
-        .returning();
-
-      console.log('Created village member:', newMember);
-      res.json(newMember);
-    } catch (error) {
-      console.error('Failed to create village member:', error);
-      res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to create village member' });
-    }
-  });
 
   app.post("/api/chats", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
