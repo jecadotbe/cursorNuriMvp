@@ -153,9 +153,9 @@ export default function LearnView() {
                       <Play className="w-8 h-8 text-white opacity-80" />
                     </div>
                   </div>
-                  <div className="p-3">
+                  <div className="p-4">
                     <h3 className="font-medium text-l">{chapter.title}</h3>
-                    <p className="text-xs mt-1">
+                    <p className="text-xs mt-2">
                       <Clock className="w-3 h-3 inline mr-1" />
                       {chapter.duration}
                     </p>
@@ -183,9 +183,9 @@ export default function LearnView() {
                       <Play className="w-8 h-8 text-white opacity-80" />
                     </div>
                   </div>
-                  <div className="p-3">
+                  <div className="p-4">
                     <h3 className="font-medium text-sm">{chapter.title}</h3>
-                    <p className="text-xs  mt-1">
+                    <p className="text-xs  mt-2">
                       <Clock className="w-3 h-3 inline mr-1" />
                       {chapter.duration}
                     </p>
