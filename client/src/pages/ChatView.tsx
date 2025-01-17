@@ -231,9 +231,12 @@ export default function ChatView() {
                 }`}
               >
                 {message.role === 'assistant' ? (
-                  <div className="prose prose-sm prose-p:mt-4 prose-p:first:mt-0">
-                    {formatMessageContent(message.content)}
-                  </div>
+                  <>
+                    <div className="prose prose-sm prose-p:mt-4 prose-p:first:mt-0">
+                      {formatMessageContent(message.content)}
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2">Nuri kan fouten maken. Controleer de antwoorden.</p>
+                  </>
                 ) : (
                   <p>{message.content}</p>
                 )}
