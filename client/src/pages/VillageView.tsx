@@ -295,8 +295,8 @@ export default function VillageView() {
                       }`} />
                       <div className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB]">
                         <span className="text-sm font-medium text-gray-800">{member.name}</span>
-                      <div className="hidden group-hover:flex items-center space-x-1">
-                        <button
+                        <div className="hidden group-hover:flex items-center space-x-1">
+                          <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleEdit(member);
