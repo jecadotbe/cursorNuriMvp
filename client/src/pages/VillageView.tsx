@@ -215,7 +215,7 @@ export default function VillageView() {
             ))}
 
             {/* Center Circle */}
-            <div className="absolute w-24 h-24 bg-[#EBE8DD] rounded-full flex items-center justify-center text-black text-sm">
+            <div className="absolute w-24 h-24 bg-[#EBE8DD] rounded-full flex items-center justify-center text-black text-sm border-2 border-[#2F4644]">
               Kerngezin
             </div>
 
