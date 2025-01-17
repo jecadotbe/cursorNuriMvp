@@ -25,4 +25,16 @@
   .chat-message {
     @apply font-baskerville;
   }
+
+  .homegreeting {
+    margin-top: 1.5rem;
+    margin-bottom: 0rem;
+    margin-left: 1.5rem;
+    margin-right: 1.5rem
+  }
+
+  .homebottom {
+    margin-bottom: 1rem;
+  }
+  
 }
