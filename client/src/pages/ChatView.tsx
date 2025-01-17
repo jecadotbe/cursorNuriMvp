@@ -18,7 +18,7 @@ import { useUser } from "@/hooks/use-user";
 
 const theme = {
   primary: 'bg-[#F2F0E5]',
-  secondary: 'bg-[#F2F0E5]',
+  secondary: 'bg-white',
   accent: 'bg-[#629785]',
   text: {
     primary: 'text-black',
