@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUser } from "@/hooks/use-user";
 import { useChatHistory } from "@/hooks/use-chat-history";
-import { MessageSquare, Users, GraduationCap, Star, Clock, ChevronRight } from "lucide-react";
+import { MessageSquare, Users, GraduationCap, Clock, ChevronRight } from "lucide-react";
 import { Link } from "wouter";
 
 // Add image load success handler
@@ -126,7 +126,7 @@ export default function HomeView() {
           }}
         >
           <div className="flex items-center gap-2 mb-2">
-            <Star className="w-5 h-5" />
+            <img src="/images/VillageIcon.svg" alt="Village" className="w-5 h-5" />
             <h2 className="text-xl font-baskerville">Village</h2>
           </div>
           <h3 className="text-xl mb-4">Laat je Village bloeien</h3>
