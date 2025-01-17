@@ -168,7 +168,7 @@ const VideoPlayer = ({ videoUrl, title, isYoutube = false }: VideoPlayerProps) =
 
 export default function LearnDetailView() {
   return (
-    <div className="flex flex-col min-h-screen w-full bg-[#F2F0E5]">
+    <div className="flex flex-col min-h-screen w-full bg-[#F2F0E5] relative z-50">
       <div className="px-4 py-2">
         <Link href="/learn">
           <div className="flex items-center space-x-2 cursor-pointer">
