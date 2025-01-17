@@ -126,10 +126,10 @@ export default function HomeView() {
           }}
         >
           <div className="flex items-center gap-2 mb-2">
-            <img src="/images/VillageIcon.svg" alt="Village" className="w-5 h-5" />
-            <h2 className="text-xl font-baskerville">Village</h2>
+            <img src="/images/VillageIcon.svg" alt="Village" className="w-6 h-6" />
+            <h2 className="text-2xl font-baskerville">Mijn Village</h2>
           </div>
-          <h3 className="text-xl mb-4">Laat je Village bloeien</h3>
+          <h3 className="text-l mb-4">Laat je Village bloeien</h3>
           <Link href="/village">
             <div className="bg-white rounded-full px-4 py-2 shadow-sm inline-flex items-center gap-2 cursor-pointer">
               <span>
