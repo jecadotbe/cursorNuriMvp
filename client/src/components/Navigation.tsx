@@ -16,7 +16,7 @@ export default function Navigation() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 border-t bg-background">
+    <div className="fixed bottom-0 left-0 right-0 border-t bg-[#F2F0E5]">
       <nav className="flex justify-between items-center px-4 py-2">
         {items.map(({ icon: Icon, label, href, onboarding }) => (
           <Link key={href} href={href}>
