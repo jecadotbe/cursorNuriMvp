@@ -120,7 +120,7 @@ export default function LearnView() {
 
         {/* Continue Learning */}
         <Link href="/learn/0">
-          <div className="bg-white rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow">
+          <div className="bg-white rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow mt-8">
             <div className="flex items-center space-x-3">
               <img 
                 src="/images/bg_test.jpg"
