@@ -246,11 +246,6 @@ export default function ChatView() {
                   />
                 )}
               </div>
-              <span className={`text-xs ${theme.text.muted} mt-1 ${
-                message.role === 'user' ? 'text-right' : 'text-left'
-              }`}>
-                {message.timestamp ? format(new Date(message.timestamp), 'HH:mm') : ''}
-              </span>
             </div>
           </div>
         ))}

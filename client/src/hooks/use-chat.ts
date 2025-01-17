@@ -7,7 +7,6 @@ import { useParams, useLocation } from "wouter";
 interface Message {
   role: "user" | "assistant";
   content: string;
-  timestamp?: Date | string;  // Keep timestamp field for UI
 }
 
 export function useChat() {
@@ -31,11 +30,7 @@ export function useChat() {
   // Initialize messages when chatData changes
   useEffect(() => {
     if (chatData?.messages) {
-      // Ensure messages have timestamps when loading from chatData
-      setMessages((chatData.messages as Message[]).map(msg => ({
-        ...msg,
-        timestamp: msg.timestamp || new Date(chatData.createdAt)
-      })));
+      setMessages(chatData.messages as Message[]);
     } else if (!chatId && !isChatLoading) {
       // Only reset messages if we're in a new chat and not loading
       setMessages([]);
@@ -44,12 +39,7 @@ export function useChat() {
 
   const mutation = useMutation({
     mutationFn: async (content: string) => {
-      const timestamp = new Date().toISOString();
-      const userMessage: Message = { 
-        role: "user", 
-        content,
-        timestamp 
-      };
+      const userMessage: Message = { role: "user", content };
 
       // Update messages immediately for better UX
       setMessages((prev) => [...prev, userMessage]);
@@ -60,11 +50,7 @@ export function useChat() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            // Strip timestamps when sending to API
-            messages: [...messages, userMessage].map(({ role, content }) => ({
-              role,
-              content,
-            })),
+            messages: [...messages, userMessage],
             chatId: chatData?.id
           }),
           credentials: "include",
@@ -78,7 +64,6 @@ export function useChat() {
         const assistantMessage: Message = {
           role: "assistant",
           content: chatResponse.content,
-          timestamp: new Date().toISOString()
         };
 
         // Update messages with assistant's response
@@ -120,10 +105,7 @@ export function useChat() {
         const res = await fetch('/api/analyze-context', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          // Strip timestamps when sending to API
-          body: JSON.stringify({ 
-            messages: recentMessages.map(({ role, content }) => ({ role, content }))
-          }),
+          body: JSON.stringify({ messages: recentMessages }),
           credentials: 'include'
         });
         const prompt = await res.json();
