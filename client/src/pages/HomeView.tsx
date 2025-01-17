@@ -53,8 +53,8 @@ export default function HomeView() {
       {/* Greeting Section with Logo */}
       <div className="w-full bg-gradient-to-r from-[#F8DD9F] to-[#F2F0E5] via-[#F2F0E5] via-35%">
         <div className="px-4 py-6">
-          <div className="flex items-start gap-4">
-            <div className="w-18 h-24">
+          <div className="flex items-end gap-4">
+            <div className="w-18 h-20">
               <img
                 src="/images/nuri_logo.png"
                 alt="Nuri Logo"
