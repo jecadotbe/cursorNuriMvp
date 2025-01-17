@@ -193,29 +193,25 @@ export default function HomeView() {
               </Link>
             ))}
           </div>
-          <div className="grid grid-cols-2 gap-4 auto-rows-fr">
+          <div className="grid grid-cols-2 gap-4">
             {learningVideos.map((video, index) => (
-              <Link key={index} href="/learn" className="h-full">
-                <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer h-full">
-                  <CardContent className="p-0 h-full">
-                    <div className="flex flex-col h-full">
-                      <img
-                        src={video.image}
-                        alt={video.title}
-                        className="w-full h-48 object-cover rounded-t-lg flex-shrink-0"
-                        onLoad={() => handleImageLoad(video.image.split('/').pop()!)}
-                        onError={(e) => {
-                          handleImageError(video.image.split('/').pop()!, e);
-                          e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui' font-size='12' fill='%23666'%3EThumbnail%3C/text%3E%3C/svg%3E";
-                        }}
-                      />
-                      <div className="p-4 flex-grow">
-                        <h3 className="text-lg mb-2">{video.title}</h3>
-                        <div className="flex items-center">
-                          <Clock className="w-4 h-4 mr-1" />
-                          <span>{video.duration}</span>
-                        </div>
-                      </div>
+              <Link key={index} href="/learn">
+                <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer overflow-hidden">
+                  <CardContent className="p-4">
+                    <img
+                      src={video.image}
+                      alt={video.title}
+                      className="w-full aspect-[4/3] object-cover rounded-lg mb-4"
+                      onLoad={() => handleImageLoad(video.image.split('/').pop()!)}
+                      onError={(e) => {
+                        handleImageError(video.image.split('/').pop()!, e);
+                        e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui' font-size='12' fill='%23666'%3EThumbnail%3C/text%3E%3C/svg%3E";
+                      }}
+                    />
+                    <h3 className="text-xl font-baskerville text-[#2F4644] mb-3">{video.title}</h3>
+                    <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-white border border-[#E5E7EB]">
+                      <Clock className="w-4 h-4 mr-2 text-gray-500" />
+                      <span className="text-sm text-gray-600">{video.duration}</span>
                     </div>
                   </CardContent>
                 </Card>
