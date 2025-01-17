@@ -130,15 +130,17 @@ export default function HomeView() {
             <h2 className="text-2xl font-baskerville">Mijn Village</h2>
           </div>
           <h3 className="text-l mb-4">Laat je Village bloeien</h3>
-          <Link href="/village">
-            <div className="bg-white rounded-full px-4 py-2 shadow-sm inline-flex items-center gap-2 cursor-pointer">
-              <span>
-                Er zijn <strong className="text-orange-500">3</strong> village
-                suggesties
-              </span>
-              <ChevronRight className="w-4 h-4" />
-            </div>
-          </Link>
+          <div className="flex justify-end">
+            <Link href="/village">
+              <div className="bg-white rounded-full px-4 py-2 shadow-sm inline-flex items-center gap-2 cursor-pointer">
+                <span>
+                  Er zijn <strong className="text-orange-500">3</strong> village
+                  suggesties
+                </span>
+                <ChevronRight className="w-4 h-4" />
+              </div>
+            </Link>
+          </div>
         </div>
       </div>
 
