@@ -56,9 +56,13 @@ export default function LearnView() {
   ];
 
   return (
-    <div className="flex-1 bg-[#F2F0E5] overflow-y-auto">
+    <div className="flex-1 bg-[#F2F0E5] overflow-y-auto"
+      style={{
+          background: "linear-gradient(180deg, #F8DD9F 0%, #F2F0E5 10%)",
+        }}
+      >
       {/* Header */}
-      <div className="px-4 py-2 flex items-center justify-between">
+      <div className="px-6 py-6 flex items-center justify-between">
         <Link href="/">
           <div className="flex items-center space-x-2 cursor-pointer">
             <ArrowLeft className="w-6 h-6" />
@@ -69,7 +73,7 @@ export default function LearnView() {
       </div>
 
       {/* Hero Image */}
-      <div className="px-4">
+      <div className="px-6">
         <div className="w-full aspect-video bg-gray-200 relative rounded-lg overflow-hidden">
           <img 
             src="/images/brooke-cagle-109PiObJQSw-unsplash.jpg" 
@@ -80,8 +84,8 @@ export default function LearnView() {
       </div>
 
       {/* Course Info */}
-      <div className="p-4 space-y-4">
-        <h1 className="text-2xl font-semibold">Nuri basics</h1>
+      <div className="p-6 space-y-4">
+        <h1 className="text-4xl font-baskerville">Nuri basics</h1>
         <div className="flex items-center space-x-4 text-sm text-gray-600">
           <div className="flex items-center">
             <span className="font-medium">16 video's</span>
@@ -106,12 +110,12 @@ export default function LearnView() {
               />
             </div>
             <div>
-              <h3 className="text-xl text-[#2F4644] font-baskerville">Lynn Geerinck</h3>
-              <p className="text-[#2F4644]">Co-founder & methodology</p>
+              <h3 className="text-xl font-baskerville">Lynn Geerinck</h3>
+              <p>Co-founder & methodology</p>
             </div>
           </div>
           <div className="h-px bg-gray-200" />
-          <h2 className="text-2xl font-baskerville text-[#2F4644]">Verder waar we gestopt zijn...</h2>
+          <h2 className="text-2xl font-baskerville">Verder waar we gestopt zijn...</h2>
         </div>
 
         {/* Continue Learning */}
@@ -134,7 +138,7 @@ export default function LearnView() {
 
         {/* Chapter 1 */}
         <div>
-          <h2 className="text-xl font-semibold mb-4 font-baskerville">Hoofdstuk 1: De basis</h2>
+          <h2 className="text-2xl mb-4 font-baskerville">Hoofdstuk 1: De basis</h2>
           <div className="grid grid-cols-2 gap-4">
             {chapters1.map((chapter, index) => (
               <Link href={`/learn/${index + 1}`} key={index}>
@@ -164,7 +168,7 @@ export default function LearnView() {
 
         {/* Chapter 2 */}
         <div>
-          <h2 className="text-xl font-semibold mb-4 font-baskerville">Hoofdstuk 2: De visie van Nuri</h2>
+          <h2 className="text-2xl  mb-4 font-baskerville">Hoofdstuk 2: De visie van Nuri</h2>
           <div className="grid grid-cols-2 gap-4">
             {chapters2.map((chapter, index) => (
               <Link href={`/learn/${index + 1}`} key={index}>
@@ -194,7 +198,7 @@ export default function LearnView() {
 
         {/* Quote */}
         <div className="py-6">
-          <p className="text-lg italic">
+          <p className="text-3xl font-baskerville italic">
             "The less we try to control children, the greater will be our positive influence on them, and therefore our ability to change their behavior."
           </p>
           <p className="text-sm text-gray-600 mt-2">Aletha Solter PhD.</p>
@@ -202,7 +206,7 @@ export default function LearnView() {
 
         {/* Podcasts */}
         <div>
-          <h2 className="text-xl font-semibold mb-4 font-baskerville">Podcast and Inspiration</h2>
+          <h2 className="text-2xl  mb-4 font-baskerville">Podcast and Inspiration</h2>
           <div className="space-y-4">
             {podcasts.map((podcast, index) => (
               <div key={index} className="bg-white p-4 rounded-lg">

@@ -81,7 +81,7 @@ export default function HomeView() {
       </div>
 
       {/* Chat Prompt */}
-      <div className="px-4 py-6">
+      <div className="px-5 py-6">
         {isLoading ? (
           <Card className="bg-white animate-pulse">
             <CardContent className="p-4 h-24" />
@@ -117,7 +117,7 @@ export default function HomeView() {
       {/* Village Section */}
       <div className="w-full">
         <div
-          className="rounded-xl p-4 relative overflow-hidden min-h-[200px]"
+          className="rounded-xl p-6 relative overflow-hidden min-h-[200px]"
           style={{
             backgroundImage: `url('/images/village_circles.png'), linear-gradient(180deg, #C9E1D4 0%, #F2F0E5 35%)`,
             backgroundPosition: "right top",
@@ -145,7 +145,7 @@ export default function HomeView() {
       {/* Learning Section */}
       <div className="w-full">
         <div
-          className="rounded-xl p-4 relative overflow-hidden"
+          className="rounded-xl p-6 relative overflow-hidden"
           style={{
             background: "linear-gradient(180deg, #F8DD9F 0%, #F2F0E5 35%)",
           }}
