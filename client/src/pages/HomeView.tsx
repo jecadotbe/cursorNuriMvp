@@ -19,25 +19,6 @@ const handleImageError = (imageName: string, error: any) => {
 export default function HomeView() {
   const { user } = useUser();
   const { getLatestPrompt, chats } = useChatHistory();
-  const [currentTime, setCurrentTime] = useState<string>("");
-
-  useEffect(() => {
-    updateTime();
-    const interval = setInterval(updateTime, 60000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const updateTime = () => {
-    const now = new Date();
-    setCurrentTime(
-      now.toLocaleTimeString("nl-NL", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      })
-    );
-  };
-
   const [prompt, setPrompt] = useState<{ text: string; type: string; context?: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,11 +50,6 @@ export default function HomeView() {
 
   return (
     <div className="flex-1 bg-[#F2F0E5] overflow-y-auto">
-      {/* Status Bar */}
-      <div className="flex justify-between items-center p-4">
-        <span className="text-black">{currentTime}</span>
-      </div>
-
       {/* Greeting Section with Logo */}
       <div className="w-full bg-gradient-to-r from-[#F8DD9F] to-[#F2F0E5] via-[#F2F0E5] via-35%">
         <div className="px-4 py-6">
