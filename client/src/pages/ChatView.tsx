@@ -58,7 +58,7 @@ const TypingIndicator = () => (
 const Avatar = ({ sender }: { sender: 'user' | 'assistant' }) => {
   const { user } = useUser();
   return (
-    <div className={`w-8 ${sender === 'assistant' ? 'aspect-[4/3]' : 'h-8 rounded-full'} flex items-center justify-center overflow-hidden ${
+    <div className={`w-8 ${sender === 'assistant' ? 'aspect-[9/16]' : 'h-8 rounded-full'} flex items-center justify-center overflow-hidden ${
       sender === 'assistant' ? 'bg-white' : 'bg-[#294636]'
     }`}>
       {sender === 'assistant' ? (
