@@ -103,7 +103,7 @@ export default function HomeView() {
                     </div>
                     <p className="text-lg pr-8">{prompt.text}</p>
                     {prompt.context && (
-                      <p className="text-sm text-gray-500 mt-2">{prompt.context}</p>
+                      <p className="text-sm  mt-2">{prompt.context}</p>
                     )}
                   </div>
                   <ChevronRight className="w-6 h-6 text-gray-400 flex-shrink-0" />
@@ -159,8 +159,10 @@ export default function HomeView() {
               Naar overzicht
             </Link>
           </div>
+           {/* One Card */}
+
           <div className="space-y-3">
-            {learningVideos.map((video, index) => (
+            {OneCard.map((video, index) => (
               <Link key={index} href="/learn">
                 <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer">
                   <CardContent className="p-4">
@@ -178,7 +180,7 @@ export default function HomeView() {
                         />
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-2xl font-baskerville text-[#2F4644] mb-2">{video.title}</h3>
+                        <h3 className="text-xl font-baskerville text-[#2F4644] mb-2">{video.title}</h3>
                         <div className="inline-flex items-center px-4 py-1 rounded-full bg-[#E8E6DC] text-sm">
                           <Clock className="w-4 h-4 mr-1" />
                           <span>{video.duration}</span>
@@ -209,7 +211,7 @@ export default function HomeView() {
                       />
                       <div className="p-4">
                         <h3 className="text-lg mb-2">{video.title}</h3>
-                        <div className="flex items-center text-gray-500">
+                        <div className="flex items-center ">
                           <Clock className="w-4 h-4 mr-1" />
                           <span>{video.duration}</span>
                         </div>
@@ -237,9 +239,14 @@ const learningVideos = [
     duration: "5 min",
     image: "/images/fabian-centeno-Snce5c3YjgI-unsplash.jpg",
   },
+
+];
+
+const OneCard = [
   {
-    title: "Hoe je kind begeleiden bij een driftbui",
-    duration: "7 min",
-    image: "/images/mieke-campbell-vdprgvmmxmw-unsplash.jpg",
+    title: "Wat is Aware Parenting?",
+    duration: "10 min",
+    image: "/images/alexander-dummer-ncyGJJ0TSLM-unsplash (1).jpg",
   },
+
 ];
