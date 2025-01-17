@@ -52,8 +52,8 @@ export default function HomeView() {
     <div className="flex-1 bg-[#F2F0E5] overflow-y-auto">
       {/* Greeting Section with Logo */}
       <div className="w-full bg-gradient-to-r from-[#F8DD9F] to-[#F2F0E5] via-[#F2F0E5] via-45% ">
-        <div className="px-4 pt-6 homemeeting">
-          <div className="flex items-end gap-4">
+        <div className="px-4 pt-8 homemeeting">
+          <div className="flex items-end gap-8">
             <div className="w-24 h-32 flex">
               <img
                 src="/images/nuri_logo.png"
@@ -152,12 +152,10 @@ export default function HomeView() {
         >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <img src="/images/LearningIcon.svg" alt="Learning" className="w-5 h-5" />
-              <h2 className="text-xl font-baskerville">Verder leren?</h2>
+              <img src="/images/LearningIcon.svg" alt="Learning" className="w-6 h-6" />
+              <h2 className="text-2xl font-baskerville">Verder leren</h2>
             </div>
-            <Link href="/learn" className="text-sm underline">
-              Naar overzicht
-            </Link>
+          
           </div>
            {/* One Card */}
 
