@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useVillage } from "@/hooks/use-village";
-import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2 } from "lucide-react";
+import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, Music } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -286,13 +286,11 @@ export default function VillageView() {
                   bounds="parent"
                 >
                   <div className="absolute cursor-move member-pill group" style={{ transform: "translate(-50%, -50%)" }}>
-                    <div className="flex items-center space-x-2 bg-white rounded-full px-3 py-1 shadow-sm">
-                      <span
-                        className={`w-2 h-2 rounded-full ${
-                          member.type === "individual" ? "bg-[#22c55e]" : "bg-[#3b82f6]"
-                        }`}
-                      />
-                      <span className="text-sm text-gray-800">{member.name}</span>
+                    <div className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB]">
+                      <span className="text-violet-600">
+                        <Music className="w-4 h-4" />
+                      </span>
+                      <span className="text-sm font-medium text-gray-800">{member.name}</span>
                       <div className="hidden group-hover:flex items-center space-x-1">
                         <button
                           onClick={(e) => {
