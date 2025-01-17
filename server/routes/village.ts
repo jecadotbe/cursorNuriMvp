@@ -1,13 +1,18 @@
 import { Router } from "express";
 import { db } from "@db";
-import { villageMembers } from "@db/schema";
-import { eq } from "drizzle-orm";
+import { villageMembers, type User } from "@db/schema";
+import { eq, and } from "drizzle-orm";
 import type { Request, Response } from "express";
 
 const router = Router();
 
+// Add type for authenticated request
+interface AuthenticatedRequest extends Request {
+  user?: User;
+}
+
 // Get all village members for the current user
-router.get("/", async (req: Request, res: Response) => {
+router.get("/", async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -27,7 +32,7 @@ router.get("/", async (req: Request, res: Response) => {
 });
 
 // Create a new village member
-router.post("/", async (req: Request, res: Response) => {
+router.post("/", async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -57,7 +62,7 @@ router.post("/", async (req: Request, res: Response) => {
 });
 
 // Update a village member
-router.put("/:id", async (req: Request, res: Response) => {
+router.put("/:id", async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -66,6 +71,20 @@ router.put("/:id", async (req: Request, res: Response) => {
 
     const { id } = req.params;
     const { name, type, circle, category, contactFrequency, metadata } = req.body;
+
+    // Check if the village member belongs to the user
+    const existingMember = await db
+      .select()
+      .from(villageMembers)
+      .where(and(
+        eq(villageMembers.id, parseInt(id)),
+        eq(villageMembers.userId, userId)
+      ))
+      .limit(1);
+
+    if (!existingMember.length) {
+      return res.status(404).json({ message: "Village member not found" });
+    }
 
     const [updated] = await db
       .update(villageMembers)
@@ -78,12 +97,11 @@ router.put("/:id", async (req: Request, res: Response) => {
         metadata,
         updatedAt: new Date(),
       })
-      .where(eq(villageMembers.id, parseInt(id)))
+      .where(and(
+        eq(villageMembers.id, parseInt(id)),
+        eq(villageMembers.userId, userId)
+      ))
       .returning();
-
-    if (!updated) {
-      return res.status(404).json({ message: "Village member not found" });
-    }
 
     res.json(updated);
   } catch (error) {
@@ -93,7 +111,7 @@ router.put("/:id", async (req: Request, res: Response) => {
 });
 
 // Delete a village member
-router.delete("/:id", async (req: Request, res: Response) => {
+router.delete("/:id", async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -102,14 +120,27 @@ router.delete("/:id", async (req: Request, res: Response) => {
 
     const { id } = req.params;
 
-    const [deleted] = await db
-      .delete(villageMembers)
-      .where(eq(villageMembers.id, parseInt(id)))
-      .returning();
+    // Check if the village member belongs to the user
+    const existingMember = await db
+      .select()
+      .from(villageMembers)
+      .where(and(
+        eq(villageMembers.id, parseInt(id)),
+        eq(villageMembers.userId, userId)
+      ))
+      .limit(1);
 
-    if (!deleted) {
+    if (!existingMember.length) {
       return res.status(404).json({ message: "Village member not found" });
     }
+
+    const [deleted] = await db
+      .delete(villageMembers)
+      .where(and(
+        eq(villageMembers.id, parseInt(id)),
+        eq(villageMembers.userId, userId)
+      ))
+      .returning();
 
     res.json(deleted);
   } catch (error) {
