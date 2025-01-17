@@ -7,7 +7,7 @@ import { useParams, useLocation } from "wouter";
 interface Message {
   role: "user" | "assistant";
   content: string;
-  timestamp?: Date | string;  // Add timestamp field
+  timestamp?: Date | string;  // Keep timestamp field for UI
 }
 
 export function useChat() {
@@ -44,10 +44,11 @@ export function useChat() {
 
   const mutation = useMutation({
     mutationFn: async (content: string) => {
+      const timestamp = new Date().toISOString();
       const userMessage: Message = { 
         role: "user", 
         content,
-        timestamp: new Date().toISOString()
+        timestamp 
       };
 
       // Update messages immediately for better UX
@@ -59,10 +60,10 @@ export function useChat() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            messages: [...messages, userMessage].map(({ role, content, timestamp }) => ({
+            // Strip timestamps when sending to API
+            messages: [...messages, userMessage].map(({ role, content }) => ({
               role,
               content,
-              timestamp
             })),
             chatId: chatData?.id
           }),
@@ -119,7 +120,10 @@ export function useChat() {
         const res = await fetch('/api/analyze-context', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: recentMessages }),
+          // Strip timestamps when sending to API
+          body: JSON.stringify({ 
+            messages: recentMessages.map(({ role, content }) => ({ role, content }))
+          }),
           credentials: 'include'
         });
         const prompt = await res.json();
