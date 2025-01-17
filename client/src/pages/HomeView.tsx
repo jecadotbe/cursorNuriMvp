@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useUser } from "@/hooks/use-user";
 import { useChatHistory } from "@/hooks/use-chat-history";
 import { MessageSquare, Users, Clock, ChevronRight } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
 
@@ -25,7 +25,7 @@ export default function HomeView() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-  const [, navigate] = Link();
+  const [, navigate] = useLocation();
 
   useEffect(() => {
     let mounted = true;
