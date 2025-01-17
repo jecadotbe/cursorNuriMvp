@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -15,10 +15,12 @@ import ProfileView from "@/pages/ProfileView";
 import Navigation from "@/components/Navigation";
 import { OnboardingProvider } from "@/context/onboarding-context";
 import OnboardingTooltip from "@/components/OnboardingTooltip";
-import LearnDetailView from "./pages/LearnDetailView"; // Added import
+import LearnDetailView from "./pages/LearnDetailView";
 
 function Router() {
   const { user, isLoading } = useUser();
+  const [location] = useLocation();
+  const showNavigation = !location.startsWith('/learn/');
 
   if (isLoading) {
     return (
@@ -34,7 +36,7 @@ function Router() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <div className="flex-1 pb-16">
+      <div className={`flex-1 ${showNavigation ? 'pb-16' : ''}`}>
         <Switch>
           <Route path="/" component={HomeView} />
           <Route path="/chat" component={ChatHistoryView} />
@@ -42,12 +44,12 @@ function Router() {
           <Route path="/chat/history" component={ChatHistoryView} />
           <Route path="/village" component={VillageView} />
           <Route path="/learn" component={LearnView} />
-          <Route path="/learn/:id" component={LearnDetailView} /> {/* Added route for LearnDetailView */}
+          <Route path="/learn/:id" component={LearnDetailView} />
           <Route path="/profile" component={ProfileView} />
           <Route component={NotFound} />
         </Switch>
       </div>
-      <Navigation />
+      {showNavigation && <Navigation />}
       <OnboardingTooltip />
     </div>
   );
