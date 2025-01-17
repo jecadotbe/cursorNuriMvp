@@ -58,12 +58,16 @@ const TypingIndicator = () => (
 const Avatar = ({ sender }: { sender: 'user' | 'assistant' }) => {
   const { user } = useUser();
   return (
-    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-      sender === 'assistant' ? 'bg-[#FFC74A]' : 'bg-[#294636]'
+    <div className={`w-8 h-8 rounded-full flex items-center justify-center overflow-hidden ${
+      sender === 'assistant' ? 'bg-white' : 'bg-[#294636]'
     }`}>
-      <span className="text-white text-sm">
-        {sender === 'assistant' ? 'N' : user?.username[0].toUpperCase()}
-      </span>
+      {sender === 'assistant' ? (
+        <img src="/images/nuri_chat.png" alt="Nuri" className="w-full h-full object-cover" />
+      ) : (
+        <span className="text-white text-sm">
+          {user?.username[0].toUpperCase()}
+        </span>
+      )}
     </div>
   );
 };
