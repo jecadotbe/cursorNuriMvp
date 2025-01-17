@@ -86,7 +86,7 @@ export default function LearnView() {
       {/* Course Info */}
       <div className="p-6 space-y-4">
         <h1 className="text-4xl font-baskerville">Nuri basics</h1>
-        <div className="flex items-center space-x-4 text-sm text-gray-600">
+        <div className="flex items-center space-x-4 text-sm ">
           <div className="flex items-center">
             <span className="font-medium">16 video's</span>
           </div>
@@ -95,7 +95,7 @@ export default function LearnView() {
             <span>90 minuten</span>
           </div>
         </div>
-        <p className="text-gray-600">
+        <p>
           Deze cursus biedt je een grondig inzicht in de basisprincipes van Nuri. Dit zal je helpen om de adviezen van Nuri gemakkelijker toe te passen. Jij, op je eigen tempo kan door deze learnings wandelen.
         </p>
 
@@ -120,7 +120,7 @@ export default function LearnView() {
 
         {/* Continue Learning */}
         <Link href="/learn/0">
-          <div className="bg-white rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow mt-8">
+          <div className="bg-white rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow mt-4">
             <div className="flex items-center space-x-3">
               <img 
                 src="/images/bg_test.jpg"
@@ -129,7 +129,7 @@ export default function LearnView() {
               />
               <div className="flex-1">
                 <h3 className="font-medium">Nuri Basics Welkom</h3>
-                <p className="text-sm text-gray-600">10 min</p>
+                <p className="text-sm ">10 min</p>
               </div>
               <ChevronRight className="w-5 h-5" />
             </div>
@@ -154,8 +154,8 @@ export default function LearnView() {
                     </div>
                   </div>
                   <div className="p-3">
-                    <h3 className="font-medium text-sm">{chapter.title}</h3>
-                    <p className="text-xs text-gray-600 mt-1">
+                    <h3 className="font-medium text-l">{chapter.title}</h3>
+                    <p className="text-xs mt-1">
                       <Clock className="w-3 h-3 inline mr-1" />
                       {chapter.duration}
                     </p>
@@ -185,7 +185,7 @@ export default function LearnView() {
                   </div>
                   <div className="p-3">
                     <h3 className="font-medium text-sm">{chapter.title}</h3>
-                    <p className="text-xs text-gray-600 mt-1">
+                    <p className="text-xs  mt-1">
                       <Clock className="w-3 h-3 inline mr-1" />
                       {chapter.duration}
                     </p>
@@ -201,7 +201,7 @@ export default function LearnView() {
           <p className="text-3xl font-baskerville italic">
             "The less we try to control children, the greater will be our positive influence on them, and therefore our ability to change their behavior."
           </p>
-          <p className="text-sm text-gray-600 mt-2">Aletha Solter PhD.</p>
+          <p className="text-sm  mt-2">Aletha Solter PhD.</p>
         </div>
 
         {/* Podcasts */}
@@ -221,7 +221,7 @@ export default function LearnView() {
                         href={podcast.spotifyUrl} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="flex items-center text-sm text-gray-600 hover:text-green-500 transition-colors"
+                        className="flex items-center text-sm  hover:text-green-500 transition-colors"
                       >
                         <Play className="w-4 h-4 mr-1" />
                         PLAY ON SPOTIFY
