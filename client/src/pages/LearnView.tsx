@@ -5,6 +5,7 @@ import {
   Play,
   ChevronRight,
 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
 
 export default function LearnView() {
