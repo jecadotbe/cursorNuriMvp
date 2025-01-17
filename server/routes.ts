@@ -301,7 +301,7 @@ export function registerRoutes(app: Express): Server {
     const user = req.user as User;
     const userChats = await db.query.chats.findMany({
       where: eq(chats.userId, user.id),
-      orderBy: desc(chats.createdAt),
+      orderBy: desc(chats.updatedAt), // Added orderBy clause for server-side sorting
     });
 
     res.json(userChats);

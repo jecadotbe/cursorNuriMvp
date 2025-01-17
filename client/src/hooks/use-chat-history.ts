@@ -4,7 +4,7 @@ import type { Chat } from "@db/schema";
 import { useToast } from "./use-toast";
 
 async function fetchChatHistory(): Promise<Chat[]> {
-  const response = await fetch("/api/chats", {
+  const response = await fetch("/api/chats?sort=desc", {
     credentials: "include",
   });
 
