@@ -4,6 +4,8 @@ import { useUser } from "@/hooks/use-user";
 import { useChatHistory } from "@/hooks/use-chat-history";
 import { MessageSquare, Users, Clock, ChevronRight } from "lucide-react";
 import { Link } from "wouter";
+import { useToast } from "@/hooks/use-toast";
+import { format } from 'date-fns';
 
 // Add image load success handler
 const handleImageLoad = (imageName: string) => {
@@ -19,9 +21,11 @@ const handleImageError = (imageName: string, error: any) => {
 export default function HomeView() {
   const { user } = useUser();
   const { getLatestPrompt, chats } = useChatHistory();
-  const [prompt, setPrompt] = useState<{ text: string; type: string; context?: string } | null>(null);
+  const [prompt, setPrompt] = useState<{ text: string; type: string; context?: string; relatedChatId?: string; relatedChatTitle?: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+  const [, navigate] = Link();
 
   useEffect(() => {
     let mounted = true;
@@ -93,7 +97,46 @@ export default function HomeView() {
             </CardContent>
           </Card>
         ) : prompt && (
-          <Link href={chats?.length > 0 ? `/chat/${chats[0].id}` : "/chat/history"}>
+          <div
+            onClick={async () => {
+              try {
+                if (prompt.context === "existing" && prompt.relatedChatId) {
+                  // Navigate to existing chat
+                  navigate(`/chat/${prompt.relatedChatId}`);
+                } else {
+                  // Create new chat with the prompt
+                  const response = await fetch('/api/chats', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
+                      messages: [{
+                        role: 'assistant',
+                        content: prompt.text
+                      }],
+                    }),
+                    credentials: 'include',
+                  });
+
+                  if (!response.ok) {
+                    throw new Error('Failed to create new chat');
+                  }
+
+                  const newChat = await response.json();
+                  navigate(`/chat/${newChat.id}`);
+                }
+              } catch (error) {
+                console.error('Error handling prompt:', error);
+                toast({
+                  variant: "destructive",
+                  title: "Error",
+                  description: "Could not process the prompt. Please try again.",
+                });
+              }
+            }}
+          >
             <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer mb-4">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
@@ -102,12 +145,18 @@ export default function HomeView() {
                       {prompt.type === 'action' ? 'ACTIE' : prompt.type === 'reflection' ? 'REFLECTIE' : 'VERVOLG'}
                     </div>
                     <p className="text-lg pr-8">{prompt.text}</p>
+                    {prompt.context === "existing" && prompt.relatedChatTitle && (
+                      <div className="mt-2 text-sm text-gray-500 flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4" />
+                        <span>Vervolg op: {prompt.relatedChatTitle}</span>
+                      </div>
+                    )}
                   </div>
                   <ChevronRight className="w-6 h-6 text-gray-400 flex-shrink-0" />
                 </div>
               </CardContent>
             </Card>
-          </Link>
+          </div>
         )}
       </div>
 
@@ -154,9 +203,9 @@ export default function HomeView() {
               <img src="/images/LearningIcon.svg" alt="Learning" className="w-6 h-6" />
               <h2 className="text-2xl font-baskerville">Verder leren</h2>
             </div>
-          
+
           </div>
-           {/* One Card */}
+          {/* One Card */}
 
           <div className="space-y-3">
             {OneCard.map((video, index) => (
@@ -194,7 +243,7 @@ export default function HomeView() {
             {learningVideos.map((video, index) => (
               <Link key={index} href="/learn" className="h-full">
                 <Card
-        className="
+                  className="
           bg-white 
           border-2 border-[#E5E7EB] 
           hover:shadow-md 
@@ -206,7 +255,7 @@ export default function HomeView() {
           h-full 
           rounded-lg
         "
-      >
+                >
                   <CardContent className="p-4">
                     <img
                       src={video.image}

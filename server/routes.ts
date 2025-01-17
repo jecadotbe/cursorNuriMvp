@@ -195,6 +195,13 @@ export function registerRoutes(app: Express): Server {
         messages[messages.length - 1]?.content || ""
       );
 
+      // Get recent chats for context
+      const recentChats = await db.query.chats.findMany({
+        where: eq(chats.userId, user.id),
+        orderBy: desc(chats.updatedAt),
+        limit: 5
+      });
+
       const memoryContext = relevantMemories
         .map(m => `Previous conversation: ${m.content}`)
         .join('\n\n');
@@ -202,17 +209,22 @@ export function registerRoutes(app: Express): Server {
       const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 300,
-        system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the conversation and provide a single, most relevant follow-up prompt. Consider this historical context:\n${memoryContext}`,
+        system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the conversation and provide a relevant follow-up prompt. If the topic relates to an existing conversation, reference it. Consider this historical context:\n${memoryContext}`,
         messages: [{
           role: "user", 
-          content: `Based on these messages and the user's conversation history, generate a single follow-up prompt formatted exactly like this:
+          content: `Based on these messages and the user's conversation history, generate a follow-up prompt. If it relates to a previous conversation, indicate that. Format the response exactly like this:
           {
             "prompt": {
-              "text": "most relevant follow-up question",
-              "type": "action",
-              "relevance": 1.0
+              "text": "follow-up question or suggestion",
+              "type": "action" | "follow_up",
+              "relevance": 1.0,
+              "context": "new" | "existing",
+              "relatedChatId": null | number,
+              "relatedChatTitle": null | string
             }
-          }`
+          }
+
+          For existing conversations, include relatedChatId and relatedChatTitle. For new conversations, set them to null.`
         }]
       });
 
@@ -231,6 +243,13 @@ export function registerRoutes(app: Express): Server {
 
       if (!parsedResponse?.prompt?.text) {
         throw new Error('Response missing required prompt structure');
+      }
+
+      // If the prompt references an existing chat, validate and include the chat details
+      if (parsedResponse.prompt.context === "existing" && recentChats.length > 0) {
+        const mostRelevantChat = recentChats[0];
+        parsedResponse.prompt.relatedChatId = mostRelevantChat.id;
+        parsedResponse.prompt.relatedChatTitle = mostRelevantChat.title;
       }
 
       res.json(parsedResponse);
