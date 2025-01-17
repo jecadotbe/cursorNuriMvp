@@ -201,7 +201,7 @@ export default function HomeView() {
                     <img
                       src={video.image}
                       alt={video.title}
-                      className="w-full aspect-[4/3] object-cover rounded-lg mb-4"
+                      className="w-full aspect-[16/9] object-cover rounded-lg mb-4"
                       onLoad={() => handleImageLoad(video.image.split('/').pop()!)}
                       onError={(e) => {
                         handleImageError(video.image.split('/').pop()!, e);
