@@ -199,7 +199,7 @@ export default function VillageView() {
   return (
     <div className="flex flex-col h-screen bg-[#F2F0E5]">
       <div
-        className="p-4 h-[200px]"
+        className="p-4"
         style={{
           background: `url('/images/village_circles_page.png'), linear-gradient(45deg, #C2ECD1 0%, #F8DE9F 35%)`,
           backgroundPosition: "left",
@@ -213,7 +213,7 @@ export default function VillageView() {
             <span className="text-xl text-gray-800">Mijn Village</span>
           </div>
         </Link>
-        <h1 className="text-2xl font-medium pl-14 text-[#2F4644] max-w-[380px] leading-tight">
+        <h1 className="text-xl font-medium pl-14 text-[#2F4644] max-w-[380px] leading-tight">
           Een bloeiende Village als middel tegen 'Village Armoede'
         </h1>
       </div>
