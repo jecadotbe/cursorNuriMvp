@@ -350,101 +350,99 @@ export default function VillageView() {
             <Plus className="w-6 h-6 text-white" />
           </button>
         </DialogTrigger>
-        <DialogContent className="bg-[#F4F1E4]">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center text-xl font-normal">
-              <Plus className="mr-2" /> Partner toevoegen
-            </DialogTitle>
+            <DialogTitle>{memberToEdit ? 'Edit Village Member' : 'Add Village Member'}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-lg" htmlFor="name">Naam village partner?</Label>
+              <Label htmlFor="name">Name</Label>
               <Input
                 id="name"
                 value={newMember.name}
                 onChange={(e) =>
                   setNewMember({ ...newMember, name: e.target.value })
                 }
-                className="bg-white rounded-full py-6 px-4"
                 required
               />
             </div>
-            <div className="space-y-4">
-              <Label className="text-lg" htmlFor="category">Categorie van deze partners</Label>
-              <div className="flex gap-4">
-                {[
-                  { value: 'informeel', label: 'Informeel', color: 'bg-[#FF6B98]' },
-                  { value: 'formeel', label: 'formeel', color: 'bg-[#4F3D81]' },
-                  { value: 'inspiratie', label: 'Inspiratie', color: 'bg-[#22C55E]' }
-                ].map((cat) => (
-                  <button
-                    key={cat.value}
-                    type="button"
-                    onClick={() => setNewMember({ ...newMember, category: cat.value })}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-full ${
-                      newMember.category === cat.value ? cat.color + ' text-white' : 'bg-white'
-                    }`}
-                  >
-                    <span className={`w-3 h-3 rounded-full ${cat.color}`} />
-                    <span>{cat.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-4">
-              <Label className="text-lg" htmlFor="circle">Op welke laag</Label>
-              <div className="flex gap-4">
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => setNewMember({ ...newMember, circle: n })}
-                    className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                      newMember.circle === n ? 'bg-[#4F3D81] text-white' : 'bg-white'
-                    }`}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-4">
-              <Label className="text-lg" htmlFor="contactFrequency">Hoeveel contact</Label>
-              <div className="flex gap-4">
-                {[
-                  { value: 'S', label: 'S' },
-                  { value: 'M', label: 'M' },
-                  { value: 'L', label: 'L' },
-                  { value: 'XL', label: 'XL' }
-                ].map((freq) => (
-                  <button
-                    key={freq.value}
-                    type="button"
-                    onClick={() => setNewMember({ ...newMember, contactFrequency: freq.value })}
-                    className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                      newMember.contactFrequency === freq.value ? 'bg-[#4F3D81] text-white' : 'bg-white'
-                    }`}
-                  >
-                    {freq.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="flex gap-4 mt-8">
-              <Button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="flex-1 bg-[#4F3D81] text-white rounded-full py-6"
+            <div className="space-y-2">
+              <Label htmlFor="type">Type</Label>
+              <Select
+                value={newMember.type}
+                onValueChange={(value) =>
+                  setNewMember({ ...newMember, type: value })
+                }
               >
-                Annuleer
-              </Button>
-              <Button
-                type="submit"
-                className="flex-1 bg-white hover:bg-gray-50 text-black rounded-full py-6"
-              >
-                Opslaan
-              </Button>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="individual">Individual</SelectItem>
+                  <SelectItem value="group">Group</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Select
+                value={newMember.category}
+                onValueChange={(value: "informeel" | "formeel" | "inspiratie") =>
+                  setNewMember({ ...newMember, category: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="informeel">Informeel</SelectItem>
+                  <SelectItem value="formeel">Formeel</SelectItem>
+                  <SelectItem value="inspiratie">Inspiratie</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contactFrequency">Contact Frequency</Label>
+              <Select
+                value={newMember.contactFrequency}
+                onValueChange={(value: "S" | "M" | "L" | "XL") =>
+                  setNewMember({ ...newMember, contactFrequency: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="S">Small</SelectItem>
+                  <SelectItem value="M">Medium</SelectItem>
+                  <SelectItem value="L">Large</SelectItem>
+                  <SelectItem value="XL">Extra Large</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="circle">Circle</Label>
+              <Select
+                value={String(newMember.circle)}
+                onValueChange={(value) =>
+                  setNewMember({ ...newMember, circle: Number(value) })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <SelectItem key={n} value={String(n)}>
+                      Circle {n}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button type="submit" className="w-full">
+              {memberToEdit ? 'Update Member' : 'Add Member'}
+            </Button>
           </form>
         </DialogContent>
       </Dialog>
