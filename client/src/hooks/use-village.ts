@@ -19,44 +19,67 @@ async function fetchVillageMembers(): Promise<VillageMember[]> {
 }
 
 async function createVillageMember(member: Omit<InsertVillageMember, 'userId'>): Promise<VillageMember> {
-  let response;
-  try {
-    response = await fetch('/api/village', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        name: member.name,
-        type: member.type,
-        circle: member.circle,
-        interactionFrequency: member.interactionFrequency || 1
-      }),
-    });
+  const response = await fetch('/api/village', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify(member),
+  });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      try {
-        const errorJson = JSON.parse(errorText);
-        throw new Error(errorJson.message || `Error: ${response.status}`);
-      } catch (e) {
-        throw new Error(`Request failed: ${response.status}`);
-      }
+  if (!response.ok) {
+    const errorText = await response.text();
+    try {
+      const errorJson = JSON.parse(errorText);
+      throw new Error(errorJson.message || `Error: ${response.status}`);
+    } catch (e) {
+      throw new Error(`Request failed: ${response.status}`);
     }
+  }
 
-    return response.json();
-  } catch (error) {
-    console.error('Create member error:', error);
-    if (response) {
-      console.error('Response details:', {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers || []),
-      });
+  return response.json();
+}
+
+async function updateVillageMember(member: Partial<VillageMember> & { id: number }): Promise<VillageMember> {
+  const response = await fetch(`/api/village/${member.id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify(member),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    try {
+      const errorJson = JSON.parse(errorText);
+      throw new Error(errorJson.message || `Error: ${response.status}`);
+    } catch (e) {
+      throw new Error(`Request failed: ${response.status}`);
     }
-    throw error;
+  }
+
+  return response.json();
+}
+
+async function deleteVillageMember(id: number): Promise<void> {
+  const response = await fetch(`/api/village/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    try {
+      const errorJson = JSON.parse(errorText);
+      throw new Error(errorJson.message || `Error: ${response.status}`);
+    } catch (e) {
+      throw new Error(`Request failed: ${response.status}`);
+    }
   }
 }
 
@@ -71,7 +94,7 @@ export function useVillage() {
     retry: false,
   });
 
-  const mutation = useMutation({
+  const createMutation = useMutation({
     mutationFn: createVillageMember,
     onSuccess: (newMember) => {
       queryClient.setQueryData<VillageMember[]>(['village'], (old = []) => [...old, newMember]);
@@ -89,11 +112,55 @@ export function useVillage() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: updateVillageMember,
+    onSuccess: (updatedMember) => {
+      queryClient.setQueryData<VillageMember[]>(['village'], (old = []) => 
+        old.map(member => member.id === updatedMember.id ? updatedMember : member)
+      );
+      toast({
+        title: "Success",
+        description: `Updated ${updatedMember.name}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteVillageMember,
+    onSuccess: (_, deletedId) => {
+      queryClient.setQueryData<VillageMember[]>(['village'], (old = []) => 
+        old.filter(member => member.id !== deletedId)
+      );
+      toast({
+        title: "Success",
+        description: "Member removed from your village",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    },
+  });
+
   return {
     members,
     isLoading,
     error,
-    addMember: mutation.mutateAsync,
-    isAdding: mutation.isPending,
+    addMember: createMutation.mutateAsync,
+    updateMember: updateMutation.mutateAsync,
+    deleteMember: deleteMutation.mutateAsync,
+    isAdding: createMutation.isPending,
+    isUpdating: updateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
   };
 }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useVillage } from "@/hooks/use-village";
-import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,21 +21,43 @@ import { Label } from "@/components/ui/label";
 import Draggable from "react-draggable";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+interface VillageMember {
+  id: string;
+  name: string;
+  type: "individual" | "group";
+  circle: number;
+  category: "informeel" | "formeel" | "inspiratie" | null;
+  contactFrequency: "S" | "M" | "L" | "XL" | null;
+}
+
 
 export default function VillageView() {
-  const { members, addMember } = useVillage();
+  const { members, addMember, updateMember, deleteMember } = useVillage();
   const { toast } = useToast();
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [newMember, setNewMember] = useState({
+  const [newMember, setNewMember] = useState<VillageMember>({
     name: "",
     type: "individual",
     circle: 1,
-    category: "informeel" as "informeel" | "formeel" | "inspiratie",
-    contactFrequency: "M" as "S" | "M" | "L" | "XL"
+    category: "informeel",
+    contactFrequency: "M"
   });
+  const [memberToEdit, setMemberToEdit] = useState<VillageMember | null>(null);
+  const [memberToDelete, setMemberToDelete] = useState<VillageMember | null>(null);
 
   const handleZoomIn = () => {
     setScale((prev) => Math.min(prev + 0.1, 3));
@@ -105,13 +127,25 @@ export default function VillageView() {
     }
 
     try {
-      await addMember({
-        name: newMember.name,
-        type: newMember.type,
-        circle: newMember.circle,
-        category: newMember.category,
-        contactFrequency: newMember.contactFrequency
-      });
+      if (memberToEdit) {
+        await updateMember({
+          id: memberToEdit.id,
+          name: newMember.name,
+          type: newMember.type,
+          circle: newMember.circle,
+          category: newMember.category,
+          contactFrequency: newMember.contactFrequency
+        });
+        setMemberToEdit(null);
+      } else {
+        await addMember({
+          name: newMember.name,
+          type: newMember.type,
+          circle: newMember.circle,
+          category: newMember.category,
+          contactFrequency: newMember.contactFrequency
+        });
+      }
       setIsOpen(false);
       setNewMember({
         name: "",
@@ -122,21 +156,48 @@ export default function VillageView() {
       });
       toast({
         title: "Success",
-        description: "Member added successfully"
+        description: memberToEdit ? "Member updated successfully" : "Member added successfully"
       });
     } catch (error) {
       console.error('Submit error:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to add member. Please try again."
+        description: error instanceof Error ? error.message : "Failed to save member. Please try again."
+      });
+    }
+  };
+
+  const handleEdit = (member: VillageMember) => {
+    setMemberToEdit(member);
+    setNewMember({
+      name: member.name,
+      type: member.type,
+      circle: member.circle,
+      category: member.category || "informeel",
+      contactFrequency: member.contactFrequency || "M"
+    });
+    setIsOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!memberToDelete) return;
+
+    try {
+      await deleteMember(memberToDelete.id);
+      setMemberToDelete(null);
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete member. Please try again."
       });
     }
   };
 
   return (
     <div className="flex flex-col h-screen bg-[#F2F0E5]">
-      {/* Header */}
       <div
         className="p-4 h-[200px]"
         style={{
@@ -157,7 +218,6 @@ export default function VillageView() {
         </h1>
       </div>
 
-      {/* Zoom Controls */}
       <div className="fixed top-32 right-4 flex flex-col space-y-2 z-10">
         <button
           onClick={handleZoomIn}
@@ -179,8 +239,7 @@ export default function VillageView() {
         </button>
       </div>
 
-      {/* Village Visualization */}
-      <div 
+      <div
         className="flex-1 relative min-h-[500px] overflow-hidden"
         onMouseDown={handlePanStart}
         onMouseMove={handlePanMove}
@@ -199,7 +258,6 @@ export default function VillageView() {
             transition: isDragging ? 'none' : 'transform 0.1s ease-out'
           }}
         >
-          {/* Concentric Circles */}
           <div className="absolute inset-0 flex items-center justify-center">
             {[1, 2, 3, 4, 5].map((circle) => (
               <div
@@ -215,12 +273,10 @@ export default function VillageView() {
               />
             ))}
 
-            {/* Center Circle */}
             <div className="absolute w-24 h-24 bg-[#F4F1E4] rounded-full flex items-center justify-center text-black text-sm border-2 border-[#629785]">
               Kerngezin
             </div>
 
-            {/* Member Pills */}
             {members.map((member) => {
               const pos = getMemberPosition(member.circle);
               return (
@@ -229,7 +285,7 @@ export default function VillageView() {
                   defaultPosition={pos}
                   bounds="parent"
                 >
-                  <div className="absolute cursor-move member-pill" style={{ transform: "translate(-50%, -50%)" }}>
+                  <div className="absolute cursor-move member-pill group" style={{ transform: "translate(-50%, -50%)" }}>
                     <div className="flex items-center space-x-2 bg-white rounded-full px-3 py-1 shadow-sm">
                       <span
                         className={`w-2 h-2 rounded-full ${
@@ -237,6 +293,26 @@ export default function VillageView() {
                         }`}
                       />
                       <span className="text-sm text-gray-800">{member.name}</span>
+                      <div className="hidden group-hover:flex items-center space-x-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(member);
+                          }}
+                          className="p-1 hover:bg-gray-100 rounded-full"
+                        >
+                          <Edit2 className="w-3 h-3 text-gray-500" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMemberToDelete(member);
+                          }}
+                          className="p-1 hover:bg-gray-100 rounded-full"
+                        >
+                          <Trash2 className="w-3 h-3 text-red-500" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </Draggable>
@@ -246,7 +322,6 @@ export default function VillageView() {
         </div>
       </div>
 
-      {/* Village Suggestions */}
       <div className="p-4">
         <div className="flex items-center justify-between bg-white rounded-full px-6 py-3 shadow-md w-auto max-w-xs">
           <span>
@@ -257,8 +332,19 @@ export default function VillageView() {
         </div>
       </div>
 
-      {/* Add Member Dialog */}
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <Dialog open={isOpen} onOpenChange={(open) => {
+        setIsOpen(open);
+        if (!open) {
+          setMemberToEdit(null);
+          setNewMember({
+            name: "",
+            type: "individual",
+            circle: 1,
+            category: "informeel",
+            contactFrequency: "M"
+          });
+        }
+      }}>
         <DialogTrigger asChild>
           <button className="fixed bottom-20 right-4 w-12 h-12 bg-[#2F4644] rounded-full flex items-center justify-center shadow-lg hover:bg-[#3a5452]">
             <Plus className="w-6 h-6 text-white" />
@@ -266,7 +352,7 @@ export default function VillageView() {
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Village Member</DialogTitle>
+            <DialogTitle>{memberToEdit ? 'Edit Village Member' : 'Add Village Member'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -355,11 +441,28 @@ export default function VillageView() {
               </Select>
             </div>
             <Button type="submit" className="w-full">
-              Add Member
+              {memberToEdit ? 'Update Member' : 'Add Member'}
             </Button>
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!memberToDelete} onOpenChange={(open) => !open && setMemberToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove {memberToDelete?.name} from your village. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
