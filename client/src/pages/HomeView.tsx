@@ -54,11 +54,11 @@ export default function HomeView() {
       <div className="w-full bg-gradient-to-r from-[#F8DD9F] to-[#F2F0E5] via-[#F2F0E5] via-45% ">
         <div className="px-4 pt-6 homemeeting">
           <div className="flex items-end gap-4">
-            <div className="w-24 h-32 flex items-end">
+            <div className="w-24 h-32 flex">
               <img
                 src="/images/nuri_logo.png"
                 alt="Nuri Logo"
-                className="w-full h-full object-contain block"
+                className="w-full object-contain self-end block"
                 onLoad={() => handleImageLoad('nuri_logo.png')}
                 onError={(e) => {
                   handleImageError('nuri_logo.png', e);
