@@ -235,7 +235,8 @@ export default function ChatView() {
                     <div className="prose prose-sm prose-p:mt-4 prose-p:first:mt-0">
                       {formatMessageContent(message.content)}
                     </div>
-                    {index === messages.filter(m => m.role === 'assistant').length - 1 && (
+                    {message.role === 'assistant' && 
+                     index === messages.findLastIndex(m => m.role === 'assistant') && (
                       <p className="text-xs text-gray-400 mt-2 italic">Nuri kan fouten maken. Controleer de antwoorden.</p>
                     )}
                   </>
