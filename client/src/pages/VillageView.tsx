@@ -287,9 +287,12 @@ export default function VillageView() {
                 >
                   <div className="absolute cursor-move member-pill group" style={{ transform: "translate(-50%, -50%)" }}>
                     <div className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB]">
-                      <span className="text-violet-600">
-                        <Music className="w-4 h-4" />
-                      </span>
+                      <div className={`rounded-full bg-violet-600 ${
+                        member.contactFrequency === 'S' ? 'w-2 h-2' :
+                        member.contactFrequency === 'M' ? 'w-2.5 h-2.5' :
+                        member.contactFrequency === 'L' ? 'w-3 h-3' :
+                        member.contactFrequency === 'XL' ? 'w-3.5 h-3.5' : 'w-2 h-2'
+                      }`} />
                       <span className="text-sm font-medium text-gray-800">{member.name}</span>
                       <div className="hidden group-hover:flex items-center space-x-1">
                         <button
