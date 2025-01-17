@@ -88,9 +88,9 @@ export default function ChatHistoryView() {
             return (
               <Card key={chat.id} className="hover:shadow-md transition-all bg-white rounded-2xl shadow-sm border-0">
                 <CardContent className="p-5">
-                  <div className="flex items-start gap-4">
-                    <Link href={`/chat/${chat.id}`} className="flex-1">
-                      <div className="flex gap-4">
+                  <Link href={`/chat/${chat.id}`} className="block w-full">
+                    <div className="flex items-start gap-4">
+                      <div className="flex gap-4 flex-1 min-w-0">
                         <div className="w-10 h-10 rounded-full bg-[#FFC74A] flex items-center justify-center flex-shrink-0">
                           <MessageSquare className="w-5 h-5 text-white" />
                         </div>
@@ -116,7 +116,7 @@ export default function ChatHistoryView() {
                               Edit
                             </button>
                           </div>
-                          <p className="text-sm text-gray-500 line-clamp-2 mt-1">
+                          <p className="text-sm text-gray-500 line-clamp-2 mt-1 break-words">
                             {lastMessage?.content || "Geen berichten"}
                           </p>
                           <div className="flex items-center justify-between gap-2 mt-2">
