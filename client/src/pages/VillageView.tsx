@@ -203,7 +203,7 @@ export default function VillageView() {
             {[1, 2, 3, 4, 5].map((circle) => (
               <div
                 key={circle}
-                className="absolute border border-[#D9E7DA] rounded-full"
+                className="absolute border border-[#629785] rounded-full"
                 style={{
                   width: getCircleRadius(circle - 1) * 2,
                   height: getCircleRadius(circle - 1) * 2,
@@ -215,7 +215,7 @@ export default function VillageView() {
             ))}
 
             {/* Center Circle */}
-            <div className="absolute w-24 h-24 bg-[#EBE8DD] rounded-full flex items-center justify-center text-black text-sm border-2 border-[#2F4644]">
+            <div className="absolute w-24 h-24 bg-[#F4F1E4] rounded-full flex items-center justify-center text-black text-sm border-2 border-[#629785]">
               Kerngezin
             </div>
 

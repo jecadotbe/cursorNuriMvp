@@ -181,7 +181,7 @@ export default function LearnDetailView() {
       <div className="flex-1 flex items-center justify-center px-4 py-6">
         <div className="w-full max-w-4xl">
           <VideoPlayer
-            videoUrl="/videos/aware-parenting-into.mp4"
+            videoUrl="/videos/demovideo.mp4"
             title="Aware Parenting Introduction"
             isYoutube={false}
           />
