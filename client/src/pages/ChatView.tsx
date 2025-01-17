@@ -249,7 +249,7 @@ export default function ChatView() {
               <span className={`text-xs ${theme.text.muted} mt-1 ${
                 message.role === 'user' ? 'text-right' : 'text-left'
               }`}>
-                {format(new Date(), 'HH:mm')}
+                {message.timestamp ? format(new Date(message.timestamp), 'HH:mm') : ''}
               </span>
             </div>
           </div>

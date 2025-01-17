@@ -7,6 +7,7 @@ import { useParams, useLocation } from "wouter";
 interface Message {
   role: "user" | "assistant";
   content: string;
+  timestamp?: Date | string;  // Add timestamp field
 }
 
 export function useChat() {
@@ -30,7 +31,11 @@ export function useChat() {
   // Initialize messages when chatData changes
   useEffect(() => {
     if (chatData?.messages) {
-      setMessages(chatData.messages as Message[]);
+      // Ensure messages have timestamps when loading from chatData
+      setMessages((chatData.messages as Message[]).map(msg => ({
+        ...msg,
+        timestamp: msg.timestamp || new Date(chatData.createdAt)
+      })));
     } else if (!chatId && !isChatLoading) {
       // Only reset messages if we're in a new chat and not loading
       setMessages([]);
@@ -39,7 +44,11 @@ export function useChat() {
 
   const mutation = useMutation({
     mutationFn: async (content: string) => {
-      const userMessage: Message = { role: "user", content };
+      const userMessage: Message = { 
+        role: "user", 
+        content,
+        timestamp: new Date().toISOString()
+      };
 
       // Update messages immediately for better UX
       setMessages((prev) => [...prev, userMessage]);
@@ -50,9 +59,10 @@ export function useChat() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            messages: [...messages, userMessage].map(({ role, content }) => ({
+            messages: [...messages, userMessage].map(({ role, content, timestamp }) => ({
               role,
               content,
+              timestamp
             })),
             chatId: chatData?.id
           }),
@@ -67,6 +77,7 @@ export function useChat() {
         const assistantMessage: Message = {
           role: "assistant",
           content: chatResponse.content,
+          timestamp: new Date().toISOString()
         };
 
         // Update messages with assistant's response
