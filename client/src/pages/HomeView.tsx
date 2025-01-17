@@ -67,10 +67,10 @@ export default function HomeView() {
               />
             </div>
             <div className="space-y-1 homebottom">
-              <h1 className="text-2xl text-[#2F4644] font-baskerville">
+              <h1 className="text-2xl font-baskerville">
                 Dag {user?.username},
               </h1>
-              <p className="text-xl text-[#2F4644]">
+              <p className="text-xl">
                 Fijn je weer te zien.
                 <br />
                 Waarover wil je praten?
@@ -180,7 +180,7 @@ export default function HomeView() {
                         />
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-xl font-baskerville text-[#2F4644] mb-2">{video.title}</h3>
+                        <h3 className="text-xl font-baskerville mb-2">{video.title}</h3>
                         <div className="inline-flex items-center px-4 py-1 rounded-full bg-[#E8E6DC] text-sm">
                           <Clock className="w-4 h-4 mr-1" />
                           <span>{video.duration}</span>

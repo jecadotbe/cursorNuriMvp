@@ -10,7 +10,7 @@ export default function Navigation() {
 
   const items = [
     { icon: Home, label: "Home", href: "/" },
-    { icon: MessageSquare, label: "Chat", href: "/chat", onboarding: "chat" },
+    { icon: MessageSquare, label: "Nuri", href: "/chat", onboarding: "chat" },
     { icon: Users, label: "Village", href: "/village", onboarding: "village" },
     { icon: GraduationCap, label: "Learn", href: "/learn", onboarding: "learn" },
   ];
@@ -48,7 +48,7 @@ export default function Navigation() {
                 {user?.username[0]}
               </AvatarFallback>
             </Avatar>
-            <span className="text-xs">Profile</span>
+            <span className="text-xs">Profiel</span>
           </a>
         </Link>
       </nav>
