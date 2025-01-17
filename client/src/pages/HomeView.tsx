@@ -102,9 +102,6 @@ export default function HomeView() {
                       {prompt.type === 'action' ? 'ACTIE' : prompt.type === 'reflection' ? 'REFLECTIE' : 'VERVOLG'}
                     </div>
                     <p className="text-lg pr-8">{prompt.text}</p>
-                    {prompt.context && (
-                      <p className="text-sm  mt-2">{prompt.context}</p>
-                    )}
                   </div>
                   <ChevronRight className="w-6 h-6 text-gray-400 flex-shrink-0" />
                 </div>

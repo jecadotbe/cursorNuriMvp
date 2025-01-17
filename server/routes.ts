@@ -210,8 +210,7 @@ export function registerRoutes(app: Express): Server {
             "prompt": {
               "text": "most relevant follow-up question",
               "type": "action",
-              "relevance": 1.0,
-              "context": "brief context"
+              "relevance": 1.0
             }
           }`
         }]
