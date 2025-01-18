@@ -62,7 +62,7 @@ export default function MinimapView({ members, scale, position, onNavigate }: Mi
   return (
     <div 
       ref={minimapRef}
-      className="absolute bottom-4 right-4 bg-white rounded-lg shadow-lg p-2 z-30"
+      className="absolute bottom-24 right-4 bg-white rounded-lg shadow-lg p-2 z-30"
       onMouseDown={(e) => {
         isDraggingRef.current = true;
         const rect = minimapRef.current?.getBoundingClientRect();
