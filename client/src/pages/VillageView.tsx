@@ -487,7 +487,10 @@ export default function VillageView() {
             ))}
 
             {/* Center family icon */}
-            <div className="absolute w-24 h-24 bg-[#F4F1E4] rounded-full flex items-center justify-center text-black text-sm border-2 border-[#629785]">
+            <div 
+              className="absolute w-24 h-24 bg-[#F4F1E4] rounded-full flex items-center justify-center text-black text-sm border-2 border-[#629785]"
+              style={{ boxShadow: "0 0 30px rgba(254, 176, 25, 0.4)" }}
+            >
               Kerngezin
             </div>
 
