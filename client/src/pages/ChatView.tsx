@@ -213,7 +213,6 @@ export default function ChatView() {
   };
 
   const checkForUncertainty = (text: string) => {
-    console.log('Checking uncertainty for:', text); 
     const uncertaintyPatterns = [
       'weet niet',
       'help mij',
@@ -226,11 +225,9 @@ export default function ChatView() {
       'hoe moet'
     ];
 
-    const hasUncertainty = uncertaintyPatterns.some(pattern => 
+    const hasUncertainty = uncertaintyPatterns.some(pattern =>
       text.toLowerCase().includes(pattern.toLowerCase())
     );
-
-    console.log('Has uncertainty:', hasUncertainty); 
 
     if (hasUncertainty) {
       const suggestions = [
@@ -241,7 +238,6 @@ export default function ChatView() {
         "Leg eens uit hoe andere ouders dit aanpakken"
       ];
       setUncertaintySuggestions(suggestions);
-      console.log('Set suggestions:', suggestions); 
     } else {
       setUncertaintySuggestions([]);
     }
@@ -261,8 +257,8 @@ export default function ChatView() {
     <div className="flex flex-col h-screen bg-white">
       <div className="w-full px-4 py-3 flex items-center justify-between border-b border-gray-200 bg-white fixed top-0 left-0 z-50 shadow-sm">
         <div className="flex items-center gap-4">
-          <button 
-            onClick={() => window.history.back()} 
+          <button
+            onClick={() => window.history.back()}
             className="p-2 hover:bg-gray-100 rounded-lg"
           >
             <ArrowLeft className="w-6 h-6 text-gray-600" />
@@ -312,10 +308,10 @@ export default function ChatView() {
                     <div className="prose prose-sm prose-p:mt-4 prose-p:first:mt-0">
                       {formatMessageContent(message.content)}
                     </div>
-                    {message.role === 'assistant' && 
-                     index === messages.findLastIndex(m => m.role === 'assistant') && (
-                      <p className="text-xs text-gray-400 mt-2 italic">Nuri kan fouten maken. Controleer de antwoorden.</p>
-                    )}
+                    {message.role === 'assistant' &&
+                      index === messages.findLastIndex(m => m.role === 'assistant') && (
+                        <p className="text-xs text-gray-400 mt-2 italic">Nuri kan fouten maken. Controleer de antwoorden.</p>
+                      )}
                   </>
                 ) : (
                   <p>{message.content}</p>
@@ -377,11 +373,6 @@ export default function ChatView() {
                   <Expand className={`w-6 h-6 text-[#629785] transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                 </button>
               </div>
-            </div>
-
-            {/* Debug render for suggestions */}
-            <div className="text-xs text-gray-500">
-              {uncertaintySuggestions.length > 0 ? 'Suggestions available' : 'No suggestions'}
             </div>
 
             <SuggestionChips
