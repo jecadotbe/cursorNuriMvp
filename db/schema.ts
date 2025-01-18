@@ -1,5 +1,6 @@
 import { pgTable, text, serial, integer, boolean, timestamp, jsonb, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import { z } from "zod";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -57,6 +58,20 @@ export const messageFeedback = pgTable("message_feedback", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const promptSuggestions = pgTable("prompt_suggestions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  text: text("text").notNull(),
+  type: text("type").notNull(), // 'action' | 'follow_up'
+  context: text("context").notNull(), // 'new' | 'existing'
+  relevance: integer("relevance").notNull(), // 1-10 score
+  relatedChatId: integer("related_chat_id").references(() => chats.id),
+  relatedChatTitle: text("related_chat_title"),
+  usedAt: timestamp("used_at"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
 export const insertVillageMemberSchema = createInsertSchema(villageMembers);
@@ -65,6 +80,8 @@ export const insertChatSchema = createInsertSchema(chats);
 export const selectChatSchema = createSelectSchema(chats);
 export const insertMessageFeedbackSchema = createInsertSchema(messageFeedback);
 export const selectMessageFeedbackSchema = createSelectSchema(messageFeedback);
+export const insertPromptSuggestionSchema = createInsertSchema(promptSuggestions);
+export const selectPromptSuggestionSchema = createSelectSchema(promptSuggestions);
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -74,3 +91,5 @@ export type Chat = typeof chats.$inferSelect;
 export type InsertChat = typeof chats.$inferInsert;
 export type MessageFeedback = typeof messageFeedback.$inferSelect;
 export type InsertMessageFeedback = typeof messageFeedback.$inferInsert;
+export type PromptSuggestion = typeof promptSuggestions.$inferSelect;
+export type InsertPromptSuggestion = typeof promptSuggestions.$inferInsert;

@@ -1,6 +1,5 @@
-
 import { useQuery } from "@tanstack/react-query";
-import type { Chat } from "@db/schema";
+import type { Chat, PromptSuggestion } from "@db/schema";
 import { useToast } from "./use-toast";
 
 async function fetchChatHistory(): Promise<Chat[]> {
@@ -17,6 +16,29 @@ async function fetchChatHistory(): Promise<Chat[]> {
   }
 
   return response.json();
+}
+
+async function fetchSuggestion(): Promise<PromptSuggestion> {
+  const response = await fetch('/api/suggestions', {
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error(`${response.status}: ${await response.text()}`);
+  }
+
+  return response.json();
+}
+
+async function markSuggestionAsUsed(id: number): Promise<void> {
+  const response = await fetch(`/api/suggestions/${id}/use`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error(`${response.status}: ${await response.text()}`);
+  }
 }
 
 export function useChatHistory() {
@@ -36,37 +58,33 @@ export function useChatHistory() {
     },
   });
 
+  const { data: cachedSuggestion, refetch: refetchSuggestion } = useQuery<PromptSuggestion>({
+    queryKey: ["suggestion"],
+    queryFn: fetchSuggestion,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    retry: false,
+    enabled: false, // Don't fetch automatically
+  });
+
   const getLatestPrompt = async () => {
-    if (chats.length === 0) {
-      return {
-        prompt: {
-          text: "Let's talk about your parenting journey",
-          type: "action",
-          relevance: 1,
-          context: "Start your first conversation"
-        }
-      };
-    }
-
-    const latestChat = chats[0];
-    const messages = latestChat.messages as { role: string; content: string }[];
-
     try {
-      // Only fetch if we have messages to analyze
-      if (messages && messages.length > 0) {
-        const response = await fetch('/api/analyze-context', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ messages })
-        });
+      // Try to get a cached suggestion
+      const { data: suggestion } = await refetchSuggestion();
 
-        if (!response.ok) throw new Error('Failed to analyze context');
-        const data = await response.json();
-        return data;
+      if (suggestion) {
+        return {
+          prompt: {
+            text: suggestion.text,
+            type: suggestion.type,
+            context: suggestion.context,
+            relatedChatId: suggestion.relatedChatId,
+            relatedChatTitle: suggestion.relatedChatTitle,
+            suggestionId: suggestion.id // Keep track of the suggestion ID
+          }
+        };
       }
-      
-      // Return default prompt if no messages
+
+      // Fallback to default prompt if no suggestion is available
       return {
         prompt: {
           text: "Let's talk about your parenting journey",
@@ -76,14 +94,22 @@ export function useChatHistory() {
       };
     } catch (error) {
       console.error('Failed to get prompt:', error);
+      // Provide a safe fallback
       return {
         prompt: {
-          text: messages[messages.length - 1]?.content?.split('.')[0] || "Continue our conversation",
-          type: "follow_up",
-          relevance: 1,
-          context: "Based on our last conversation"
+          text: "Let's continue our conversation about parenting",
+          type: "action",
+          context: "new"
         }
       };
+    }
+  };
+
+  const markPromptAsUsed = async (suggestionId: number) => {
+    try {
+      await markSuggestionAsUsed(suggestionId);
+    } catch (error) {
+      console.error('Failed to mark suggestion as used:', error);
     }
   };
 
@@ -93,5 +119,6 @@ export function useChatHistory() {
     error,
     refetch,
     getLatestPrompt,
+    markPromptAsUsed,
   };
 }

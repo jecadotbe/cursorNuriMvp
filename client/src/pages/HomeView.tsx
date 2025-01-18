@@ -20,8 +20,15 @@ const handleImageError = (imageName: string, error: any) => {
 
 export default function HomeView() {
   const { user } = useUser();
-  const { getLatestPrompt, chats } = useChatHistory();
-  const [prompt, setPrompt] = useState<{ text: string; type: string; context?: string; relatedChatId?: string; relatedChatTitle?: string } | null>(null);
+  const { getLatestPrompt, markPromptAsUsed, chats } = useChatHistory();
+  const [prompt, setPrompt] = useState<{
+    text: string;
+    type: string;
+    context?: string;
+    relatedChatId?: string;
+    relatedChatTitle?: string;
+    suggestionId?: number;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -30,27 +37,76 @@ export default function HomeView() {
   useEffect(() => {
     let mounted = true;
 
-    if (isLoading && !prompt) {
-      getLatestPrompt()
-        .then(result => {
+    const loadPrompt = async () => {
+      if (!prompt) {
+        try {
+          const result = await getLatestPrompt();
           if (mounted) {
             setPrompt(result.prompt);
             setIsLoading(false);
           }
-        })
-        .catch(err => {
+        } catch (err) {
           if (mounted) {
             console.error('Failed to load initial prompt:', err);
             setError('Failed to load recommendation');
             setIsLoading(false);
           }
-        });
-    }
+        }
+      }
+    };
+
+    loadPrompt();
 
     return () => {
       mounted = false;
     };
   }, []); // Run only once on mount
+
+  const handlePromptClick = async () => {
+    if (!prompt) return;
+
+    try {
+      // If this is a cached suggestion, mark it as used
+      if (prompt.suggestionId) {
+        await markPromptAsUsed(prompt.suggestionId);
+      }
+
+      if (prompt.context === "existing" && prompt.relatedChatId) {
+        // Navigate to existing chat
+        navigate(`/chat/${prompt.relatedChatId}`);
+      } else {
+        // Create new chat with the prompt
+        const response = await fetch('/api/chats', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
+            messages: [{
+              role: 'assistant',
+              content: prompt.text
+            }],
+          }),
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create new chat');
+        }
+
+        const newChat = await response.json();
+        navigate(`/chat/${newChat.id}`);
+      }
+    } catch (error) {
+      console.error('Error handling prompt:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not process the prompt. Please try again.",
+      });
+    }
+  };
 
   return (
     <div className="flex-1 bg-[#F2F0E5] overflow-y-auto">
@@ -97,46 +153,7 @@ export default function HomeView() {
             </CardContent>
           </Card>
         ) : prompt && (
-          <div
-            onClick={async () => {
-              try {
-                if (prompt.context === "existing" && prompt.relatedChatId) {
-                  // Navigate to existing chat
-                  navigate(`/chat/${prompt.relatedChatId}`);
-                } else {
-                  // Create new chat with the prompt
-                  const response = await fetch('/api/chats', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
-                      messages: [{
-                        role: 'assistant',
-                        content: prompt.text
-                      }],
-                    }),
-                    credentials: 'include',
-                  });
-
-                  if (!response.ok) {
-                    throw new Error('Failed to create new chat');
-                  }
-
-                  const newChat = await response.json();
-                  navigate(`/chat/${newChat.id}`);
-                }
-              } catch (error) {
-                console.error('Error handling prompt:', error);
-                toast({
-                  variant: "destructive",
-                  title: "Error",
-                  description: "Could not process the prompt. Please try again.",
-                });
-              }
-            }}
-          >
+          <div onClick={handlePromptClick}>
             <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer mb-4">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">

@@ -2,8 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
-import { villageMembers, chats, messageFeedback } from "@db/schema";
-import { eq, desc } from "drizzle-orm";
+import { villageMembers, chats, messageFeedback, promptSuggestions } from "@db/schema";
+import { eq, desc, and, isNull, lt, gte } from "drizzle-orm";
 import { anthropic } from "./anthropic";
 import type { User } from "./auth";
 import { memoryService } from "./services/memory";
@@ -14,6 +14,159 @@ export function registerRoutes(app: Express): Server {
 
   // Register village routes
   app.use("/api/village", villageRouter);
+
+  // Get cached suggestion for homepage
+  app.get("/api/suggestions", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const user = req.user as User;
+    const now = new Date();
+
+    // Try to find an unused, non-expired suggestion
+    const suggestions = await db.query.promptSuggestions.findMany({
+      where: and(
+        eq(promptSuggestions.userId, user.id),
+        isNull(promptSuggestions.usedAt),
+        gte(promptSuggestions.expiresAt, now)
+      ),
+      orderBy: [
+        desc(promptSuggestions.relevance),
+        desc(promptSuggestions.createdAt)
+      ],
+      limit: 3
+    });
+
+    // If we have suggestions, return them
+    if (suggestions.length > 0) {
+      return res.json(suggestions[0]);
+    }
+
+    // If no valid suggestions exist, generate a new one
+    try {
+      const recentChats = await db.query.chats.findMany({
+        where: eq(chats.userId, user.id),
+        orderBy: desc(chats.updatedAt),
+        limit: 5
+      });
+
+      // Get memories from before the last day for better context
+      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const relevantMemories = await memoryService.getMemoriesBefore(
+        user.id,
+        oneDayAgo,
+        10
+      );
+
+      const memoryContext = relevantMemories
+        .map(m => `Previous conversation: ${m.content}`)
+        .join('\n\n');
+
+      const response = await anthropic.messages.create({
+        model: "claude-3-5-sonnet-20241022",
+        max_tokens: 300,
+        system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the conversation and provide a relevant follow-up prompt. Avoid recent topics, focus on deeper patterns and long-term goals. Consider this historical context:\n${memoryContext}`,
+        messages: [{
+          role: "user", 
+          content: `Based on these messages and the user's conversation history, generate a follow-up prompt that's relevant but not too immediate. Format the response exactly like this:
+          {
+            "prompt": {
+              "text": "follow-up question or suggestion",
+              "type": "action" | "follow_up",
+              "relevance": 1.0,
+              "context": "new" | "existing",
+              "relatedChatId": null | number,
+              "relatedChatTitle": null | string
+            }
+          }`
+        }]
+      });
+
+      const responseText = response.content[0].type === 'text' ? response.content[0].text : '';
+      let parsedResponse;
+
+      try {
+        parsedResponse = JSON.parse(responseText);
+      } catch (parseError) {
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          throw new Error('Could not extract valid JSON from response');
+        }
+        parsedResponse = JSON.parse(jsonMatch[0]);
+      }
+
+      if (!parsedResponse?.prompt?.text) {
+        throw new Error('Response missing required prompt structure');
+      }
+
+      // If the prompt references an existing chat, validate and include the chat details
+      if (parsedResponse.prompt.context === "existing" && recentChats.length > 0) {
+        const mostRelevantChat = recentChats[0];
+        parsedResponse.prompt.relatedChatId = mostRelevantChat.id;
+        parsedResponse.prompt.relatedChatTitle = mostRelevantChat.title;
+      }
+
+      // Store the new suggestion
+      const [suggestion] = await db
+        .insert(promptSuggestions)
+        .values({
+          userId: user.id,
+          text: parsedResponse.prompt.text,
+          type: parsedResponse.prompt.type,
+          context: parsedResponse.prompt.context,
+          relevance: Math.floor(parsedResponse.prompt.relevance * 10),
+          relatedChatId: parsedResponse.prompt.relatedChatId || null,
+          relatedChatTitle: parsedResponse.prompt.relatedChatTitle || null,
+          expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000) // Expire in 24 hours
+        })
+        .returning();
+
+      res.json(suggestion);
+    } catch (error) {
+      console.error('Suggestion generation error:', error);
+      res.status(500).json({ 
+        error: 'Failed to generate suggestion',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Mark a suggestion as used
+  app.post("/api/suggestions/:id/use", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const user = req.user as User;
+    const suggestionId = parseInt(req.params.id);
+
+    if (isNaN(suggestionId)) {
+      return res.status(400).json({ message: "Invalid suggestion ID" });
+    }
+
+    try {
+      const [updated] = await db
+        .update(promptSuggestions)
+        .set({ usedAt: new Date() })
+        .where(
+          and(
+            eq(promptSuggestions.id, suggestionId),
+            eq(promptSuggestions.userId, user.id)
+          )
+        )
+        .returning();
+
+      if (!updated) {
+        return res.status(404).json({ message: "Suggestion not found" });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error('Error marking suggestion as used:', error);
+      res.status(500).json({ message: "Failed to update suggestion" });
+    }
+  });
 
   app.get("/api/chats/:chatId", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
@@ -223,7 +376,7 @@ export function registerRoutes(app: Express): Server {
               "relatedChatTitle": null | string
             }
           }
-
+          
           For existing conversations, include relatedChatId and relatedChatTitle. For new conversations, set them to null.`
         }]
       });
@@ -301,7 +454,7 @@ export function registerRoutes(app: Express): Server {
     const user = req.user as User;
     const userChats = await db.query.chats.findMany({
       where: eq(chats.userId, user.id),
-      orderBy: desc(chats.updatedAt), // Added orderBy clause for server-side sorting
+      orderBy: desc(chats.updatedAt), 
     });
 
     res.json(userChats);
