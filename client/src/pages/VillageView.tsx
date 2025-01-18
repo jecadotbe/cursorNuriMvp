@@ -740,12 +740,14 @@ export default function VillageView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <MinimapView
-        members={members}
-        scale={scale}
-        position={position}
-        onNavigate={handleMinimapNavigate}
-      />
+      <div className="hidden">
+        <MinimapView
+          members={members}
+          scale={scale}
+          position={position}
+          onNavigate={handleMinimapNavigate}
+        />
+      </div>
     </div>
   );
 }
