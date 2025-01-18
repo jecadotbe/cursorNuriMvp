@@ -371,7 +371,7 @@ export default function VillageView() {
       <div
         className="p-4"
         style={{
-          background: `url('/images/village_circles_page.png'), linear-gradient(45deg, #C2ECD1 0%, #F8DE9F 35%)`,
+          background: `url('/images/village_circles_page.png')`,
           backgroundPosition: "left",
           backgroundRepeat: "no-repeat",
           backgroundSize: "contain",
@@ -412,7 +412,7 @@ export default function VillageView() {
 
       {/* Village visualization */}
       <div
-        className="flex-1 relative min-h-[500px] overflow-hidden"
+        className="flex-1 relative overflow-hidden"
         onMouseDown={handlePanStart}
         onMouseMove={handlePanMove}
         onMouseUp={handlePanEnd}
