@@ -435,6 +435,12 @@ export default function ChatView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Hide navigation on this page */}
+      <style>{`
+        nav {
+          display: none !important;
+        }
+      `}</style>
     </div>
   );
 }
