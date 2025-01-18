@@ -313,7 +313,7 @@ const [showSuggestions, setShowSuggestions] = useState(false);
               >
                 {message.role === 'assistant' ? (
                   <>
-                    <div className="prose prose-sm text-l prose-p:mt-4 prose-p:first:mt-0">
+                    <div>
                       {formatMessageContent(message.content)}
                     </div>
                     {message.role === 'assistant' &&
