@@ -39,7 +39,7 @@ router.post("/", async (req: AuthenticatedRequest, res: Response) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const { name, type, circle, category, contactFrequency, metadata } = req.body;
+    const { name, type, circle, category, contactFrequency, metadata, positionAngle = '0' } = req.body;
 
     const [member] = await db
       .insert(villageMembers)
@@ -50,6 +50,7 @@ router.post("/", async (req: AuthenticatedRequest, res: Response) => {
         circle,
         category,
         contactFrequency,
+        positionAngle,
         metadata,
       })
       .returning();
@@ -70,7 +71,7 @@ router.put("/:id", async (req: AuthenticatedRequest, res: Response) => {
     }
 
     const { id } = req.params;
-    const { name, type, circle, category, contactFrequency, metadata } = req.body;
+    const { name, type, circle, category, contactFrequency, metadata, positionAngle } = req.body;
 
     // Check if the village member belongs to the user
     const existingMember = await db
@@ -86,6 +87,9 @@ router.put("/:id", async (req: AuthenticatedRequest, res: Response) => {
       return res.status(404).json({ message: "Village member not found" });
     }
 
+    // Ensure positionAngle is always stored as a string
+    const updatedPositionAngle = positionAngle?.toString() ?? existingMember[0].positionAngle;
+
     const [updated] = await db
       .update(villageMembers)
       .set({
@@ -94,6 +98,7 @@ router.put("/:id", async (req: AuthenticatedRequest, res: Response) => {
         circle,
         category,
         contactFrequency,
+        positionAngle: updatedPositionAngle,
         metadata,
         updatedAt: new Date(),
       })

@@ -85,10 +85,11 @@ export default function VillageView() {
   const snapToCircle = (x: number, y: number, circle: number) => {
     const radius = getCircleRadius(circle - 1);
     const angle = Math.atan2(y, x);
+    const normalizedAngle = (angle + 2 * Math.PI) % (2 * Math.PI); // Ensure positive angle
     return {
-      x: Math.cos(angle) * radius,
-      y: Math.sin(angle) * radius,
-      angle: angle
+      x: Math.cos(normalizedAngle) * radius,
+      y: Math.sin(normalizedAngle) * radius,
+      angle: normalizedAngle
     };
   };
 
@@ -392,7 +393,8 @@ export default function VillageView() {
                     const snapped = snapToCircle(data.x, data.y, newCircle);
 
                     // Only update if there's a change
-                    if (newCircle !== member.circle || snapped.angle !== parseFloat(member.positionAngle || "0")) {
+                    const currentAngle = parseFloat(member.positionAngle?.toString() || "0");
+                    if (newCircle !== member.circle || Math.abs(snapped.angle - currentAngle) > 0.01) {
                       updateMember({
                         ...member,
                         circle: newCircle,
