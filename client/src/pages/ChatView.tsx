@@ -43,6 +43,7 @@ export default function ChatView() {
   const [inputText, setInputText] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPromptLibrary, setShowPromptLibrary] = useState(false);
+const [showSuggestions, setShowSuggestions] = useState(false);
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [currentSuggestions, setCurrentSuggestions] = useState<string[]>(DEFAULT_SUGGESTIONS);
@@ -384,26 +385,41 @@ export default function ChatView() {
 
             <div className="flex items-center justify-between">
               <div className="text-xs text-gray-500">
-                Debug: {currentSuggestions.length} suggestions available
+                {currentSuggestions.length} suggesties beschikbaar
               </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={generateContextualSuggestions}
-                disabled={isLoadingSuggestions || !chatId}
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className={`w-4 h-4 ${isLoadingSuggestions ? 'animate-spin' : ''}`} />
-                <span>Toon suggesties</span>
-              </Button>
+              {!showSuggestions ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    generateContextualSuggestions();
+                    setShowSuggestions(true);
+                  }}
+                  disabled={isLoadingSuggestions || !chatId}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isLoadingSuggestions ? 'animate-spin' : ''}`} />
+                  <span>Toon suggesties</span>
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowSuggestions(!showSuggestions)}
+                  className="flex items-center gap-2"
+                >
+                  <Star className="w-4 h-4" />
+                  <span>Bekijk suggesties</span>
+                </Button>
+              )}
             </div>
 
-            <div className="mt-2 pb-4">
-              <SuggestionChips
-                suggestions={currentSuggestions}
-                onSelect={handleSuggestionSelect}
-              />
-            </div>
+            <SuggestionChips
+              suggestions={currentSuggestions}
+              onSelect={handleSuggestionSelect}
+              isExpanded={showSuggestions}
+              onToggle={() => setShowSuggestions(!showSuggestions)}
+            />
           </div>
         </div>
       </div>
