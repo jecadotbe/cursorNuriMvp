@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
-import { villageMembers, chats, messageFeedback, promptSuggestions, suggestionFeedback } from "@db/schema";
+import { villageMembers, chats, messageFeedback, promptSuggestions, suggestionFeedback, parentProfiles } from "@db/schema";
 import { eq, desc, and, isNull, lt, gte } from "drizzle-orm";
 import { anthropic } from "./anthropic";
 import type { User } from "./auth";
@@ -11,6 +11,132 @@ import villageRouter from "./routes/village";
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
+
+  // Save onboarding progress
+  app.post("/api/onboarding/progress", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const user = req.user as User;
+    const { step, data } = req.body;
+
+    try {
+      const [profile] = await db
+        .update(parentProfiles)
+        .set({
+          currentOnboardingStep: step,
+          onboardingData: data,
+          updatedAt: new Date(),
+        })
+        .where(eq(parentProfiles.userId, user.id))
+        .returning();
+
+      if (!profile) {
+        // If no profile exists, create one
+        const [newProfile] = await db
+          .insert(parentProfiles)
+          .values({
+            userId: user.id,
+            name: data.basicInfo?.name || "",
+            email: data.basicInfo?.email || "",
+            stressLevel: "low", // Will be updated when stress assessment is completed
+            experienceLevel: data.basicInfo?.experienceLevel || "first_time",
+            currentOnboardingStep: step,
+            onboardingData: data,
+          })
+          .returning();
+
+        return res.json(newProfile);
+      }
+
+      res.json(profile);
+    } catch (error) {
+      console.error("Failed to save onboarding progress:", error);
+      res.status(500).json({ message: "Failed to save progress" });
+    }
+  });
+
+  // Get onboarding progress
+  app.get("/api/onboarding/progress", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const user = req.user as User;
+
+    try {
+      const profile = await db.query.parentProfiles.findFirst({
+        where: eq(parentProfiles.userId, user.id),
+      });
+
+      if (!profile) {
+        return res.json({ 
+          currentOnboardingStep: 1,
+          onboardingData: {},
+          completedOnboarding: false
+        });
+      }
+
+      res.json({
+        currentOnboardingStep: profile.currentOnboardingStep,
+        onboardingData: profile.onboardingData,
+        completedOnboarding: profile.completedOnboarding
+      });
+    } catch (error) {
+      console.error("Failed to get onboarding progress:", error);
+      res.status(500).json({ message: "Failed to get progress" });
+    }
+  });
+
+  // Complete onboarding endpoint
+  app.post("/api/onboarding/complete", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const user = req.user as User;
+    const data = req.body;
+
+    try {
+      // Update or create parent profile with complete data
+      const [profile] = await db
+        .insert(parentProfiles)
+        .values({
+          userId: user.id,
+          name: data.basicInfo.name,
+          email: data.basicInfo.email,
+          stressLevel: data.stressAssessment.stressLevel,
+          experienceLevel: data.basicInfo.experienceLevel,
+          primaryConcerns: data.stressAssessment.primaryConcerns,
+          supportNetwork: data.stressAssessment.supportNetwork,
+          completedOnboarding: true,
+          currentOnboardingStep: 4,
+          onboardingData: data,
+        })
+        .onConflictDoUpdate({
+          target: [parentProfiles.userId],
+          set: {
+            name: data.basicInfo.name,
+            email: data.basicInfo.email,
+            stressLevel: data.stressAssessment.stressLevel,
+            experienceLevel: data.basicInfo.experienceLevel,
+            primaryConcerns: data.stressAssessment.primaryConcerns,
+            supportNetwork: data.stressAssessment.supportNetwork,
+            completedOnboarding: true,
+            currentOnboardingStep: 4,
+            onboardingData: data,
+            updatedAt: new Date(),
+          },
+        })
+        .returning();
+
+      res.json(profile);
+    } catch (error) {
+      console.error("Failed to complete onboarding:", error);
+      res.status(500).json({ message: "Failed to complete onboarding" });
+    }
+  });
 
   // Register village routes
   app.use("/api/village", villageRouter);

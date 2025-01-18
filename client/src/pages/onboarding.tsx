@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -6,8 +6,9 @@ import BasicInfoStep from "@/components/onboarding/BasicInfoStep";
 import StressAssessmentStep from "@/components/onboarding/StressAssessmentStep";
 import ChildProfileStep from "@/components/onboarding/ChildProfileStep";
 import GoalsStep from "@/components/onboarding/GoalsStep";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 export type OnboardingData = {
   basicInfo?: {
@@ -42,6 +43,47 @@ export default function OnboardingPage() {
   const totalSteps = 4;
   const progress = (step / totalSteps) * 100;
 
+  // Fetch existing progress
+  const { data: savedProgress, isLoading } = useQuery({
+    queryKey: ['/api/onboarding/progress'],
+    onSuccess: (data) => {
+      if (data.completedOnboarding) {
+        setLocation("/");
+        return;
+      }
+      setStep(data.currentOnboardingStep || 1);
+      setOnboardingData(data.onboardingData || {});
+    },
+  });
+
+  // Save progress mutation
+  const saveProgressMutation = useMutation({
+    mutationFn: async (data: { step: number; data: OnboardingData }) => {
+      const response = await fetch("/api/onboarding/progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || "Failed to save progress");
+      }
+
+      return response.json();
+    },
+    onError: (error) => {
+      console.error("Failed to save progress:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save your progress. Don't worry, you can continue.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Complete onboarding mutation
   const completeOnboardingMutation = useMutation({
     mutationFn: async (data: OnboardingData) => {
       console.log("Submitting onboarding data:", data);
@@ -66,7 +108,6 @@ export default function OnboardingPage() {
         title: "Onboarding Complete",
         description: "Welcome to Nuri! Let's get started.",
       });
-      // Use setTimeout to ensure the toast is visible before redirecting
       setTimeout(() => setLocation("/"), 1000);
     },
     onError: (error) => {
@@ -83,6 +124,16 @@ export default function OnboardingPage() {
     const updatedData = { ...onboardingData, ...stepData };
     setOnboardingData(updatedData);
 
+    // Save progress after each step
+    try {
+      await saveProgressMutation.mutateAsync({
+        step: step,
+        data: updatedData,
+      });
+    } catch (error) {
+      console.error("Failed to save progress:", error);
+    }
+
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
@@ -94,6 +145,14 @@ export default function OnboardingPage() {
       }
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-border" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-6 flex flex-col items-center justify-center">
@@ -112,21 +171,25 @@ export default function OnboardingPage() {
             {step === 1 && (
               <BasicInfoStep
                 onComplete={(data) => handleStepComplete({ basicInfo: data })}
+                initialData={onboardingData.basicInfo}
               />
             )}
             {step === 2 && (
               <StressAssessmentStep
                 onComplete={(data) => handleStepComplete({ stressAssessment: data })}
+                initialData={onboardingData.stressAssessment}
               />
             )}
             {step === 3 && (
               <ChildProfileStep
                 onComplete={(data) => handleStepComplete({ childProfiles: data.children })}
+                initialData={onboardingData.childProfiles}
               />
             )}
             {step === 4 && (
               <GoalsStep
                 onComplete={(data) => handleStepComplete({ goals: data })}
+                initialData={onboardingData.goals}
               />
             )}
           </CardContent>

@@ -47,6 +47,8 @@ export const parentProfiles = pgTable("parent_profiles", {
   primaryConcerns: text("primary_concerns").array(),
   supportNetwork: text("support_network").array(), // family, friends, professionals
   completedOnboarding: boolean("completed_onboarding").default(false),
+  currentOnboardingStep: integer("current_onboarding_step").default(1),
+  onboardingData: jsonb("onboarding_data").default({}),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
