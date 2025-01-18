@@ -18,7 +18,7 @@
 }
 
 .animate-gradient {
-  animation: gradient 15s ease infinite;
+  animation: gradient 10s ease infinite;
 }
 
 @layer base {
