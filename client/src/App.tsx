@@ -16,11 +16,12 @@ import Navigation from "@/components/Navigation";
 import { OnboardingProvider } from "@/context/onboarding-context";
 import OnboardingTooltip from "@/components/OnboardingTooltip";
 import LearnDetailView from "./pages/LearnDetailView";
+import OnboardingPage from "@/pages/onboarding";
 
 function Router() {
   const { user, isLoading } = useUser();
   const [location] = useLocation();
-  const showNavigation = !location.startsWith('/learn/');
+  const showNavigation = !location.startsWith('/learn/') && !location.startsWith('/onboarding');
 
   if (isLoading) {
     return (
@@ -38,6 +39,7 @@ function Router() {
     <div className="flex flex-col min-h-screen">
       <div className={`flex-1 ${showNavigation ? 'pb-16' : ''}`}>
         <Switch>
+          <Route path="/onboarding" component={OnboardingPage} />
           <Route path="/" component={HomeView} />
           <Route path="/chat" component={ChatHistoryView} />
           <Route path="/chat/:id" component={ChatView} />
