@@ -394,7 +394,7 @@ export default function ChatView() {
                 className="flex items-center gap-2"
               >
                 <RefreshCw className={`w-4 h-4 ${isLoadingSuggestions ? 'animate-spin' : ''}`} />
-                <span>Ververs suggesties</span>
+                <span>Toon suggesties</span>
               </Button>
             </div>
 
