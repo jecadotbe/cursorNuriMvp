@@ -32,6 +32,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { motion, AnimatePresence } from "framer-motion";
+import MinimapView from "@/components/MinimapView";
 
 const CATEGORY_COLORS = {
   informeel: "#22c55e", // Green
@@ -358,6 +359,10 @@ export default function VillageView() {
     }
 
     return { x: indicatorX, y: indicatorY, Arrow };
+  };
+
+  const handleMinimapNavigate = (x: number, y: number) => {
+    setPosition({ x, y });
   };
 
   return (
@@ -714,6 +719,12 @@ export default function VillageView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <MinimapView
+        members={members}
+        scale={scale}
+        position={position}
+        onNavigate={handleMinimapNavigate}
+      />
     </div>
   );
 }
