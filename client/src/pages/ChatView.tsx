@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useChat } from "@/hooks/use-chat";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, Plus, Mic, ArrowUpCircle, Expand, Circle, BookOpen } from "lucide-react";
+import { ArrowLeft, Plus, Mic, ArrowUpCircle, Expand, Circle, BookOpen, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { MessageFeedback } from "@/components/MessageFeedback";
 import { SuggestionChips } from "@/components/SuggestionChips";
@@ -31,48 +31,6 @@ const theme = {
   }
 };
 
-const formatMessageContent = (content: string) => {
-  return content
-    .split('\n\n')
-    .map(paragraph => {
-      paragraph = paragraph.replace(/\*(.*?)\*/g, '<em>$1</em>');
-      paragraph = paragraph.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      return paragraph;
-    })
-    .map((paragraph, i) => (
-      <p
-        key={i}
-        className={`${i > 0 ? 'mt-4' : ''}`}
-        dangerouslySetInnerHTML={{ __html: paragraph }}
-      />
-    ));
-};
-
-const TypingIndicator = () => (
-  <div className="flex space-x-2 p-3 bg-gray-100 rounded-2xl w-16">
-    <Circle className="w-2 h-2 animate-bounce" />
-    <Circle className="w-2 h-2 animate-bounce delay-100" />
-    <Circle className="w-2 h-2 animate-bounce delay-200" />
-  </div>
-);
-
-const Avatar = ({ sender }: { sender: 'user' | 'assistant' }) => {
-  const { user } = useUser();
-  return (
-    <div className={`w-8 ${sender === 'assistant' ? 'aspect-[9/16]' : 'h-8 rounded-full'} flex items-center justify-center overflow-hidden ${
-      sender === 'assistant' ? '' : 'bg-[#294636]'
-    }`}>
-      {sender === 'assistant' ? (
-        <img src="/images/nuri_chat.png" alt="Nuri" className="w-full h-full object-contain" />
-      ) : (
-        <span className="text-white text-sm">
-          {user?.username[0].toUpperCase()}
-        </span>
-      )}
-    </div>
-  );
-};
-
 const DEFAULT_SUGGESTIONS = [
   "Ik weet het niet goed",
   "Kan je mij verder helpen?",
@@ -88,6 +46,7 @@ export default function ChatView() {
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [currentSuggestions, setCurrentSuggestions] = useState<string[]>(DEFAULT_SUGGESTIONS);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -255,6 +214,42 @@ export default function ChatView() {
     }
   };
 
+  const generateContextualSuggestions = async () => {
+    if (!chatId || messages.length === 0) return;
+
+    setIsLoadingSuggestions(true);
+    try {
+      const response = await fetch(`/api/suggestions/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chatId,
+          lastMessageContent: messages[messages.length - 1].content,
+        }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate suggestions');
+      }
+
+      const data = await response.json();
+      setCurrentSuggestions(data.suggestions);
+    } catch (error) {
+      console.error('Error generating suggestions:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not generate suggestions. Using default suggestions instead.",
+      });
+      setCurrentSuggestions(DEFAULT_SUGGESTIONS);
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
+  };
+
   const handleSuggestionSelect = async (suggestion: string) => {
     if (!chatId) {
       await initializeChat();
@@ -387,8 +382,20 @@ export default function ChatView() {
               </div>
             </div>
 
-            <div className="text-xs text-gray-500">
-              Debug: {currentSuggestions.length} suggestions available
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-gray-500">
+                Debug: {currentSuggestions.length} suggestions available
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={generateContextualSuggestions}
+                disabled={isLoadingSuggestions || !chatId}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${isLoadingSuggestions ? 'animate-spin' : ''}`} />
+                <span>Ververs suggesties</span>
+              </Button>
             </div>
 
             <div className="mt-2 pb-4">
@@ -431,3 +438,45 @@ export default function ChatView() {
     </div>
   );
 }
+
+const formatMessageContent = (content: string) => {
+  return content
+    .split('\n\n')
+    .map(paragraph => {
+      paragraph = paragraph.replace(/\*(.*?)\*/g, '<em>$1</em>');
+      paragraph = paragraph.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      return paragraph;
+    })
+    .map((paragraph, i) => (
+      <p
+        key={i}
+        className={`${i > 0 ? 'mt-4' : ''}`}
+        dangerouslySetInnerHTML={{ __html: paragraph }}
+      />
+    ));
+};
+
+const TypingIndicator = () => (
+  <div className="flex space-x-2 p-3 bg-gray-100 rounded-2xl w-16">
+    <Circle className="w-2 h-2 animate-bounce" />
+    <Circle className="w-2 h-2 animate-bounce delay-100" />
+    <Circle className="w-2 h-2 animate-bounce delay-200" />
+  </div>
+);
+
+const Avatar = ({ sender }: { sender: 'user' | 'assistant' }) => {
+  const { user } = useUser();
+  return (
+    <div className={`w-8 ${sender === 'assistant' ? 'aspect-[9/16]' : 'h-8 rounded-full'} flex items-center justify-center overflow-hidden ${
+      sender === 'assistant' ? '' : 'bg-[#294636]'
+    }`}>
+      {sender === 'assistant' ? (
+        <img src="/images/nuri_chat.png" alt="Nuri" className="w-full h-full object-contain" />
+      ) : (
+        <span className="text-white text-sm">
+          {user?.username[0].toUpperCase()}
+        </span>
+      )}
+    </div>
+  );
+};
