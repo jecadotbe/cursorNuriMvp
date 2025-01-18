@@ -305,7 +305,7 @@ const [showSuggestions, setShowSuggestions] = useState(false);
             <Avatar sender={message.role} />
             <div className="flex flex-col">
               <div
-                className={`px-4 py-3 rounded-2xl max-w-[280px] chat-message ${
+                className={`px-4 py-3 rounded-2xl  max-w-[280px] chat-message ${
                   message.role === 'user'
                     ? `${theme.primary} ${theme.text.primary}`
                     : `${theme.secondary} ${theme.text.secondary}`
@@ -313,7 +313,7 @@ const [showSuggestions, setShowSuggestions] = useState(false);
               >
                 {message.role === 'assistant' ? (
                   <>
-                    <div className="prose prose-sm prose-p:mt-4 prose-p:first:mt-0">
+                    <div className="prose prose-sm text-l prose-p:mt-4 prose-p:first:mt-0">
                       {formatMessageContent(message.content)}
                     </div>
                     {message.role === 'assistant' &&
