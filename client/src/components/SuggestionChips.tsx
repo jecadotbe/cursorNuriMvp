@@ -9,8 +9,8 @@ interface SuggestionChipsProps {
 
 export function SuggestionChips({ suggestions, onSelect }: SuggestionChipsProps) {
   return (
-    <div className="overflow-x-auto pb-2 -mx-4 px-4">
-      <div className="flex gap-2 min-h-[32px] w-max">
+    <div className="pb-2">
+      <div className="flex flex-wrap gap-2 min-h-[32px]">
         {suggestions.map((suggestion) => (
           <Button
             key={suggestion}
