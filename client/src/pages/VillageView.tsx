@@ -369,7 +369,7 @@ export default function VillageView() {
     <div className="flex flex-col h-screen bg-[#F2F0E5]">
       {/* Header */}
       <div
-        className="p-4">
+        className="fixed top-0 left-0 right-0 z-50 bg-[#F2F0E5] p-4">
         <Link href="/">
           <div className="flex items-center space-x-4 cursor-pointer mb-8">
             <ChevronLeft className="w-6 h-6 text-gray-800" />
@@ -382,7 +382,7 @@ export default function VillageView() {
       </div>
 
       {/* Zoom controls */}
-      <div className="fixed top-32 right-4 flex flex-col space-y-2 z-10">
+      <div className="fixed top-44 right-4 flex flex-col space-y-2 z-10">
         <button
           onClick={handleZoomIn}
           className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow hover:bg-gray-50"
