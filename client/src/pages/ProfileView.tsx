@@ -48,17 +48,13 @@ export default function ProfileView() {
     await logout();
   };
 
-  const startOnboarding = () => {
-    setLocation("/onboarding");
-  };
-
   const sections = [
     {
       title: "PROFIEL & ONBOARDING",
       items: [
         { 
           label: "Beheer je profiel gegevens", 
-          action: () => setLocation("/onboarding"),
+          action: () => setLocation("/profile/edit"),
           description: profile?.completedOnboarding ? "Pas je profiel aan" : "Rond onboarding af"
         },
       ],
@@ -187,7 +183,7 @@ export default function ProfileView() {
             )}
 
             <Button
-              onClick={startOnboarding}
+              onClick={() => setLocation("/profile/edit")}
               variant="outline"
               className="w-full mt-4"
             >

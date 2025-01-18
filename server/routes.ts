@@ -12,6 +12,38 @@ import villageRouter from "./routes/village";
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
+  // Add new profile update endpoint
+  app.post("/api/profile/update", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const user = req.user as User;
+    const data = req.body;
+
+    try {
+      const [profile] = await db
+        .update(parentProfiles)
+        .set({
+          name: data.basicInfo.name,
+          email: data.basicInfo.email,
+          stressLevel: data.stressAssessment.stressLevel,
+          experienceLevel: data.basicInfo.experienceLevel,
+          primaryConcerns: data.stressAssessment.primaryConcerns,
+          supportNetwork: data.stressAssessment.supportNetwork,
+          onboardingData: data,
+          updatedAt: new Date(),
+        })
+        .where(eq(parentProfiles.userId, user.id))
+        .returning();
+
+      res.json(profile);
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
   // Save onboarding progress
   app.post("/api/onboarding/progress", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {

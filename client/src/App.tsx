@@ -12,6 +12,7 @@ import ChatHistoryView from "@/pages/ChatHistoryView";
 import VillageView from "@/pages/VillageView";
 import LearnView from "@/pages/LearnView";
 import ProfileView from "@/pages/ProfileView";
+import EditProfileView from "@/pages/EditProfileView";
 import Navigation from "@/components/Navigation";
 import { OnboardingProvider } from "@/context/onboarding-context";
 import OnboardingTooltip from "@/components/OnboardingTooltip";
@@ -48,6 +49,7 @@ function Router() {
           <Route path="/learn" component={LearnView} />
           <Route path="/learn/:id" component={LearnDetailView} />
           <Route path="/profile" component={ProfileView} />
+          <Route path="/profile/edit" component={EditProfileView} />
           <Route component={NotFound} />
         </Switch>
       </div>
