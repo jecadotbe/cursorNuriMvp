@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useVillage } from "@/hooks/use-village";
 import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, Music, User } from "lucide-react";
 import {
@@ -32,6 +32,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+const CATEGORY_COLORS = {
+  informeel: "#22c55e", // Green
+  formeel: "#3b82f6",   // Blue
+  inspiratie: "#f59e0b", // Orange
+};
+
 interface VillageMember {
   id: string;
   name: string;
@@ -40,7 +46,6 @@ interface VillageMember {
   category: "informeel" | "formeel" | "inspiratie" | null;
   contactFrequency: "S" | "M" | "L" | "XL" | null;
 }
-
 
 export default function VillageView() {
   const { members, addMember, updateMember, deleteMember } = useVillage();
@@ -78,12 +83,80 @@ export default function VillageView() {
   };
 
   const getMemberPosition = (circle: number) => {
-    const angle = Math.random() * 2 * Math.PI;
+    // Calculate positions with fixed angles based on member index to prevent overlap
+    const membersInCircle = members.filter(m => m.circle === circle);
+    const index = membersInCircle.indexOf(membersInCircle.find(m => m.circle === circle));
+    const totalSlots = Math.max(8, Math.ceil(membersInCircle.length * 1.5)); // Ensure enough space between members
+    const angle = (2 * Math.PI * index) / totalSlots;
     const radius = getCircleRadius(circle - 1);
     return {
       x: Math.cos(angle) * radius,
       y: Math.sin(angle) * radius,
     };
+  };
+
+  const handleTouch = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      // Handle pinch zoom
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const dist = Math.hypot(
+        touch1.clientX - touch2.clientX,
+        touch1.clientY - touch2.clientY
+      );
+
+      if (!lastTouchDistance.current) {
+        lastTouchDistance.current = dist;
+        return;
+      }
+
+      const delta = dist - lastTouchDistance.current;
+      lastTouchDistance.current = dist;
+
+      setScale(prevScale => Math.min(Math.max(prevScale + delta * 0.01, 0.3), 3));
+    } else if (e.touches.length === 1) {
+      // Handle pan
+      const touch = e.touches[0];
+      if (!lastTouchPos.current) {
+        lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
+        return;
+      }
+
+      const deltaX = touch.clientX - lastTouchPos.current.x;
+      const deltaY = touch.clientY - lastTouchPos.current.y;
+
+      lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
+
+      setPosition(prev => ({
+        x: prev.x + deltaX,
+        y: prev.y + deltaY
+      }));
+    }
+  };
+
+  // Add refs for touch handling
+  const lastTouchDistance = useRef<number>(0);
+  const lastTouchPos = useRef<{ x: number; y: number } | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.target instanceof Element && e.target.closest('.member-pill')) {
+      return;
+    }
+    setIsDragging(true);
+    lastTouchDistance.current = 0;
+    lastTouchPos.current = null;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    handleTouch(e);
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    lastTouchDistance.current = 0;
+    lastTouchPos.current = null;
   };
 
   const handlePanStart = (e: React.MouseEvent | React.TouchEvent) => {
@@ -245,9 +318,9 @@ export default function VillageView() {
         onMouseMove={handlePanMove}
         onMouseUp={handlePanEnd}
         onMouseLeave={handlePanEnd}
-        onTouchStart={handlePanStart}
-        onTouchMove={handlePanMove}
-        onTouchEnd={handlePanEnd}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
       >
         <div
@@ -279,19 +352,45 @@ export default function VillageView() {
 
             {members.map((member) => {
               const pos = getMemberPosition(member.circle);
+              const categoryColor = member.category ? CATEGORY_COLORS[member.category] : "#6b7280";
+
               return (
                 <Draggable
                   key={member.id}
                   defaultPosition={pos}
+                  onStop={(e, data) => {
+                    // Calculate which circle the member was dropped on
+                    const distance = Math.sqrt(data.x * data.x + data.y * data.y);
+                    let newCircle = Math.round(distance / 80);
+                    newCircle = Math.max(1, Math.min(5, newCircle));
+
+                    if (newCircle !== member.circle) {
+                      updateMember({
+                        ...member,
+                        circle: newCircle
+                      });
+                    }
+                  }}
                   bounds="parent"
                 >
-                  <div className="absolute cursor-move member-pill group flex items-center" style={{ transform: "translate(-50%, -50%)" }}>
-                    <div className={`mr-2 rounded-full bg-violet-600 ${
-                      member.contactFrequency === 'S' ? 'w-2 h-2' :
-                      member.contactFrequency === 'M' ? 'w-3.5 h-3.5' :
-                      member.contactFrequency === 'L' ? 'w-5 h-5' :
-                      member.contactFrequency === 'XL' ? 'w-7 h-7' : 'w-2 h-2'
-                    }`} />
+                  <div
+                    className="absolute cursor-move member-pill group flex items-center"
+                    style={{ transform: "translate(-50%, -50%)" }}
+                  >
+                    <div
+                      className={`mr-2 rounded-full`}
+                      style={{
+                        backgroundColor: categoryColor,
+                        width: member.contactFrequency === 'S' ? '0.5rem' :
+                              member.contactFrequency === 'M' ? '0.875rem' :
+                              member.contactFrequency === 'L' ? '1.25rem' :
+                              member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem',
+                        height: member.contactFrequency === 'S' ? '0.5rem' :
+                               member.contactFrequency === 'M' ? '0.875rem' :
+                               member.contactFrequency === 'L' ? '1.25rem' :
+                               member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem'
+                      }}
+                    />
                     <div className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB]">
                       <User className="w-4 h-4 text-gray-500" />
                       <span className="text-sm font-medium text-gray-800">{member.name}</span>
