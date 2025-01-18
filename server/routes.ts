@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
-import { villageMembers, chats, messageFeedback, promptSuggestions } from "@db/schema";
+import { villageMembers, chats, messageFeedback, promptSuggestions, suggestionFeedback } from "@db/schema";
 import { eq, desc, and, isNull, lt, gte } from "drizzle-orm";
 import { anthropic } from "./anthropic";
 import type { User } from "./auth";
@@ -14,6 +14,56 @@ export function registerRoutes(app: Express): Server {
 
   // Register village routes
   app.use("/api/village", villageRouter);
+
+  // Submit feedback for a suggestion
+  app.post("/api/suggestions/:id/feedback", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const user = req.user as User;
+    const suggestionId = parseInt(req.params.id);
+
+    if (isNaN(suggestionId)) {
+      return res.status(400).json({ message: "Invalid suggestion ID" });
+    }
+
+    const { rating, feedback } = req.body;
+
+    if (typeof rating !== 'number' || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: "Rating must be between 1 and 5" });
+    }
+
+    try {
+      // Check if suggestion exists and belongs to user
+      const suggestion = await db.query.promptSuggestions.findFirst({
+        where: and(
+          eq(promptSuggestions.id, suggestionId),
+          eq(promptSuggestions.userId, user.id)
+        ),
+      });
+
+      if (!suggestion) {
+        return res.status(404).json({ message: "Suggestion not found" });
+      }
+
+      // Save the feedback
+      const [savedFeedback] = await db
+        .insert(suggestionFeedback)
+        .values({
+          userId: user.id,
+          suggestionId,
+          rating,
+          feedback: feedback || null,
+        })
+        .returning();
+
+      res.json(savedFeedback);
+    } catch (error) {
+      console.error('Error saving suggestion feedback:', error);
+      res.status(500).json({ message: "Failed to save feedback" });
+    }
+  });
 
   // Get cached suggestion for homepage
   app.get("/api/suggestions", async (req, res) => {
@@ -106,7 +156,7 @@ export function registerRoutes(app: Express): Server {
         parsedResponse.prompt.relatedChatTitle = mostRelevantChat.title;
       }
 
-      // Store the new suggestion
+      // Store the new suggestion with feedback consideration
       const [suggestion] = await db
         .insert(promptSuggestions)
         .values({

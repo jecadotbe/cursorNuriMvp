@@ -72,6 +72,15 @@ export const promptSuggestions = pgTable("prompt_suggestions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const suggestionFeedback = pgTable("suggestion_feedback", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  suggestionId: integer("suggestion_id").references(() => promptSuggestions.id).notNull(),
+  rating: integer("rating").notNull(), // 1-5 scale
+  feedback: text("feedback"), // Optional text feedback
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
 export const insertVillageMemberSchema = createInsertSchema(villageMembers);
@@ -82,6 +91,8 @@ export const insertMessageFeedbackSchema = createInsertSchema(messageFeedback);
 export const selectMessageFeedbackSchema = createSelectSchema(messageFeedback);
 export const insertPromptSuggestionSchema = createInsertSchema(promptSuggestions);
 export const selectPromptSuggestionSchema = createSelectSchema(promptSuggestions);
+export const insertSuggestionFeedbackSchema = createInsertSchema(suggestionFeedback);
+export const selectSuggestionFeedbackSchema = createSelectSchema(suggestionFeedback);
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -93,3 +104,5 @@ export type MessageFeedback = typeof messageFeedback.$inferSelect;
 export type InsertMessageFeedback = typeof messageFeedback.$inferInsert;
 export type PromptSuggestion = typeof promptSuggestions.$inferSelect;
 export type InsertPromptSuggestion = typeof promptSuggestions.$inferInsert;
+export type SuggestionFeedback = typeof suggestionFeedback.$inferSelect;
+export type InsertSuggestionFeedback = typeof suggestionFeedback.$inferInsert;

@@ -6,6 +6,7 @@ import { MessageSquare, Users, Clock, ChevronRight } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
+import { SuggestionFeedback } from "@/components/SuggestionFeedback";
 
 // Add image load success handler
 const handleImageLoad = (imageName: string) => {
@@ -33,6 +34,8 @@ export default function HomeView() {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [currentSuggestionId, setCurrentSuggestionId] = useState<number | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -69,6 +72,8 @@ export default function HomeView() {
       // If this is a cached suggestion, mark it as used
       if (prompt.suggestionId) {
         await markPromptAsUsed(prompt.suggestionId);
+        // Store the suggestion ID for feedback
+        setCurrentSuggestionId(prompt.suggestionId);
       }
 
       if (prompt.context === "existing" && prompt.relatedChatId) {
@@ -98,6 +103,9 @@ export default function HomeView() {
         const newChat = await response.json();
         navigate(`/chat/${newChat.id}`);
       }
+
+      // Show feedback dialog after successful navigation
+      setShowFeedback(true);
     } catch (error) {
       console.error('Error handling prompt:', error);
       toast({
@@ -106,6 +114,11 @@ export default function HomeView() {
         description: "Could not process the prompt. Please try again.",
       });
     }
+  };
+
+  const handleFeedbackClose = () => {
+    setShowFeedback(false);
+    setCurrentSuggestionId(null);
   };
 
   return (
@@ -296,6 +309,13 @@ export default function HomeView() {
           </div>
         </div>
       </div>
+      {showFeedback && currentSuggestionId && (
+        <SuggestionFeedback
+          suggestionId={currentSuggestionId}
+          open={showFeedback}
+          onClose={handleFeedbackClose}
+        />
+      )}
     </div>
   );
 }
