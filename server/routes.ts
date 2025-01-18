@@ -2,7 +2,14 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
-import { villageMembers, chats, messageFeedback, promptSuggestions, suggestionFeedback, parentProfiles } from "@db/schema";
+import {
+  villageMembers,
+  chats,
+  messageFeedback,
+  promptSuggestions,
+  suggestionFeedback,
+  parentProfiles,
+} from "@db/schema";
 import { eq, desc, and, isNull, lt, gte } from "drizzle-orm";
 import { anthropic } from "./anthropic";
 import type { User } from "./auth";
@@ -106,14 +113,14 @@ export function registerRoutes(app: Express): Server {
         return res.json({
           currentOnboardingStep: 1,
           onboardingData: {},
-          completedOnboarding: false
+          completedOnboarding: false,
         });
       }
 
       res.json({
         currentOnboardingStep: profile.currentOnboardingStep,
         onboardingData: profile.onboardingData,
-        completedOnboarding: profile.completedOnboarding
+        completedOnboarding: profile.completedOnboarding,
       });
     } catch (error) {
       console.error("Failed to get onboarding progress:", error);
@@ -199,8 +206,10 @@ export function registerRoutes(app: Express): Server {
 
     const { rating, feedback } = req.body;
 
-    if (typeof rating !== 'number' || rating < 1 || rating > 5) {
-      return res.status(400).json({ message: "Rating must be between 1 and 5" });
+    if (typeof rating !== "number" || rating < 1 || rating > 5) {
+      return res
+        .status(400)
+        .json({ message: "Rating must be between 1 and 5" });
     }
 
     try {
@@ -208,7 +217,7 @@ export function registerRoutes(app: Express): Server {
       const suggestion = await db.query.promptSuggestions.findFirst({
         where: and(
           eq(promptSuggestions.id, suggestionId),
-          eq(promptSuggestions.userId, user.id)
+          eq(promptSuggestions.userId, user.id),
         ),
       });
 
@@ -229,7 +238,7 @@ export function registerRoutes(app: Express): Server {
 
       res.json(savedFeedback);
     } catch (error) {
-      console.error('Error saving suggestion feedback:', error);
+      console.error("Error saving suggestion feedback:", error);
       res.status(500).json({ message: "Failed to save feedback" });
     }
   });
@@ -249,13 +258,13 @@ export function registerRoutes(app: Express): Server {
         where: and(
           eq(promptSuggestions.userId, user.id),
           isNull(promptSuggestions.usedAt),
-          gte(promptSuggestions.expiresAt, now)
+          gte(promptSuggestions.expiresAt, now),
         ),
         orderBy: [
           desc(promptSuggestions.relevance),
-          desc(promptSuggestions.createdAt)
+          desc(promptSuggestions.createdAt),
         ],
-        limit: 3
+        limit: 3,
       });
 
       // If we have suggestions, return them
@@ -272,19 +281,19 @@ export function registerRoutes(app: Express): Server {
       const recentChats = await db.query.chats.findMany({
         where: eq(chats.userId, user.id),
         orderBy: desc(chats.updatedAt),
-        limit: 5
+        limit: 5,
       });
 
       // Get relevant memories for context, but prioritize older ones
       const relevantMemories = await memoryService.getRelevantMemories(
         user.id,
         "general parenting advice and long-term goals",
-        10
+        10,
       );
 
       const memoryContext = relevantMemories
-        .map(m => `Previous conversation: ${m.content}`)
-        .join('\n\n');
+        .map((m) => `Previous conversation: ${m.content}`)
+        .join("\n\n");
 
       // Build personalized context from onboarding data
       let personalizedContext = "";
@@ -293,14 +302,17 @@ export function registerRoutes(app: Express): Server {
 Parent's Profile:
 - Experience Level: ${profile.onboardingData.basicInfo?.experienceLevel}
 - Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel}
-- Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(', ')}
-${profile.onboardingData.childProfiles?.map(child =>
-          `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(', ')}` : ''}`
-        ).join('\n')}
+- Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ")}
+${profile.onboardingData.childProfiles
+  ?.map(
+    (child) =>
+      `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
+  )
+  .join("\n")}
 
 Goals:
-${profile.onboardingData.goals?.shortTerm?.length ? `- Short term goals: ${profile.onboardingData.goals.shortTerm.join(', ')}` : ''}
-${profile.onboardingData.goals?.longTerm?.length ? `- Long term goals: ${profile.onboardingData.goals.longTerm.join(', ')}` : ''}
+${profile.onboardingData.goals?.shortTerm?.length ? `- Short term goals: ${profile.onboardingData.goals.shortTerm.join(", ")}` : ""}
+${profile.onboardingData.goals?.longTerm?.length ? `- Long term goals: ${profile.onboardingData.goals.longTerm.join(", ")}` : ""}
 `;
       }
 
@@ -309,13 +321,14 @@ ${profile.onboardingData.goals?.longTerm?.length ? `- Long term goals: ${profile
         max_tokens: 300,
         system: `${NURI_SYSTEM_PROMPT}
 
-${personalizedContext ? `Consider this parent's profile and context when generating suggestions:\n${personalizedContext}\n` : ''}
-${memoryContext ? `Previous conversations for context:\n${memoryContext}` : ''}
+${personalizedContext ? `Consider this parent's profile and context when generating suggestions:\n${personalizedContext}\n` : ""}
+${memoryContext ? `Previous conversations for context:\n${memoryContext}` : ""}
 
 Analyze the available context and provide a relevant suggestion. For new users or those with limited chat history, focus on their onboarding information to provide personalized suggestions.`,
-        messages: [{
-          role: "user",
-          content: `Based on the parent's profile and any conversation history, generate a follow-up prompt that focuses on their specific needs and goals. Format the response exactly like this:
+        messages: [
+          {
+            role: "user",
+            content: `Based on the parent's profile and any conversation history, generate a follow-up prompt that focuses on their specific needs and goals. Format the response exactly like this:
           {
             "prompt": {
               "text": "follow-up question or suggestion",
@@ -325,11 +338,13 @@ Analyze the available context and provide a relevant suggestion. For new users o
               "relatedChatId": null | number,
               "relatedChatTitle": null | string
             }
-          }`
-        }]
+          }`,
+          },
+        ],
       });
 
-      const responseText = response.content[0].type === 'text' ? response.content[0].text : '';
+      const responseText =
+        response.content[0].type === "text" ? response.content[0].text : "";
       let parsedResponse;
 
       try {
@@ -337,17 +352,20 @@ Analyze the available context and provide a relevant suggestion. For new users o
       } catch (parseError) {
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
-          throw new Error('Could not extract valid JSON from response');
+          throw new Error("Could not extract valid JSON from response");
         }
         parsedResponse = JSON.parse(jsonMatch[0]);
       }
 
       if (!parsedResponse?.prompt?.text) {
-        throw new Error('Response missing required prompt structure');
+        throw new Error("Response missing required prompt structure");
       }
 
       // If the prompt references an existing chat, validate and include the chat details
-      if (parsedResponse.prompt.context === "existing" && recentChats.length > 0) {
+      if (
+        parsedResponse.prompt.context === "existing" &&
+        recentChats.length > 0
+      ) {
         const mostRelevantChat = recentChats[0];
         parsedResponse.prompt.relatedChatId = mostRelevantChat.id;
         parsedResponse.prompt.relatedChatTitle = mostRelevantChat.title;
@@ -364,16 +382,16 @@ Analyze the available context and provide a relevant suggestion. For new users o
           relevance: Math.floor(parsedResponse.prompt.relevance * 10),
           relatedChatId: parsedResponse.prompt.relatedChatId || null,
           relatedChatTitle: parsedResponse.prompt.relatedChatTitle || null,
-          expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000) // Expire in 24 hours
+          expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000), // Expire in 24 hours
         })
         .returning();
 
       res.json(suggestion);
     } catch (error) {
-      console.error('Suggestion generation error:', error);
+      console.error("Suggestion generation error:", error);
       res.status(500).json({
-        error: 'Failed to generate suggestion',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        error: "Failed to generate suggestion",
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
@@ -398,8 +416,8 @@ Analyze the available context and provide a relevant suggestion. For new users o
         .where(
           and(
             eq(promptSuggestions.id, suggestionId),
-            eq(promptSuggestions.userId, user.id)
-          )
+            eq(promptSuggestions.userId, user.id),
+          ),
         )
         .returning();
 
@@ -409,7 +427,7 @@ Analyze the available context and provide a relevant suggestion. For new users o
 
       res.json(updated);
     } catch (error) {
-      console.error('Error marking suggestion as used:', error);
+      console.error("Error marking suggestion as used:", error);
       res.status(500).json({ message: "Failed to update suggestion" });
     }
   });
@@ -461,10 +479,13 @@ Analyze the available context and provide a relevant suggestion. For new users o
 Parent's Profile:
 - Experience Level: ${profile.onboardingData.basicInfo?.experienceLevel}
 - Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel}
-- Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(', ')}
-${profile.onboardingData.childProfiles?.map(child =>
-            `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(', ')}` : ''}`
-          ).join('\n')}
+- Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ")}
+${profile.onboardingData.childProfiles
+  ?.map(
+    (child) =>
+      `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
+  )
+  .join("\n")}
 `;
           contextualizedPrompt += `\n\nParent's Context:\n${profileContext}`;
         }
@@ -472,21 +493,21 @@ ${profile.onboardingData.childProfiles?.map(child =>
         // Get relevant memories for context
         const relevantMemories = await memoryService.getRelevantMemories(
           user.id,
-          req.body.messages[req.body.messages.length - 1].content
+          req.body.messages[req.body.messages.length - 1].content,
         );
 
-        console.log('Found relevant memories:', relevantMemories.length);
+        console.log("Found relevant memories:", relevantMemories.length);
 
         if (relevantMemories && relevantMemories.length > 0) {
           // Format memories for context
           const memoryContext = relevantMemories
-            .map(m => `Previous conversation: ${m.content}`)
-            .join('\n\n');
+            .map((m) => `Previous conversation: ${m.content}`)
+            .join("\n\n");
 
           // Add memory context to the system prompt
           contextualizedPrompt += `\n\nRelevant context from previous conversations:\n${memoryContext}`;
 
-          console.log('Added memory context to prompt');
+          console.log("Added memory context to prompt");
         }
       } catch (memoryError) {
         console.error("Error fetching memories or profile:", memoryError);
@@ -501,7 +522,8 @@ ${profile.onboardingData.childProfiles?.map(child =>
         messages: req.body.messages,
       });
 
-      const messageContent = response.content[0].type === 'text' ? response.content[0].text : '';
+      const messageContent =
+        response.content[0].type === "text" ? response.content[0].text : "";
 
       // Store conversation in memory
       try {
@@ -512,22 +534,18 @@ ${profile.onboardingData.childProfiles?.map(child =>
           {
             role: "user",
             messageIndex: req.body.messages.length - 1,
-            chatId: req.body.chatId || 'new'
-          }
+            chatId: req.body.chatId || "new",
+          },
         );
 
         // Store assistant's response
-        await memoryService.createMemory(
-          user.id,
-          messageContent,
-          {
-            role: "assistant",
-            messageIndex: req.body.messages.length,
-            chatId: req.body.chatId || 'new'
-          }
-        );
+        await memoryService.createMemory(user.id, messageContent, {
+          role: "assistant",
+          messageIndex: req.body.messages.length,
+          chatId: req.body.chatId || "new",
+        });
 
-        console.log('Successfully stored conversation in memory');
+        console.log("Successfully stored conversation in memory");
       } catch (memoryError) {
         console.error("Error storing memories:", memoryError);
       }
@@ -547,20 +565,28 @@ ${profile.onboardingData.childProfiles?.map(child =>
           return res.status(403).json({ message: "Unauthorized" });
         }
 
-        await db.update(chats)
+        await db
+          .update(chats)
           .set({
-            messages: req.body.messages.concat([{ role: 'assistant', content: messageContent }]),
-            updatedAt: new Date()
+            messages: req.body.messages.concat([
+              { role: "assistant", content: messageContent },
+            ]),
+            updatedAt: new Date(),
           })
           .where(eq(chats.id, chatId));
       } else {
         // Create a new chat
-        const [newChat] = await db.insert(chats).values({
-          userId: user.id,
-          title: `Chat ${new Date().toLocaleDateString()}`,
-          messages: req.body.messages.concat([{ role: 'assistant', content: messageContent }]),
-          updatedAt: new Date()
-        }).returning();
+        const [newChat] = await db
+          .insert(chats)
+          .values({
+            userId: user.id,
+            title: `Chat ${new Date().toLocaleDateString()}`,
+            messages: req.body.messages.concat([
+              { role: "assistant", content: messageContent },
+            ]),
+            updatedAt: new Date(),
+          })
+          .returning();
 
         console.log("Created new chat:", newChat);
       }
@@ -572,7 +598,7 @@ ${profile.onboardingData.childProfiles?.map(child =>
       console.error("API error:", error);
       res.status(500).json({
         message: "Failed to process request",
-        error: error.message
+        error: error.message,
       });
     }
   });
@@ -610,27 +636,28 @@ ${profile.onboardingData.childProfiles?.map(child =>
       const user = req.user as User;
       const relevantMemories = await memoryService.getRelevantMemories(
         user.id,
-        messages[messages.length - 1]?.content || ""
+        messages[messages.length - 1]?.content || "",
       );
 
       // Get recent chats for context
       const recentChats = await db.query.chats.findMany({
         where: eq(chats.userId, user.id),
         orderBy: desc(chats.updatedAt),
-        limit: 5
+        limit: 5,
       });
 
       const memoryContext = relevantMemories
-        .map(m => `Previous conversation: ${m.content}`)
-        .join('\n\n');
+        .map((m) => `Previous conversation: ${m.content}`)
+        .join("\n\n");
 
       const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 300,
         system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the conversation and provide a relevant follow-up prompt. If the topic relates to an existing conversation, reference it. Consider this historical context:\n${memoryContext}`,
-        messages: [{
-          role: "user",
-          content: `Based on these messages and the user's conversation history, generate a follow-up prompt. If it relates to a previous conversation, indicate that. Format the response exactly like this:
+        messages: [
+          {
+            role: "user",
+            content: `Based on these messages and the user's conversation history, generate a follow-up prompt. If it relates to a previous conversation, indicate that. Format the response exactly like this:
           {
             "prompt": {
               "text": "follow-up question or suggestion",
@@ -642,11 +669,13 @@ ${profile.onboardingData.childProfiles?.map(child =>
             }
           }
 
-          For existing conversations, include relatedChatId and relatedChatTitle. For new conversations, set them to null.`
-        }]
+          For existing conversations, include relatedChatId and relatedChatTitle. For new conversations, set them to null.`,
+          },
+        ],
       });
 
-      const responseText = response.content[0].type === 'text' ? response.content[0].text : '';
+      const responseText =
+        response.content[0].type === "text" ? response.content[0].text : "";
       let parsedResponse;
 
       try {
@@ -654,17 +683,20 @@ ${profile.onboardingData.childProfiles?.map(child =>
       } catch (parseError) {
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
-          throw new Error('Could not extract valid JSON from response');
+          throw new Error("Could not extract valid JSON from response");
         }
         parsedResponse = JSON.parse(jsonMatch[0]);
       }
 
       if (!parsedResponse?.prompt?.text) {
-        throw new Error('Response missing required prompt structure');
+        throw new Error("Response missing required prompt structure");
       }
 
       // If the prompt references an existing chat, validate and include the chat details
-      if (parsedResponse.prompt.context === "existing" && recentChats.length > 0) {
+      if (
+        parsedResponse.prompt.context === "existing" &&
+        recentChats.length > 0
+      ) {
         const mostRelevantChat = recentChats[0];
         parsedResponse.prompt.relatedChatId = mostRelevantChat.id;
         parsedResponse.prompt.relatedChatTitle = mostRelevantChat.title;
@@ -672,10 +704,10 @@ ${profile.onboardingData.childProfiles?.map(child =>
 
       res.json(parsedResponse);
     } catch (error) {
-      console.error('Context analysis error:', error);
+      console.error("Context analysis error:", error);
       res.status(500).json({
-        error: 'Failed to analyze context',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        error: "Failed to analyze context",
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
@@ -704,9 +736,7 @@ ${profile.onboardingData.childProfiles?.map(child =>
       return res.status(400).json({ message: "Title is required" });
     }
 
-    await db.update(chats)
-      .set({ title })
-      .where(eq(chats.id, chatId));
+    await db.update(chats).set({ title }).where(eq(chats.id, chatId));
 
     res.json({ message: "Chat updated successfully" });
   });
@@ -738,7 +768,6 @@ ${profile.onboardingData.childProfiles?.map(child =>
 
     res.json(latestChat || null);
   });
-
 
   app.post("/api/chats", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
@@ -774,7 +803,10 @@ Conversation: ${JSON.stringify(messages)}`,
         });
 
         try {
-          const jsonMatch = analyzeResponse.content[0].type === 'text' ? analyzeResponse.content[0].text.match(/\{.*\}/s) : null;
+          const jsonMatch =
+            analyzeResponse.content[0].type === "text"
+              ? analyzeResponse.content[0].text.match(/\{.*\}/s)
+              : null;
           if (jsonMatch) {
             const analysis = JSON.parse(jsonMatch[0]);
             title = analysis.title;
@@ -787,18 +819,22 @@ Conversation: ${JSON.stringify(messages)}`,
       }
 
       // Create chat with safe metadata handling
-      const chat = await db.insert(chats).values({
-        userId: user.id,
-        messages: messages,
-        title: title || `Chat ${new Date().toLocaleDateString()}`,
-        summary,
-        metadata: {
-          messageCount: messages.length,
-          lastMessageRole: messages.length > 0 ? messages[messages.length - 1].role : null,
-          emotionalContext: emotionalSummary,
-        },
-        updatedAt: new Date(),
-      }).returning();
+      const chat = await db
+        .insert(chats)
+        .values({
+          userId: user.id,
+          messages: messages,
+          title: title || `Chat ${new Date().toLocaleDateString()}`,
+          summary,
+          metadata: {
+            messageCount: messages.length,
+            lastMessageRole:
+              messages.length > 0 ? messages[messages.length - 1].role : null,
+            emotionalContext: emotionalSummary,
+          },
+          updatedAt: new Date(),
+        })
+        .returning();
 
       res.json(chat[0]);
     } catch (error) {
@@ -814,12 +850,15 @@ Conversation: ${JSON.stringify(messages)}`,
 
     const user = req.user as User;
     try {
-      const feedback = await db.insert(messageFeedback).values({
-        userId: user.id,
-        messageId: req.body.messageId,
-        feedbackType: req.body.feedbackType,
-        chatId: req.body.chatId,
-      }).returning();
+      const feedback = await db
+        .insert(messageFeedback)
+        .values({
+          userId: user.id,
+          messageId: req.body.messageId,
+          feedbackType: req.body.feedbackType,
+          chatId: req.body.chatId,
+        })
+        .returning();
 
       res.json(feedback[0]);
     } catch (error) {
@@ -870,37 +909,41 @@ Conversation: ${JSON.stringify(messages)}`,
       const recentChats = await db.query.chats.findMany({
         where: eq(chats.userId, user.id),
         orderBy: desc(chats.updatedAt),
-        limit: 5
+        limit: 5,
       });
 
       // Get relevant memories for context
       const relevantMemories = await memoryService.getRelevantMemories(
         user.id,
         lastMessageContent,
-        5
+        5,
       );
 
       const memoryContext = relevantMemories
-        .map(m => `Previous conversation: ${m.content}`)
-        .join('\n\n');
+        .map((m) => `Previous conversation: ${m.content}`)
+        .join("\n\n");
 
       const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 300,
         system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the conversation and provide relevant follow-up prompts. Consider this context:\n${memoryContext}`,
-        messages: [{
-          role: "user",
-          content: `Based on this message and conversation history, generate 3-5 natural follow-up prompts that would help continue the conversation naturally. These should be phrased as things a parent might say or ask.
+        messages: [
+          {
+            role: "user",
+            content: `Based on this message and conversation history, generate 3-5 natural follow-up prompts that would help continue the conversation naturally. These should be phrased as things a parent might say or ask.
 
 Last message: "${lastMessageContent}"
 
 Format the response as a JSON array of strings, like this:
 ["prompt 1", "prompt 2", "prompt 3"]
 
-Make the prompts feel natural and conversational in Dutch, as if the parent is speaking.`        }]
+Make the prompts feel natural and conversational in Dutch, as if the parent is speaking.`,
+          },
+        ],
       });
 
-      const responseText = response.content[0].type === 'text' ? response.content[0].text : '';
+      const responseText =
+        response.content[0].type === "text" ? response.content[0].text : "";
       let suggestions = [];
 
       try {
@@ -912,20 +955,20 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
         if (match) {
           suggestions = JSON.parse(match[0]);
         } else {
-          throw new Error('Could not extract valid suggestions from response');
+          throw new Error("Could not extract valid suggestions from response");
         }
       }
 
       if (!Array.isArray(suggestions)) {
-        throw new Error('Response is not an array of suggestions');
+        throw new Error("Response is not an array of suggestions");
       }
 
       res.json({ suggestions });
     } catch (error) {
-      console.error('Error generating suggestions:', error);
+      console.error("Error generating suggestions:", error);
       res.status(500).json({
-        error: 'Failed to generate suggestions',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        error: "Failed to generate suggestions",
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
@@ -948,8 +991,10 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
 
     const { rating, feedback } = req.body;
 
-    if (typeof rating !== 'number' || rating < 1 || rating > 5) {
-      return res.status(400).json({ message: "Rating must be between 1 and 5" });
+    if (typeof rating !== "number" || rating < 1 || rating > 5) {
+      return res
+        .status(400)
+        .json({ message: "Rating must be between 1 and 5" });
     }
 
     try {
@@ -957,7 +1002,7 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
       const suggestion = await db.query.promptSuggestions.findFirst({
         where: and(
           eq(promptSuggestions.id, suggestionId),
-          eq(promptSuggestions.userId, user.id)
+          eq(promptSuggestions.userId, user.id),
         ),
       });
 
@@ -978,7 +1023,7 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
 
       res.json(savedFeedback);
     } catch (error) {
-      console.error('Error saving suggestion feedback:', error);
+      console.error("Error saving suggestion feedback:", error);
       res.status(500).json({ message: "Failed to save feedback" });
     }
   });
@@ -998,13 +1043,13 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
         where: and(
           eq(promptSuggestions.userId, user.id),
           isNull(promptSuggestions.usedAt),
-          gte(promptSuggestions.expiresAt, now)
+          gte(promptSuggestions.expiresAt, now),
         ),
         orderBy: [
           desc(promptSuggestions.relevance),
-          desc(promptSuggestions.createdAt)
+          desc(promptSuggestions.createdAt),
         ],
-        limit: 3
+        limit: 3,
       });
 
       // If we have suggestions, return them
@@ -1021,19 +1066,19 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
       const recentChats = await db.query.chats.findMany({
         where: eq(chats.userId, user.id),
         orderBy: desc(chats.updatedAt),
-        limit: 5
+        limit: 5,
       });
 
       // Get relevant memories for context, but prioritize older ones
       const relevantMemories = await memoryService.getRelevantMemories(
         user.id,
         "general parenting advice and long-term goals",
-        10
+        10,
       );
 
       const memoryContext = relevantMemories
-        .map(m => `Previous conversation: ${m.content}`)
-        .join('\n\n');
+        .map((m) => `Previous conversation: ${m.content}`)
+        .join("\n\n");
 
       // Build personalized context from onboarding data
       let personalizedContext = "";
@@ -1042,14 +1087,17 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
 Parent's Profile:
 - Experience Level: ${profile.onboardingData.basicInfo?.experienceLevel}
 - Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel}
-- Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(', ')}
-${profile.onboardingData.childProfiles?.map(child =>
-          `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(', ')}` : ''}`
-        ).join('\n')}
+- Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ")}
+${profile.onboardingData.childProfiles
+  ?.map(
+    (child) =>
+      `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
+  )
+  .join("\n")}
 
 Goals:
-${profile.onboardingData.goals?.shortTerm?.length ? `- Short term goals: ${profile.onboardingData.goals.shortTerm.join(', ')}` : ''}
-${profile.onboardingData.goals?.longTerm?.length ? `- Long term goals: ${profile.onboardingData.goals.longTerm.join(', ')}` : ''}
+${profile.onboardingData.goals?.shortTerm?.length ? `- Short term goals: ${profile.onboardingData.goals.shortTerm.join(", ")}` : ""}
+${profile.onboardingData.goals?.longTerm?.length ? `- Long term goals: ${profile.onboardingData.goals.longTerm.join(", ")}` : ""}
 `;
       }
 
@@ -1058,13 +1106,14 @@ ${profile.onboardingData.goals?.longTerm?.length ? `- Long term goals: ${profile
         max_tokens: 300,
         system: `${NURI_SYSTEM_PROMPT}
 
-${personalizedContext ? `Consider this parent's profile and context when generating suggestions:\n${personalizedContext}\n` : ''}
-${memoryContext ? `Previous conversations for context:\n${memoryContext}` : ''}
+${personalizedContext ? `Consider this parent's profile and context when generating suggestions:\n${personalizedContext}\n` : ""}
+${memoryContext ? `Previous conversations for context:\n${memoryContext}` : ""}
 
 Analyze the available context and provide a relevant suggestion. For new users or those with limited chat history, focus on their onboarding information to provide personalized suggestions.`,
-        messages: [{
-          role: "user",
-          content: `Based on the parent's profile and any conversation history, generate a follow-up prompt that focuses on their specific needs and goals. Format the response exactly like this:
+        messages: [
+          {
+            role: "user",
+            content: `Based on the parent's profile and any conversation history, generate a follow-up prompt that focuses on their specific needs and goals. Format the response exactly like this:
           {
             "prompt": {
               "text": "follow-up question or suggestion",
@@ -1074,11 +1123,13 @@ Analyze the available context and provide a relevant suggestion. For new users o
               "relatedChatId": null | number,
               "relatedChatTitle": null | string
             }
-          }`
-        }]
+          }`,
+          },
+        ],
       });
 
-      const responseText = response.content[0].type === 'text' ? response.content[0].text : '';
+      const responseText =
+        response.content[0].type === "text" ? response.content[0].text : "";
       let parsedResponse;
 
       try {
@@ -1086,17 +1137,20 @@ Analyze the available context and provide a relevant suggestion. For new users o
       } catch (parseError) {
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
-          throw new Error('Could not extract valid JSON from response');
+          throw new Error("Could not extract valid JSON from response");
         }
         parsedResponse = JSON.parse(jsonMatch[0]);
       }
 
       if (!parsedResponse?.prompt?.text) {
-        throw new Error('Response missing required prompt structure');
+        throw new Error("Response missing required prompt structure");
       }
 
       // If the prompt references an existing chat, validate and include the chat details
-      if (parsedResponse.prompt.context === "existing" && recentChats.length > 0) {
+      if (
+        parsedResponse.prompt.context === "existing" &&
+        recentChats.length > 0
+      ) {
         const mostRelevantChat = recentChats[0];
         parsedResponse.prompt.relatedChatId = mostRelevantChat.id;
         parsedResponse.prompt.relatedChatTitle = mostRelevantChat.title;
@@ -1113,16 +1167,16 @@ Analyze the available context and provide a relevant suggestion. For new users o
           relevance: Math.floor(parsedResponse.prompt.relevance * 10),
           relatedChatId: parsedResponse.prompt.relatedChatId || null,
           relatedChatTitle: parsedResponse.prompt.relatedChatTitle || null,
-          expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000) // Expire in 24 hours
+          expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000), // Expire in 24 hours
         })
         .returning();
 
       res.json(suggestion);
     } catch (error) {
-      console.error('Suggestion generation error:', error);
+      console.error("Suggestion generation error:", error);
       res.status(500).json({
-        error: 'Failed to generate suggestion',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        error: "Failed to generate suggestion",
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
@@ -1147,8 +1201,8 @@ Analyze the available context and provide a relevant suggestion. For new users o
         .where(
           and(
             eq(promptSuggestions.id, suggestionId),
-            eq(promptSuggestions.userId, user.id)
-          )
+            eq(promptSuggestions.userId, user.id),
+          ),
         )
         .returning();
 
@@ -1158,7 +1212,7 @@ Analyze the available context and provide a relevant suggestion. For new users o
 
       res.json(updated);
     } catch (error) {
-      console.error('Error marking suggestion as used:', error);
+      console.error("Error marking suggestion as used:", error);
       res.status(500).json({ message: "Failed to update suggestion" });
     }
   });
@@ -1210,10 +1264,13 @@ Analyze the available context and provide a relevant suggestion. For new users o
 Parent's Profile:
 - Experience Level: ${profile.onboardingData.basicInfo?.experienceLevel}
 - Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel}
-- Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(', ')}
-${profile.onboardingData.childProfiles?.map(child =>
-            `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(', ')}` : ''}`
-          ).join('\n')}
+- Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ")}
+${profile.onboardingData.childProfiles
+  ?.map(
+    (child) =>
+      `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
+  )
+  .join("\n")}
 `;
           contextualizedPrompt += `\n\nParent's Context:\n${profileContext}`;
         }
@@ -1221,21 +1278,21 @@ ${profile.onboardingData.childProfiles?.map(child =>
         // Get relevant memories for context
         const relevantMemories = await memoryService.getRelevantMemories(
           user.id,
-          req.body.messages[req.body.messages.length - 1].content
+          req.body.messages[req.body.messages.length - 1].content,
         );
 
-        console.log('Found relevant memories:', relevantMemories.length);
+        console.log("Found relevant memories:", relevantMemories.length);
 
         if (relevantMemories && relevantMemories.length > 0) {
           // Format memories for context
           const memoryContext = relevantMemories
-            .map(m => `Previous conversation: ${m.content}`)
-            .join('\n\n');
+            .map((m) => `Previous conversation: ${m.content}`)
+            .join("\n\n");
 
           // Add memory context to the system prompt
           contextualizedPrompt += `\n\nRelevant context from previous conversations:\n${memoryContext}`;
 
-          console.log('Added memory context to prompt');
+          console.log("Added memory context to prompt");
         }
       } catch (memoryError) {
         console.error("Error fetching memories or profile:", memoryError);
@@ -1250,7 +1307,8 @@ ${profile.onboardingData.childProfiles?.map(child =>
         messages: req.body.messages,
       });
 
-      const messageContent = response.content[0].type === 'text' ? response.content[0].text : '';
+      const messageContent =
+        response.content[0].type === "text" ? response.content[0].text : "";
 
       // Store conversation in memory
       try {
@@ -1261,22 +1319,18 @@ ${profile.onboardingData.childProfiles?.map(child =>
           {
             role: "user",
             messageIndex: req.body.messages.length - 1,
-            chatId: req.body.chatId || 'new'
-          }
+            chatId: req.body.chatId || "new",
+          },
         );
 
         // Store assistant's response
-        await memoryService.createMemory(
-          user.id,
-          messageContent,
-          {
-            role: "assistant",
-            messageIndex: req.body.messages.length,
-            chatId: req.body.chatId || 'new'
-          }
-        );
+        await memoryService.createMemory(user.id, messageContent, {
+          role: "assistant",
+          messageIndex: req.body.messages.length,
+          chatId: req.body.chatId || "new",
+        });
 
-        console.log('Successfully stored conversation in memory');
+        console.log("Successfully stored conversation in memory");
       } catch (memoryError) {
         console.error("Error storing memories:", memoryError);
       }
@@ -1296,20 +1350,28 @@ ${profile.onboardingData.childProfiles?.map(child =>
           return res.status(403).json({ message: "Unauthorized" });
         }
 
-        await db.update(chats)
+        await db
+          .update(chats)
           .set({
-            messages: req.body.messages.concat([{ role: 'assistant', content: messageContent }]),
-            updatedAt: new Date()
+            messages: req.body.messages.concat([
+              { role: "assistant", content: messageContent },
+            ]),
+            updatedAt: new Date(),
           })
           .where(eq(chats.id, chatId));
       } else {
         // Create a new chat
-        const [newChat] = await db.insert(chats).values({
-          userId: user.id,
-          title: `Chat ${new Date().toLocaleDateString()}`,
-          messages: req.body.messages.concat([{ role: 'assistant', content: messageContent }]),
-          updatedAt: new Date()
-        }).returning();
+        const [newChat] = await db
+          .insert(chats)
+          .values({
+            userId: user.id,
+            title: `Chat ${new Date().toLocaleDateString()}`,
+            messages: req.body.messages.concat([
+              { role: "assistant", content: messageContent },
+            ]),
+            updatedAt: new Date(),
+          })
+          .returning();
 
         console.log("Created new chat:", newChat);
       }
@@ -1321,7 +1383,7 @@ ${profile.onboardingData.childProfiles?.map(child =>
       console.error("API error:", error);
       res.status(500).json({
         message: "Failed to process request",
-        error: error.message
+        error: error.message,
       });
     }
   });
@@ -1359,27 +1421,28 @@ ${profile.onboardingData.childProfiles?.map(child =>
       const user = req.user as User;
       const relevantMemories = await memoryService.getRelevantMemories(
         user.id,
-        messages[messages.length - 1]?.content || ""
+        messages[messages.length - 1]?.content || "",
       );
 
       // Get recent chats for context
       const recentChats = await db.query.chats.findMany({
         where: eq(chats.userId, user.id),
         orderBy: desc(chats.updatedAt),
-        limit: 5
+        limit: 5,
       });
 
       const memoryContext = relevantMemories
-        .map(m => `Previous conversation: ${m.content}`)
-        .join('\n\n');
+        .map((m) => `Previous conversation: ${m.content}`)
+        .join("\n\n");
 
       const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 300,
         system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the conversation and provide a relevant follow-up prompt. If the topic relates to an existing conversation, reference it. Consider this historical context:\n${memoryContext}`,
-        messages: [{
-          role: "user",
-          content: `Based on these messages and the user's conversation history, generate a follow-up prompt. If it relates to a previous conversation, indicate that. Format the response exactly like this:
+        messages: [
+          {
+            role: "user",
+            content: `Based on these messages and the user's conversation history, generate a follow-up prompt. If it relates to a previous conversation, indicate that. Format the response exactly like this:
           {
             "prompt": {
               "text": "follow-up question or suggestion",
@@ -1391,11 +1454,13 @@ ${profile.onboardingData.childProfiles?.map(child =>
             }
           }
 
-          For existing conversations, include relatedChatId and relatedChatTitle. For new conversations, set them to null.`
-        }]
+          For existing conversations, include relatedChatId and relatedChatTitle. For new conversations, set them to null.`,
+          },
+        ],
       });
 
-      const responseText = response.content[0].type === 'text' ? response.content[0].text : '';
+      const responseText =
+        response.content[0].type === "text" ? response.content[0].text : "";
       let parsedResponse;
 
       try {
@@ -1403,17 +1468,20 @@ ${profile.onboardingData.childProfiles?.map(child =>
       } catch (parseError) {
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
-          throw new Error('Could not extract valid JSON from response');
+          throw new Error("Could not extract valid JSON from response");
         }
         parsedResponse = JSON.parse(jsonMatch[0]);
       }
 
       if (!parsedResponse?.prompt?.text) {
-        throw new Error('Response missing required prompt structure');
+        throw new Error("Response missing required prompt structure");
       }
 
       // If the prompt references an existing chat, validate and include the chat details
-      if (parsedResponse.prompt.context === "existing" && recentChats.length > 0) {
+      if (
+        parsedResponse.prompt.context === "existing" &&
+        recentChats.length > 0
+      ) {
         const mostRelevantChat = recentChats[0];
         parsedResponse.prompt.relatedChatId = mostRelevantChat.id;
         parsedResponse.prompt.relatedChatTitle = mostRelevantChat.title;
@@ -1421,10 +1489,10 @@ ${profile.onboardingData.childProfiles?.map(child =>
 
       res.json(parsedResponse);
     } catch (error) {
-      console.error('Context analysis error:', error);
+      console.error("Context analysis error:", error);
       res.status(500).json({
-        error: 'Failed to analyze context',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        error: "Failed to analyze context",
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
@@ -1453,9 +1521,7 @@ ${profile.onboardingData.childProfiles?.map(child =>
       return res.status(400).json({ message: "Title is required" });
     }
 
-    await db.update(chats)
-      .set({ title })
-      .where(eq(chats.id, chatId));
+    await db.update(chats).set({ title }).where(eq(chats.id, chatId));
 
     res.json({ message: "Chat updated successfully" });
   });
@@ -1487,7 +1553,6 @@ ${profile.onboardingData.childProfiles?.map(child =>
 
     res.json(latestChat || null);
   });
-
 
   app.post("/api/chats", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
@@ -1523,7 +1588,10 @@ Conversation: ${JSON.stringify(messages)}`,
         });
 
         try {
-          const jsonMatch = analyzeResponse.content[0].type === 'text' ? analyzeResponse.content[0].text.match(/\{.*\}/s) : null;
+          const jsonMatch =
+            analyzeResponse.content[0].type === "text"
+              ? analyzeResponse.content[0].text.match(/\{.*\}/s)
+              : null;
           if (jsonMatch) {
             const analysis = JSON.parse(jsonMatch[0]);
             title = analysis.title;
@@ -1536,18 +1604,22 @@ Conversation: ${JSON.stringify(messages)}`,
       }
 
       // Create chat with safe metadata handling
-      const chat = await db.insert(chats).values({
-        userId: user.id,
-        messages: messages,
-        title: title || `Chat ${new Date().toLocaleDateString()}`,
-        summary,
-        metadata: {
-          messageCount: messages.length,
-          lastMessageRole: messages.length > 0 ? messages[messages.length - 1].role : null,
-          emotionalContext: emotionalSummary,
-        },
-        updatedAt: new Date(),
-      }).returning();
+      const chat = await db
+        .insert(chats)
+        .values({
+          userId: user.id,
+          messages: messages,
+          title: title || `Chat ${new Date().toLocaleDateString()}`,
+          summary,
+          metadata: {
+            messageCount: messages.length,
+            lastMessageRole:
+              messages.length > 0 ? messages[messages.length - 1].role : null,
+            emotionalContext: emotionalSummary,
+          },
+          updatedAt: new Date(),
+        })
+        .returning();
 
       res.json(chat[0]);
     } catch (error) {
@@ -1563,12 +1635,15 @@ Conversation: ${JSON.stringify(messages)}`,
 
     const user = req.user as User;
     try {
-      const feedback = await db.insert(messageFeedback).values({
-        userId: user.id,
-        messageId: req.body.messageId,
-        feedbackType: req.body.feedbackType,
-        chatId: req.body.chatId,
-      }).returning();
+      const feedback = await db
+        .insert(messageFeedback)
+        .values({
+          userId: user.id,
+          messageId: req.body.messageId,
+          feedbackType: req.body.feedbackType,
+          chatId: req.body.chatId,
+        })
+        .returning();
 
       res.json(feedback[0]);
     } catch (error) {
