@@ -21,7 +21,7 @@ import { useVoiceInput } from "@/hooks/use-voice-input";
 import { MicrophoneVisualizer } from "@/components/MicrophoneVisualizer";
 
 const theme = {
-  primary: 'bg-[#F2F0E5]',
+  primary: 'bg-[#DEDBCA]',
   secondary: 'bg-white',
   accent: 'bg-[#629785]',
   text: {
