@@ -380,7 +380,7 @@ export default function VillageView() {
       </div>
 
       {/* Zoom controls */}
-      <div className="fixed top-4 right-4 flex flex-col space-y-2 z-10">
+      <div className="fixed top-24 right-4 flex flex-col space-y-2 z-10">
         <button
           onClick={handleZoomIn}
           className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow hover:bg-gray-50"
