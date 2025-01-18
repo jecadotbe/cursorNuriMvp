@@ -65,6 +65,7 @@ export default function VillageView() {
   });
   const [memberToEdit, setMemberToEdit] = useState<typeof members[0] | null>(null);
   const [memberToDelete, setMemberToDelete] = useState<typeof members[0] | null>(null);
+  const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
 
   const handleZoomIn = () => {
     setScale((prev) => Math.min(prev + 0.1, 3));
@@ -567,13 +568,42 @@ export default function VillageView() {
       </div>
 
       {/* Village suggestions */}
-      <div className="fixed bottom-20 left-4">
-        <div className="flex items-center justify-between bg-white rounded-full px-6 py-3 shadow-md w-auto max-w-xs hover:bg-gray-50 cursor-pointer">
-          <span>
-            Er zijn <strong className="text-orange-500">3</strong> village
-            suggesties
-          </span>
-          <ChevronLeft className="w-5 h-5 transform rotate-90 ml-2" />
+      <div className="fixed bottom-20 left-4 z-50">
+        <div 
+          className="bg-white rounded-2xl shadow-md w-auto max-w-xs overflow-hidden transition-all duration-300"
+          style={{ maxHeight: '300px' }}
+        >
+          <div 
+            onClick={() => setIsSuggestionsOpen(!isSuggestionsOpen)}
+            className="flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-gray-50"
+          >
+            <span>
+              Er zijn <strong className="text-orange-500">3</strong> village
+              suggesties
+            </span>
+            <ChevronLeft className={`w-5 h-5 transform transition-transform duration-300 ml-2 ${isSuggestionsOpen ? 'rotate-270' : 'rotate-90'}`} />
+          </div>
+          {isSuggestionsOpen && (
+            <div className="px-4 pb-4">
+              {[
+                { title: 'Add Andy', description: 'Start with adding your first village member' },
+                { title: 'Build your village', description: 'Learn how to grow your support network' },
+                { title: 'Watch the Village video', description: 'See how the Village feature works' }
+              ].map((suggestion, index) => (
+                <div
+                  key={index}
+                  className="mt-2 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={() => {
+                    // Handle suggestion click
+                    console.log(`Clicked: ${suggestion.title}`);
+                  }}
+                >
+                  <h4 className="font-medium text-sm text-gray-800">{suggestion.title}</h4>
+                  <p className="text-xs text-gray-500 mt-1">{suggestion.description}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
