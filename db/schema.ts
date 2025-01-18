@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, pgEnum, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -100,6 +100,8 @@ export const villageMembers = pgTable("village_members", {
   circle: integer("circle").notNull(),
   category: memberCategoryEnum("category"),
   contactFrequency: contactFrequencyEnum("contact_frequency"),
+  // Add position fields
+  positionAngle: numeric("position_angle").notNull().default('0'),
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

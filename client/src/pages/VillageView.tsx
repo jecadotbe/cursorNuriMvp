@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useVillage } from "@/hooks/use-village";
-import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, Music, User } from "lucide-react";
+import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, User } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -36,12 +36,12 @@ const CATEGORY_COLORS = {
   informeel: "#22c55e", // Green
   formeel: "#3b82f6",   // Blue
   inspiratie: "#f59e0b", // Orange
-};
+} as const;
 
-interface VillageMember {
-  id: string;
+// Match interface with schema.ts VillageMember type
+interface NewVillageMember {
   name: string;
-  type: "individual" | "group";
+  type: string;
   circle: number;
   category: "informeel" | "formeel" | "inspiratie" | null;
   contactFrequency: "S" | "M" | "L" | "XL" | null;
@@ -54,15 +54,15 @@ export default function VillageView() {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [newMember, setNewMember] = useState<VillageMember>({
+  const [newMember, setNewMember] = useState<NewVillageMember>({
     name: "",
     type: "individual",
     circle: 1,
     category: "informeel",
     contactFrequency: "M"
   });
-  const [memberToEdit, setMemberToEdit] = useState<VillageMember | null>(null);
-  const [memberToDelete, setMemberToDelete] = useState<VillageMember | null>(null);
+  const [memberToEdit, setMemberToEdit] = useState<typeof members[0] | null>(null);
+  const [memberToDelete, setMemberToDelete] = useState<typeof members[0] | null>(null);
 
   const handleZoomIn = () => {
     setScale((prev) => Math.min(prev + 0.1, 3));
@@ -82,18 +82,41 @@ export default function VillageView() {
     return baseRadius * (index + 1);
   };
 
-  const getMemberPosition = (circle: number) => {
-    // Calculate positions with fixed angles based on member index to prevent overlap
-    const membersInCircle = members.filter(m => m.circle === circle);
-    const index = membersInCircle.indexOf(membersInCircle.find(m => m.circle === circle));
-    const totalSlots = Math.max(8, Math.ceil(membersInCircle.length * 1.5)); // Ensure enough space between members
-    const angle = (2 * Math.PI * index) / totalSlots;
+  const snapToCircle = (x: number, y: number, circle: number) => {
     const radius = getCircleRadius(circle - 1);
+    const angle = Math.atan2(y, x);
+    return {
+      x: Math.cos(angle) * radius,
+      y: Math.sin(angle) * radius,
+      angle: angle
+    };
+  };
+
+  const getMemberPosition = (member: typeof members[0]) => {
+    const radius = getCircleRadius(member.circle - 1);
+    // Convert stored angle to radians (or use default spacing if no angle stored)
+    let angle: number;
+    if (typeof member.positionAngle === 'string') {
+      angle = parseFloat(member.positionAngle);
+    } else if (typeof member.positionAngle === 'number') {
+      angle = member.positionAngle;
+    } else {
+      angle = 2 * Math.PI * Math.random(); // Fallback for members without stored position
+    }
+
     return {
       x: Math.cos(angle) * radius,
       y: Math.sin(angle) * radius,
     };
   };
+
+  const calculateAngleFromPosition = (x: number, y: number) => {
+    return Math.atan2(y, x);
+  };
+
+  // Touch event handlers
+  const lastTouchDistance = useRef<number>(0);
+  const lastTouchPos = useRef<{ x: number; y: number } | null>(null);
 
   const handleTouch = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
@@ -133,10 +156,6 @@ export default function VillageView() {
       }));
     }
   };
-
-  // Add refs for touch handling
-  const lastTouchDistance = useRef<number>(0);
-  const lastTouchPos = useRef<{ x: number; y: number } | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.target instanceof Element && e.target.closest('.member-pill')) {
@@ -178,8 +197,8 @@ export default function VillageView() {
       }));
     } else {
       setPosition(prev => ({
-        x: prev.x + e.movementX,
-        y: prev.y + e.movementY
+        x: prev.x + (e as React.MouseEvent).movementX,
+        y: prev.y + (e as React.MouseEvent).movementY
       }));
     }
   };
@@ -207,17 +226,12 @@ export default function VillageView() {
           type: newMember.type,
           circle: newMember.circle,
           category: newMember.category,
-          contactFrequency: newMember.contactFrequency
+          contactFrequency: newMember.contactFrequency,
+          positionAngle: memberToEdit.positionAngle
         });
         setMemberToEdit(null);
       } else {
-        await addMember({
-          name: newMember.name,
-          type: newMember.type,
-          circle: newMember.circle,
-          category: newMember.category,
-          contactFrequency: newMember.contactFrequency
-        });
+        await addMember(newMember);
       }
       setIsOpen(false);
       setNewMember({
@@ -241,7 +255,7 @@ export default function VillageView() {
     }
   };
 
-  const handleEdit = (member: VillageMember) => {
+  const handleEdit = (member: typeof members[0]) => {
     setMemberToEdit(member);
     setNewMember({
       name: member.name,
@@ -259,6 +273,10 @@ export default function VillageView() {
     try {
       await deleteMember(memberToDelete.id);
       setMemberToDelete(null);
+      toast({
+        title: "Success",
+        description: "Member removed successfully"
+      });
     } catch (error) {
       console.error('Delete error:', error);
       toast({
@@ -271,6 +289,7 @@ export default function VillageView() {
 
   return (
     <div className="flex flex-col h-screen bg-[#F2F0E5]">
+      {/* Header */}
       <div
         className="p-4"
         style={{
@@ -291,6 +310,7 @@ export default function VillageView() {
         </h1>
       </div>
 
+      {/* Zoom controls */}
       <div className="fixed top-32 right-4 flex flex-col space-y-2 z-10">
         <button
           onClick={handleZoomIn}
@@ -312,6 +332,7 @@ export default function VillageView() {
         </button>
       </div>
 
+      {/* Village visualization */}
       <div
         className="flex-1 relative min-h-[500px] overflow-hidden"
         onMouseDown={handlePanStart}
@@ -332,6 +353,7 @@ export default function VillageView() {
           }}
         >
           <div className="absolute inset-0 flex items-center justify-center">
+            {/* Circle lines */}
             {[1, 2, 3, 4, 5].map((circle) => (
               <div
                 key={circle}
@@ -346,12 +368,14 @@ export default function VillageView() {
               />
             ))}
 
+            {/* Center family icon */}
             <div className="absolute w-24 h-24 bg-[#F4F1E4] rounded-full flex items-center justify-center text-black text-sm border-2 border-[#629785]">
               Kerngezin
             </div>
 
+            {/* Village members */}
             {members.map((member) => {
-              const pos = getMemberPosition(member.circle);
+              const pos = getMemberPosition(member);
               const categoryColor = member.category ? CATEGORY_COLORS[member.category] : "#6b7280";
 
               return (
@@ -364,10 +388,15 @@ export default function VillageView() {
                     let newCircle = Math.round(distance / 80);
                     newCircle = Math.max(1, Math.min(5, newCircle));
 
-                    if (newCircle !== member.circle) {
+                    // Snap to the circle and get the exact angle
+                    const snapped = snapToCircle(data.x, data.y, newCircle);
+
+                    // Only update if there's a change
+                    if (newCircle !== member.circle || snapped.angle !== parseFloat(member.positionAngle || "0")) {
                       updateMember({
                         ...member,
-                        circle: newCircle
+                        circle: newCircle,
+                        positionAngle: snapped.angle.toString()
                       });
                     }
                   }}
@@ -423,6 +452,7 @@ export default function VillageView() {
         </div>
       </div>
 
+      {/* Village suggestions */}
       <div className="p-4">
         <div className="flex items-center justify-between bg-white rounded-full px-6 py-3 shadow-md w-auto max-w-xs">
           <span>
@@ -433,6 +463,7 @@ export default function VillageView() {
         </div>
       </div>
 
+      {/* Add/Edit member dialog */}
       <Dialog open={isOpen} onOpenChange={(open) => {
         setIsOpen(open);
         if (!open) {
@@ -471,7 +502,7 @@ export default function VillageView() {
               <Label htmlFor="type">Type</Label>
               <Select
                 value={newMember.type}
-                onValueChange={(value) =>
+                onValueChange={(value: "individual" | "group") =>
                   setNewMember({ ...newMember, type: value })
                 }
               >
@@ -487,7 +518,7 @@ export default function VillageView() {
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
               <Select
-                value={newMember.category}
+                value={newMember.category || "informeel"}
                 onValueChange={(value: "informeel" | "formeel" | "inspiratie") =>
                   setNewMember({ ...newMember, category: value })
                 }
@@ -505,7 +536,7 @@ export default function VillageView() {
             <div className="space-y-2">
               <Label htmlFor="contactFrequency">Contact Frequency</Label>
               <Select
-                value={newMember.contactFrequency}
+                value={newMember.contactFrequency || "M"}
                 onValueChange={(value: "S" | "M" | "L" | "XL") =>
                   setNewMember({ ...newMember, contactFrequency: value })
                 }
@@ -548,6 +579,7 @@ export default function VillageView() {
         </DialogContent>
       </Dialog>
 
+      {/* Delete confirmation dialog */}
       <AlertDialog open={!!memberToDelete} onOpenChange={(open) => !open && setMemberToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
