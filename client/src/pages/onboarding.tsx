@@ -7,6 +7,7 @@ import StressAssessmentStep from "@/components/onboarding/StressAssessmentStep";
 import ChildProfileStep from "@/components/onboarding/ChildProfileStep";
 import GoalsStep from "@/components/onboarding/GoalsStep";
 import { useMutation } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 export type OnboardingData = {
   basicInfo?: {
@@ -36,27 +37,45 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({});
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
   const totalSteps = 4;
   const progress = (step / totalSteps) * 100;
 
   const completeOnboardingMutation = useMutation({
     mutationFn: async (data: OnboardingData) => {
+      console.log("Submitting onboarding data:", data);
       const response = await fetch("/api/onboarding/complete", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
+        credentials: 'include'
       });
+
       if (!response.ok) {
-        throw new Error("Failed to complete onboarding");
+        const error = await response.text();
+        throw new Error(error || "Failed to complete onboarding");
       }
+
       return response.json();
     },
     onSuccess: () => {
-      // Redirect to home page after successful completion
-      setLocation("/");
+      toast({
+        title: "Onboarding Complete",
+        description: "Welcome to Nuri! Let's get started.",
+      });
+      // Use setTimeout to ensure the toast is visible before redirecting
+      setTimeout(() => setLocation("/"), 1000);
+    },
+    onError: (error) => {
+      console.error("Onboarding error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to complete onboarding. Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
