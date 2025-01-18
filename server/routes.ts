@@ -1700,6 +1700,6 @@ Format your responses for optimal readability:
 - Use **bold** for the most important points or key takeaways
 - Start new paragraphs for each distinct thought or topic
 - Maintain a professional, direct tone without emotional expressions or cues
-- Aim for brevity: Keep responses under 3 paragraphs unless the topic requires deeper explanation
-
-Write in natural, flowing narrative paragraphs only. Never use bullet points, numbered lists, or structured formats unless explicitly requested. All insights and guidance should emerge organically through conversation.`;
+- Aim for brevity
+- Strong preference for short answers
+`;

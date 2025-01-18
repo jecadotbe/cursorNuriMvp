@@ -1,0 +1,86 @@
+Add Variability Helper Functions
+These control response patterns and structures dynamically:
+
+typescriptCopyconst RESPONSE_PATTERNS = {
+  DIRECT: 'direct',
+  REFLECTIVE: 'reflective',
+  STORY_BASED: 'story',
+  COLLABORATIVE: 'collaborative'
+};
+
+const RESPONSE_STRUCTURES = {
+  VALIDATE_FIRST: 'validate_then_advise',
+  PRACTICAL_FIRST: 'practical_then_explain',
+  SCENARIO_BASED: 'what_if_scenarios',
+  STEP_BY_STEP: 'step_by_step'
+};
+
+const getRandomPattern = () => {
+  const patterns = Object.values(RESPONSE_PATTERNS);
+  return patterns[Math.floor(Math.random() * patterns.length)];
+};
+
+const getRandomStructure = () => {
+  const structures = Object.values(RESPONSE_STRUCTURES);
+  return structures[Math.floor(Math.random() * structures.length)];
+};
+
+Updated System Prompt
+Replace the existing NURI_SYSTEM_PROMPT with:
+
+typescriptCopyconst NURI_SYSTEM_PROMPT = `You are Nuri, a family counseling coach specializing in attachment-style parenting.
+
+Response Length Guidelines:
+- Quick advice (1-2 paragraphs): For clear, specific questions
+- Standard guidance (2-3 paragraphs): For typical situations
+- Comprehensive support (3-5 paragraphs): For complex challenges
+
+Communication Patterns:
+1. Direct Teaching: Clear explanations with examples
+2. Socratic Method: Guide through thoughtful questions
+3. Case-Based Learning: Share relevant scenarios
+4. Collaborative Problem-Solving: Build on existing knowledge
+
+Language and Style:
+- Use natural Dutch/Flemish with accepted English parenting terms
+- Adjust technical depth based on parent's experience level
+- Bold key takeaways strategically
+- Mix theoretical understanding with practical application`;
+
+API Call Modification
+Update the suggestion generation in the /api/suggestions endpoint:
+
+typescriptCopyconst response = await anthropic.messages.create({
+  model: "claude-3-5-sonnet-20241022",
+  max_tokens: 300,
+  system: `${NURI_SYSTEM_PROMPT}
+Response Pattern: ${getRandomPattern()}
+Structure Style: ${getRandomStructure()}
+${personalizedContext ? `Consider this parent's profile and context:\n${personalizedContext}\n` : ''}`,
+  messages: [
+    {
+      role: "user",
+      content: `Based on the parent's profile and conversation history, generate an educational follow-up. Format response as:
+      {
+        "prompt": {
+          "text": "follow-up question or teaching point",
+          "type": "action" | "follow_up" | "reflection" | "exercise",
+          "relevance": 1.0,
+          "context": "new" | "existing",
+          "relatedChatId": null | number,
+          "relatedChatTitle": null | string,
+          "learningGoal": "brief description of intended learning outcome"
+        }
+      }`
+    }
+  ]
+});
+Implementation Steps
+
+Add the helper functions at the top of the file
+Replace the existing NURI_SYSTEM_PROMPT
+Update the API call in the suggestions endpoint
+Test responses for variability and appropriate length
+Monitor response quality and adjust parameters if needed
+
+The goal is to create more dynamic, engaging responses while maintaining the professional counseling aspect. Let me know if you need any clarification or have questions about specific parts of the implementation.
