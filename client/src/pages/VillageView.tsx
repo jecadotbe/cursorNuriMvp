@@ -373,10 +373,10 @@ export default function VillageView() {
         <Link href="/">
           <div className="flex items-center space-x-4 cursor-pointer mb-8">
             <ChevronLeft className="w-6 h-6 text-gray-800" />
-
+        
           </div>
         </Link>
-
+      
       </div>
 
       {/* Zoom controls */}
@@ -517,7 +517,7 @@ export default function VillageView() {
                   bounds="parent"
                 >
                   <div
-                    className="absolute cursor-move member-pill group flex items-center animate-fadeIn"
+                    className="absolute cursor-move member-pill group flex items-center"
                     style={{ transform: "translate(-50%, -50%)" }}
                   >
                     <div
@@ -716,18 +716,6 @@ export default function VillageView() {
         position={position}
         onNavigate={handleMinimapNavigate}
       />
-      <style jsx>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
-          to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out forwards;
-        }
-        .member-pill {
-          animation-fill-mode: both;
-        }
-      `}</style>
     </div>
   );
 }
