@@ -478,7 +478,7 @@ export default function VillageView() {
                   left: "50%",
                   top: "50%",
                   transform: "translate(-50%, -50%)",
-                  boxShadow: "0 0 30px rgba(98, 151, 133, 0.2)"
+                  boxShadow: "0 0 30px rgba(254, 176, 25, 0.2)"
                 }}
               />
             ))}
