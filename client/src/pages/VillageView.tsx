@@ -369,18 +369,11 @@ export default function VillageView() {
     <div className="flex flex-col h-screen bg-[#F2F0E5]">
       {/* Header */}
       <div
-        className="p-4"
-        style={{
-          background: `url('/images/village_circles_page.png')`,
-          backgroundPosition: "left",
-          backgroundRepeat: "no-repeat",
-          backgroundSize: "contain",
-        }}
-      >
+        className="p-4">
         <Link href="/">
           <div className="flex items-center space-x-4 cursor-pointer mb-8">
             <ChevronLeft className="w-6 h-6 text-gray-800" />
-            <span className="text-xl text-gray-800">Mijn Village</span>
+        
           </div>
         </Link>
         <h1 className="text-xl font-medium pl-14 text-[#2F4644] max-w-[380px] leading-tight">
