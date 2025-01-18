@@ -294,7 +294,7 @@ const [showSuggestions, setShowSuggestions] = useState(false);
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 pt-24 pb-32 space-y-4 bg-[#F2F0E5] z-0">
+      <div className="flex-1 overflow-y-auto p-4 pt-24 pb-40 space-y-4 bg-[#F2F0E5] z-0">
         {messages.map((message, index) => (
           <div
             key={index}
@@ -345,7 +345,7 @@ const [showSuggestions, setShowSuggestions] = useState(false);
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="w-full border-t border-gray-200 bg-[#F2F0E5] fixed bottom-2 left-0 z-50">
+      <div className="w-full border-t border-gray-200 bg-[#F2F0E5] fixed bottom-0 left-0 z-50">
         <div className="max-w-screen-lg mx-auto px-4 py-3">
           <div className="flex flex-col space-y-2">
             <div className="flex items-start space-x-2">
