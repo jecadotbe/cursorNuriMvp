@@ -31,6 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { motion, AnimatePresence } from "framer-motion";
 
 const CATEGORY_COLORS = {
   informeel: "#22c55e", // Green
@@ -417,31 +418,48 @@ export default function VillageView() {
         style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
       >
         {/* Off-screen member indicators */}
-        {members.map((member) => {
-          const pos = getMemberPosition(member);
+        <AnimatePresence>
+          {members.map((member) => {
+            const pos = getMemberPosition(member);
 
-          // Only show indicator if member is outside viewport
-          if (!isInViewport(pos.x, pos.y, scale, position)) {
-            const { x, y, Arrow } = getIndicatorInfo(pos.x, pos.y, scale, position);
-            const categoryColor = member.category ? CATEGORY_COLORS[member.category] : "#6b7280";
+            // Only show indicator if member is outside viewport
+            if (!isInViewport(pos.x, pos.y, scale, position)) {
+              const { x, y, Arrow } = getIndicatorInfo(pos.x, pos.y, scale, position);
+              const categoryColor = member.category ? CATEGORY_COLORS[member.category] : "#6b7280";
 
-            return (
-              <div
-                key={`indicator-${member.id}`}
-                className="absolute z-20 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-200"
-                style={{ left: x, top: y }}
-              >
-                <div className="relative group">
-                  <Arrow className="w-6 h-6" style={{ color: categoryColor }} />
-                  <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 bg-white rounded-md px-2 py-1 text-sm shadow-md whitespace-nowrap transition-opacity">
-                    {member.name}
+              return (
+                <motion.div
+                  key={`indicator-${member.id}`}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute z-20 transform -translate-x-1/2 -translate-y-1/2"
+                  style={{ left: x, top: y }}
+                >
+                  <div className="relative group">
+                    <motion.div
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="animate-pulse"
+                    >
+                      <Arrow className="w-6 h-6" style={{ color: categoryColor }} />
+                    </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      whileHover={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-md px-2 py-1 text-sm shadow-md whitespace-nowrap"
+                    >
+                      {member.name}
+                    </motion.div>
                   </div>
-                </div>
-              </div>
-            );
-          }
-          return null;
-        })}
+                </motion.div>
+              );
+            }
+            return null;
+          })}
+        </AnimatePresence>
 
         <div
           className="absolute inset-0"
