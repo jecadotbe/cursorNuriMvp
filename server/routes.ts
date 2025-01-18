@@ -103,7 +103,7 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!profile) {
-        return res.json({ 
+        return res.json({
           currentOnboardingStep: 1,
           onboardingData: {},
           completedOnboarding: false
@@ -286,7 +286,7 @@ export function registerRoutes(app: Express): Server {
         max_tokens: 300,
         system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the conversation and provide a relevant follow-up prompt. Focus on deeper patterns and long-term goals, avoiding very recent topics. Consider this historical context:\n${memoryContext}`,
         messages: [{
-          role: "user", 
+          role: "user",
           content: `Based on these messages and the user's conversation history, generate a follow-up prompt that focuses on longer-term parenting themes or unexplored areas. Format the response exactly like this:
           {
             "prompt": {
@@ -343,7 +343,7 @@ export function registerRoutes(app: Express): Server {
       res.json(suggestion);
     } catch (error) {
       console.error('Suggestion generation error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Failed to generate suggestion',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
@@ -422,6 +422,25 @@ export function registerRoutes(app: Express): Server {
       let contextualizedPrompt = NURI_SYSTEM_PROMPT;
 
       try {
+        // Get user's profile data for context
+        const profile = await db.query.parentProfiles.findFirst({
+          where: eq(parentProfiles.userId, user.id),
+        });
+
+        // Add profile context if available
+        if (profile?.onboardingData) {
+          const profileContext = `
+Parent's Profile:
+- Experience Level: ${profile.onboardingData.basicInfo?.experienceLevel}
+- Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel}
+- Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(', ')}
+${profile.onboardingData.childProfiles?.map(child =>
+            `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(', ')}` : ''}`
+          ).join('\n')}
+`;
+          contextualizedPrompt += `\n\nParent's Context:\n${profileContext}`;
+        }
+
         // Get relevant memories for context
         const relevantMemories = await memoryService.getRelevantMemories(
           user.id,
@@ -442,7 +461,7 @@ export function registerRoutes(app: Express): Server {
           console.log('Added memory context to prompt');
         }
       } catch (memoryError) {
-        console.error("Error fetching memories:", memoryError);
+        console.error("Error fetching memories or profile:", memoryError);
       }
 
       // Generate response with context
@@ -501,7 +520,7 @@ export function registerRoutes(app: Express): Server {
         }
 
         await db.update(chats)
-          .set({ 
+          .set({
             messages: req.body.messages.concat([{ role: 'assistant', content: messageContent }]),
             updatedAt: new Date()
           })
@@ -582,7 +601,7 @@ export function registerRoutes(app: Express): Server {
         max_tokens: 300,
         system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the conversation and provide a relevant follow-up prompt. If the topic relates to an existing conversation, reference it. Consider this historical context:\n${memoryContext}`,
         messages: [{
-          role: "user", 
+          role: "user",
           content: `Based on these messages and the user's conversation history, generate a follow-up prompt. If it relates to a previous conversation, indicate that. Format the response exactly like this:
           {
             "prompt": {
@@ -594,7 +613,7 @@ export function registerRoutes(app: Express): Server {
               "relatedChatTitle": null | string
             }
           }
-          
+
           For existing conversations, include relatedChatId and relatedChatTitle. For new conversations, set them to null.`
         }]
       });
@@ -626,7 +645,7 @@ export function registerRoutes(app: Express): Server {
       res.json(parsedResponse);
     } catch (error) {
       console.error('Context analysis error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Failed to analyze context',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
@@ -672,7 +691,7 @@ export function registerRoutes(app: Express): Server {
     const user = req.user as User;
     const userChats = await db.query.chats.findMany({
       where: eq(chats.userId, user.id),
-      orderBy: desc(chats.updatedAt), 
+      orderBy: desc(chats.updatedAt),
     });
 
     res.json(userChats);
