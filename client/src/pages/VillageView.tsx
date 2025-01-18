@@ -367,7 +367,9 @@ export default function VillageView() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#F2F0E5]">
+    <div className="flex flex-col h-screen relative" style={{
+      background: `linear-gradient(135deg, #FFC74A 0%, #DBFECE 50%, #F2F0E5 100%)`
+    }}>
       {/* Header */}
       <div
         className="fixed top-0 left-0 right-0 z-50 p-4">
