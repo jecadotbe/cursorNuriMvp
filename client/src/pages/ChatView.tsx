@@ -345,8 +345,8 @@ const [showSuggestions, setShowSuggestions] = useState(false);
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="w-full border-t border-gray-200 bg-white fixed bottom-14 left-0 z-50">
-        <div className="max-w-screen-lg mx-auto px-4 py-3">
+      <div className="w-full border-t border-gray-200 bg-white fixed bottom-8 left-0 z-50">
+        <div className="max-w-screen-lg mx-auto px-4 py-2">
           <div className="flex flex-col space-y-2">
             <div className="flex items-start space-x-2">
               <MicrophoneVisualizer
