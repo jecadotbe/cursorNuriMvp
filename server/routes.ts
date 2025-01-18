@@ -263,7 +263,12 @@ export function registerRoutes(app: Express): Server {
         return res.json(suggestions[0]);
       }
 
-      // If no valid suggestions exist, generate a new one
+      // Get user's profile data for personalized suggestions
+      const profile = await db.query.parentProfiles.findFirst({
+        where: eq(parentProfiles.userId, user.id),
+      });
+
+      // Get recent chats for context
       const recentChats = await db.query.chats.findMany({
         where: eq(chats.userId, user.id),
         orderBy: desc(chats.updatedAt),
@@ -281,13 +286,36 @@ export function registerRoutes(app: Express): Server {
         .map(m => `Previous conversation: ${m.content}`)
         .join('\n\n');
 
+      // Build personalized context from onboarding data
+      let personalizedContext = "";
+      if (profile?.onboardingData) {
+        personalizedContext = `
+Parent's Profile:
+- Experience Level: ${profile.onboardingData.basicInfo?.experienceLevel}
+- Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel}
+- Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(', ')}
+${profile.onboardingData.childProfiles?.map(child =>
+          `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(', ')}` : ''}`
+        ).join('\n')}
+
+Goals:
+${profile.onboardingData.goals?.shortTerm?.length ? `- Short term goals: ${profile.onboardingData.goals.shortTerm.join(', ')}` : ''}
+${profile.onboardingData.goals?.longTerm?.length ? `- Long term goals: ${profile.onboardingData.goals.longTerm.join(', ')}` : ''}
+`;
+      }
+
       const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 300,
-        system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the conversation and provide a relevant follow-up prompt. Focus on deeper patterns and long-term goals, avoiding very recent topics. Consider this historical context:\n${memoryContext}`,
+        system: `${NURI_SYSTEM_PROMPT}
+
+${personalizedContext ? `Consider this parent's profile and context when generating suggestions:\n${personalizedContext}\n` : ''}
+${memoryContext ? `Previous conversations for context:\n${memoryContext}` : ''}
+
+Analyze the available context and provide a relevant suggestion. For new users or those with limited chat history, focus on their onboarding information to provide personalized suggestions.`,
         messages: [{
           role: "user",
-          content: `Based on these messages and the user's conversation history, generate a follow-up prompt that focuses on longer-term parenting themes or unexplored areas. Format the response exactly like this:
+          content: `Based on the parent's profile and any conversation history, generate a follow-up prompt that focuses on their specific needs and goals. Format the response exactly like this:
           {
             "prompt": {
               "text": "follow-up question or suggestion",
