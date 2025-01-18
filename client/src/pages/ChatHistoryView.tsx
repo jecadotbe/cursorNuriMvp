@@ -1,4 +1,6 @@
 import { Link, useLocation } from "wouter";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { useChatHistory } from "@/hooks/use-chat-history";
 import { ArrowLeft, MessageSquare, Clock, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -99,22 +101,36 @@ export default function ChatHistoryView() {
                             <h3 className="font-medium truncate">
                               {chat.title || "Gesprek"}
                             </h3>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                const newTitle = prompt("Enter new title:", chat.title);
-                                if (newTitle && newTitle !== chat.title) {
-                                  fetch(`/api/chats/${chat.id}`, {
-                                    method: 'PATCH',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ title: newTitle })
-                                  }).then(() => window.location.reload());
-                                }
-                              }}
-                              className="text-xs text-gray-500 hover:text-gray-700"
-                            >
-                              Edit
-                            </button>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <button className="text-xs text-gray-500 hover:text-gray-700">
+                                  Edit
+                                </button>
+                              </DialogTrigger>
+                              <DialogContent className="sm:max-w-[425px]">
+                                <DialogHeader>
+                                  <DialogTitle>Edit Chat Title</DialogTitle>
+                                </DialogHeader>
+                                <div className="grid gap-4 py-4">
+                                  <Input
+                                    id="title"
+                                    defaultValue={chat.title}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        const newTitle = e.currentTarget.value;
+                                        if (newTitle && newTitle !== chat.title) {
+                                          fetch(`/api/chats/${chat.id}`, {
+                                            method: 'PATCH',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ title: newTitle })
+                                          }).then(() => window.location.reload());
+                                        }
+                                      }
+                                    }}
+                                  />
+                                </div>
+                              </DialogContent>
+                            </Dialog>
                           </div>
                           <p className="text-sm text-gray-500 line-clamp-2 mt-1 break-words">
                             {lastMessage?.content || "Geen berichten"}
