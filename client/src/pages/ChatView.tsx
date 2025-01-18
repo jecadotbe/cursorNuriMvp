@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useChat } from "@/hooks/use-chat";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, Plus, Mic, ArrowUpCircle, Expand, Circle, BookOpen, RefreshCw } from "lucide-react";
+import { ArrowLeft, Plus, Mic, ArrowUpCircle, Expand, Circle, BookOpen, RefreshCw, Star } from "lucide-react";
 import { format } from "date-fns";
 import { MessageFeedback } from "@/components/MessageFeedback";
 import { SuggestionChips } from "@/components/SuggestionChips";
