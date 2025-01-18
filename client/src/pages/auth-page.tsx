@@ -34,7 +34,7 @@ export default function AuthPage() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <img src="images/nuri_logo_green.png" alt="Nuri Logo" className="mx-auto mb-4" style={{ maxWidth: '180px' }} />
-          <CardTitle className="text-1xl text-center font-baskerville">Welkom.</CardTitle>
+          <CardTitle className="text-1xl text-center font-baskerville font-normal">Welkom.</CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login">
