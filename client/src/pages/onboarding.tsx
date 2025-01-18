@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import BasicInfoStep from "@/components/onboarding/BasicInfoStep";
 import StressAssessmentStep from "@/components/onboarding/StressAssessmentStep";
 import ChildProfileStep from "@/components/onboarding/ChildProfileStep";
 import GoalsStep from "@/components/onboarding/GoalsStep";
+import { useMutation } from "@tanstack/react-query";
 
 export type OnboardingData = {
   basicInfo?: {
@@ -21,8 +23,6 @@ export type OnboardingData = {
     name: string;
     age: number;
     specialNeeds: string[];
-    routines: Record<string, any>;
-    challenges: Record<string, any>;
   }>;
   goals?: {
     shortTerm: string[];
@@ -35,14 +35,44 @@ export type OnboardingData = {
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({});
+  const [, setLocation] = useLocation();
 
   const totalSteps = 4;
   const progress = (step / totalSteps) * 100;
 
-  const handleStepComplete = (stepData: Partial<OnboardingData>) => {
-    setOnboardingData({ ...onboardingData, ...stepData });
+  const completeOnboardingMutation = useMutation({
+    mutationFn: async (data: OnboardingData) => {
+      const response = await fetch("/api/onboarding/complete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to complete onboarding");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      // Redirect to home page after successful completion
+      setLocation("/");
+    },
+  });
+
+  const handleStepComplete = async (stepData: Partial<OnboardingData>) => {
+    const updatedData = { ...onboardingData, ...stepData };
+    setOnboardingData(updatedData);
+
     if (step < totalSteps) {
       setStep(step + 1);
+    } else {
+      // This is the final step
+      try {
+        await completeOnboardingMutation.mutateAsync(updatedData);
+      } catch (error) {
+        console.error("Failed to complete onboarding:", error);
+      }
     }
   };
 
@@ -72,7 +102,7 @@ export default function OnboardingPage() {
             )}
             {step === 3 && (
               <ChildProfileStep
-                onComplete={(data) => handleStepComplete({ childProfiles: data })}
+                onComplete={(data) => handleStepComplete({ childProfiles: data.children })}
               />
             )}
             {step === 4 && (

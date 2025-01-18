@@ -50,8 +50,13 @@ export default function GoalsStep({ onComplete }: GoalsStepProps) {
     },
   });
 
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
-    onComplete(data);
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    try {
+      console.log("Submitting goals data:", data);
+      onComplete(data);
+    } catch (error) {
+      console.error("Error submitting goals:", error);
+    }
   };
 
   const addShortTerm = () => {
