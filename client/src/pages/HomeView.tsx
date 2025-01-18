@@ -122,7 +122,7 @@ export default function HomeView() {
   };
 
   return (
-    <div className="flex-1 bg-[#F2F0E5] overflow-y-auto">
+    <div className="flex-1 bg-[#FFF7ED] overflow-y-auto">
       {/* Greeting Section with Logo */}
       <div className="w-full bg-gradient-to-r from-[#F8DD9F] to-[#F2F0E5] via-[#F2F0E5] via-45% ">
         <div className="px-4 pt-8 homemeeting">
