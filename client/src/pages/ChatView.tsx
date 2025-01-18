@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useChat } from "@/hooks/use-chat";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, Plus, Mic, ArrowUpCircle, Expand, Circle } from "lucide-react";
+import { ArrowLeft, Plus, Mic, ArrowUpCircle, Expand, Circle, BookOpen } from "lucide-react";
 import { format } from "date-fns";
 import { MessageFeedback } from "@/components/MessageFeedback";
 import {
@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
+import { PromptLibrary } from "@/components/PromptLibrary";
 
 const theme = {
   primary: 'bg-[#F2F0E5]',
@@ -76,6 +77,7 @@ export default function ChatView() {
   const { messages, sendMessage, isLoading, chatId } = useChat();
   const [inputText, setInputText] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showPromptLibrary, setShowPromptLibrary] = useState(false);
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -190,6 +192,11 @@ export default function ChatView() {
     }
   };
 
+  const handlePromptSelect = (prompt: string) => {
+    setInputText(prompt);
+    setShowPromptLibrary(false);
+  };
+
   return (
     <div className="flex flex-col h-screen bg-white">
       {/* Header */}
@@ -208,12 +215,20 @@ export default function ChatView() {
             </button>
           </Link>
         </div>
-        <button
-          onClick={() => setShowNewChatDialog(true)}
-          className={`p-2 ${theme.accent} hover:bg-[#4A7566] rounded-full`}
-        >
-          <Plus className="w-6 h-6 text-white" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowPromptLibrary(!showPromptLibrary)}
+            className={`p-2 hover:bg-gray-100 rounded-lg ${showPromptLibrary ? 'bg-gray-100' : ''}`}
+          >
+            <BookOpen className="w-6 h-6 text-[#629785]" />
+          </button>
+          <button
+            onClick={() => setShowNewChatDialog(true)}
+            className={`p-2 ${theme.accent} hover:bg-[#4A7566] rounded-full`}
+          >
+            <Plus className="w-6 h-6 text-white" />
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
@@ -306,6 +321,13 @@ export default function ChatView() {
           </div>
         </div>
       </div>
+
+      {/* Add PromptLibrary component */}
+      <PromptLibrary
+        onSelectPrompt={handlePromptSelect}
+        isExpanded={showPromptLibrary}
+        onToggle={() => setShowPromptLibrary(!showPromptLibrary)}
+      />
 
       {/* New Chat Dialog */}
       <AlertDialog open={showNewChatDialog} onOpenChange={setShowNewChatDialog}>
