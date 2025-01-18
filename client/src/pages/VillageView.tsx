@@ -576,8 +576,8 @@ export default function VillageView() {
       </div>
 
       {/* Village suggestions */}
-      <div className="p-4">
-        <div className="flex items-center justify-between bg-white rounded-full px-6 py-3 shadow-md w-auto max-w-xs">
+      <div className="fixed bottom-20 left-4">
+        <div className="flex items-center justify-between bg-white rounded-full px-6 py-3 shadow-md w-auto max-w-xs hover:bg-gray-50 cursor-pointer">
           <span>
             Er zijn <strong className="text-orange-500">3</strong> village
             suggesties
