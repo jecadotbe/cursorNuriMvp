@@ -15,7 +15,7 @@ export function SuggestionChips({ suggestions, onSelect }: SuggestionChipsProps)
           key={suggestion}
           variant="outline"
           size="sm"
-          className="rounded-full bg-white hover:bg-gray-50"
+          className="rounded-full bg-white hover:bg-gray-50 text-sm"
           onClick={() => onSelect(suggestion)}
         >
           {suggestion}

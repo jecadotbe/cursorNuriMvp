@@ -156,7 +156,7 @@ export default function ChatView() {
     if (inputText.trim()) {
       if (!chatId) {
         await initializeChat();
-        if (!chatId) return; 
+        if (!chatId) return;
       }
       const text = inputText.trim();
       setInputText('');
@@ -213,6 +213,7 @@ export default function ChatView() {
   };
 
   const checkForUncertainty = (text: string) => {
+    console.log('Checking uncertainty for:', text); 
     const uncertaintyPatterns = [
       'weet niet',
       'help mij',
@@ -229,6 +230,8 @@ export default function ChatView() {
       text.toLowerCase().includes(pattern.toLowerCase())
     );
 
+    console.log('Has uncertainty:', hasUncertainty); 
+
     if (hasUncertainty) {
       const suggestions = [
         "Help mij even op weg?",
@@ -238,6 +241,7 @@ export default function ChatView() {
         "Leg eens uit hoe andere ouders dit aanpakken"
       ];
       setUncertaintySuggestions(suggestions);
+      console.log('Set suggestions:', suggestions); 
     } else {
       setUncertaintySuggestions([]);
     }
@@ -375,12 +379,15 @@ export default function ChatView() {
               </div>
             </div>
 
-            {uncertaintySuggestions.length > 0 && (
-              <SuggestionChips
-                suggestions={uncertaintySuggestions}
-                onSelect={handleSuggestionSelect}
-              />
-            )}
+            {/* Debug render for suggestions */}
+            <div className="text-xs text-gray-500">
+              {uncertaintySuggestions.length > 0 ? 'Suggestions available' : 'No suggestions'}
+            </div>
+
+            <SuggestionChips
+              suggestions={uncertaintySuggestions}
+              onSelect={handleSuggestionSelect}
+            />
           </div>
         </div>
       </div>
