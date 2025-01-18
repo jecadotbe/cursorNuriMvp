@@ -229,6 +229,8 @@ export default function ChatView() {
       text.toLowerCase().includes(pattern.toLowerCase())
     );
 
+    console.log('[DEBUG] Uncertainty check:', { text, hasUncertainty });
+
     if (hasUncertainty) {
       const suggestions = [
         "Help mij even op weg?",
@@ -238,6 +240,7 @@ export default function ChatView() {
         "Leg eens uit hoe andere ouders dit aanpakken"
       ];
       setUncertaintySuggestions(suggestions);
+      console.log('[DEBUG] Setting suggestions:', suggestions);
     } else {
       setUncertaintySuggestions([]);
     }
@@ -375,10 +378,16 @@ export default function ChatView() {
               </div>
             </div>
 
-            <SuggestionChips
-              suggestions={uncertaintySuggestions}
-              onSelect={handleSuggestionSelect}
-            />
+            <div className="text-xs text-gray-500">
+              Debug: {uncertaintySuggestions.length} suggestions available
+            </div>
+
+            <div className="mt-2">
+              <SuggestionChips
+                suggestions={uncertaintySuggestions}
+                onSelect={handleSuggestionSelect}
+              />
+            </div>
           </div>
         </div>
       </div>
