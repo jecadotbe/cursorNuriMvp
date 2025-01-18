@@ -34,13 +34,13 @@ export default function AuthPage() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <img src="images/nuri_logo_green.png" alt="Nuri Logo" className="mx-auto mb-4" style={{ maxWidth: '180px' }} />
-          <CardTitle className="text-1xl text-center font-baskerville font-normal">Welkom.</CardTitle>
+          <CardTitle className="text-2xl text-center font-baskerville font-normal">Welkom.</CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
+              <TabsTrigger value="register">Registreren</TabsTrigger>
             </TabsList>
 
             {["login", "register"].map((tab) => (
