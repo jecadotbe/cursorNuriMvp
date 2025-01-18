@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useVillage } from "@/hooks/use-village";
-import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, User } from "lucide-react";
+import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, User, ArrowUpCircle, ArrowDownCircle, ArrowLeftCircle, ArrowRightCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -288,6 +288,77 @@ export default function VillageView() {
     }
   };
 
+  // Add new function to check if a point is within viewport
+  const isInViewport = (x: number, y: number, scale: number, position: { x: number, y: number }) => {
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    // Transform point coordinates based on scale and position
+    const transformedX = (x * scale) + position.x;
+    const transformedY = (y * scale) + position.y;
+
+    // Add padding to viewport bounds
+    const padding = 50;
+
+    return (
+      transformedX >= -padding &&
+      transformedX <= viewportWidth + padding &&
+      transformedY >= -padding &&
+      transformedY <= viewportHeight + padding
+    );
+  };
+
+  // Add function to get indicator position and direction
+  const getIndicatorInfo = (memberX: number, memberY: number, scale: number, position: { x: number, y: number }) => {
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const padding = 40;
+
+    // Transform coordinates
+    const transformedX = (memberX * scale) + position.x;
+    const transformedY = (memberY * scale) + position.y;
+
+    // Calculate angle from viewport center to member
+    const centerX = viewportWidth / 2;
+    const centerY = viewportHeight / 2;
+    const angle = Math.atan2(transformedY - centerY, transformedX - centerX);
+
+    // Determine position along viewport edge
+    let indicatorX = centerX;
+    let indicatorY = centerY;
+    const border = 60;
+
+    if (Math.abs(Math.cos(angle)) > Math.abs(Math.sin(angle))) {
+      // Place on left or right edge
+      indicatorX = transformedX < centerX ? border : viewportWidth - border;
+      indicatorY = centerY + Math.tan(angle) * (indicatorX - centerX);
+
+      // Clamp Y position
+      indicatorY = Math.max(border, Math.min(viewportHeight - border, indicatorY));
+    } else {
+      // Place on top or bottom edge
+      indicatorY = transformedY < centerY ? border : viewportHeight - border;
+      indicatorX = centerX + (indicatorY - centerY) / Math.tan(angle);
+
+      // Clamp X position
+      indicatorX = Math.max(border, Math.min(viewportWidth - border, indicatorX));
+    }
+
+    // Determine which arrow to show
+    let Arrow;
+    if (transformedY < centerY && Math.abs(Math.sin(angle)) > Math.abs(Math.cos(angle))) {
+      Arrow = ArrowUpCircle;
+    } else if (transformedY > centerY && Math.abs(Math.sin(angle)) > Math.abs(Math.cos(angle))) {
+      Arrow = ArrowDownCircle;
+    } else if (transformedX < centerX) {
+      Arrow = ArrowLeftCircle;
+    } else {
+      Arrow = ArrowRightCircle;
+    }
+
+    return { x: indicatorX, y: indicatorY, Arrow };
+  };
+
   return (
     <div className="flex flex-col h-screen bg-[#F2F0E5]">
       {/* Header */}
@@ -345,6 +416,33 @@ export default function VillageView() {
         onTouchEnd={handleTouchEnd}
         style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
       >
+        {/* Off-screen member indicators */}
+        {members.map((member) => {
+          const pos = getMemberPosition(member);
+
+          // Only show indicator if member is outside viewport
+          if (!isInViewport(pos.x, pos.y, scale, position)) {
+            const { x, y, Arrow } = getIndicatorInfo(pos.x, pos.y, scale, position);
+            const categoryColor = member.category ? CATEGORY_COLORS[member.category] : "#6b7280";
+
+            return (
+              <div
+                key={`indicator-${member.id}`}
+                className="absolute z-20 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-200"
+                style={{ left: x, top: y }}
+              >
+                <div className="relative group">
+                  <Arrow className="w-6 h-6" style={{ color: categoryColor }} />
+                  <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 bg-white rounded-md px-2 py-1 text-sm shadow-md whitespace-nowrap transition-opacity">
+                    {member.name}
+                  </div>
+                </div>
+              </div>
+            );
+          }
+          return null;
+        })}
+
         <div
           className="absolute inset-0"
           style={{
