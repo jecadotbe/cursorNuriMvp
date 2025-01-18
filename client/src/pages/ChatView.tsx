@@ -4,6 +4,7 @@ import { Link, useLocation } from "wouter";
 import { ArrowLeft, Plus, Mic, ArrowUpCircle, Expand, Circle, BookOpen } from "lucide-react";
 import { format } from "date-fns";
 import { MessageFeedback } from "@/components/MessageFeedback";
+import { SuggestionChips } from "@/components/SuggestionChips";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -30,14 +31,11 @@ const theme = {
   }
 };
 
-// Format message content with markdown-style syntax
 const formatMessageContent = (content: string) => {
   return content
     .split('\n\n')
     .map(paragraph => {
-      // Handle italics
       paragraph = paragraph.replace(/\*(.*?)\*/g, '<em>$1</em>');
-      // Handle bold
       paragraph = paragraph.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
       return paragraph;
     })
@@ -82,6 +80,7 @@ export default function ChatView() {
   const [showPromptLibrary, setShowPromptLibrary] = useState(false);
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [uncertaintySuggestions, setUncertaintySuggestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -145,8 +144,10 @@ export default function ChatView() {
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputText(e.target.value);
-    if (e.target.value.trim() && !chatId) {
+    const newText = e.target.value;
+    setInputText(newText);
+    checkForUncertainty(newText);
+    if (newText.trim() && !chatId) {
       initializeChat();
     }
   };
@@ -155,7 +156,7 @@ export default function ChatView() {
     if (inputText.trim()) {
       if (!chatId) {
         await initializeChat();
-        if (!chatId) return; // Don't proceed if chat initialization failed
+        if (!chatId) return; 
       }
       const text = inputText.trim();
       setInputText('');
@@ -211,9 +212,49 @@ export default function ChatView() {
     setShowPromptLibrary(false);
   };
 
+  const checkForUncertainty = (text: string) => {
+    const uncertaintyPatterns = [
+      'weet niet',
+      'help mij',
+      'waar te beginnen',
+      'even nadenken',
+      '?',
+      'geen idee',
+      'lastig',
+      'moeilijk',
+      'hoe moet'
+    ];
+
+    const hasUncertainty = uncertaintyPatterns.some(pattern => 
+      text.toLowerCase().includes(pattern.toLowerCase())
+    );
+
+    if (hasUncertainty) {
+      const suggestions = [
+        "Help mij even op weg?",
+        "Ik weet niet waar te beginnen",
+        "Kan je een voorbeeld geven?",
+        "Wat zou jij aanraden?",
+        "Leg eens uit hoe andere ouders dit aanpakken"
+      ];
+      setUncertaintySuggestions(suggestions);
+    } else {
+      setUncertaintySuggestions([]);
+    }
+  };
+
+  const handleSuggestionSelect = async (suggestion: string) => {
+    if (!chatId) {
+      await initializeChat();
+      if (!chatId) return;
+    }
+    setInputText('');
+    setUncertaintySuggestions([]);
+    await sendMessage(suggestion);
+  };
+
   return (
     <div className="flex flex-col h-screen bg-white">
-      {/* Header */}
       <div className="w-full px-4 py-3 flex items-center justify-between border-b border-gray-200 bg-white fixed top-0 left-0 z-50 shadow-sm">
         <div className="flex items-center gap-4">
           <button 
@@ -245,7 +286,6 @@ export default function ChatView() {
         </div>
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 pt-24 pb-32 space-y-4 bg-orange-50 z-0">
         {messages.map((message, index) => (
           <div
@@ -297,54 +337,60 @@ export default function ChatView() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input area */}
       <div className="w-full border-t border-gray-200 bg-white fixed bottom-14 left-0 z-50">
         <div className="max-w-screen-lg mx-auto px-4 py-3">
-          <div className="flex items-start space-x-2">
-            <MicrophoneVisualizer
-              isRecording={isRecording}
-              onToggle={() => isRecording ? stopRecording() : startRecording()}
-            />
-            <textarea
-              value={inputText}
-              onChange={handleInputChange}
-              onKeyPress={handleKeyPress}
-              placeholder="Typ een boodschap..."
-              className={`flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#629785] focus:border-transparent resize-none transition-all duration-200 ease-in-out chat-message ${
-                isExpanded ? 'h-24' : 'h-10'
-              }`}
-              style={{
-                lineHeight: '1.5rem',
-                overflowY: isExpanded ? 'auto' : 'hidden',
-              }}
-            />
-            <div className="flex-shrink-0 flex items-center space-x-2">
-              <button
-                onClick={handleSend}
-                disabled={isLoading || !inputText.trim()}
-                className="p-2 hover:bg-gray-100 rounded-full disabled:opacity-50"
-              >
-                <ArrowUpCircle className="w-6 h-6 text-[#629785]" />
-              </button>
-              <button
-                onClick={() => setIsExpanded(!isExpanded)}
-                className={`p-2 hover:bg-gray-100 rounded-full ${isExpanded ? 'bg-gray-100' : ''}`}
-              >
-                <Expand className={`w-6 h-6 text-[#629785] transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-              </button>
+          <div className="flex flex-col space-y-2">
+            <div className="flex items-start space-x-2">
+              <MicrophoneVisualizer
+                isRecording={isRecording}
+                onToggle={() => isRecording ? stopRecording() : startRecording()}
+              />
+              <textarea
+                value={inputText}
+                onChange={handleInputChange}
+                onKeyPress={handleKeyPress}
+                placeholder="Typ een boodschap..."
+                className={`flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#629785] focus:border-transparent resize-none transition-all duration-200 ease-in-out chat-message ${
+                  isExpanded ? 'h-24' : 'h-10'
+                }`}
+                style={{
+                  lineHeight: '1.5rem',
+                  overflowY: isExpanded ? 'auto' : 'hidden',
+                }}
+              />
+              <div className="flex-shrink-0 flex items-center space-x-2">
+                <button
+                  onClick={handleSend}
+                  disabled={isLoading || !inputText.trim()}
+                  className="p-2 hover:bg-gray-100 rounded-full disabled:opacity-50"
+                >
+                  <ArrowUpCircle className="w-6 h-6 text-[#629785]" />
+                </button>
+                <button
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className={`p-2 hover:bg-gray-100 rounded-full ${isExpanded ? 'bg-gray-100' : ''}`}
+                >
+                  <Expand className={`w-6 h-6 text-[#629785] transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
             </div>
+
+            {uncertaintySuggestions.length > 0 && (
+              <SuggestionChips
+                suggestions={uncertaintySuggestions}
+                onSelect={handleSuggestionSelect}
+              />
+            )}
           </div>
         </div>
       </div>
 
-      {/* Add PromptLibrary component */}
       <PromptLibrary
         onSelectPrompt={handlePromptSelect}
         isExpanded={showPromptLibrary}
         onToggle={() => setShowPromptLibrary(!showPromptLibrary)}
       />
 
-      {/* New Chat Dialog */}
       <AlertDialog open={showNewChatDialog} onOpenChange={setShowNewChatDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
