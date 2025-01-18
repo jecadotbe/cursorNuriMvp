@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
 import { PromptLibrary } from "@/components/PromptLibrary";
 import { useVoiceInput } from "@/hooks/use-voice-input";
+import { MicrophoneVisualizer } from "@/components/MicrophoneVisualizer";
 
 const theme = {
   primary: 'bg-[#F2F0E5]',
@@ -300,14 +301,10 @@ export default function ChatView() {
       <div className="w-full border-t border-gray-200 bg-white fixed bottom-14 left-0 z-50">
         <div className="max-w-screen-lg mx-auto px-4 py-3">
           <div className="flex items-start space-x-2">
-            <button 
-              onClick={() => isRecording ? stopRecording() : startRecording()}
-              className={`p-2 hover:bg-gray-100 rounded-full flex-shrink-0 ${
-                isRecording ? 'bg-red-100 text-red-500' : ''
-              }`}
-            >
-              <Mic className={`w-6 h-6 ${isRecording ? 'text-red-500' : 'text-[#629785]'}`} />
-            </button>
+            <MicrophoneVisualizer
+              isRecording={isRecording}
+              onToggle={() => isRecording ? stopRecording() : startRecording()}
+            />
             <textarea
               value={inputText}
               onChange={handleInputChange}
