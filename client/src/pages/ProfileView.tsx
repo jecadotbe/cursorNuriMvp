@@ -9,12 +9,18 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ChevronRight } from "lucide-react";
+import { useLocation } from "wouter";
 
 export default function ProfileView() {
   const { user, logout } = useUser();
+  const [, setLocation] = useLocation();
 
   const handleLogout = async () => {
     await logout();
+  };
+
+  const startOnboarding = () => {
+    setLocation("/onboarding");
   };
 
   const sections = [
@@ -23,7 +29,7 @@ export default function ProfileView() {
       items: [
         { label: "Account instellingen", href: "#" },
         { label: "Beheer abonnement & betalingen", href: "#" },
-        { label: "Accounts beheren", href: "#" },
+        { label: "Start onboarding opnieuw", action: startOnboarding },
       ],
     },
     {
@@ -73,6 +79,8 @@ export default function ProfileView() {
                 key={item.label}
                 variant="ghost"
                 className="w-full justify-between text-lg font-normal hover:bg-transparent"
+                onClick={item.action ? item.action : undefined}
+                {...(item.href ? { as: "a", href: item.href } : {})}
               >
                 {item.label}
                 <ChevronRight className="h-5 w-5" />

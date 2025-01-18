@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLocation } from "wouter";
 
 export default function AuthPage() {
   const { login, register } = useUser();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [, setLocation] = useLocation();
 
   const handleSubmit = async (action: "login" | "register") => {
     setIsSubmitting(true);
@@ -19,6 +21,8 @@ export default function AuthPage() {
         await login({ username, password });
       } else {
         await register({ username, password });
+        // After successful registration, redirect to onboarding
+        setLocation("/onboarding");
       }
     } finally {
       setIsSubmitting(false);
