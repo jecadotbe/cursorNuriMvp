@@ -73,6 +73,13 @@ const Avatar = ({ sender }: { sender: 'user' | 'assistant' }) => {
   );
 };
 
+const DEFAULT_SUGGESTIONS = [
+  "Ik weet het niet goed",
+  "Kan je mij verder helpen?",
+  "Waar moet ik beginnen?",
+  "Leg eens uit hoe andere ouders dit doen"
+];
+
 export default function ChatView() {
   const { messages, sendMessage, isLoading, chatId } = useChat();
   const [inputText, setInputText] = useState('');
@@ -80,7 +87,7 @@ export default function ChatView() {
   const [showPromptLibrary, setShowPromptLibrary] = useState(false);
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
-  const [uncertaintySuggestions, setUncertaintySuggestions] = useState<string[]>([]);
+  const [currentSuggestions, setCurrentSuggestions] = useState<string[]>(DEFAULT_SUGGESTIONS);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -239,10 +246,12 @@ export default function ChatView() {
         "Wat zou jij aanraden?",
         "Leg eens uit hoe andere ouders dit aanpakken"
       ];
-      setUncertaintySuggestions(suggestions);
+      setCurrentSuggestions(suggestions);
       console.log('[DEBUG] Setting suggestions:', suggestions);
+    } else if (!text.trim()) {
+      setCurrentSuggestions(DEFAULT_SUGGESTIONS);
     } else {
-      setUncertaintySuggestions([]);
+      setCurrentSuggestions([]);
     }
   };
 
@@ -252,7 +261,7 @@ export default function ChatView() {
       if (!chatId) return;
     }
     setInputText('');
-    setUncertaintySuggestions([]);
+    setCurrentSuggestions([]);
     await sendMessage(suggestion);
   };
 
@@ -379,12 +388,12 @@ export default function ChatView() {
             </div>
 
             <div className="text-xs text-gray-500">
-              Debug: {uncertaintySuggestions.length} suggestions available
+              Debug: {currentSuggestions.length} suggestions available
             </div>
 
-            <div className="mt-2">
+            <div className="mt-2 pb-4">
               <SuggestionChips
-                suggestions={uncertaintySuggestions}
+                suggestions={currentSuggestions}
                 onSelect={handleSuggestionSelect}
               />
             </div>
