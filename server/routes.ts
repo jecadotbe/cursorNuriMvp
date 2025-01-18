@@ -24,38 +24,37 @@ export function registerRoutes(app: Express): Server {
     const user = req.user as User;
     const now = new Date();
 
-    // Try to find an unused, non-expired suggestion
-    const suggestions = await db.query.promptSuggestions.findMany({
-      where: and(
-        eq(promptSuggestions.userId, user.id),
-        isNull(promptSuggestions.usedAt),
-        gte(promptSuggestions.expiresAt, now)
-      ),
-      orderBy: [
-        desc(promptSuggestions.relevance),
-        desc(promptSuggestions.createdAt)
-      ],
-      limit: 3
-    });
-
-    // If we have suggestions, return them
-    if (suggestions.length > 0) {
-      return res.json(suggestions[0]);
-    }
-
-    // If no valid suggestions exist, generate a new one
     try {
+      // Try to find an unused, non-expired suggestion
+      const suggestions = await db.query.promptSuggestions.findMany({
+        where: and(
+          eq(promptSuggestions.userId, user.id),
+          isNull(promptSuggestions.usedAt),
+          gte(promptSuggestions.expiresAt, now)
+        ),
+        orderBy: [
+          desc(promptSuggestions.relevance),
+          desc(promptSuggestions.createdAt)
+        ],
+        limit: 3
+      });
+
+      // If we have suggestions, return them
+      if (suggestions.length > 0) {
+        return res.json(suggestions[0]);
+      }
+
+      // If no valid suggestions exist, generate a new one
       const recentChats = await db.query.chats.findMany({
         where: eq(chats.userId, user.id),
         orderBy: desc(chats.updatedAt),
         limit: 5
       });
 
-      // Get memories from before the last day for better context
-      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      const relevantMemories = await memoryService.getMemoriesBefore(
+      // Get relevant memories for context, but prioritize older ones
+      const relevantMemories = await memoryService.getRelevantMemories(
         user.id,
-        oneDayAgo,
+        "general parenting advice and long-term goals",
         10
       );
 
@@ -66,10 +65,10 @@ export function registerRoutes(app: Express): Server {
       const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 300,
-        system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the conversation and provide a relevant follow-up prompt. Avoid recent topics, focus on deeper patterns and long-term goals. Consider this historical context:\n${memoryContext}`,
+        system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the conversation and provide a relevant follow-up prompt. Focus on deeper patterns and long-term goals, avoiding very recent topics. Consider this historical context:\n${memoryContext}`,
         messages: [{
           role: "user", 
-          content: `Based on these messages and the user's conversation history, generate a follow-up prompt that's relevant but not too immediate. Format the response exactly like this:
+          content: `Based on these messages and the user's conversation history, generate a follow-up prompt that focuses on longer-term parenting themes or unexplored areas. Format the response exactly like this:
           {
             "prompt": {
               "text": "follow-up question or suggestion",

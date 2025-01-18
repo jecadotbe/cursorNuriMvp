@@ -47,39 +47,35 @@ export function useChatHistory() {
   const { data: chats = [], isLoading, error, refetch } = useQuery<Chat[], Error>({
     queryKey: ["chats"],
     queryFn: fetchChatHistory,
-    staleTime: 0, // Always fetch fresh data
+  });
+
+  const { data: suggestion, refetch: refetchSuggestion } = useQuery<PromptSuggestion>({
+    queryKey: ["suggestion"],
+    queryFn: fetchSuggestion,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    enabled: true, // Automatically fetch when the hook is mounted
     retry: false,
     onError: (error) => {
+      console.error('Failed to fetch suggestion:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message,
+        description: "Failed to load suggestion",
       });
     },
   });
 
-  const { data: cachedSuggestion, refetch: refetchSuggestion } = useQuery<PromptSuggestion>({
-    queryKey: ["suggestion"],
-    queryFn: fetchSuggestion,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    retry: false,
-    enabled: false, // Don't fetch automatically
-  });
-
   const getLatestPrompt = async () => {
     try {
-      // Try to get a cached suggestion
-      const { data: suggestion } = await refetchSuggestion();
-
       if (suggestion) {
         return {
           prompt: {
             text: suggestion.text,
             type: suggestion.type,
             context: suggestion.context,
-            relatedChatId: suggestion.relatedChatId,
+            relatedChatId: suggestion.relatedChatId?.toString(),
             relatedChatTitle: suggestion.relatedChatTitle,
-            suggestionId: suggestion.id // Keep track of the suggestion ID
+            suggestionId: suggestion.id
           }
         };
       }
@@ -89,7 +85,7 @@ export function useChatHistory() {
         prompt: {
           text: "Let's talk about your parenting journey",
           type: "action",
-          context: "Start a conversation"
+          context: "new"
         }
       };
     } catch (error) {
@@ -108,6 +104,7 @@ export function useChatHistory() {
   const markPromptAsUsed = async (suggestionId: number) => {
     try {
       await markSuggestionAsUsed(suggestionId);
+      await refetchSuggestion(); // Fetch a new suggestion after marking the current one as used
     } catch (error) {
       console.error('Failed to mark suggestion as used:', error);
     }
