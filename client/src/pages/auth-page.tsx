@@ -33,8 +33,8 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-cover bg-no-repeat bg-center p-4" style={{ backgroundImage: 'url(/images/KEyvisual_family1_1.jpg)' }}>
       <Card className="w-full max-w-md">
         <CardHeader>
-          <img src="/images/nuri_logo_text.png" alt="Nuri Logo" className="mx-auto mb-4" style={{ maxWidth: '180px' }} />
-          <CardTitle className="text-2xl text-center font-baskerville color-">Welcome to Nuri</CardTitle>
+          <img src="images/nuri_logo_green.png" alt="Nuri Logo" className="mx-auto mb-4" style={{ maxWidth: '180px' }} />
+          <CardTitle className="text-1xl text-center font-baskerville">Welkom.</CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login">
