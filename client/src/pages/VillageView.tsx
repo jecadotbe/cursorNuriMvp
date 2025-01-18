@@ -67,37 +67,11 @@ export default function VillageView() {
   const [memberToDelete, setMemberToDelete] = useState<typeof members[0] | null>(null);
 
   const handleZoomIn = () => {
-    setScale((prev) => {
-      const newScale = Math.min(prev + 0.2, 3);
-      // Keep the center point fixed during zoom
-      const centerX = window.innerWidth / 2;
-      const centerY = window.innerHeight / 2;
-
-      // Adjust position to maintain center point
-      setPosition(prev => ({
-        x: centerX - (centerX - prev.x) * (newScale / prev),
-        y: centerY - (centerY - prev.y) * (newScale / prev)
-      }));
-
-      return newScale;
-    });
+    setScale((prev) => Math.min(prev + 0.1, 3));
   };
 
   const handleZoomOut = () => {
-    setScale((prev) => {
-      const newScale = Math.max(prev - 0.2, 0.3);
-      // Keep the center point fixed during zoom
-      const centerX = window.innerWidth / 2;
-      const centerY = window.innerHeight / 2;
-
-      // Adjust position to maintain center point
-      setPosition(prev => ({
-        x: centerX - (centerX - prev.x) * (newScale / prev),
-        y: centerY - (centerY - prev.y) * (newScale / prev)
-      }));
-
-      return newScale;
-    });
+    setScale((prev) => Math.max(prev - 0.1, 0.3));
   };
 
   const handleReset = () => {
@@ -162,26 +136,12 @@ export default function VillageView() {
         return;
       }
 
-      const delta = (dist - lastTouchDistance.current) * 0.01;
+      const delta = dist - lastTouchDistance.current;
       lastTouchDistance.current = dist;
 
-      // Calculate center of pinch
-      const centerX = (touch1.clientX + touch2.clientX) / 2;
-      const centerY = (touch1.clientY + touch2.clientY) / 2;
-
-      // Calculate new scale
-      const newScale = Math.min(Math.max(scale + delta, 0.3), 3);
-
-      // Adjust position to maintain pinch center point
-      const newPosition = {
-        x: centerX - (centerX - position.x) * (newScale / scale),
-        y: centerY - (centerY - position.y) * (newScale / prev)
-      };
-
-      setScale(newScale);
-      setPosition(newPosition);
+      setScale(prevScale => Math.min(Math.max(prevScale + delta * 0.01, 0.3), 3));
     } else if (e.touches.length === 1) {
-      // Handle pan - unchanged
+      // Handle pan
       const touch = e.touches[0];
       if (!lastTouchPos.current) {
         lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
@@ -249,28 +209,6 @@ export default function VillageView() {
   const handlePanEnd = () => {
     setIsDragging(false);
   };
-
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const zoomSensitivity = 0.001;
-    const delta = -e.deltaY * zoomSensitivity;
-    const newScale = Math.max(0.3, Math.min(3, scale * (1 + delta)));
-
-    // Calculate zoom center point (mouse position)
-    const rect = e.currentTarget.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    // Calculate new position to zoom towards mouse
-    const newPosition = {
-      x: mouseX - (mouseX - position.x) * (newScale / scale),
-      y: mouseY - (mouseY - position.y) * (newScale / scale)
-    };
-
-    setScale(newScale);
-    setPosition(newPosition);
-  };
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -482,7 +420,6 @@ export default function VillageView() {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        onWheel={handleWheel}
         style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
       >
         {/* Off-screen member indicators */}
@@ -534,7 +471,7 @@ export default function VillageView() {
           style={{
             transform: `scale(${scale}) translate(${position.x}px, ${position.y}px)`,
             transformOrigin: "center center",
-            transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+            transition: isDragging ? 'none' : 'transform 0.1s ease-out'
           }}
         >
           <div className="absolute inset-0 flex items-center justify-center">
