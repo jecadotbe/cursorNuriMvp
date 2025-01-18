@@ -99,24 +99,17 @@ export function registerRoutes(app: Express): Server {
     const data = req.body;
 
     try {
-      // Update or create parent profile with complete data
-      const [profile] = await db
-        .insert(parentProfiles)
-        .values({
-          userId: user.id,
-          name: data.basicInfo.name,
-          email: data.basicInfo.email,
-          stressLevel: data.stressAssessment.stressLevel,
-          experienceLevel: data.basicInfo.experienceLevel,
-          primaryConcerns: data.stressAssessment.primaryConcerns,
-          supportNetwork: data.stressAssessment.supportNetwork,
-          completedOnboarding: true,
-          currentOnboardingStep: 4,
-          onboardingData: data,
-        })
-        .onConflictDoUpdate({
-          target: [parentProfiles.userId],
-          set: {
+      // First check if a profile exists
+      const existingProfile = await db.query.parentProfiles.findFirst({
+        where: eq(parentProfiles.userId, user.id),
+      });
+
+      let profile;
+      if (existingProfile) {
+        // Update existing profile
+        [profile] = await db
+          .update(parentProfiles)
+          .set({
             name: data.basicInfo.name,
             email: data.basicInfo.email,
             stressLevel: data.stressAssessment.stressLevel,
@@ -127,9 +120,27 @@ export function registerRoutes(app: Express): Server {
             currentOnboardingStep: 4,
             onboardingData: data,
             updatedAt: new Date(),
-          },
-        })
-        .returning();
+          })
+          .where(eq(parentProfiles.userId, user.id))
+          .returning();
+      } else {
+        // Create new profile
+        [profile] = await db
+          .insert(parentProfiles)
+          .values({
+            userId: user.id,
+            name: data.basicInfo.name,
+            email: data.basicInfo.email,
+            stressLevel: data.stressAssessment.stressLevel,
+            experienceLevel: data.basicInfo.experienceLevel,
+            primaryConcerns: data.stressAssessment.primaryConcerns,
+            supportNetwork: data.stressAssessment.supportNetwork,
+            completedOnboarding: true,
+            currentOnboardingStep: 4,
+            onboardingData: data,
+          })
+          .returning();
+      }
 
       res.json(profile);
     } catch (error) {
