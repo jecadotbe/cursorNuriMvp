@@ -264,7 +264,7 @@ const [showSuggestions, setShowSuggestions] = useState(false);
   return (
     <div className="flex flex-col h-screen animate-gradient" style={{
       backgroundSize: "400% 400%",
-      background: `linear-gradient(135deg, #C9E1D4 0%, #F2F0E5 50%, #F2F0E5 100%)`
+      background: `linear-gradient(135deg, #F8DD9F 0%, #F2F0E5 50%, #F2F0E5 100%)`
     }}>
       <div className="w-full px-4 py-3 flex items-center justify-between border-b border-gray-200 bg-white fixed top-0 left-0 z-50 shadow-sm">
         <div className="flex items-center gap-4">
