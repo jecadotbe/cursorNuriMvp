@@ -129,6 +129,8 @@ export default function VillageView() {
     }
   ]);
 
+  const { addMemory } = useVillageMemories(selectedMember?.id || 0);
+
   const handleZoomIn = () => {
     setScale((prev) => Math.min(prev + 0.1, 3));
   };
@@ -417,7 +419,14 @@ export default function VillageView() {
     if (!selectedMember) return;
 
     try {
-      // TODO: Implement API call to save memory
+      await addMemory({
+        title: newMemory.title,
+        content: newMemory.content,
+        date: newMemory.date,
+        emotionalImpact: newMemory.emotionalImpact,
+        tags: newMemory.tags
+      });
+
       toast({
         title: "Success",
         description: "Memory saved successfully"
@@ -427,7 +436,8 @@ export default function VillageView() {
         title: "",
         content: "",
         emotionalImpact: 3,
-        tags: []
+        tags: [],
+        date: format(new Date(), "yyyy-MM-dd")
       });
     } catch (error) {
       console.error('Memory save error:', error);
@@ -842,7 +852,7 @@ export default function VillageView() {
                     <Input
                       id="title"
                       value={newMemory.title}
-                      onChange={(e) => setNewMemory({ ...newMemory, title: e.target.value })}
+                      onChange={(e) => setNewMemory({...newMemory, title: e.target.value })}
                       placeholder="Enter a title for this memory"
                       required
                     />
