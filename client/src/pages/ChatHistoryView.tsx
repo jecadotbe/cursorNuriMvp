@@ -66,7 +66,7 @@ export default function ChatHistoryView() {
             <ArrowLeft className="w-6 h-6 text-gray-600" />
           </button>
         </Link>
-        <h1 className="text-lg font-semibold font-baskerville">Mijn gesprekken</h1>
+        <h1 className="text-lg font-baskerville">Mijn gesprekken</h1>
         <button
           onClick={startNewChat}
           className="p-2 bg-[#629785] hover:bg-[#4A7566] rounded-full"
