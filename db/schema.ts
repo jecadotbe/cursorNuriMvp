@@ -1,4 +1,5 @@
 import { pgTable, text, serial, integer, boolean, timestamp, jsonb, pgEnum, numeric } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -52,7 +53,7 @@ export const parentProfiles = pgTable("parent_profiles", {
   stressLevel: stressLevelEnum("stress_level").notNull(),
   experienceLevel: experienceLevelEnum("experience_level").notNull(),
   primaryConcerns: text("primary_concerns").array(),
-  supportNetwork: text("support_network").array(), // family, friends, professionals
+  supportNetwork: text("support_network").array(),
   completedOnboarding: boolean("completed_onboarding").default(false),
   currentOnboardingStep: integer("current_onboarding_step").default(1),
   onboardingData: jsonb("onboarding_data").default({}),
@@ -66,8 +67,8 @@ export const children = pgTable("children", {
   name: text("name").notNull(),
   age: integer("age").notNull(),
   specialNeeds: text("special_needs").array(),
-  routines: jsonb("routines"), // Daily routines and preferences
-  challenges: jsonb("challenges"), // Specific challenges for this child
+  routines: jsonb("routines"),
+  challenges: jsonb("challenges"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -75,12 +76,12 @@ export const children = pgTable("children", {
 export const parentingChallenges = pgTable("parenting_challenges", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
-  category: text("category").notNull(), // sleep, behavior, education, etc.
+  category: text("category").notNull(),
   description: text("description").notNull(),
-  severity: integer("severity").notNull(), // 1-5 scale
-  frequency: text("frequency").notNull(), // daily, weekly, monthly
-  impactLevel: integer("impact_level").notNull(), // 1-5 scale
-  status: text("status").default("active"), // active, managed, resolved
+  severity: integer("severity").notNull(),
+  frequency: text("frequency").notNull(),
+  impactLevel: integer("impact_level").notNull(),
+  status: text("status").default("active"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -90,9 +91,9 @@ export const parentingGoals = pgTable("parenting_goals", {
   userId: integer("user_id").references(() => users.id).notNull(),
   title: text("title").notNull(),
   description: text("description").notNull(),
-  timeframe: text("timeframe").notNull(), // short_term, long_term
-  priority: integer("priority").notNull(), // 1-5 scale
-  status: text("status").default("active"), // active, in_progress, achieved
+  timeframe: text("timeframe").notNull(),
+  priority: integer("priority").notNull(),
+  status: text("status").default("active"),
   targetDate: timestamp("target_date"),
   achievedDate: timestamp("achieved_date"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -104,10 +105,10 @@ export const villageMembers = pgTable("village_members", {
   userId: integer("user_id").references(() => users.id).notNull(),
   name: text("name").notNull(),
   type: text("type").notNull(),
+  role: text("role"),
   circle: integer("circle").notNull(),
   category: memberCategoryEnum("category"),
   contactFrequency: contactFrequencyEnum("contact_frequency"),
-  // Add position fields
   positionAngle: numeric("position_angle").notNull().default('0'),
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -122,11 +123,23 @@ export const villageMemberMemories = pgTable("village_member_memories", {
   content: text("content").notNull(),
   date: timestamp("date").notNull(),
   tags: text("tags").array(),
-  emotionalImpact: integer("emotional_impact"), // Scale 1-5
+  emotionalImpact: integer("emotional_impact"),
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// Define relations using the imported relations function
+export const villageMembersRelations = relations(villageMembers, ({ many }) => ({
+  memories: many(villageMemberMemories),
+}));
+
+export const villageMemberMemoriesRelations = relations(villageMemberMemories, ({ one }) => ({
+  member: one(villageMembers, {
+    fields: [villageMemberMemories.villageMemberId],
+    references: [villageMembers.id],
+  }),
+}));
 
 export const villageInsights = pgTable("village_insights", {
   id: serial("id").primaryKey(),
@@ -135,8 +148,8 @@ export const villageInsights = pgTable("village_insights", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   suggestedAction: text("suggested_action"),
-  priority: integer("priority").notNull(), // Scale 1-5
-  status: text("status").default("active"), // active, implemented, dismissed
+  priority: integer("priority").notNull(),
+  status: text("status").default("active"),
   relatedMemberIds: integer("related_member_ids").array(),
   metadata: jsonb("metadata"),
   implementedAt: timestamp("implemented_at"),
@@ -148,10 +161,10 @@ export const villageMemberInteractions = pgTable("village_member_interactions", 
   id: serial("id").primaryKey(),
   villageMemberId: integer("village_member_id").references(() => villageMembers.id).notNull(),
   userId: integer("user_id").references(() => users.id).notNull(),
-  type: text("type").notNull(), // call, visit, message, etc.
+  type: text("type").notNull(),
   date: timestamp("date").notNull(),
-  duration: integer("duration"), // in minutes
-  quality: integer("quality"), // Scale 1-5
+  duration: integer("duration"),
+  quality: integer("quality"),
   notes: text("notes"),
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -182,9 +195,9 @@ export const promptSuggestions = pgTable("prompt_suggestions", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
   text: text("text").notNull(),
-  type: text("type").notNull(), // 'action' | 'follow_up'
-  context: text("context").notNull(), // 'new' | 'existing'
-  relevance: integer("relevance").notNull(), // 1-10 score
+  type: text("type").notNull(),
+  context: text("context").notNull(),
+  relevance: integer("relevance").notNull(),
   relatedChatId: integer("related_chat_id").references(() => chats.id),
   relatedChatTitle: text("related_chat_title"),
   usedAt: timestamp("used_at"),
@@ -196,8 +209,8 @@ export const suggestionFeedback = pgTable("suggestion_feedback", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
   suggestionId: integer("suggestion_id").references(() => promptSuggestions.id).notNull(),
-  rating: integer("rating").notNull(), // 1-5 scale
-  feedback: text("feedback"), // Optional text feedback
+  rating: integer("rating").notNull(),
+  feedback: text("feedback"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

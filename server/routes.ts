@@ -19,6 +19,83 @@ import type { User } from "./auth";
 import { memoryService } from "./services/memory";
 import villageRouter from "./routes/village";
 import {format} from 'date-fns'
+import { and, eq, desc } from "drizzle-orm";
+import { db } from "@db";
+import { villageMembers, villageMemberMemories } from "@db/schema";
+
+const getVillageContext = async (userId: number) => {
+  try {
+    // Get village members with their recent memories
+    const members = await db
+      .select({
+        id: villageMembers.id,
+        name: villageMembers.name,
+        type: villageMembers.type,
+        role: villageMembers.role,
+        category: villageMembers.category,
+      })
+      .from(villageMembers)
+      .where(eq(villageMembers.userId, userId));
+
+    if (!members || members.length === 0) {
+      return null;
+    }
+
+    // Get memories for each member
+    const membersWithMemories = await Promise.all(
+      members.map(async (member) => {
+        const memories = await db
+          .select({
+            title: villageMemberMemories.title,
+            content: villageMemberMemories.content,
+            date: villageMemberMemories.date,
+          })
+          .from(villageMemberMemories)
+          .where(
+            and(
+              eq(villageMemberMemories.villageMemberId, member.id),
+              eq(villageMemberMemories.userId, userId)
+            )
+          )
+          .orderBy(desc(villageMemberMemories.date))
+          .limit(3);
+
+        return {
+          ...member,
+          memories,
+        };
+      })
+    );
+
+    // Format context string with all available information
+    const contextString = membersWithMemories
+      .map(
+        (member) => `
+Member: ${member.name}
+Role: ${member.role || 'Not specified'}
+Type: ${member.type}
+Category: ${member.category || 'Not specified'}
+Recent memories: ${
+          member.memories.length > 0
+            ? member.memories
+                .map(
+                  (memory) =>
+                    `\n  - ${format(new Date(memory.date), 'MM/dd/yyyy')}: ${
+                      memory.title
+                    } - ${memory.content.substring(0, 100)}...`
+                )
+                .join('')
+            : '\n  No recent memories'
+        }`
+      )
+      .join('\n\n');
+
+    return `\n\nVillage Context:\nYour support network includes the following members:\n${contextString}`;
+  } catch (error) {
+    console.error('Error getting village context:', error);
+    return '';
+  }
+};
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
@@ -477,32 +554,16 @@ Analyze the available context and provide a relevant suggestion. For new users o
           where: eq(parentProfiles.userId, user.id),
         });
 
-        // Get village members and their recent memories
-        const villageContext = await db.query.villageMembers.findMany({
-          where: eq(villageMembers.userId, user.id),
-          with: {
-            memories: {
-              orderBy: desc(villageMemberMemories.date),
-              limit: 3
-            }
-          }
-        });
-
-        // Format village context
-        let villageContextString = '';
-        if (villageContext.length > 0) {
-          villageContextString = `\n\nVillage Context:\n${villageContext.map(member => `
-Member: ${member.name}
-Role: ${member.role || 'Not specified'}
-Recent memories: ${member.memories.map(memory => 
-  `- ${format(memory.date, 'MM/dd/yyyy')}: ${memory.title} - ${memory.content.substring(0, 100)}...`
-).join('\n')}`).join('\n\n')}`;
+        // Add village context to the prompt
+        const villageContextString = await getVillageContext(user.id);
+        if (villageContextString) {
+          contextualizedPrompt += villageContextString;
         }
 
         // Add profile context if available
         if (profile?.onboardingData) {
           const profileContext = `
-Parent's Profile:
+Parent's Context:
 - Experience Level: ${profile.onboardingData.basicInfo?.experienceLevel}
 - Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel}
 - Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ")}
@@ -511,15 +572,10 @@ ${profile.onboardingData.childProfiles
               (child) =>
                 `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
             )
-            .join("\n")}
-`;
-          contextualizedPrompt += `\n\nParent's Context:\n${profileContext}`;
+            .join("\n")}`;
+          contextualizedPrompt += `\n\n${profileContext}`;
         }
 
-        // Add village context
-        if (villageContextString) {
-          contextualizedPrompt += villageContextString;
-        }
 
         // Get relevant memories for context
         const relevantMemories = await memoryService.getRelevantMemories(
@@ -875,8 +931,7 @@ Conversation: ${JSON.stringify(messages)}`,
   });
 
   app.post("/api/message-feedback", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).send("Not authenticated");
+    if (!req.isAuthenticated() || !req.user) {      return res.status(401).send("Not authenticated");
     }
 
     const user = req.user as User;
@@ -929,7 +984,7 @@ Conversation: ${JSON.stringify(messages)}`,
 
   app.post("/api/suggestions/generate", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).send("Not authenticated");
+      return res.status(401).send("Notauthenticated");
     }    const user = req.user as User;
     const { chatId, lastMessageContent } = req.body;
 
