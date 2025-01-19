@@ -177,14 +177,15 @@ const VideoPlayer: React.FC<{
           >
             {/* Top navigation */}
             <div className="absolute top-0 left-0 right-0 p-4">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="text-white"
-                onClick={() => window.history.back()}
-              >
-                <ArrowLeft className="h-6 w-6" />
-              </Button>
+              <Link href="/learn">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="text-white"
+                >
+                  <ArrowLeft className="h-6 w-6" />
+                </Button>
+              </Link>
             </div>
 
             {/* Center play/pause button */}
