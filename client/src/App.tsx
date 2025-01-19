@@ -22,6 +22,11 @@ import OnboardingPage from "@/pages/onboarding";
 function Router() {
   const { user, isLoading } = useUser();
   const [location] = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location]);
+  const [location] = useLocation();
   const showNavigation = !location.startsWith('/learn/') && !location.startsWith('/onboarding');
 
   if (isLoading) {
