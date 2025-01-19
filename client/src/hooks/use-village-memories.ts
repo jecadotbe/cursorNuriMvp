@@ -1,0 +1,57 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/hooks/use-toast";
+
+interface Memory {
+  id: number;
+  title: string;
+  content: string;
+  date: string;
+  emotionalImpact: number;
+  tags: string[];
+}
+
+export function useVillageMemories(memberId: number) {
+  const queryClient = useQueryClient();
+
+  const { data: memories, isLoading } = useQuery<Memory[]>({
+    queryKey: [`/api/village/members/${memberId}/memories`],
+    enabled: !!memberId,
+  });
+
+  const addMemoryMutation = useMutation({
+    mutationFn: async (newMemory: Omit<Memory, "id">) => {
+      const response = await fetch(`/api/village/members/${memberId}/memories`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newMemory),
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add memory");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/village/members/${memberId}/memories`] });
+      toast({
+        title: "Success",
+        description: "Memory added successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to add memory",
+      });
+    },
+  });
+
+  return {
+    memories: memories || [],
+    isLoading,
+    addMemory: addMemoryMutation.mutate,
+  };
+}

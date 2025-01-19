@@ -933,7 +933,7 @@ Conversation: ${JSON.stringify(messages)}`,
         messages: [
           {
             role: "user",
-            content: `Based on this message and conversation history, generate 3-5 natural follow-up prompts that would help continue the conversation naturally. These should be phrased as things a parent might say or ask.
+            content:`Based onthis message and conversation history, generate 3-5 natural follow-up prompts that would help continue the conversation naturally. These should be phrased as things a parent might say or ask.
 
 Last message: "${lastMessageContent}"
 
@@ -1001,47 +1001,54 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
     }
   });
 
-  app.post("/api/village/members/:memberId/memories", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).send("Not authenticated");
+app.post("/api/village/members/:memberId/memories", async (req, res) => {
+  if (!req.isAuthenticated() || !req.user) {
+    return res.status(401).send("Not authenticated");
+  }
+
+  const user = req.user as User;
+  const memberId = parseInt(req.params.memberId);
+
+  if (isNaN(memberId)) {
+    return res.status(400).json({ message: "Invalid member ID" });
+  }
+
+  const { title, content, date, emotionalImpact, tags } = req.body;
+
+  try {
+    // First verify that the village member belongs to the user
+    const member = await db.query.villageMembers.findFirst({
+      where: and(
+        eq(villageMembers.id, memberId),
+        eq(villageMembers.userId, user.id)
+      ),
+    });
+
+    if (!member) {
+      return res.status(404).json({ message: "Village member not found" });
     }
 
-    const user = req.user as User;
-    const memberId = parseInt(req.params.memberId);
-    const { title, content, date, emotionalImpact, tags } = req.body;
+    // Create new memory
+    const [memory] = await db
+      .insert(villageMemberMemories)
+      .values({
+        villageMemberId: memberId,
+        userId: user.id,
+        title,
+        content,
+        date: new Date(date),
+        emotionalImpact,
+        tags,
+        metadata: {},
+      })
+      .returning();
 
-    try {
-      // Verify member belongs to user
-      const member = await db.query.villageMembers.findFirst({
-        where: and(
-          eq(villageMembers.id, memberId),
-          eq(villageMembers.userId, user.id)
-        ),
-      });
-
-      if (!member) {
-        return res.status(404).json({ message: "Village member not found" });
-      }
-
-      const [memory] = await db
-        .insert(villageMemberMemories)
-        .values({
-          villageMemberId: memberId,
-          userId: user.id,
-          title,
-          content,
-          date: new Date(date),
-          emotionalImpact,
-          tags,
-        })
-        .returning();
-
-      res.json(memory);
-    } catch (error) {
-      console.error("Failed to create memory:", error);
-      res.status(500).json({ message: "Failed to create memory" });
-    }
-  });
+    res.json(memory);
+  } catch (error) {
+    console.error("Failed to create memory:", error);
+    res.status(500).json({ message: "Failed to create memory" });
+  }
+});
 
   // Village insights endpoints
   app.get("/api/village/insights", async (req, res) => {

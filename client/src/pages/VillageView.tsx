@@ -45,6 +45,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useVillageMemories } from "@/hooks/use-village-memories";
+import { VillageMemberMemories } from "@/components/VillageMemberMemories";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const CATEGORY_COLORS = {
   informeel: "#22c55e", // Green
@@ -99,7 +102,7 @@ export default function VillageView() {
   const [selectedMember, setSelectedMember] = useState<typeof members[0] | null>(null);
   const [isMemoryDialogOpen, setIsMemoryDialogOpen] = useState(false);
   const [isInsightsPanelOpen, setIsInsightsPanelOpen] = useState(false);
-  const [newMemory, setNewMemory] = useState<Memory>({
+  const [newMemory, setNewMemory] = useState<Omit<Memory, 'id'>>({
     title: "",
     content: "",
     emotionalImpact: 3,
@@ -592,13 +595,13 @@ export default function VillageView() {
                       style={{
                         backgroundColor: categoryColor,
                         width: member.contactFrequency === 'S' ? '0.5rem' :
-                              member.contactFrequency === 'M' ? '0.875rem' :
-                              member.contactFrequency === 'L' ? '1.25rem' :
-                              member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem',
+                          member.contactFrequency === 'M' ? '0.875rem' :
+                          member.contactFrequency === 'L' ? '1.25rem' :
+                          member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem',
                         height: member.contactFrequency === 'S' ? '0.5rem' :
-                               member.contactFrequency === 'M' ? '0.875rem' :
-                               member.contactFrequency === 'L' ? '1.25rem' :
-                               member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem'
+                          member.contactFrequency === 'M' ? '0.875rem' :
+                          member.contactFrequency === 'L' ? '1.25rem' :
+                          member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem'
                       }}
                     />
                     <div className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB]">
@@ -735,7 +738,7 @@ export default function VillageView() {
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
               <Select
-                value={newMemory.category || "informeel"}
+                value={newMember.category || "informeel"}
                 onValueChange={(value: "informeel" | "formeel" | "inspiratie") =>
                   setNewMember({ ...newMember, category: value })
                 }
@@ -814,51 +817,93 @@ export default function VillageView() {
       </AlertDialog>
       {/* Memories Dialog */}
       <Dialog open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[600px] h-[80vh]">
           <DialogHeader>
-            <DialogTitle>Add Memory with {selectedMember?.name}</DialogTitle>
+            <DialogTitle>Memories with {selectedMember?.name}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleMemorySubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                value={newMemory.title}
-                onChange={(e) => setNewMemory({ ...newMemory, title: e.target.value })}
-                placeholder="Enter a title for this memory"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="content">Memory Details</Label>
-              <Textarea
-                id="content"
-                value={newMemory.content}
-                onChange={(e) => setNewMemory({ ...newMemory, content: e.target.value })}
-                placeholder="What happened? How did it make you feel?"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="emotionalImpact">Emotional Impact (1-5)</Label>
-              <Select
-                value={String(newMemory.emotionalImpact)}
-                onValueChange={(value) => setNewMemory({ ...newMemory, emotionalImpact: Number(value) })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <SelectItem key={n} value={String(n)}>
-                      {n} Star{n !== 1 ? 's' : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-                </Select>
-            </div>
-            <Button type="submit" className="w-full">Save Memory</Button>
-          </form>
+          <div className="flex flex-col h-full gap-4 mt-4">
+            <Tabs defaultValue="view">
+              <TabsList>
+                <TabsTrigger value="view">View Memories</TabsTrigger>
+                <TabsTrigger value="add">Add Memory</TabsTrigger>
+              </TabsList>
+              <TabsContent value="view" className="flex-1">
+                {selectedMember && (
+                  <VillageMemberMemories
+                    memberId={selectedMember.id}
+                    memberName={selectedMember.name}
+                  />
+                )}
+              </TabsContent>
+              <TabsContent value="add">
+                <form onSubmit={handleMemorySubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Title</Label>
+                    <Input
+                      id="title"
+                      value={newMemory.title}
+                      onChange={(e) => setNewMemory({ ...newMemory, title: e.target.value })}
+                      placeholder="Enter a title for this memory"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="content">Memory Details</Label>
+                    <Textarea
+                      id="content"
+                      value={newMemory.content}
+                      onChange={(e) => setNewMemory({ ...newMemory, content: e.target.value })}
+                      placeholder="What happened? How did it make you feel?"
+                      className="min-h-[150px]" required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="date">Date</Label>
+                      <Input
+                        id="date"
+                        type="date"
+                        value={newMemory.date}
+                        onChange={(e) => setNewMemory({ ...newMemory, date: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="emotionalImpact">Emotional Impact</Label>
+                      <Select
+                        value={String(newMemory.emotionalImpact)}
+                        onValueChange={(value) => setNewMemory({ ...newMemory, emotionalImpact: Number(value) })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <SelectItem key={n} value={String(n)}>
+                              {n} Star{n !== 1 ? 's' : ''}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="tags">Tags (comma-separated)</Label>
+                    <Input
+                      id="tags"
+                      value={newMemory.tags.join(", ")}
+                      onChange={(e) => setNewMemory({
+                        ...newMemory,
+                        tags: e.target.value.split(",").map(tag => tag.trim()).filter(Boolean)
+                      })}
+                      placeholder="e.g., milestone, support, advice"
+                    />
+                  </div>
+                  <Button type="submit" className="w-full">Save Memory</Button>
+                </form>
+              </TabsContent>
+            </Tabs>
+          </div>
         </DialogContent>
       </Dialog>
 
