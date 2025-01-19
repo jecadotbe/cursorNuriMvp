@@ -83,7 +83,7 @@ export default function ChatHistoryView() {
           </Card>
         ) : (
           // Group chats by date period
-          chats.reduce<JSX.Element[]>((acc, chat: Chat) => {
+          chats.reduce<JSX.Element[]>((acc: JSX.Element[], chat: Chat) => {
             const messages = Array.isArray(chat.messages) ? chat.messages : [];
             const lastMessage = messages[messages.length - 1];
             const chatDate = chat.updatedAt || chat.createdAt || new Date();
