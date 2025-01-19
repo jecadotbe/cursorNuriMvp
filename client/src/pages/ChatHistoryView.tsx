@@ -52,13 +52,13 @@ export default function ChatHistoryView() {
   return (
     <div className="flex-1 flex flex-col bg-[#F2F0E5] min-h-screen">
       {/* Header */}
-      <div className="w-full px-4 py-3 flex items-center justify-between border-b border-gray-200 bg-white">
+      <div className="w-full px-4 py-3 flex items-center justify-between border-b border-gray-200">
         <Link href="/">
           <button className="p-2 hover:bg-gray-100 rounded-lg">
             <ArrowLeft className="w-6 h-6 text-gray-600" />
           </button>
         </Link>
-        <h1 className="text-lg font-semibold">Gesprekken</h1>
+        <h1 className="text-lg font-semibold">Mijn gesprekken</h1>
         <Button
           onClick={startNewChat}
           className="p-2 bg-[#629785] hover:bg-[#4A7566] rounded-full"
