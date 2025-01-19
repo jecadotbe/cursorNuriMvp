@@ -90,19 +90,23 @@ const VideoPlayer: React.FC<{
     setShowControls(true);
     try {
       if (video.isYoutube && youtubeRef.current?.internalPlayer) {
-        if (isPlaying) {
+        const playerState = await youtubeRef.current.internalPlayer.getPlayerState();
+        if (playerState === 1) { // 1 means playing
           await youtubeRef.current.internalPlayer.pauseVideo();
+          setIsPlaying(false);
         } else {
           await youtubeRef.current.internalPlayer.playVideo();
+          setIsPlaying(true);
         }
       } else if (videoRef.current) {
-        if (isPlaying) {
-          await videoRef.current.pause();
+        if (!videoRef.current.paused) {
+          videoRef.current.pause();
+          setIsPlaying(false);
         } else {
           await videoRef.current.play();
+          setIsPlaying(true);
         }
       }
-      setIsPlaying(!isPlaying);
     } catch (error) {
       console.error('Error toggling play state:', error);
     }
