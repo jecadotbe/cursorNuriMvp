@@ -1,11 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, Volume2, VolumeX, Play, Pause, ChevronDown, ChevronUp } from "lucide-react";
-import { Link, useLocation, useParams } from "wouter";
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { ArrowLeft, Heart, MessageSquare, Share2, Volume2, VolumeX } from "lucide-react";
+import { Link } from "wouter";
 import YouTube from 'react-youtube';
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import * as Collapsible from '@radix-ui/react-collapsible';
-import * as AspectRatio from '@radix-ui/react-aspect-ratio';
+import { motion, AnimatePresence, PanInfo } from "framer-motion";
 
 interface VideoData {
   id: string;
@@ -13,6 +11,8 @@ interface VideoData {
   description: string;
   videoUrl: string;
   isYoutube: boolean;
+  likes?: number;
+  comments?: number;
 }
 
 // Mock data - replace with real data from your backend
@@ -22,59 +22,63 @@ const videos: VideoData[] = [
     title: "Aware Parenting Introduction",
     description: "Learn about the core principles of Aware Parenting and how it can transform your relationship with your children.",
     videoUrl: "/videos/demovideo.mp4",
-    isYoutube: false
+    isYoutube: false,
+    likes: 245,
+    comments: 23
   },
   {
     id: "2",
     title: "Understanding Child Development",
     description: "Discover the key stages of child development and how to support your child's growth.",
     videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    isYoutube: true
+    isYoutube: true,
+    likes: 189,
+    comments: 15
   }
 ];
 
-interface VideoPlayerProps {
-  videoUrl: string;
-  title: string;
-  isYoutube?: boolean;
-  onEnded?: () => void;
-}
-
-const VideoPlayer = ({ videoUrl, title, isYoutube = false, onEnded }: VideoPlayerProps) => {
+const VideoPlayer: React.FC<{
+  video: VideoData;
+  isActive: boolean;
+  onVideoEnd: () => void;
+}> = ({ video, isActive, onVideoEnd }) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const youtubeRef = useRef<YouTube>(null);
+  const youtubeRef = useRef<any>(null);
+  const [showControls, setShowControls] = useState(true);
 
-  const getYoutubeId = (url: string) => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-  };
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isPlaying) {
+        setShowControls(false);
+      }
+    }, 3000);
 
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
+    return () => clearTimeout(timer);
+  }, [isPlaying, showControls]);
 
-  const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      setCurrentTime(videoRef.current.currentTime);
+  useEffect(() => {
+    if (isActive && !isPlaying) {
+      setIsPlaying(true);
+      if (video.isYoutube && youtubeRef.current?.internalPlayer) {
+        youtubeRef.current.internalPlayer.playVideo();
+      } else if (videoRef.current) {
+        videoRef.current.play();
+      }
+    } else if (!isActive && isPlaying) {
+      setIsPlaying(false);
+      if (video.isYoutube && youtubeRef.current?.internalPlayer) {
+        youtubeRef.current.internalPlayer.pauseVideo();
+      } else if (videoRef.current) {
+        videoRef.current.pause();
+      }
     }
-  };
-
-  const handleLoadedMetadata = () => {
-    if (videoRef.current) {
-      setDuration(videoRef.current.duration);
-    }
-  };
+  }, [isActive, isPlaying, video.isYoutube]);
 
   const togglePlay = () => {
-    if (isYoutube && youtubeRef.current?.internalPlayer) {
+    setShowControls(true);
+    if (video.isYoutube && youtubeRef.current?.internalPlayer) {
       if (isPlaying) {
         youtubeRef.current.internalPlayer.pauseVideo();
       } else {
@@ -90,223 +94,147 @@ const VideoPlayer = ({ videoUrl, title, isYoutube = false, onEnded }: VideoPlaye
     setIsPlaying(!isPlaying);
   };
 
-  const handleProgress = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const time = parseFloat(e.target.value);
-    if (isYoutube && youtubeRef.current?.internalPlayer) {
-      youtubeRef.current.internalPlayer.seekTo(time, true);
-      setCurrentTime(time);
-    } else if (videoRef.current) {
-      videoRef.current.currentTime = time;
-      setCurrentTime(time);
-    }
-  };
-
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newVolume = parseFloat(e.target.value);
-    setVolume(newVolume);
-    setIsMuted(newVolume === 0);
-
-    if (isYoutube && youtubeRef.current?.internalPlayer) {
-      youtubeRef.current.internalPlayer.setVolume(newVolume * 100);
-    } else if (videoRef.current) {
-      videoRef.current.volume = newVolume;
-    }
-  };
-
   const toggleMute = () => {
-    const newMuted = !isMuted;
-    setIsMuted(newMuted);
-
-    if (isYoutube && youtubeRef.current?.internalPlayer) {
-      youtubeRef.current.internalPlayer.setVolume(newMuted ? 0 : volume * 100);
+    setIsMuted(!isMuted);
+    if (video.isYoutube && youtubeRef.current?.internalPlayer) {
+      youtubeRef.current.internalPlayer.setVolume(isMuted ? 100 : 0);
     } else if (videoRef.current) {
-      videoRef.current.volume = newMuted ? 0 : volume;
+      videoRef.current.muted = !isMuted;
     }
   };
 
   return (
-    <div className="relative w-full">
-      <AspectRatio.Root ratio={9/16}>
-        <div className="w-full h-full flex items-center justify-center bg-black">
-          {isYoutube ? (
-            <YouTube
-              ref={youtubeRef}
-              videoId={getYoutubeId(videoUrl)}
-              className="w-full h-full"
-              opts={{
-                width: '100%',
-                height: '100%',
-                playerVars: {
-                  controls: 0,
-                  modestbranding: 1,
-                },
-              }}
-              onStateChange={(event) => {
-                setIsPlaying(event.data === 1);
-                setCurrentTime(event.target.getCurrentTime());
-                if (!duration) {
-                  setDuration(event.target.getDuration());
-                }
-                if (event.data === 0) {
-                  onEnded?.();
-                }
-              }}
-              onReady={(event) => {
-                setDuration(event.target.getDuration());
-                const interval = setInterval(() => {
-                  setCurrentTime(event.target.getCurrentTime());
-                }, 1000);
-                return () => clearInterval(interval);
-              }}
-            />
-          ) : (
-            <video
-              ref={videoRef}
-              src={videoUrl}
-              className="w-full h-full object-contain"
-              onTimeUpdate={handleTimeUpdate}
-              onLoadedMetadata={handleLoadedMetadata}
-              onEnded={onEnded}
-            />
-          )}
-        </div>
-      </AspectRatio.Root>
-
-      <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-4">
-        <div className="flex items-center gap-4 mb-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-white hover:text-white/80"
-            onClick={togglePlay}
-          >
-            {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
-          </Button>
-
-          <div className="flex-1 flex items-center gap-2">
-            <span className="text-white text-sm">{formatTime(currentTime)}</span>
-            <input
-              type="range"
-              min="0"
-              max={duration}
-              value={currentTime}
-              onChange={handleProgress}
-              className="flex-1"
-            />
-            <span className="text-white text-sm">{formatTime(duration)}</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:text-white/80"
-              onClick={toggleMute}
-            >
-              {isMuted ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
-            </Button>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.1"
-              value={isMuted ? 0 : volume}
-              onChange={handleVolumeChange}
-              className="w-20"
-            />
-          </div>
-        </div>
+    <div className="relative w-full h-full" onClick={() => setShowControls(true)}>
+      <div className="absolute inset-0 bg-black">
+        {video.isYoutube ? (
+          <YouTube
+            ref={youtubeRef}
+            videoId={video.videoUrl.split('v=')[1]}
+            className="w-full h-full"
+            opts={{
+              width: '100%',
+              height: '100%',
+              playerVars: {
+                controls: 0,
+                modestbranding: 1,
+                playsinline: 1,
+                rel: 0,
+                showinfo: 0
+              },
+            }}
+            onEnd={onVideoEnd}
+            onStateChange={(event) => {
+              setIsPlaying(event.data === 1);
+            }}
+          />
+        ) : (
+          <video
+            ref={videoRef}
+            src={video.videoUrl}
+            className="w-full h-full object-cover"
+            playsInline
+            loop={false}
+            muted={isMuted}
+            onEnded={onVideoEnd}
+          />
+        )}
       </div>
+
+      <AnimatePresence>
+        {showControls && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/50"
+          >
+            {/* Top navigation */}
+            <div className="absolute top-0 left-0 right-0 p-4">
+              <Link href="/learn">
+                <Button variant="ghost" size="icon" className="text-white">
+                  <ArrowLeft className="h-6 w-6" />
+                </Button>
+              </Link>
+            </div>
+
+            {/* Side actions */}
+            <div className="absolute right-4 bottom-20 flex flex-col gap-6">
+              <Button variant="ghost" size="icon" className="text-white">
+                <Heart className="h-6 w-6" />
+                <span className="text-sm mt-1">{video.likes}</span>
+              </Button>
+              <Button variant="ghost" size="icon" className="text-white">
+                <MessageSquare className="h-6 w-6" />
+                <span className="text-sm mt-1">{video.comments}</span>
+              </Button>
+              <Button variant="ghost" size="icon" className="text-white">
+                <Share2 className="h-6 w-6" />
+              </Button>
+              <Button variant="ghost" size="icon" className="text-white" onClick={toggleMute}>
+                {isMuted ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
+              </Button>
+            </div>
+
+            {/* Bottom info */}
+            <div className="absolute bottom-0 left-0 right-0 p-4">
+              <h2 className="text-white text-lg font-semibold mb-2">{video.title}</h2>
+              <p className="text-white/80 text-sm line-clamp-2">{video.description}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
 
 export default function LearnDetailView() {
-  const { id } = useParams();
-  const [location, setLocation] = useLocation();
-  const [isInfoVisible, setIsInfoVisible] = useState(true);
-  const currentIndex = id ? parseInt(id) - 1 : 0;
-  const currentVideo = videos[currentIndex];
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleNext = () => {
+  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    const swipeThreshold = 50;
+    if (info.offset.y < -swipeThreshold && currentIndex < videos.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else if (info.offset.y > swipeThreshold && currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
+  };
+
+  const handleVideoEnd = useCallback(() => {
     if (currentIndex < videos.length - 1) {
-      setLocation(`/learn/${currentIndex + 2}`);
+      setCurrentIndex(currentIndex + 1);
     }
-  };
-
-  const handlePrevious = () => {
-    if (currentIndex > 0) {
-      setLocation(`/learn/${currentIndex}`);
-    }
-  };
+  }, [currentIndex]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="fixed top-0 left-0 w-full px-4 py-2 z-10 bg-gradient-to-b from-black/50 to-transparent flex justify-between items-center">
-        <Link href="/learn">
-          <Button variant="ghost" className="text-white hover:text-white/80">
-            <ArrowLeft className="w-6 h-6 mr-2" />
-            Back to Overview
-          </Button>
-        </Link>
-      </div>
-
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <div className="w-full max-w-3xl mx-auto">
+    <div className="fixed inset-0 bg-black">
+      <motion.div
+        ref={containerRef}
+        className="h-full w-full"
+        drag="y"
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={0.2}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="relative h-full w-full">
           <VideoPlayer
-            videoUrl={currentVideo.videoUrl}
-            title={currentVideo.title}
-            isYoutube={currentVideo.isYoutube}
-            onEnded={handleNext}
+            video={videos[currentIndex]}
+            isActive={true}
+            onVideoEnd={handleVideoEnd}
           />
-
-          <Card className="mt-4 mx-4">
-            <Collapsible.Root open={isInfoVisible} onOpenChange={setIsInfoVisible}>
-              <div className="p-4">
-                <div className="flex items-center justify-between">
-                  <h1 className="text-2xl font-semibold">{currentVideo.title}</h1>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsInfoVisible(!isInfoVisible)}
-                  >
-                    {isInfoVisible ? (
-                      <ChevronUp className="h-6 w-6" />
-                    ) : (
-                      <ChevronDown className="h-6 w-6" />
-                    )}
-                  </Button>
-                </div>
-                <Collapsible.Content>
-                  <p className="mt-2 text-muted-foreground">
-                    {currentVideo.description}
-                  </p>
-                </Collapsible.Content>
-              </div>
-            </Collapsible.Root>
-          </Card>
         </div>
+      </motion.div>
 
-        <div className="fixed bottom-4 left-0 right-0 flex justify-center gap-4 z-10">
-          <Button
-            variant="outline"
-            onClick={handlePrevious}
-            disabled={currentIndex === 0}
-            className="bg-white/80 hover:bg-white"
-          >
-            <ChevronLeft className="w-6 h-6 mr-2" />
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleNext}
-            disabled={currentIndex === videos.length - 1}
-            className="bg-white/80 hover:bg-white"
-          >
-            Next
-            <ChevronRight className="w-6 h-6 ml-2" />
-          </Button>
-        </div>
+      {/* Progress indicators */}
+      <div className="fixed top-4 left-0 right-0 z-50 flex justify-center gap-1">
+        {videos.map((_, index) => (
+          <div
+            key={index}
+            className={`h-1 w-6 rounded-full ${
+              index === currentIndex ? 'bg-white' : 'bg-white/30'
+            }`}
+          />
+        ))}
       </div>
     </div>
   );
