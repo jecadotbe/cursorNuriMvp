@@ -39,18 +39,27 @@ export default function VillageCircle({ members }: VillageCircleProps) {
 
     // Place members
     members.forEach((member) => {
-      const angle = Math.random() * 2 * Math.PI;
+      const angle = parseFloat(member.positionAngle?.toString() || "0");
       const radius = (maxRadius * member.circle) / 5;
       const x = centerX + radius * Math.cos(angle);
       const y = centerY + radius * Math.sin(angle);
 
       const group = svg.append("g").attr("transform", `translate(${x},${y})`);
 
+      // Member dot with size based on contact frequency
+      const frequencySize = {
+        'XL': 8,
+        'L': 6,
+        'M': 5,
+        'S': 4
+      };
+      const dotSize = frequencySize[member.contactFrequency || 'M'] || 5;
+
       // Member dot
       group
         .append("circle")
-        .attr("r", 4 + member.interactionFrequency)
-        .attr("fill", member.type === "individual" ? "#22c55e" : "#3b82f6");
+        .attr("r", dotSize)
+        .attr("fill", getColorForCategory(member.category));
 
       // Member label
       group
@@ -90,4 +99,18 @@ export default function VillageCircle({ members }: VillageCircleProps) {
       preserveAspectRatio="xMidYMid meet"
     />
   );
+}
+
+// Helper function to get colors based on category
+function getColorForCategory(category: "informeel" | "formeel" | "inspiratie" | null) {
+  switch (category) {
+    case "informeel":
+      return "#22c55e"; // Green
+    case "formeel":
+      return "#3b82f6"; // Blue
+    case "inspiratie":
+      return "#f59e0b"; // Yellow
+    default:
+      return "#6b7280"; // Gray
+  }
 }
