@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useVillage } from "@/hooks/use-village";
-import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, User, ArrowUpCircle, ArrowDownCircle, ArrowLeftCircle, ArrowRightCircle } from "lucide-react";
+import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, User, Users, ArrowUpCircle, ArrowDownCircle, ArrowLeftCircle, ArrowRightCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -488,10 +488,10 @@ export default function VillageView() {
 
             {/* Center family icon */}
             <div 
-              className="absolute w-24 h-24 bg-[#F4F1E4] rounded-full flex items-center justify-center text-black text-sm border-2 border-[#629785]"
+              className="absolute w-24 h-24 bg-[#F4F1E4] rounded-full flex items-center justify-center border-2 border-[#629785]"
               style={{ boxShadow: "0 0 30px rgba(254, 176, 25, 0.4)" }}
             >
-              Kerngezin
+              <Users className="w-12 h-12 text-[#629785]" />
             </div>
 
             {/* Village members */}
