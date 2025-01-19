@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ArrowLeft, Heart, MessageSquare, Share2, Volume2, VolumeX } from "lucide-react";
+import { ArrowLeft, Heart, MessageSquare, Share2, Volume2, VolumeX, Play, Pause } from "lucide-react";
 import { Link } from "wouter";
 import YouTube from 'react-youtube';
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,7 @@ const VideoPlayer: React.FC<{
   onVideoEnd: () => void;
 }> = ({ video, isActive, onVideoEnd }) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false); // Changed to false by default
   const videoRef = useRef<HTMLVideoElement>(null);
   const youtubeRef = useRef<any>(null);
   const [showControls, setShowControls] = useState(true);
@@ -119,7 +119,8 @@ const VideoPlayer: React.FC<{
                 modestbranding: 1,
                 playsinline: 1,
                 rel: 0,
-                showinfo: 0
+                showinfo: 0,
+                mute: 0 // Ensure YouTube videos start unmuted
               },
             }}
             onEnd={onVideoEnd}
@@ -155,6 +156,22 @@ const VideoPlayer: React.FC<{
                   <ArrowLeft className="h-6 w-6" />
                 </Button>
               </Link>
+            </div>
+
+            {/* Center play/pause button */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white hover:text-white/80 w-16 h-16 rounded-full bg-black/30"
+                onClick={togglePlay}
+              >
+                {isPlaying ? (
+                  <Pause className="h-8 w-8" />
+                ) : (
+                  <Play className="h-8 w-8" />
+                )}
+              </Button>
             </div>
 
             {/* Side actions */}
