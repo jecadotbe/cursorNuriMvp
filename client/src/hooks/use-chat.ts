@@ -19,8 +19,12 @@ export function useChat() {
   // Load existing chat messages or latest chat if no ID is provided
   const { data: chatData, isLoading: isChatLoading } = useQuery<Chat>({
     queryKey: chatId ? [`/api/chats/${chatId}`] : ["/api/chats/latest"],
-    retry: false,
-    staleTime: 0, // Always fetch fresh data
+    retry: (failureCount, error: any) => {
+      // Only retry on network errors, not on 404s or other API errors
+      return failureCount < 3 && error?.message?.includes('network');
+    },
+    staleTime: 5000, // Consider data fresh for 5 seconds
+    cacheTime: 30 * 60 * 1000, // Cache for 30 minutes
   });
 
   // Maintain local messages state
@@ -36,6 +40,17 @@ export function useChat() {
       setMessages([]);
     }
   }, [chatData, chatId, isChatLoading]);
+
+  // Invalidate all relevant queries
+  const invalidateQueries = useCallback(() => {
+    // Invalidate the current chat
+    if (chatId) {
+      queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatId}`] });
+    }
+    // Always invalidate the chat list and latest chat
+    queryClient.invalidateQueries({ queryKey: ["/api/chats"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/chats/latest"] });
+  }, [chatId, queryClient]);
 
   const mutation = useMutation({
     mutationFn: async (content: string) => {
@@ -69,12 +84,8 @@ export function useChat() {
         // Update messages with assistant's response
         setMessages((prev) => [...prev, assistantMessage]);
 
-        // Invalidate queries to reload the latest chat data
-        queryClient.invalidateQueries({ queryKey: ["/api/chats"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/chats/latest"] });
-        if (chatId) {
-          queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatId}`] });
-        }
+        // Invalidate queries to reload the latest data
+        invalidateQueries();
 
         return chatResponse.content;
       } finally {
@@ -82,10 +93,13 @@ export function useChat() {
       }
     },
     onError: (error: Error) => {
+      // Remove the last message on error to maintain consistency
+      setMessages((prev) => prev.slice(0, -1));
+
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to send message. Please try again.",
       });
       setIsProcessing(false);
     },
@@ -97,7 +111,7 @@ export function useChat() {
     relevance: number;
   } | null>(null);
 
-  // Only generate contextual prompt on manual refresh or initial load
+  // Generate contextual prompt with error handling
   const generateContextualPrompt = useCallback(async () => {
     if (messages.length > 0) {
       try {
@@ -108,13 +122,23 @@ export function useChat() {
           body: JSON.stringify({ messages: recentMessages }),
           credentials: 'include'
         });
+
+        if (!res.ok) {
+          throw new Error(await res.text());
+        }
+
         const prompt = await res.json();
-        setContextualPrompt(prompt);
+        setContextualPrompt(prompt?.prompt || null);
       } catch (err) {
         console.error('Failed to generate prompt:', err);
+        toast({
+          variant: "destructive",
+          title: "Warning",
+          description: "Could not generate contextual suggestions",
+        });
       }
     }
-  }, [messages]);
+  }, [messages, toast]);
 
   useEffect(() => {
     // Only generate on initial load
@@ -126,6 +150,7 @@ export function useChat() {
     chatId: chatData?.id,
     sendMessage: mutation.mutateAsync,
     isLoading: mutation.isPending || isChatLoading || isProcessing,
-    contextualPrompt
+    contextualPrompt,
+    refreshContextualPrompt: generateContextualPrompt
   };
 }
