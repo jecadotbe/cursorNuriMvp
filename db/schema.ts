@@ -3,6 +3,13 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Define all enums first
+export const insightTypeEnum = pgEnum("insight_type_enum", [
+  "connection_strength",
+  "network_gap",
+  "interaction_suggestion",
+  "relationship_health"
+]);
+
 export const stressLevelEnum = pgEnum("stress_level_enum", [
   "low",
   "moderate",
@@ -107,6 +114,49 @@ export const villageMembers = pgTable("village_members", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const villageMemberMemories = pgTable("village_member_memories", {
+  id: serial("id").primaryKey(),
+  villageMemberId: integer("village_member_id").references(() => villageMembers.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  date: timestamp("date").notNull(),
+  tags: text("tags").array(),
+  emotionalImpact: integer("emotional_impact"), // Scale 1-5
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const villageInsights = pgTable("village_insights", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  type: insightTypeEnum("type").notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  suggestedAction: text("suggested_action"),
+  priority: integer("priority").notNull(), // Scale 1-5
+  status: text("status").default("active"), // active, implemented, dismissed
+  relatedMemberIds: integer("related_member_ids").array(),
+  metadata: jsonb("metadata"),
+  implementedAt: timestamp("implemented_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const villageMemberInteractions = pgTable("village_member_interactions", {
+  id: serial("id").primaryKey(),
+  villageMemberId: integer("village_member_id").references(() => villageMembers.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  type: text("type").notNull(), // call, visit, message, etc.
+  date: timestamp("date").notNull(),
+  duration: integer("duration"), // in minutes
+  quality: integer("quality"), // Scale 1-5
+  notes: text("notes"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const chats = pgTable("chats", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
@@ -172,6 +222,12 @@ export const insertPromptSuggestionSchema = createInsertSchema(promptSuggestions
 export const selectPromptSuggestionSchema = createSelectSchema(promptSuggestions);
 export const insertSuggestionFeedbackSchema = createInsertSchema(suggestionFeedback);
 export const selectSuggestionFeedbackSchema = createSelectSchema(suggestionFeedback);
+export const insertVillageMemberMemorySchema = createInsertSchema(villageMemberMemories);
+export const selectVillageMemberMemorySchema = createSelectSchema(villageMemberMemories);
+export const insertVillageInsightSchema = createInsertSchema(villageInsights);
+export const selectVillageInsightSchema = createSelectSchema(villageInsights);
+export const insertVillageMemberInteractionSchema = createInsertSchema(villageMemberInteractions);
+export const selectVillageMemberInteractionSchema = createSelectSchema(villageMemberInteractions);
 
 // Types
 export type ParentProfile = typeof parentProfiles.$inferSelect;
@@ -194,3 +250,9 @@ export type PromptSuggestion = typeof promptSuggestions.$inferSelect;
 export type InsertPromptSuggestion = typeof promptSuggestions.$inferInsert;
 export type SuggestionFeedback = typeof suggestionFeedback.$inferSelect;
 export type InsertSuggestionFeedback = typeof suggestionFeedback.$inferInsert;
+export type VillageMemberMemory = typeof villageMemberMemories.$inferSelect;
+export type InsertVillageMemberMemory = typeof villageMemberMemories.$inferInsert;
+export type VillageInsight = typeof villageInsights.$inferSelect;
+export type InsertVillageInsight = typeof villageInsights.$inferInsert;
+export type VillageMemberInteraction = typeof villageMemberInteractions.$inferSelect;
+export type InsertVillageMemberInteraction = typeof villageMemberInteractions.$inferInsert;

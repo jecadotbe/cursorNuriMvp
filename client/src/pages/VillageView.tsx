@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useVillage } from "@/hooks/use-village";
-import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, User, Users, ArrowUpCircle, ArrowDownCircle, ArrowLeftCircle, ArrowRightCircle } from "lucide-react";
+import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, User, Users, ArrowUpCircle, ArrowDownCircle, ArrowLeftCircle, ArrowRightCircle, Lightbulb, Memory, Star, Clock } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -33,6 +33,18 @@ import {
 } from "@/components/ui/alert-dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import MinimapView from "@/components/MinimapView";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
+import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const CATEGORY_COLORS = {
   informeel: "#22c55e", // Green
@@ -40,13 +52,31 @@ const CATEGORY_COLORS = {
   inspiratie: "#f59e0b", // Orange
 } as const;
 
-// Match interface with schema.ts VillageMember type
 interface NewVillageMember {
   name: string;
   type: string;
   circle: number;
   category: "informeel" | "formeel" | "inspiratie" | null;
   contactFrequency: "S" | "M" | "L" | "XL" | null;
+}
+
+interface Memory {
+  id: number;
+  title: string;
+  content: string;
+  date: string;
+  emotionalImpact: number;
+  tags: string[];
+}
+
+interface Insight {
+  id: number;
+  type: string;
+  title: string;
+  description: string;
+  suggestedAction?: string;
+  priority: number;
+  status: string;
 }
 
 export default function VillageView() {
@@ -66,6 +96,35 @@ export default function VillageView() {
   const [memberToEdit, setMemberToEdit] = useState<typeof members[0] | null>(null);
   const [memberToDelete, setMemberToDelete] = useState<typeof members[0] | null>(null);
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<typeof members[0] | null>(null);
+  const [isMemoryDialogOpen, setIsMemoryDialogOpen] = useState(false);
+  const [isInsightsPanelOpen, setIsInsightsPanelOpen] = useState(false);
+  const [newMemory, setNewMemory] = useState<Memory>({
+    title: "",
+    content: "",
+    emotionalImpact: 3,
+    tags: [] as string[],
+    date: format(new Date(), "yyyy-MM-dd")
+  });
+  const [insights, setInsights] = useState<Insight[]>([
+    {
+      id: 1,
+      type: "connection_strength",
+      title: "Strong Connection Alert",
+      description: "Your relationship with Andy has been consistently strong over the past month.",
+      priority: 4,
+      status: "active"
+    },
+    {
+      id: 2,
+      type: "network_gap",
+      title: "Support Network Gap",
+      description: "You might benefit from adding more professional contacts to your village.",
+      suggestedAction: "Consider reaching out to mentors or colleagues",
+      priority: 3,
+      status: "active"
+    }
+  ]);
 
   const handleZoomIn = () => {
     setScale((prev) => Math.min(prev + 0.1, 3));
@@ -98,7 +157,6 @@ export default function VillageView() {
 
   const getMemberPosition = (member: typeof members[0]) => {
     const radius = getCircleRadius(member.circle - 1);
-    // Convert stored angle to radians (or use default spacing if no angle stored)
     let angle: number;
     if (typeof member.positionAngle === 'string') {
       angle = parseFloat(member.positionAngle);
@@ -118,13 +176,11 @@ export default function VillageView() {
     return Math.atan2(y, x);
   };
 
-  // Touch event handlers
   const lastTouchDistance = useRef<number>(0);
   const lastTouchPos = useRef<{ x: number; y: number } | null>(null);
 
   const handleTouch = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
-      // Handle pinch zoom
       const touch1 = e.touches[0];
       const touch2 = e.touches[1];
       const dist = Math.hypot(
@@ -142,7 +198,6 @@ export default function VillageView() {
 
       setScale(prevScale => Math.min(Math.max(prevScale + delta * 0.01, 0.3), 3));
     } else if (e.touches.length === 1) {
-      // Handle pan
       const touch = e.touches[0];
       if (!lastTouchPos.current) {
         lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
@@ -291,16 +346,13 @@ export default function VillageView() {
     }
   };
 
-  // Add new function to check if a point is within viewport
   const isInViewport = (x: number, y: number, scale: number, position: { x: number, y: number }) => {
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
-    // Transform point coordinates based on scale and position
     const transformedX = (x * scale) + position.x;
     const transformedY = (y * scale) + position.y;
 
-    // Add padding to viewport bounds
     const padding = 50;
 
     return (
@@ -311,43 +363,34 @@ export default function VillageView() {
     );
   };
 
-  // Add function to get indicator position and direction
   const getIndicatorInfo = (memberX: number, memberY: number, scale: number, position: { x: number, y: number }) => {
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     const padding = 40;
 
-    // Transform coordinates
     const transformedX = (memberX * scale) + position.x;
     const transformedY = (memberY * scale) + position.y;
 
-    // Calculate angle from viewport center to member
     const centerX = viewportWidth / 2;
     const centerY = viewportHeight / 2;
     const angle = Math.atan2(transformedY - centerY, transformedX - centerX);
 
-    // Determine position along viewport edge
     let indicatorX = centerX;
     let indicatorY = centerY;
     const border = 60;
 
     if (Math.abs(Math.cos(angle)) > Math.abs(Math.sin(angle))) {
-      // Place on left or right edge
       indicatorX = transformedX < centerX ? border : viewportWidth - border;
       indicatorY = centerY + Math.tan(angle) * (indicatorX - centerX);
 
-      // Clamp Y position
       indicatorY = Math.max(border, Math.min(viewportHeight - border, indicatorY));
     } else {
-      // Place on top or bottom edge
       indicatorY = transformedY < centerY ? border : viewportHeight - border;
       indicatorX = centerX + (indicatorY - centerY) / Math.tan(angle);
 
-      // Clamp X position
       indicatorX = Math.max(border, Math.min(viewportWidth - border, indicatorX));
     }
 
-    // Determine which arrow to show
     let Arrow;
     if (transformedY < centerY && Math.abs(Math.sin(angle)) > Math.abs(Math.cos(angle))) {
       Arrow = ArrowUpCircle;
@@ -366,24 +409,49 @@ export default function VillageView() {
     setPosition({ x, y });
   };
 
+  const handleMemorySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedMember) return;
+
+    try {
+      // TODO: Implement API call to save memory
+      toast({
+        title: "Success",
+        description: "Memory saved successfully"
+      });
+      setIsMemoryDialogOpen(false);
+      setNewMemory({
+        title: "",
+        content: "",
+        emotionalImpact: 3,
+        tags: []
+      });
+    } catch (error) {
+      console.error('Memory save error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save memory"
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen relative animate-gradient" style={{
       backgroundSize: "400% 400%",
       background: `linear-gradient(135deg, #C9E1D4 0%, #F2F0E5 50%, #F2F0E5 100%)`
     }}>
-      {/* Header */}
       <div
         className="fixed top-0 left-0 right-0 z-50 p-4">
         <Link href="/">
           <div className="flex items-center space-x-4 cursor-pointer mb-8">
             <ChevronLeft className="w-6 h-6 text-gray-800" />
-        
+
           </div>
         </Link>
-      
+
       </div>
 
-      {/* Zoom controls */}
       <div className="fixed top-24 right-4 flex flex-col space-y-2 z-10">
         <button
           onClick={handleZoomIn}
@@ -405,7 +473,6 @@ export default function VillageView() {
         </button>
       </div>
 
-      {/* Village visualization */}
       <div
         className="flex-1 relative overflow-hidden"
         onMouseDown={handlePanStart}
@@ -417,12 +484,10 @@ export default function VillageView() {
         onTouchEnd={handleTouchEnd}
         style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
       >
-        {/* Off-screen member indicators */}
         <AnimatePresence>
           {members.map((member) => {
             const pos = getMemberPosition(member);
 
-            // Only show indicator if member is outside viewport
             if (!isInViewport(pos.x, pos.y, scale, position)) {
               const { x, y, Arrow } = getIndicatorInfo(pos.x, pos.y, scale, position);
               const categoryColor = member.category ? CATEGORY_COLORS[member.category] : "#6b7280";
@@ -470,7 +535,6 @@ export default function VillageView() {
           }}
         >
           <div className="absolute inset-0 flex items-center justify-center">
-            {/* Circle lines */}
             {[1, 2, 3, 4, 5].map((circle) => (
               <div
                 key={circle}
@@ -486,15 +550,13 @@ export default function VillageView() {
               />
             ))}
 
-            {/* Center family icon */}
-            <div 
+            <div
               className="absolute w-24 h-24 bg-[#F4F1E4] rounded-full flex items-center justify-center border-2 border-[#629785]"
               style={{ boxShadow: "0 0 30px rgba(254, 176, 25, 0.4)" }}
             >
               <Users className="w-12 h-12 text-[#629785]" />
             </div>
 
-            {/* Village members */}
             {members.map((member) => {
               const pos = getMemberPosition(member);
               const categoryColor = member.category ? CATEGORY_COLORS[member.category] : "#6b7280";
@@ -504,15 +566,12 @@ export default function VillageView() {
                   key={member.id}
                   defaultPosition={pos}
                   onStop={(e, data) => {
-                    // Calculate which circle the member was dropped on
                     const distance = Math.sqrt(data.x * data.x + data.y * data.y);
                     let newCircle = Math.round(distance / 80);
                     newCircle = Math.max(1, Math.min(5, newCircle));
 
-                    // Snap to the circle and get the exact angle
                     const snapped = snapToCircle(data.x, data.y, newCircle);
 
-                    // Only update if there's a change
                     const currentAngle = parseFloat(member.positionAngle?.toString() || "0");
                     if (newCircle !== member.circle || Math.abs(snapped.angle - currentAngle) > 0.01) {
                       updateMember({
@@ -549,6 +608,16 @@ export default function VillageView() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            setSelectedMember(member);
+                            setIsMemoryDialogOpen(true);
+                          }}
+                          className="p-1 hover:bg-gray-100 rounded-full"
+                        >
+                          <Memory className="w-3 h-3 text-purple-500" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
                             handleEdit(member);
                           }}
                           className="p-1 hover:bg-gray-100 rounded-full"
@@ -574,13 +643,12 @@ export default function VillageView() {
         </div>
       </div>
 
-      {/* Village suggestions */}
       <div className="fixed bottom-20 left-4 z-50">
-        <div 
+        <div
           className="bg-white rounded-2xl shadow-md w-auto max-w-xs overflow-hidden transition-all duration-300"
           style={{ maxHeight: '300px' }}
         >
-          <div 
+          <div
             onClick={() => setIsSuggestionsOpen(!isSuggestionsOpen)}
             className="flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-gray-50"
           >
@@ -601,7 +669,6 @@ export default function VillageView() {
                   key={index}
                   className="mt-2 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors"
                   onClick={() => {
-                    // Handle suggestion click
                     console.log(`Clicked: ${suggestion.title}`);
                   }}
                 >
@@ -614,7 +681,6 @@ export default function VillageView() {
         </div>
       </div>
 
-      {/* Add/Edit member dialog */}
       <Dialog open={isOpen} onOpenChange={(open) => {
         setIsOpen(open);
         if (!open) {
@@ -669,7 +735,7 @@ export default function VillageView() {
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
               <Select
-                value={newMember.category || "informeel"}
+                value={newMemory.category || "informeel"}
                 onValueChange={(value: "informeel" | "formeel" | "inspiratie") =>
                   setNewMember({ ...newMember, category: value })
                 }
@@ -730,7 +796,6 @@ export default function VillageView() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete confirmation dialog */}
       <AlertDialog open={!!memberToDelete} onOpenChange={(open) => !open && setMemberToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -747,6 +812,101 @@ export default function VillageView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Memories Dialog */}
+      <Dialog open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add Memory with {selectedMember?.name}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleMemorySubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Title</Label>
+              <Input
+                id="title"
+                value={newMemory.title}
+                onChange={(e) => setNewMemory({ ...newMemory, title: e.target.value })}
+                placeholder="Enter a title for this memory"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="content">Memory Details</Label>
+              <Textarea
+                id="content"
+                value={newMemory.content}
+                onChange={(e) => setNewMemory({ ...newMemory, content: e.target.value })}
+                placeholder="What happened? How did it make you feel?"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="emotionalImpact">Emotional Impact (1-5)</Label>
+              <Select
+                value={String(newMemory.emotionalImpact)}
+                onValueChange={(value) => setNewMemory({ ...newMemory, emotionalImpact: Number(value) })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <SelectItem key={n} value={String(n)}>
+                      {n} Star{n !== 1 ? 's' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button type="submit" className="w-full">Save Memory</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Insights Panel */}
+      <Sheet open={isInsightsPanelOpen} onOpenChange={setIsInsightsPanelOpen}>
+        <SheetTrigger asChild>
+          <Button
+            variant="outline"
+            className="fixed bottom-36 right-4 w-12 h-12 rounded-full p-0 flex items-center justify-center"
+          >
+            <Lightbulb className="h-6 w-6" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>Village Insights</SheetTitle>
+            <SheetDescription>
+              AI-powered insights about your support network
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-4 space-y-4">
+            {insights.map((insight) => (
+              <Card key={insight.id}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">
+                      {insight.title}
+                    </CardTitle>
+                    <Badge
+                      variant={insight.priority >= 4 ? "destructive" : "secondary"}
+                    >
+                      Priority {insight.priority}
+                    </Badge>
+                  </div>
+                  <CardDescription>{insight.description}</CardDescription>
+                </CardHeader>
+                {insight.suggestedAction && (
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      Suggested Action: {insight.suggestedAction}
+                    </p>
+                  </CardContent>
+                )}
+              </Card>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
       <div className="hidden">
         <MinimapView
           members={members}
