@@ -26,7 +26,6 @@ function Router() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location]);
-  const [location] = useLocation();
   const showNavigation = !location.startsWith('/learn/') && !location.startsWith('/onboarding');
 
   if (isLoading) {
