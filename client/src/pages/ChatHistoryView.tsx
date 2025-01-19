@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useChatHistory } from "@/hooks/use-chat-history";
-import { ArrowLeft, MessageSquare, Clock, Plus } from "lucide-react";
+import { ArrowLeft, MessageSquare, Clock, Plus, Trash } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import type { Chat } from "@db/schema";
@@ -122,12 +122,10 @@ export default function ChatHistoryView() {
             acc.push(
               <Card key={chat.id} className="hover:shadow-md transition-all bg-white rounded-2xl shadow-sm border-0">
                 <CardContent className="p-5">
-                  <div className="flex items-start gap-4">
-                    <div className="flex flex-1 min-w-0">
+                  <div className="flex flex-col">
+                    <div className="flex items-center justify-between">
                       <Link href={`/chat/${chat.id}`} className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <h3 className="font-medium truncate flex-1">{chat.title || "Gesprek"}</h3>
-                        </div>
+                        <h3 className="font-medium truncate">{chat.title || "Gesprek"}</h3>
                       </Link>
                       <Dialog>
                         <DialogTrigger asChild>
@@ -163,28 +161,26 @@ export default function ChatHistoryView() {
                         </DialogContent>
                       </Dialog>
                     </div>
-                    <div className="flex flex-col flex-1">
-                      <p className="text-sm text-gray-500 line-clamp-2 mt-1 break-words">
-                        {lastMessage?.content || "Geen berichten"}
-                      </p>
-                      <div className="flex items-center justify-between gap-2 mt-2">
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          {format(chatDate, "d MMM yyyy")}
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            if (confirm("Are you sure you want to delete this conversation? This action cannot be undone.")) {
-                              fetch(`/api/chats/${chat.id}`, {
-                                method: 'DELETE'
-                              }).then(() => window.location.reload());
-                            }
-                          }}
-                          className="text-xs text-red-500 hover:text-red-700"
-                        >
-                          Delete
-                        </button>
+                    <p className="text-sm text-gray-500 line-clamp-2 mt-1 mb-2 break-words">
+                      {lastMessage?.content || "Geen berichten"}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs text-gray-500">
+                        {format(chatDate, "d MMM yyyy")}
                       </div>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (confirm("Are you sure you want to delete this conversation? This action cannot be undone.")) {
+                            fetch(`/api/chats/${chat.id}`, {
+                              method: 'DELETE'
+                            }).then(() => window.location.reload());
+                          }
+                        }}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <Trash className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 </CardContent>
