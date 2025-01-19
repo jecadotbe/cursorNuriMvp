@@ -66,7 +66,7 @@ export default function ChatHistoryView() {
             <ArrowLeft className="w-6 h-6 text-gray-600" />
           </button>
         </Link>
-        <h1 className="text-lg font-semibold">Mijn gesprekken</h1>
+        <h1 className="text-lg font-semibold font-baskerville">Mijn gesprekken</h1>
         <button
           onClick={startNewChat}
           className="p-2 bg-[#629785] hover:bg-[#4A7566] rounded-full"
@@ -128,7 +128,7 @@ export default function ChatHistoryView() {
                   <div className="flex flex-col">
                     <div className="flex items-center justify-between">
                       <Link href={`/chat/${chat.id}`} className="flex-1 min-w-0">
-                        <h3 className="font-medium truncate">{chat.title || "Gesprek"}</h3>
+                        <h3 className="font-medium truncate font-baskerville">{chat.title || "Gesprek"}</h3>
                       </Link>
                       <Dialog>
                         <DialogTrigger asChild>
@@ -164,7 +164,7 @@ export default function ChatHistoryView() {
                         </DialogContent>
                       </Dialog>
                     </div>
-                    <p className="text-sm text-gray-500 line-clamp-2 mt-1 mb-2 break-words">
+                    <p className="text-sm text-gray-500 line-clamp-2 mt-1 mb-2 break-words font-baskerville">
                       {lastMessage?.content || "Geen berichten"}
                     </p>
                     <div className="flex items-center justify-between">
