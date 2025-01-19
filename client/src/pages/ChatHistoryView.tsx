@@ -128,19 +128,23 @@ export default function ChatHistoryView() {
               <Card key={chat.id} className="hover:shadow-md transition-all bg-white rounded-2xl shadow-sm border-0">
                 <CardContent className="p-5">
                   <div className="flex items-start gap-4">
-                    <Link href={`/chat/${chat.id}`} className="block w-full">
-                      <div className="flex flex-1 min-w-0">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <h3 className="font-medium truncate flex-1">
-                              {chat.title || "Gesprek"}
-                            </h3>
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <button className="text-xs text-gray-500 hover:text-gray-700 flex-shrink-0">
-                                  Edit
-                                </button>
-                              </DialogTrigger>
+                    <div className="flex flex-1 min-w-0">
+                      <Link href={`/chat/${chat.id}`} className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <h3 className="font-medium truncate flex-1">
+                            {chat.title || "Gesprek"}
+                          </h3>
+                        </div>
+                      </Link>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <button 
+                            className="text-xs text-gray-500 hover:text-gray-700 flex-shrink-0 ml-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Edit
+                          </button>
+                        </DialogTrigger>
                               <DialogContent className="sm:max-w-[425px]">
                                 <DialogHeader>
                                   <DialogTitle>Edit Chat Title</DialogTitle>
