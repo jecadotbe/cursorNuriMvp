@@ -187,7 +187,7 @@ export default function ChatHistoryView() {
                 </CardContent>
               </Card>
             );
-          }, [])
+          }, [] as JSX.Element[])
         )}
         </div>
       </div>
