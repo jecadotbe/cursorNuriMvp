@@ -60,29 +60,31 @@ const VideoPlayer: React.FC<{
 
   useEffect(() => {
     const handlePlay = async () => {
-      if (isActive && !isPlaying) {
-        setIsPlaying(true);
-        try {
-          if (video.isYoutube && youtubeRef.current?.internalPlayer) {
-            await youtubeRef.current.internalPlayer.playVideo();
-          } else if (videoRef.current) {
-            await videoRef.current.play();
-          }
-        } catch (error) {
-          console.error('Error playing video:', error);
-          setIsPlaying(false);
-        }
-      } else if (!isActive && isPlaying) {
-        setIsPlaying(false);
+      try {
         if (video.isYoutube && youtubeRef.current?.internalPlayer) {
-          youtubeRef.current.internalPlayer.pauseVideo();
+          if (isActive && !isPlaying) {
+            await youtubeRef.current.internalPlayer.playVideo();
+            setIsPlaying(true);
+          } else if (!isActive) {
+            await youtubeRef.current.internalPlayer.pauseVideo();
+            setIsPlaying(false);
+          }
         } else if (videoRef.current) {
-          videoRef.current.pause();
+          if (isActive && !isPlaying) {
+            await videoRef.current.play();
+            setIsPlaying(true);
+          } else if (!isActive) {
+            videoRef.current.pause();
+            setIsPlaying(false);
+          }
         }
+      } catch (error) {
+        console.error('Error controlling video:', error);
+        setIsPlaying(false);
       }
     };
     handlePlay();
-  }, [isActive, isPlaying, video.isYoutube]);
+  }, [isActive, video.isYoutube]);
 
   const togglePlay = async () => {
     setShowControls(true);
@@ -132,13 +134,21 @@ const VideoPlayer: React.FC<{
                 playsinline: 1,
                 rel: 0,
                 showinfo: 0,
-                mute: 0 // Ensure YouTube videos start unmuted
+                mute: 0,
+                enablejsapi: 1
               },
             }}
             onEnd={onVideoEnd}
+            onReady={() => {
+              if (isActive && youtubeRef.current?.internalPlayer) {
+                youtubeRef.current.internalPlayer.playVideo();
+              }
+            }}
             onStateChange={(event) => {
               setIsPlaying(event.data === 1);
+              setShowControls(true);
             }}
+            onError={(error) => console.error('YouTube Error:', error)}
           />
         ) : (
           <video
