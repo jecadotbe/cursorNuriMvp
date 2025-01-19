@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useVillage } from "@/hooks/use-village";
-import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, User, Users, ArrowUpCircle, ArrowDownCircle, ArrowLeftCircle, ArrowRightCircle, Lightbulb, Memory, Star, Clock } from "lucide-react";
+import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, User, Users, ArrowUpCircle, ArrowDownCircle, ArrowLeftCircle, ArrowRightCircle, Lightbulb, BookMarked, Star, Clock } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -613,7 +613,7 @@ export default function VillageView() {
                           }}
                           className="p-1 hover:bg-gray-100 rounded-full"
                         >
-                          <Memory className="w-3 h-3 text-purple-500" />
+                          <BookMarked className="w-3 h-3 text-purple-500" />
                         </button>
                         <button
                           onClick={(e) => {
@@ -855,7 +855,7 @@ export default function VillageView() {
                     </SelectItem>
                   ))}
                 </SelectContent>
-              </Select>
+                </Select>
             </div>
             <Button type="submit" className="w-full">Save Memory</Button>
           </form>
