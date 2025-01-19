@@ -59,39 +59,51 @@ const VideoPlayer: React.FC<{
   }, [isPlaying, showControls]);
 
   useEffect(() => {
-    if (isActive && !isPlaying) {
-      setIsPlaying(true);
-      if (video.isYoutube && youtubeRef.current?.internalPlayer) {
-        youtubeRef.current.internalPlayer.playVideo();
-      } else if (videoRef.current) {
-        videoRef.current.play();
+    const handlePlay = async () => {
+      if (isActive && !isPlaying) {
+        setIsPlaying(true);
+        try {
+          if (video.isYoutube && youtubeRef.current?.internalPlayer) {
+            await youtubeRef.current.internalPlayer.playVideo();
+          } else if (videoRef.current) {
+            await videoRef.current.play();
+          }
+        } catch (error) {
+          console.error('Error playing video:', error);
+          setIsPlaying(false);
+        }
+      } else if (!isActive && isPlaying) {
+        setIsPlaying(false);
+        if (video.isYoutube && youtubeRef.current?.internalPlayer) {
+          youtubeRef.current.internalPlayer.pauseVideo();
+        } else if (videoRef.current) {
+          videoRef.current.pause();
+        }
       }
-    } else if (!isActive && isPlaying) {
-      setIsPlaying(false);
-      if (video.isYoutube && youtubeRef.current?.internalPlayer) {
-        youtubeRef.current.internalPlayer.pauseVideo();
-      } else if (videoRef.current) {
-        videoRef.current.pause();
-      }
-    }
+    };
+    handlePlay();
   }, [isActive, isPlaying, video.isYoutube]);
 
-  const togglePlay = () => {
+  const togglePlay = async () => {
     setShowControls(true);
-    if (video.isYoutube && youtubeRef.current?.internalPlayer) {
-      if (isPlaying) {
-        youtubeRef.current.internalPlayer.pauseVideo();
-      } else {
-        youtubeRef.current.internalPlayer.playVideo();
+    try {
+      if (video.isYoutube && youtubeRef.current?.internalPlayer) {
+        if (isPlaying) {
+          await youtubeRef.current.internalPlayer.pauseVideo();
+        } else {
+          await youtubeRef.current.internalPlayer.playVideo();
+        }
+      } else if (videoRef.current) {
+        if (isPlaying) {
+          await videoRef.current.pause();
+        } else {
+          await videoRef.current.play();
+        }
       }
-    } else if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
-      }
+      setIsPlaying(!isPlaying);
+    } catch (error) {
+      console.error('Error toggling play state:', error);
     }
-    setIsPlaying(!isPlaying);
   };
 
   const toggleMute = () => {
