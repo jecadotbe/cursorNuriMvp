@@ -827,7 +827,7 @@ export default function VillageView() {
       </AlertDialog>
       {/* Memories Dialog */}
       <Dialog open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
-        <DialogContent className="fixed inset-x-0 bottom-0 w-screen max-w-full h-[80vh] p-6 pt-4 border-t rounded-t-xl rounded-b-none !m-0 translate-x-0 left-0 top-auto transition-all duration-300 data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom-52 data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom-52">
+        <DialogContent className="fixed inset-x-0 bottom-0 w-screen max-w-full h-[80vh] p-6 pt-4 border-t rounded-t-xl rounded-b-none !m-0 translate-x-0 translate-y-0 left-0 top-auto duration-300 data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom">
           <DialogHeader className="space-y-2">
             <DialogTitle className="text-xl">Memories with {selectedMember?.name}</DialogTitle>
           </DialogHeader>
