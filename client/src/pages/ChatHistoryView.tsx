@@ -56,7 +56,10 @@ export default function ChatHistoryView() {
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-[#F2F0E5] min-h-screen">
+    <div className="flex-1 flex flex-col min-h-screen animate-gradient" style={{
+      backgroundSize: "400% 400%",
+      background: `linear-gradient(135deg, #C9E1D4 0%, #F2F0E5 50%, #F2F0E5 100%)`
+    }}>
       <div className="w-full px-4 py-3 flex items-center justify-between border-b border-gray-200 bg-[#F2F0E5] fixed top-0 left-0 z-50">
         <Link href="/">
           <button className="p-2 hover:bg-gray-100 rounded-lg">
