@@ -64,12 +64,12 @@ export default function ChatHistoryView() {
           </button>
         </Link>
         <h1 className="text-lg font-semibold">Mijn gesprekken</h1>
-        <Button
+        <button
           onClick={startNewChat}
           className="p-2 bg-[#629785] hover:bg-[#4A7566] rounded-full"
         >
           <Plus className="w-6 h-6 text-white" />
-        </Button>
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
