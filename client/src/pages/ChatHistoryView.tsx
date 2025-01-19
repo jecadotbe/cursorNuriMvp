@@ -82,12 +82,42 @@ export default function ChatHistoryView() {
             </CardContent>
           </Card>
         ) : (
-          chats.map((chat: Chat) => {
+          // Group chats by date period
+          chats.reduce((acc: JSX.Element[], chat: Chat) => {
             const messages = Array.isArray(chat.messages) ? chat.messages : [];
             const lastMessage = messages[messages.length - 1];
             const chatDate = chat.updatedAt || chat.createdAt || new Date();
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const lastWeek = new Date(today);
+            lastWeek.setDate(today.getDate() - 7);
+            const lastMonth = new Date(today);
+            lastMonth.setMonth(today.getMonth() - 1);
 
-            return (
+            let dateGroup = '';
+            if (format(chatDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')) {
+              dateGroup = 'Today';
+            } else if (format(chatDate, 'yyyy-MM-dd') === format(yesterday, 'yyyy-MM-dd')) {
+              dateGroup = 'Yesterday';
+            } else if (chatDate >= lastWeek) {
+              dateGroup = 'This Week';
+            } else if (chatDate >= lastMonth) {
+              dateGroup = 'Last Month';
+            } else {
+              dateGroup = 'Older';
+            }
+
+            // Add divider if it's a new group
+            if (!acc.find(el => el.key === `divider-${dateGroup}`)) {
+              acc.push(
+                <div key={`divider-${dateGroup}`} className="text-sm font-medium text-gray-500 mb-3 mt-6">
+                  {dateGroup}
+                </div>
+              );
+            }
+
+            acc.push(
               <Card key={chat.id} className="hover:shadow-md transition-all bg-white rounded-2xl shadow-sm border-0">
                 <CardContent className="p-5">
                   <div className="flex items-start gap-4">
@@ -134,8 +164,7 @@ export default function ChatHistoryView() {
                           </p>
                           <div className="flex items-center justify-between gap-2 mt-2">
                             <div className="flex items-center gap-2 text-xs text-gray-500">
-                              <Clock className="w-4 h-4" />
-                              {format(new Date(chatDate), "d MMM yyyy, HH:mm")}
+                              {format(new Date(chatDate), "d MMM yyyy")}
                             </div>
                             <button
                               onClick={(e) => {
@@ -158,7 +187,7 @@ export default function ChatHistoryView() {
                 </CardContent>
               </Card>
             );
-          })
+          }, [])
         )}
         </div>
       </div>
