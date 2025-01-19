@@ -9,6 +9,12 @@ import type { Chat } from "@db/schema";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
+// Add proper typing for the chat messages
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export default function ChatHistoryView() {
   const { chats = [], isLoading } = useChatHistory();
   const [, navigate] = useLocation();
@@ -82,11 +88,11 @@ export default function ChatHistoryView() {
             </CardContent>
           </Card>
         ) : (
-          // Group chats by date period
+          // Group chats by date period with proper typing
           chats.reduce<JSX.Element[]>((acc: JSX.Element[], chat: Chat) => {
-            const messages = Array.isArray(chat.messages) ? chat.messages : [];
+            const messages = Array.isArray(chat.messages) ? (chat.messages as ChatMessage[]) : [];
             const lastMessage = messages[messages.length - 1];
-            const chatDate = chat.updatedAt || chat.createdAt || new Date();
+            const chatDate = new Date(chat.updatedAt || chat.createdAt || new Date());
             const today = new Date();
             const yesterday = new Date(today);
             yesterday.setDate(yesterday.getDate() - 1);
@@ -109,15 +115,16 @@ export default function ChatHistoryView() {
             }
 
             // Add divider if it's a new group
-            if (!acc.find(el => el.key === `divider-${dateGroup}`)) {
-              acc.push(
+            const newAcc = [...acc];
+            if (!newAcc.find(el => el.key === `divider-${dateGroup}`)) {
+              newAcc.push(
                 <div key={`divider-${dateGroup}`} className="text-sm font-medium text-gray-500 mb-3 mt-6">
                   {dateGroup}
                 </div>
               );
             }
 
-            acc.push(
+            newAcc.push(
               <Card key={chat.id} className="hover:shadow-md transition-all bg-white rounded-2xl shadow-sm border-0">
                 <CardContent className="p-5">
                   <div className="flex items-start gap-4">
@@ -141,7 +148,7 @@ export default function ChatHistoryView() {
                                 <div className="grid gap-4 py-4">
                                   <Input
                                     id="title"
-                                    defaultValue={chat.title}
+                                    defaultValue={chat.title || ''}
                                     onKeyDown={(e) => {
                                       if (e.key === 'Enter') {
                                         const newTitle = e.currentTarget.value;
@@ -164,7 +171,7 @@ export default function ChatHistoryView() {
                           </p>
                           <div className="flex items-center justify-between gap-2 mt-2">
                             <div className="flex items-center gap-2 text-xs text-gray-500">
-                              {format(new Date(chatDate), "d MMM yyyy")}
+                              {format(chatDate, "d MMM yyyy")}
                             </div>
                             <button
                               onClick={(e) => {
@@ -187,6 +194,8 @@ export default function ChatHistoryView() {
                 </CardContent>
               </Card>
             );
+
+            return newAcc;
           }, [] as JSX.Element[])
         )}
         </div>
