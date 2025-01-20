@@ -20,7 +20,8 @@ export default function Navigation() {
       <nav className="flex justify-between items-center px-4 py-2">
         {items.map(({ icon: Icon, label, href, onboarding }) => (
           <Link key={href} href={href}>
-            <a
+            <button
+              type="button"
               data-onboarding={onboarding}
               className={cn(
                 "flex flex-col items-center gap-1 p-2",
@@ -31,11 +32,12 @@ export default function Navigation() {
             >
               <Icon className="h-5 w-5" />
               <span className="text-xs">{label}</span>
-            </a>
+            </button>
           </Link>
         ))}
         <Link href="/profile">
-          <a
+          <button
+            type="button"
             className={cn(
               "flex flex-col items-center gap-1 p-2",
               location === "/profile"
@@ -49,7 +51,7 @@ export default function Navigation() {
               </AvatarFallback>
             </Avatar>
             <span className="text-xs">Profiel</span>
-          </a>
+          </button>
         </Link>
       </nav>
     </div>
