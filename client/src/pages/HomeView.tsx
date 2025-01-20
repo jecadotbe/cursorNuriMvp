@@ -13,7 +13,7 @@ export default function HomeView() {
   return (
     <div className="flex-1 bg-[#F2F0E5] overflow-y-auto">
       {/* Greeting Section with Logo */}
-      <div className="w-full bg-[#F2F0E5]">
+      <div className="w-full bg-gradient-to-r from-[#F8DD9F] to-[#F2F0E5] via-[#F2F0E5] via-45% ">
         <div className="px-4 pt-8 homemeeting">
           <div className="flex items-end gap-8">
             <div className="w-24 h-32 flex">
@@ -44,11 +44,10 @@ export default function HomeView() {
         <div
           className="rounded-xl p-6 relative overflow-hidden min-h-[200px]"
           style={{
-            backgroundImage: `url('/images/village_circles.png')`,
+            backgroundImage: `url('/images/village_circles.png'), linear-gradient(180deg, #C9E1D4 0%, #F2F0E5 35%)`,
             backgroundPosition: "right top",
             backgroundRepeat: "no-repeat",
             backgroundSize: "contain",
-            backgroundColor: "#F2F0E5"
           }}
         >
           <div className="flex items-center gap-2 mb-2">
@@ -75,7 +74,7 @@ export default function HomeView() {
         <div
           className="rounded-xl p-6 relative overflow-hidden"
           style={{
-            background: "#F2F0E5",
+            background: "linear-gradient(180deg, #F8DD9F 0%, #F2F0E5 35%)",
           }}
         >
           <div className="flex items-center justify-between mb-4">
