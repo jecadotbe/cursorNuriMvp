@@ -34,10 +34,24 @@ export default function HomeView() {
         const result = await getLatestPrompt();
         if (!mounted) return;
         
-        if (result?.prompt) {
-          console.log("Setting prompt:", result.prompt);
-          setPrompt(result.prompt);
-          setError(null);
+        if (result?.prompt && typeof result.prompt === 'object') {
+          // Validate required fields
+          const { text, type } = result.prompt;
+          if (typeof text === 'string' && typeof type === 'string') {
+            console.log("Setting valid prompt");
+            setPrompt({
+              text,
+              type,
+              context: result.prompt.context || 'new',
+              relatedChatId: result.prompt.relatedChatId,
+              relatedChatTitle: result.prompt.relatedChatTitle,
+              suggestionId: result.prompt.suggestionId
+            });
+            setError(null);
+          } else {
+            console.error("Invalid prompt format");
+            setError("Ongeldige suggestie ontvangen");
+          }
         } else {
           console.log("No prompt available");
           setError("Geen suggestie beschikbaar");
@@ -46,9 +60,6 @@ export default function HomeView() {
         if (!mounted) return;
         console.error('Failed to load initial prompt:', err);
         setError('Er ging iets mis bij het laden van de suggestie');
-        
-        // Retry after 5 seconds
-        timeoutId = setTimeout(loadPrompt, 5000);
       }
     };
 
