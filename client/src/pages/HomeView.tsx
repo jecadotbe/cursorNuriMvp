@@ -129,7 +129,7 @@ export default function HomeView() {
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-2 h-2 rounded-full bg-orange-500"></div>
                       <div className="text-orange-500 font-semibold text-sm tracking-wide">
-                        {suggestion.type === 'action' ? 'ACTIE' : suggestion.type === 'reflection' ? 'REFLECTIE' : 'VERVOLG'}
+                        Op basis van onze gesprekken
                       </div>
                     </div>
                     <p className="text-lg pr-8">{suggestion.text}</p>
