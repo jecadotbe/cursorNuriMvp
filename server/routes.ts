@@ -334,25 +334,6 @@ export function registerRoutes(app: Express): Server {
     const now = new Date();
 
     try {
-      // Try to find an unused, non-expired suggestion
-      const suggestions = await db.query.promptSuggestions.findMany({
-        where: and(
-          eq(promptSuggestions.userId, user.id),
-          isNull(promptSuggestions.usedAt),
-          gte(promptSuggestions.expiresAt, now),
-        ),
-        orderBy: [
-          desc(promptSuggestions.relevance),
-          desc(promptSuggestions.createdAt),
-        ],
-        limit: 3,
-      });
-
-      // If we have suggestions, return them
-      if (suggestions.length > 0) {
-        return res.json(suggestions[0]);
-      }
-
       // Get user's profile data for personalized suggestions
       const profile = await db.query.parentProfiles.findFirst({
         where: eq(parentProfiles.userId, user.id),
@@ -362,19 +343,8 @@ export function registerRoutes(app: Express): Server {
       const recentChats = await db.query.chats.findMany({
         where: eq(chats.userId, user.id),
         orderBy: desc(chats.updatedAt),
-        limit: 5,
+        limit: 3,
       });
-
-      // Get relevant memories for context, but prioritize older ones
-      const relevantMemories = await memoryService.getRelevantMemories(
-        user.id,
-        "general parenting advice and long-term goals",
-        10,
-      );
-
-      const memoryContext = relevantMemories
-        .map((m) => `Previous conversation: ${m.content}`)
-        .join("\n\n");
 
       // Build personalized context from onboarding data
       let personalizedContext = "";
@@ -389,35 +359,33 @@ ${profile.onboardingData.childProfiles
             (child) =>
               `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
           )
-          .join("\n")}
-
-Goals:
-${profile.onboardingData.goals?.shortTerm?.length ? `- Short term goals: ${profile.onboardingData.goals.shortTerm.join(", ")}` : ""}
-${profile.onboardingData.goals?.longTerm?.length ? `- Long term goals: ${profile.onboardingData.goals.longTerm.join(", ")}` : ""}
-`;
+          .join("\n")}`;
       }
 
       const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
-        max_tokens: 300,
+        max_tokens: 150,
+        temperature: 0.7,
         system: `${NURI_SYSTEM_PROMPT}
 
-${personalizedContext ? `Consider this parent's profile and context when generating suggestions:\n${personalizedContext}\n` : ""}
-${memoryContext ? `Previous conversations for context:\n${memoryContext}` : ""}
+${personalizedContext ? `Consider this parent's profile when generating a suggestion:\n${personalizedContext}\n` : ""}
 
-Analyze the available context and provide a relevant suggestion. For new users or those with limited chat history, focus on their onboarding information to provide personalized suggestions.`,
+Generate a single, concise conversation starter that feels personal and engaging. Focus on what matters most to this parent right now. The prompt should be:
+1. One sentence only
+2. Written in Dutch
+3. Focused on starting a meaningful conversation
+4. Related to their most pressing parenting concerns
+5. Warm and empathetic in tone`,
         messages: [
           {
             role: "user",
-            content: `Based on the parent's profile and any conversation history, generate a follow-up prompt that focuses on their specific needs and goals. Format the response exactly like this:
+            content: `Generate a personalized conversation starter for this parent. Format the response exactly like this:
           {
             "prompt": {
-              "text": "follow-up question or suggestion",
-              "type": "action" | "follow_up",
+              "text": "single sentence conversation starter in Dutch",
+              "type": "action",
               "relevance": 1.0,
-              "context": "new" | "existing",
-              "relatedChatId": null | number,
-              "relatedChatTitle": null | string
+              "context": "new"
             }
           }`,
           },
@@ -442,17 +410,7 @@ Analyze the available context and provide a relevant suggestion. For new users o
         throw new Error("Response missing required prompt structure");
       }
 
-      // If the prompt references an existing chat, validate and include the chat details
-      if (
-        parsedResponse.prompt.context === "existing" &&
-        recentChats.length > 0
-      ) {
-        const mostRelevantChat = recentChats[0];
-        parsedResponse.prompt.relatedChatId = mostRelevantChat.id;
-        parsedResponse.prompt.relatedChatTitle = mostRelevantChat.title;
-      }
-
-      // Store the new suggestion with feedback consideration
+      // Store the new suggestion
       const [suggestion] = await db
         .insert(promptSuggestions)
         .values({
@@ -461,8 +419,8 @@ Analyze the available context and provide a relevant suggestion. For new users o
           type: parsedResponse.prompt.type,
           context: parsedResponse.prompt.context,
           relevance: Math.floor(parsedResponse.prompt.relevance * 10),
-          relatedChatId: parsedResponse.prompt.relatedChatId || null,
-          relatedChatTitle: parsedResponse.prompt.relatedChatTitle || null,
+          relatedChatId: null,
+          relatedChatTitle: null,
           expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000), // Expire in 24 hours
         })
         .returning();
@@ -568,11 +526,11 @@ Parent's Context:
 - Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel}
 - Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ")}
 ${profile.onboardingData.childProfiles
-            ?.map(
-              (child) =>
-                `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
-            )
-            .join("\n")}`;
+              ?.map(
+                (child) =>
+                  `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
+              )
+              .join("\n")}`;
           contextualizedPrompt += `\n\n${profileContext}`;
         }
 

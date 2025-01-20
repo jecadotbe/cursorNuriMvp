@@ -11,7 +11,6 @@ async function fetchChatHistory(): Promise<Chat[]> {
     if (response.status >= 500) {
       throw new Error(`${response.status}: ${response.statusText}`);
     }
-
     throw new Error(`${response.status}: ${await response.text()}`);
   }
 
@@ -44,17 +43,16 @@ async function markSuggestionAsUsed(id: number): Promise<void> {
 export function useChatHistory() {
   const { toast } = useToast();
 
-  const { data: chats = [], isLoading, error, refetch } = useQuery<Chat[], Error>({
+  const { data: chats = [], isLoading: isChatsLoading, error: chatsError, refetch: refetchChats } = useQuery<Chat[], Error>({
     queryKey: ["chats"],
     queryFn: fetchChatHistory,
   });
 
-  const { data: suggestion, refetch: refetchSuggestion } = useQuery<PromptSuggestion>({
+  const { data: suggestion, isLoading: isSuggestionLoading, error: suggestionError, refetch: refetchSuggestion } = useQuery<PromptSuggestion>({
     queryKey: ["suggestion"],
     queryFn: fetchSuggestion,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    enabled: true, // Automatically fetch when the hook is mounted
-    retry: false,
+    staleTime: 0, // Always fetch fresh suggestions
+    retry: 1,
     onError: (error) => {
       console.error('Failed to fetch suggestion:', error);
       toast({
@@ -64,6 +62,9 @@ export function useChatHistory() {
       });
     },
   });
+
+  const isLoading = isChatsLoading || isSuggestionLoading;
+  const error = chatsError || suggestionError;
 
   const getLatestPrompt = async () => {
     try {
@@ -80,24 +81,11 @@ export function useChatHistory() {
         };
       }
 
-      // Fallback to default prompt if no suggestion is available
-      return {
-        prompt: {
-          text: "Let's talk about your parenting journey",
-          type: "action",
-          context: "new"
-        }
-      };
+      // Return null instead of fallback to show loading state
+      return null;
     } catch (error) {
       console.error('Failed to get prompt:', error);
-      // Provide a safe fallback
-      return {
-        prompt: {
-          text: "Let's continue our conversation about parenting",
-          type: "action",
-          context: "new"
-        }
-      };
+      return null;
     }
   };
 
@@ -114,7 +102,7 @@ export function useChatHistory() {
     chats,
     isLoading,
     error,
-    refetch,
+    refetchChats,
     getLatestPrompt,
     markPromptAsUsed,
   };
