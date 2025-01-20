@@ -1,125 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUser } from "@/hooks/use-user";
-import { useChatHistory } from "@/hooks/use-chat-history";
 import { MessageSquare, Clock, ChevronRight } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { SuggestionFeedback } from "@/components/SuggestionFeedback";
 
 export default function HomeView() {
   const { user } = useUser();
-  const { getLatestPrompt, markPromptAsUsed, isSuggestionLoading } = useChatHistory();
-  const [prompt, setPrompt] = useState<{
-    text: string;
-    type: string;
-    context?: string;
-    relatedChatId?: string;
-    relatedChatTitle?: string;
-    suggestionId?: number;
-  } | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const [, navigate] = useLocation();
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [currentSuggestionId, setCurrentSuggestionId] = useState<number | null>(null);
-
-  // Load suggestion when component mounts or user changes
-  useEffect(() => {
-    let mounted = true;
-    let timeoutId: NodeJS.Timeout;
-
-    const loadPrompt = async () => {
-      try {
-        const result = await getLatestPrompt();
-        if (!mounted) return;
-        
-        if (result?.prompt && typeof result.prompt === 'object') {
-          // Validate required fields
-          const { text, type } = result.prompt;
-          if (typeof text === 'string' && typeof type === 'string') {
-            console.log("Setting valid prompt");
-            setPrompt({
-              text,
-              type,
-              context: result.prompt.context || 'new',
-              relatedChatId: result.prompt.relatedChatId,
-              relatedChatTitle: result.prompt.relatedChatTitle,
-              suggestionId: result.prompt.suggestionId
-            });
-            setError(null);
-          } else {
-            console.error("Invalid prompt format");
-            setError("Ongeldige suggestie ontvangen");
-          }
-        } else {
-          console.log("No prompt available");
-          setError("Geen suggestie beschikbaar");
-        }
-      } catch (err) {
-        if (!mounted) return;
-        console.error('Failed to load initial prompt:', err);
-        setError('Er ging iets mis bij het laden van de suggestie');
-      }
-    };
-
-    if (user?.id) {
-      loadPrompt();
-    } else {
-      setPrompt(null);
-      setError(null);
-    }
-
-    return () => {
-      mounted = false;
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [user?.id, getLatestPrompt]);
-
-  const handlePromptClick = async () => {
-    if (!prompt) return;
-
-    try {
-      if (prompt.suggestionId) {
-        await markPromptAsUsed(prompt.suggestionId);
-        setCurrentSuggestionId(prompt.suggestionId);
-      }
-
-      if (prompt.context === "existing" && prompt.relatedChatId) {
-        navigate(`/chat/${prompt.relatedChatId}`);
-      } else {
-        const response = await fetch('/api/chats', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            messages: [{
-              role: 'assistant',
-              content: prompt.text
-            }],
-          }),
-          credentials: 'include',
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to create new chat');
-        }
-
-        const newChat = await response.json();
-        navigate(`/chat/${newChat.id}`);
-      }
-
-      setShowFeedback(true);
-    } catch (error) {
-      console.error('Error handling prompt:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Could not process the prompt. Please try again.",
-      });
-    }
-  };
 
   return (
     <div className="flex-1 bg-[#F2F0E5] overflow-y-auto">
@@ -147,45 +36,6 @@ export default function HomeView() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Chat Prompt Section */}
-      <div className="px-5 py-6">
-        {isSuggestionLoading ? (
-          <Card className="bg-white mb-4">
-            <CardContent className="p-6">
-              <div className="flex flex-col items-center justify-center space-y-4">
-                <div className="w-8 h-8 border-4 border-t-orange-500 border-gray-200 rounded-full animate-spin"></div>
-                <p className="text-gray-600">Nuri denkt na over je suggesties...</p>
-              </div>
-            </CardContent>
-          </Card>
-        ) : error ? (
-          <Card className="bg-white mb-4">
-            <CardContent className="p-4">
-              <p className="text-red-500">{error}</p>
-            </CardContent>
-          </Card>
-        ) : prompt && (
-          <div onClick={handlePromptClick}>
-            <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer mb-4">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="text-lg pr-8">{prompt.text}</p>
-                    {prompt.context === "existing" && prompt.relatedChatTitle && (
-                      <div className="mt-2 text-sm text-gray-500 flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4" />
-                        <span>Vervolg op: {prompt.relatedChatTitle}</span>
-                      </div>
-                    )}
-                  </div>
-                  <ChevronRight className="w-6 h-6 text-gray-400 flex-shrink-0" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
       </div>
 
       {/* Village Section */}
@@ -267,33 +117,9 @@ export default function HomeView() {
           </div>
         </div>
       </div>
-
-      {showFeedback && currentSuggestionId && (
-        <SuggestionFeedback
-          suggestionId={currentSuggestionId}
-          open={showFeedback}
-          onClose={() => {
-            setShowFeedback(false);
-            setCurrentSuggestionId(null);
-          }}
-        />
-      )}
     </div>
   );
 }
-
-const learningVideos = [
-  {
-    title: "Wat is Aware Parenting?",
-    duration: "10 min",
-    image: "/images/alexander-dummer-ncyGJJ0TSLM-unsplash (1).jpg",
-  },
-  {
-    title: "Niet straffen en belonen; hoe dan?",
-    duration: "5 min",
-    image: "/images/fabian-centeno-Snce5c3YjgI-unsplash.jpg",
-  },
-];
 
 const OneCard = [
   {

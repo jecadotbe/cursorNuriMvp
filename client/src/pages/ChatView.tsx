@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useChat } from "@/hooks/use-chat";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, Plus, Mic, ArrowUpCircle, Expand, Circle, BookOpen, RefreshCw, Star } from "lucide-react";
+import { ArrowLeft, Plus, Mic, ArrowUpCircle, Expand, Circle } from "lucide-react";
 import { format } from "date-fns";
 import { MessageFeedback } from "@/components/MessageFeedback";
 import { SuggestionChips } from "@/components/SuggestionChips";
@@ -16,7 +16,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
-import { PromptLibrary } from "@/components/PromptLibrary";
 import { useVoiceInput } from "@/hooks/use-voice-input";
 import { MicrophoneVisualizer } from "@/components/MicrophoneVisualizer";
 
@@ -42,7 +41,6 @@ export default function ChatView() {
   const { messages, sendMessage, isLoading, chatId } = useChat();
   const [inputText, setInputText] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
-  const [showPromptLibrary, setShowPromptLibrary] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
@@ -174,11 +172,6 @@ export default function ChatView() {
     }
   };
 
-  const handlePromptSelect = useCallback((prompt: string) => {
-    setInputText(prompt);
-    setShowPromptLibrary(false);
-  }, []);
-
   const checkForUncertainty = useCallback((text: string) => {
     const uncertaintyPatterns = [
       'weet niet',
@@ -302,15 +295,6 @@ export default function ChatView() {
           </Link>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowPromptLibrary(!showPromptLibrary);
-            }}
-            className={`p-2 hover:bg-gray-100 rounded-lg ${showPromptLibrary ? 'bg-gray-100' : ''}`}
-          >
-            <BookOpen className="w-6 h-6 text-[#629785]" />
-          </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -456,12 +440,6 @@ export default function ChatView() {
           </div>
         </div>
       </div>
-
-      <PromptLibrary
-        onSelectPrompt={handlePromptSelect}
-        isExpanded={showPromptLibrary}
-        onToggle={() => setShowPromptLibrary(!showPromptLibrary)}
-      />
 
       <AlertDialog open={showNewChatDialog} onOpenChange={setShowNewChatDialog}>
         <AlertDialogContent onClick={handleDialogClick}>
