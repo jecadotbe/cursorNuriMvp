@@ -19,8 +19,15 @@ export function useVillageInsights() {
   const { data: insights, isLoading, error } = useQuery<VillageInsight[]>({
     queryKey: ['/api/insights'],
     retry: 1,
-    staleTime: 0, // Always fetch fresh data
-    refetchInterval: 30000, // Refetch every 30 seconds for testing
+    staleTime: 0,
+    refetchInterval: 30000,
+    gcTime: 0,
+    throwOnError: false,
+    onSuccess: (data) => {
+      if (!data || data.length === 0) {
+        console.log('No insights available');
+      }
+    },
     onError: (error: Error) => {
       console.error('Failed to fetch insights:', error);
       toast({

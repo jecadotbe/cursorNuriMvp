@@ -23,6 +23,11 @@ import { and, eq, desc } from "drizzle-orm";
 import { db } from "@db";
 import { villageMembers, villageMemberMemories } from "@db/schema";
 
+// Add after the existing imports
+import { villageInsights } from "@db/schema";
+import { eq, desc } from "drizzle-orm";
+
+
 const getVillageContext = async (userId: number) => {
   try {
     // Get village members with their recent memories
