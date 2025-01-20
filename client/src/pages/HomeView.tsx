@@ -1,19 +1,18 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUser } from "@/hooks/use-user";
-import { useChatHistory } from "@/hooks/use-chat-history";
+import { useSuggestion } from "@/hooks/use-suggestion";
 import { MessageSquare, Users, Clock, ChevronRight } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
 import { SuggestionFeedback } from "@/components/SuggestionFeedback";
 
-// Add image load success handler
+// Image handling functions remain unchanged
 const handleImageLoad = (imageName: string) => {
   console.log(`Successfully loaded image: ${imageName}`);
 };
 
-// Add detailed error handling
 const handleImageError = (imageName: string, error: any) => {
   console.error(`Failed to load image: ${imageName}`, error);
   console.log('Image path attempted:', `/images/${imageName}`);
@@ -21,64 +20,23 @@ const handleImageError = (imageName: string, error: any) => {
 
 export default function HomeView() {
   const { user } = useUser();
-  const { getLatestPrompt, markPromptAsUsed, chats, isLoading } = useChatHistory();
-  const [prompt, setPrompt] = useState<{
-    text: string;
-    type: string;
-    context?: string;
-    relatedChatId?: string;
-    relatedChatTitle?: string;
-    suggestionId?: number;
-  } | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
-  const [, navigate] = useLocation();
+  const { suggestion, isLoading, markAsUsed } = useSuggestion();
   const [showFeedback, setShowFeedback] = useState(false);
   const [currentSuggestionId, setCurrentSuggestionId] = useState<number | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const loadPrompt = async () => {
-      if (!user) {
-        return; // Don't load if user is not authenticated
-      }
-
-      try {
-        const result = await getLatestPrompt();
-        if (mounted) {
-          setPrompt(result.prompt);
-          setError(null);
-        }
-      } catch (err) {
-        if (mounted) {
-          console.error('Failed to load initial prompt:', err);
-          setError('Failed to load recommendation');
-        }
-      }
-    };
-
-    loadPrompt();
-
-    return () => {
-      mounted = false;
-    };
-  }, [user, getLatestPrompt]); // Dependencies include user and getLatestPrompt
+  const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const handlePromptClick = async () => {
-    if (!prompt) return;
+    if (!suggestion) return;
 
     try {
-      // If this is a cached suggestion, mark it as used
-      if (prompt.suggestionId) {
-        await markPromptAsUsed(prompt.suggestionId);
-        // Store the suggestion ID for feedback
-        setCurrentSuggestionId(prompt.suggestionId);
-      }
+      // Mark suggestion as used and store ID for feedback
+      await markAsUsed(suggestion.id);
+      setCurrentSuggestionId(suggestion.id);
 
-      if (prompt.context === "existing" && prompt.relatedChatId) {
+      if (suggestion.context === "existing" && suggestion.relatedChatId) {
         // Navigate to existing chat
-        navigate(`/chat/${prompt.relatedChatId}`);
+        navigate(`/chat/${suggestion.relatedChatId}`);
       } else {
         // Create new chat with the prompt
         const response = await fetch('/api/chats', {
@@ -90,7 +48,7 @@ export default function HomeView() {
             title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
             messages: [{
               role: 'assistant',
-              content: prompt.text
+              content: suggestion.text
             }],
           }),
           credentials: 'include',
@@ -125,7 +83,7 @@ export default function HomeView() {
     <div className="flex-1 bg-[#F2F0E5] overflow-y-auto">
       {/* Greeting Section with Logo */}
       <div className="w-full bg-gradient-to-r from-[#F8DD9F] to-[#F2F0E5] via-[#F2F0E5] via-45% ">
-        <div className="px-4 pt-8 homemeeting">
+        <div className="px-4 pt-8">
           <div className="flex items-end gap-8">
             <div className="w-24 h-32 flex">
               <img
@@ -139,7 +97,7 @@ export default function HomeView() {
                 }}
               />
             </div>
-            <div className="space-y-1 homebottom">
+            <div className="space-y-1">
               <h1 className="text-2xl font-baskerville">
                 Dag {user?.username},
               </h1>
@@ -162,26 +120,20 @@ export default function HomeView() {
               <div className="h-4 bg-gray-200 rounded w-1/2"></div>
             </CardContent>
           </Card>
-        ) : error ? (
-          <Card className="bg-white mb-4">
-            <CardContent className="p-4">
-              <p className="text-red-500">{error}</p>
-            </CardContent>
-          </Card>
-        ) : prompt && (
+        ) : suggestion ? (
           <div onClick={handlePromptClick}>
             <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer mb-4">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="text-orange-500 font-medium text-sm mb-2">
-                      {prompt.type === 'action' ? 'ACTIE' : prompt.type === 'reflection' ? 'REFLECTIE' : 'VERVOLG'}
+                      {suggestion.type === 'action' ? 'ACTIE' : suggestion.type === 'reflection' ? 'REFLECTIE' : 'VERVOLG'}
                     </div>
-                    <p className="text-lg pr-8">{prompt.text}</p>
-                    {prompt.context === "existing" && prompt.relatedChatTitle && (
+                    <p className="text-lg pr-8">{suggestion.text}</p>
+                    {suggestion.context === "existing" && suggestion.relatedChatTitle && (
                       <div className="mt-2 text-sm text-gray-500 flex items-center gap-2">
                         <MessageSquare className="w-4 h-4" />
-                        <span>Vervolg op: {prompt.relatedChatTitle}</span>
+                        <span>Vervolg op: {suggestion.relatedChatTitle}</span>
                       </div>
                     )}
                   </div>
@@ -190,7 +142,7 @@ export default function HomeView() {
               </CardContent>
             </Card>
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Village Section */}
