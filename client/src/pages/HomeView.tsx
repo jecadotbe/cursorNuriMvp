@@ -2,22 +2,11 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUser } from "@/hooks/use-user";
 import { useChatHistory } from "@/hooks/use-chat-history";
-import { MessageSquare, Users, Clock, ChevronRight } from "lucide-react";
+import { MessageSquare, Clock, ChevronRight } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
 import { SuggestionFeedback } from "@/components/SuggestionFeedback";
-
-// Add image load success handler
-const handleImageLoad = (imageName: string) => {
-  console.log(`Successfully loaded image: ${imageName}`);
-};
-
-// Add detailed error handling
-const handleImageError = (imageName: string, error: any) => {
-  console.error(`Failed to load image: ${imageName}`, error);
-  console.log('Image path attempted:', `/images/${imageName}`);
-};
 
 export default function HomeView() {
   const { user } = useUser();
@@ -69,18 +58,14 @@ export default function HomeView() {
     if (!prompt) return;
 
     try {
-      // If this is a cached suggestion, mark it as used
       if (prompt.suggestionId) {
         await markPromptAsUsed(prompt.suggestionId);
-        // Store the suggestion ID for feedback
         setCurrentSuggestionId(prompt.suggestionId);
       }
 
       if (prompt.context === "existing" && prompt.relatedChatId) {
-        // Navigate to existing chat
         navigate(`/chat/${prompt.relatedChatId}`);
       } else {
-        // Create new chat with the prompt
         const response = await fetch('/api/chats', {
           method: 'POST',
           headers: {
@@ -104,7 +89,6 @@ export default function HomeView() {
         navigate(`/chat/${newChat.id}`);
       }
 
-      // Show feedback dialog after successful navigation
       setShowFeedback(true);
     } catch (error) {
       console.error('Error handling prompt:', error);
@@ -125,39 +109,40 @@ export default function HomeView() {
     <div className="flex-1 bg-[#F2F0E5] overflow-y-auto">
       {/* Greeting Section with Logo */}
       <div className="w-full bg-gradient-to-r from-[#F8DD9F] to-[#F2F0E5] via-[#F2F0E5] via-45% ">
-        <div className="px-4 pt-8 homemeeting">
+        <div className="px-4 pt-8 pb-6">
           <div className="flex items-end gap-8">
             <div className="w-24 h-32 flex">
               <img
                 src="/images/nuri_logo.png"
                 alt="Nuri Logo"
                 className="w-full object-contain self-end block"
-                onLoad={() => handleImageLoad('nuri_logo.png')}
                 onError={(e) => {
-                  handleImageError('nuri_logo.png', e);
                   e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='200' viewBox='0 0 150 200'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui' font-size='16' fill='%23666'%3ENuri%3C/text%3E%3C/svg%3E";
                 }}
               />
             </div>
-            <div className="space-y-1 homebottom">
+            <div className="space-y-1">
               <h1 className="text-2xl font-baskerville">
                 Dag {user?.username},
               </h1>
               <p className="text-xl">
                 Fijn je weer te zien.
-                <br />
-                Waarover wil je praten?
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Chat Prompt */}
+      {/* Chat Prompt Section */}
       <div className="px-5 py-6">
         {isLoading ? (
-          <Card className="bg-white animate-pulse mb-4">
-            <CardContent className="p-4 h-24" />
+          <Card className="bg-white mb-4">
+            <CardContent className="p-6">
+              <div className="flex flex-col items-center justify-center space-y-4">
+                <div className="w-8 h-8 border-4 border-t-orange-500 border-gray-200 rounded-full animate-spin"></div>
+                <p className="text-gray-600">Nuri denkt na over je suggesties...</p>
+              </div>
+            </CardContent>
           </Card>
         ) : error ? (
           <Card className="bg-white mb-4">
@@ -342,3 +327,12 @@ const OneCard = [
   },
 
 ];
+
+const handleImageLoad = (imageName: string) => {
+  console.log(`Successfully loaded image: ${imageName}`);
+};
+
+const handleImageError = (imageName: string, error: any) => {
+  console.error(`Failed to load image: ${imageName}`, error);
+  console.log('Image path attempted:', `/images/${imageName}`);
+};
