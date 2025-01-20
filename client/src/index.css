@@ -7,18 +7,18 @@
 
 @keyframes borderPulse {
   0% {
-    border-color: rgba(249, 115, 22, 0.4);
+    border-color: rgb(255, 174, 0, 0.4);
   }
   50% {
-    border-color: rgba(249, 115, 22, 0.8);
+    border-color: rgb(242, 240, 229, 0.8);
   }
   100% {
-    border-color: rgba(249, 115, 22, 0.4);
+    border-color: rgb(219, 139, 0, 0.4);
   }
 }
 
 .animate-border {
-  animation: borderPulse 2s ease-in-out infinite;
+  animation: borderPulse 4s ease-in-out infinite;
   border-width: 2px;
 }
 

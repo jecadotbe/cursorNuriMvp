@@ -97,7 +97,7 @@ export default function HomeView() {
                 }}
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 homebottom">
               <h1 className="text-2xl font-baskerville">
                 Dag {user?.username},
               </h1>
