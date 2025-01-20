@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, createRef } from "react";
 import { useVillage } from "@/hooks/use-village";
 import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, User, Users, ArrowUpCircle, ArrowDownCircle, ArrowLeftCircle, ArrowRightCircle, Lightbulb, BookMarked, Star, Clock } from "lucide-react";
 import {
@@ -48,7 +48,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useVillageMemories } from "@/hooks/use-village-memories";
 import { VillageMemberMemories } from "@/components/VillageMemberMemories";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import InsightsPanel from "@/components/InsightsPanel"; 
+import InsightsPanel from "@/components/InsightsPanel";
 
 const CATEGORY_COLORS = {
   informeel: "#22c55e", // Green
@@ -90,6 +90,15 @@ export default function VillageView() {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const memberRefs = useRef(new Map());
+
+  const getMemberRef = (memberId: number) => {
+    if (!memberRefs.current.has(memberId)) {
+      memberRefs.current.set(memberId, createRef());
+    }
+    return memberRefs.current.get(memberId);
+  };
+
   const [newMember, setNewMember] = useState<NewVillageMember>({
     name: "",
     type: "individual",
@@ -574,10 +583,12 @@ export default function VillageView() {
             {members.map((member) => {
               const pos = getMemberPosition(member);
               const categoryColor = member.category ? CATEGORY_COLORS[member.category] : "#6b7280";
+              const nodeRef = getMemberRef(member.id);
 
               return (
                 <Draggable
                   key={member.id}
+                  nodeRef={nodeRef}
                   defaultPosition={pos}
                   onStop={(e, data) => {
                     const distance = Math.sqrt(data.x * data.x + data.y * data.y);
@@ -598,6 +609,7 @@ export default function VillageView() {
                   bounds="parent"
                 >
                   <div
+                    ref={nodeRef}
                     className="absolute cursor-move member-pill group flex items-center"
                     style={{ transform: "translate(-50%, -50%)" }}
                   >
