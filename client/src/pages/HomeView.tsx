@@ -31,7 +31,8 @@ export default function HomeView() {
                 Dag {user?.username},
               </h1>
               <p className="text-xl">
-                Fijn je weer te zien.
+                Fijn je weer te zien.<br/>
+                Waarover wil je praten?
               </p>
             </div>
           </div>
