@@ -55,7 +55,7 @@ async function markSuggestionAsUsed(id: number): Promise<void> {
 export function useChatHistory() {
   const { toast } = useToast();
 
-  // Chat history query with proper caching
+  // Chat history query with proper error handling and caching
   const { 
     data: chats = [], 
     isLoading, 
@@ -64,13 +64,13 @@ export function useChatHistory() {
   } = useQuery({
     queryKey: ["/api/chats"],
     queryFn: fetchChatHistory,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000,   // 10 minutes
     retry: 2,
     refetchOnWindowFocus: false,
   });
 
-  // Separate suggestion query with proper error handling
+  // Suggestion query with optimized configuration
   const { 
     data: suggestion, 
     isLoading: isSuggestionLoading,
@@ -79,8 +79,8 @@ export function useChatHistory() {
   } = useQuery({
     queryKey: ["/api/suggestions"],
     queryFn: fetchSuggestion,
-    staleTime: 30 * 1000, // Cache for 30 seconds
-    cacheTime: 1 * 60 * 1000, // Keep in cache for 1 minute
+    staleTime: 30 * 1000,     // 30 seconds
+    gcTime: 60 * 1000,        // 1 minute
     retry: 1,
     enabled: true,
     onError: () => {

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useChat } from "@/hooks/use-chat";
 import { Link, useLocation } from "wouter";
 import { ArrowLeft, Plus, Mic, ArrowUpCircle, Expand, Circle, BookOpen, RefreshCw, Star } from "lucide-react";
@@ -43,7 +43,7 @@ export default function ChatView() {
   const [inputText, setInputText] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPromptLibrary, setShowPromptLibrary] = useState(false);
-const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [currentSuggestions, setCurrentSuggestions] = useState<string[]>(DEFAULT_SUGGESTIONS);
@@ -64,15 +64,15 @@ const [showSuggestions, setShowSuggestions] = useState(false);
     }
   );
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isLoading]);
+  }, [messages, isLoading, scrollToBottom]);
 
-  const initializeChat = async () => {
+  const initializeChat = useCallback(async () => {
     if (!chatId && !isInitializing) {
       setIsInitializing(true);
       try {
@@ -108,18 +108,18 @@ const [showSuggestions, setShowSuggestions] = useState(false);
         setIsInitializing(false);
       }
     }
-  };
+  }, [chatId, isInitializing, navigate, toast]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value;
     setInputText(newText);
     checkForUncertainty(newText);
     if (newText.trim() && !chatId) {
       initializeChat();
     }
-  };
+  }, [chatId, initializeChat]);
 
-  const handleSend = async () => {
+  const handleSend = useCallback(async () => {
     if (inputText.trim()) {
       if (!chatId) {
         await initializeChat();
@@ -130,7 +130,7 @@ const [showSuggestions, setShowSuggestions] = useState(false);
       setIsExpanded(false);
       await sendMessage(text);
     }
-  };
+  }, [inputText, chatId, initializeChat, sendMessage]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -215,11 +215,14 @@ const [showSuggestions, setShowSuggestions] = useState(false);
     }
   };
 
-  const generateContextualSuggestions = async () => {
+  const generateContextualSuggestions = useCallback(async () => {
     if (!chatId || messages.length === 0) return;
 
     setIsLoadingSuggestions(true);
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
       const response = await fetch(`/api/suggestions/generate`, {
         method: 'POST',
         headers: {
@@ -230,7 +233,10 @@ const [showSuggestions, setShowSuggestions] = useState(false);
           lastMessageContent: messages[messages.length - 1].content,
         }),
         credentials: 'include',
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error('Failed to generate suggestions');
@@ -239,17 +245,26 @@ const [showSuggestions, setShowSuggestions] = useState(false);
       const data = await response.json();
       setCurrentSuggestions(data.suggestions);
     } catch (error) {
-      console.error('Error generating suggestions:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Could not generate suggestions. Using default suggestions instead.",
-      });
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error('Suggestion generation timed out');
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Suggestion generation timed out. Using default suggestions.",
+        });
+      } else {
+        console.error('Error generating suggestions:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Could not generate suggestions. Using default suggestions instead.",
+        });
+      }
       setCurrentSuggestions(DEFAULT_SUGGESTIONS);
     } finally {
       setIsLoadingSuggestions(false);
     }
-  };
+  }, [chatId, messages, toast]);
 
   const handleSuggestionSelect = async (suggestion: string) => {
     if (!chatId) {
