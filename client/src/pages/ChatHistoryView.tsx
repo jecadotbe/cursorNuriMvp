@@ -16,9 +16,20 @@ interface ChatMessage {
 }
 
 export default function ChatHistoryView() {
-  const { chats = [], isLoading, refetchChats } = useChatHistory();
+  const { chats = [], isLoading, error: chatError, refetchChats } = useChatHistory();
+  const [isDeleting, setIsDeleting] = useState(false);
   const [, navigate] = useLocation();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (chatError) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load chats. Please try again.",
+      });
+    }
+  }, [chatError, toast]);
 
   const startNewChat = async () => {
     try {
@@ -79,7 +90,10 @@ export default function ChatHistoryView() {
   }, [refetchChats, toast]);
 
   const handleDeleteChat = useCallback(async (chatId: number) => {
+    if (isDeleting) return;
+    
     try {
+      setIsDeleting(true);
       const response = await fetch(`/api/chats/${chatId}`, {
         method: 'DELETE',
         credentials: 'include',
@@ -101,8 +115,10 @@ export default function ChatHistoryView() {
         title: "Error",
         description: "Failed to delete chat. Please try again.",
       });
+    } finally {
+      setIsDeleting(false);
     }
-  }, [refetchChats, toast]);
+  }, [refetchChats, toast, isDeleting]);
 
   const groupedChats = useMemo(() => {
     const today = new Date();

@@ -27,32 +27,41 @@ export default function HomeView() {
   // Load suggestion when component mounts or user changes
   useEffect(() => {
     let mounted = true;
+    let timeoutId: NodeJS.Timeout;
 
     const loadPrompt = async () => {
       try {
         const result = await getLatestPrompt();
-        if (mounted && result?.prompt) {
+        if (!mounted) return;
+        
+        if (result?.prompt) {
           console.log("Setting prompt:", result.prompt);
           setPrompt(result.prompt);
           setError(null);
-        } else if (mounted) {
+        } else {
           console.log("No prompt available");
           setError("Geen suggestie beschikbaar");
         }
       } catch (err) {
-        if (mounted) {
-          console.error('Failed to load initial prompt:', err);
-          setError('Er ging iets mis bij het laden van de suggestie');
-        }
+        if (!mounted) return;
+        console.error('Failed to load initial prompt:', err);
+        setError('Er ging iets mis bij het laden van de suggestie');
+        
+        // Retry after 5 seconds
+        timeoutId = setTimeout(loadPrompt, 5000);
       }
     };
 
     if (user?.id) {
       loadPrompt();
+    } else {
+      setPrompt(null);
+      setError(null);
     }
 
     return () => {
       mounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
     };
   }, [user?.id, getLatestPrompt]);
 
