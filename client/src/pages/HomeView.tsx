@@ -87,7 +87,7 @@ export default function HomeView() {
           <div className="space-y-3">
             {OneCard.map((video, index) => (
               <Link key={index} href="/learn">
-                <Card className="bg-transparent hover:shadow-md transition-shadow cursor-pointer">
+                <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-4">
                       <div className="w-24 h-24 flex-shrink-0">
