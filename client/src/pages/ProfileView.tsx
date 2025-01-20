@@ -123,7 +123,7 @@ export default function ProfileView() {
                 <div>
                   {item.label}
                   {item.description && (
-                    <p className="text-sm text-muted-foreground">{item.description}</p>
+                    <p className="text-sm text-muted-foreground text-left">{item.description}</p>
                   )}
                 </div>
                 <ChevronRight className="h-5 w-5" />
