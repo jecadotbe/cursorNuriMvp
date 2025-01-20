@@ -1384,20 +1384,7 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
     const user = req.user as User;
 
     try {
-      // First, check if we have any non-implemented insights
-      const existingInsights = await db
-        .select()
-        .from(villageInsights)
-        .where(
-          and(
-            eq(villageInsights.userId, user.id),
-            eq(villageInsights.status, "active")
-          )
-        );
-
-      if (existingInsights.length > 0) {
-        return res.json(existingInsights);
-      }
+      console.log("Generating insights for user:", user.id);
 
       // Get all village members
       const members = await db
@@ -1405,104 +1392,96 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
         .from(villageMembers)
         .where(eq(villageMembers.userId, user.id));
 
-      // Get recent interactions
-      const recentInteractions = await db
-        .select()
-        .from(villageMemberInteractions)
-        .where(eq(villageMemberInteractions.userId, user.id))
-        .orderBy(desc(villageMemberInteractions.date))
-        .limit(50);
+      console.log("Found village members:", members.length);
 
-      // Get memories
-      const memories = await db
-        .select()
-        .from(villageMemberMemories)
-        .where(eq(villageMemberMemories.userId, user.id))
-        .orderBy(desc(villageMemberMemories.date))
-        .limit(50);
+      const insights: Array<typeof villageInsights.$inferInsert> = [];
 
-      // Group interactions by village member
-      const interactionsByMember = new Map();
-      recentInteractions.forEach(interaction => {
-        if (!interactionsByMember.has(interaction.villageMemberId)) {
-          interactionsByMember.set(interaction.villageMemberId, []);
-        }
-        interactionsByMember.get(interaction.villageMemberId).push(interaction);
-      });
-
-      const insights: Array<Partial<typeof villageInsights.$inferInsert>> = [];
-
-      // Generate network gap insights
-      const categoryCounts = new Map();
-      members.forEach(member => {
-        if (member.category) {
-          categoryCounts.set(member.category, (categoryCounts.get(member.category) || 0) + 1);
-        }
-      });
-
-      // Check for category gaps
-      if (!categoryCounts.has('formeel') || categoryCounts.get('formeel') < 2) {
-        insights.push({
-          userId: user.id,
-          type: "network_gap",
-          title: "Add Professional Support",
-          description: "Consider adding more professional support to your village, such as healthcare providers or counselors.",
-          suggestedAction: "Think about which professional support would be most helpful for your situation.",
-          priority: 2,
-          status: "active",
+      // Always generate some basic insights if we have members
+      if (members.length > 0) {
+        // Generate category distribution insight
+        const categoryCounts = new Map<string, number>();
+        members.forEach(member => {
+          if (member.category) {
+            categoryCounts.set(member.category, (categoryCounts.get(member.category) || 0) + 1);
+          }
         });
-      }
 
-      // Analyze interaction patterns
-      members.forEach(member => {
-        const memberInteractions = interactionsByMember.get(member.id) || [];
-        const lastInteraction = memberInteractions[0];
-
-        if (!lastInteraction || 
-            new Date().getTime() - new Date(lastInteraction.date).getTime() > 30 * 24 * 60 * 60 * 1000) {
-          insights.push({
-            userId: user.id,
-            type: "interaction_suggestion",
-            title: `Reconnect with ${member.name}`,
-            description: `It's been a while since you've connected with ${member.name}. Regular contact helps maintain strong support networks.`,
-            suggestedAction: "Plan a catch-up or check in with a message.",
-            priority: 3,
-            status: "active",
-            relatedMemberIds: [member.id],
-          });
-        }
-      });
-
-      // Analyze relationship health based on interaction quality
-      members.forEach(member => {
-        const memberInteractions = interactionsByMember.get(member.id) || [];
-        if (memberInteractions.length >= 3) {
-          const recentQuality = memberInteractions.slice(0, 3).reduce((sum, int) => sum + (int.quality || 0), 0) / 3;
-          if (recentQuality < 3) {
+        // Check category balance
+        const categories = ['informeel', 'formeel', 'inspiratie'];
+        categories.forEach(category => {
+          if (!categoryCounts.has(category) || categoryCounts.get(category)! < 2) {
             insights.push({
               userId: user.id,
-              type: "relationship_health",
-              title: `Strengthen Bond with ${member.name}`,
-              description: "Recent interactions suggest there might be room to improve this relationship.",
-              suggestedAction: "Consider having a meaningful conversation or planning a quality activity together.",
-              priority: 1,
+              type: "network_gap",
+              title: `Strengthen Your ${category} Support`,
+              description: `Your village could benefit from more ${category} support members.`,
+              suggestedAction: `Consider adding more ${category} connections to create a more balanced support network.`,
+              priority: 2,
               status: "active",
-              relatedMemberIds: [member.id],
+              relatedMemberIds: [],
+              metadata: {},
+              createdAt: new Date(),
+              updatedAt: new Date()
             });
           }
-        }
-      });
+        });
 
-      // Store new insights
+        // Generate connection strength insights
+        members.forEach(member => {
+          if (member.contactFrequency === 'S') {
+            insights.push({
+              userId: user.id,
+              type: "connection_strength",
+              title: `Strengthen Bond with ${member.name}`,
+              description: `Regular contact with ${member.name} can enhance your support network.`,
+              suggestedAction: "Try increasing contact frequency through regular check-ins or activities.",
+              priority: 3,
+              status: "active",
+              relatedMemberIds: [member.id],
+              metadata: {},
+              createdAt: new Date(),
+              updatedAt: new Date()
+            });
+          }
+        });
+
+        // Generate circle balance insights
+        const circleDistribution = new Map<number, number>();
+        members.forEach(member => {
+          circleDistribution.set(member.circle, (circleDistribution.get(member.circle) || 0) + 1);
+        });
+
+        if (!circleDistribution.has(1) || circleDistribution.get(1)! < 3) {
+          insights.push({
+            userId: user.id,
+            type: "network_gap",
+            title: "Strengthen Inner Circle",
+            description: "Your inner circle could benefit from more close connections.",
+            suggestedAction: "Consider which relationships could be strengthened to become part of your inner circle.",
+            priority: 1,
+            status: "active",
+            relatedMemberIds: [],
+            metadata: {},
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+        }
+      }
+
+      console.log("Generated insights:", insights.length);
+
+      // Store new insights if we have any
       if (insights.length > 0) {
         const storedInsights = await db
           .insert(villageInsights)
           .values(insights)
           .returning();
 
+        console.log("Stored insights:", storedInsights.length);
         return res.json(storedInsights);
       }
 
+      // If no new insights, return empty array
       return res.json([]);
     } catch (error) {
       console.error("Failed to generate insights:", error);

@@ -18,6 +18,8 @@ export function useVillageInsights() {
 
   const { data: insights, isLoading, error } = useQuery<VillageInsight[]>({
     queryKey: ['/api/insights'],
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    refetchInterval: 10 * 60 * 1000, // Refetch every 10 minutes
   });
 
   const implementInsight = useMutation({
