@@ -51,15 +51,28 @@ async function markSuggestionAsUsed(id: number): Promise<void> {
 export function useChatHistory() {
   const { toast } = useToast();
 
-  const { data: chats = [], isLoading: isChatsLoading, error: chatsError, refetch: refetchChats } = useQuery<Chat[], Error>({
+  // Separate chat history query
+  const { 
+    data: chats = [], 
+    isLoading: isChatsLoading, 
+    error: chatsError, 
+    refetch: refetchChats 
+  } = useQuery<Chat[], Error>({
     queryKey: ["chats"],
     queryFn: fetchChatHistory,
+    staleTime: 5 * 60 * 1000, // Cache chat history for 5 minutes
   });
 
-  const { data: suggestion, isLoading: isSuggestionLoading, error: suggestionError, refetch: refetchSuggestion } = useQuery<PromptSuggestion>({
+  // Independent suggestion query
+  const { 
+    data: suggestion, 
+    isLoading: isSuggestionLoading, 
+    error: suggestionError, 
+    refetch: refetchSuggestion 
+  } = useQuery<PromptSuggestion>({
     queryKey: ["suggestion"],
     queryFn: fetchSuggestion,
-    staleTime: 0,
+    staleTime: 0, // Always fetch fresh suggestions
     retry: 2,
     retryDelay: 1000,
     onError: (error) => {
@@ -71,9 +84,6 @@ export function useChatHistory() {
       });
     },
   });
-
-  const isLoading = isChatsLoading || isSuggestionLoading;
-  const error = chatsError || suggestionError;
 
   const getLatestPrompt = async () => {
     try {
@@ -110,8 +120,10 @@ export function useChatHistory() {
 
   return {
     chats,
-    isLoading,
-    error,
+    isChatsLoading,
+    isSuggestionLoading,
+    chatsError,
+    suggestionError,
     refetchChats,
     getLatestPrompt,
     markPromptAsUsed,

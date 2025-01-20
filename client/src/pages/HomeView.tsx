@@ -10,7 +10,7 @@ import { SuggestionFeedback } from "@/components/SuggestionFeedback";
 
 export default function HomeView() {
   const { user } = useUser();
-  const { getLatestPrompt, markPromptAsUsed, chats } = useChatHistory();
+  const { getLatestPrompt, markPromptAsUsed, chats, isSuggestionLoading } = useChatHistory();
   const [prompt, setPrompt] = useState<{
     text: string;
     type: string;
@@ -19,7 +19,6 @@ export default function HomeView() {
     relatedChatTitle?: string;
     suggestionId?: number;
   } | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const [, navigate] = useLocation();
@@ -33,15 +32,13 @@ export default function HomeView() {
       if (!prompt) {
         try {
           const result = await getLatestPrompt();
-          if (mounted) {
+          if (mounted && result?.prompt) {
             setPrompt(result.prompt);
-            setIsLoading(false);
           }
         } catch (err) {
           if (mounted) {
             console.error('Failed to load initial prompt:', err);
             setError('Failed to load recommendation');
-            setIsLoading(false);
           }
         }
       }
@@ -52,7 +49,7 @@ export default function HomeView() {
     return () => {
       mounted = false;
     };
-  }, []); // Run only once on mount
+  }, []);
 
   const handlePromptClick = async () => {
     if (!prompt) return;
@@ -135,7 +132,7 @@ export default function HomeView() {
 
       {/* Chat Prompt Section */}
       <div className="px-5 py-6">
-        {isLoading ? (
+        {isSuggestionLoading ? (
           <Card className="bg-white mb-4">
             <CardContent className="p-6">
               <div className="flex flex-col items-center justify-center space-y-4">
@@ -156,9 +153,6 @@ export default function HomeView() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <div className="text-orange-500 font-medium text-sm mb-2">
-                      {prompt.type === 'action' ? 'ACTIE' : prompt.type === 'reflection' ? 'REFLECTIE' : 'VERVOLG'}
-                    </div>
                     <p className="text-lg pr-8">{prompt.text}</p>
                     {prompt.context === "existing" && prompt.relatedChatTitle && (
                       <div className="mt-2 text-sm text-gray-500 flex items-center gap-2">
@@ -218,9 +212,7 @@ export default function HomeView() {
               <img src="/images/LearningIcon.svg" alt="Learning" className="w-6 h-6" />
               <h2 className="text-2xl font-baskerville">Verder leren</h2>
             </div>
-
           </div>
-          {/* One Card */}
 
           <div className="space-y-3">
             {OneCard.map((video, index) => (
@@ -254,46 +246,9 @@ export default function HomeView() {
               </Link>
             ))}
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            {learningVideos.map((video, index) => (
-              <Link key={index} href="/learn" className="h-full">
-                <Card
-                  className="
-          bg-white 
-          border-2 border-[#E5E7EB] 
-          hover:shadow-md 
-          hover:border-[#D1D5DB]
-          transition-all
-          duration-200
-          cursor-pointer 
-          overflow-hidden 
-          h-full 
-          rounded-lg
-        "
-                >
-                  <CardContent className="p-4">
-                    <img
-                      src={video.image}
-                      alt={video.title}
-                      className="w-full aspect-[16/9] object-cover rounded-lg mb-4"
-                      onLoad={() => handleImageLoad(video.image.split('/').pop()!)}
-                      onError={(e) => {
-                        handleImageError(video.image.split('/').pop()!, e);
-                        e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui' font-size='12' fill='%23666'%3EThumbnail%3C/text%3E%3C/svg%3E";
-                      }}
-                    />
-                    <h3 className="text-xl font-baskerville text-[#2F4644] mb-3">{video.title}</h3>
-                    <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-white border border-[#E5E7EB]">
-                      <Clock className="w-4 h-4 mr-2 text-gray-500" />
-                      <span className="text-sm text-gray-600">{video.duration}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
         </div>
       </div>
+
       {showFeedback && currentSuggestionId && (
         <SuggestionFeedback
           suggestionId={currentSuggestionId}
