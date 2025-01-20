@@ -14,7 +14,7 @@ export default function HomeView() {
     <div className="flex-1 bg-[#F2F0E5] overflow-y-auto">
       {/* Greeting Section with Logo */}
       <div className="w-full bg-gradient-to-r from-[#F8DD9F] to-[#F2F0E5] via-[#F2F0E5] via-45% ">
-        <div className="px-4 pt-8 pb-6">
+        <div className="px-4 pt-8 homemeeting">
           <div className="flex items-end gap-8">
             <div className="w-24 h-32 flex">
               <img
@@ -26,7 +26,7 @@ export default function HomeView() {
                 }}
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 homebottom">
               <h1 className="text-2xl font-baskerville">
                 Dag {user?.username},
               </h1>
@@ -40,7 +40,7 @@ export default function HomeView() {
       </div>
 
       {/* Village Section */}
-      <div className="px-5 pb-6">
+      <div className="w-full">
         <div
           className="rounded-xl p-6 relative overflow-hidden min-h-[200px]"
           style={{
@@ -70,7 +70,7 @@ export default function HomeView() {
       </div>
 
       {/* Learning Section */}
-      <div className="px-5 pb-6">
+      <div className="w-full">
         <div
           className="rounded-xl p-6 relative overflow-hidden"
           style={{
