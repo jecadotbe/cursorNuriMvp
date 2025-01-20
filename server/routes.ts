@@ -938,7 +938,7 @@ Conversation: ${JSON.stringify(messages)}`,
     const user = req.user as User;
     try {
       const feedback = await db
-        .insert(messageFeedback)
+                .insert(messageFeedback)
         .values({
           userId: user.id,
           messageId: req.body.messageId,
@@ -1372,6 +1372,180 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
     } catch (error) {
       console.error("Failed to update insight:", error);
       res.status(500).json({ message: "Failed to update insight" });
+    }
+  });
+
+  // Add insights generation API endpoint
+  app.get("/api/insights", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const user = req.user as User;
+
+    try {
+      // First, check if we have any non-implemented insights
+      const existingInsights = await db
+        .select()
+        .from(villageInsights)
+        .where(
+          and(
+            eq(villageInsights.userId, user.id),
+            eq(villageInsights.status, "active")
+          )
+        );
+
+      if (existingInsights.length > 0) {
+        return res.json(existingInsights);
+      }
+
+      // Get all village members
+      const members = await db
+        .select()
+        .from(villageMembers)
+        .where(eq(villageMembers.userId, user.id));
+
+      // Get recent interactions
+      const recentInteractions = await db
+        .select()
+        .from(villageMemberInteractions)
+        .where(eq(villageMemberInteractions.userId, user.id))
+        .orderBy(desc(villageMemberInteractions.date))
+        .limit(50);
+
+      // Get memories
+      const memories = await db
+        .select()
+        .from(villageMemberMemories)
+        .where(eq(villageMemberMemories.userId, user.id))
+        .orderBy(desc(villageMemberMemories.date))
+        .limit(50);
+
+      // Group interactions by village member
+      const interactionsByMember = new Map();
+      recentInteractions.forEach(interaction => {
+        if (!interactionsByMember.has(interaction.villageMemberId)) {
+          interactionsByMember.set(interaction.villageMemberId, []);
+        }
+        interactionsByMember.get(interaction.villageMemberId).push(interaction);
+      });
+
+      const insights: Array<Partial<typeof villageInsights.$inferInsert>> = [];
+
+      // Generate network gap insights
+      const categoryCounts = new Map();
+      members.forEach(member => {
+        if (member.category) {
+          categoryCounts.set(member.category, (categoryCounts.get(member.category) || 0) + 1);
+        }
+      });
+
+      // Check for category gaps
+      if (!categoryCounts.has('formeel') || categoryCounts.get('formeel') < 2) {
+        insights.push({
+          userId: user.id,
+          type: "network_gap",
+          title: "Add Professional Support",
+          description: "Consider adding more professional support to your village, such as healthcare providers or counselors.",
+          suggestedAction: "Think about which professional support would be most helpful for your situation.",
+          priority: 2,
+          status: "active",
+        });
+      }
+
+      // Analyze interaction patterns
+      members.forEach(member => {
+        const memberInteractions = interactionsByMember.get(member.id) || [];
+        const lastInteraction = memberInteractions[0];
+
+        if (!lastInteraction || 
+            new Date().getTime() - new Date(lastInteraction.date).getTime() > 30 * 24 * 60 * 60 * 1000) {
+          insights.push({
+            userId: user.id,
+            type: "interaction_suggestion",
+            title: `Reconnect with ${member.name}`,
+            description: `It's been a while since you've connected with ${member.name}. Regular contact helps maintain strong support networks.`,
+            suggestedAction: "Plan a catch-up or check in with a message.",
+            priority: 3,
+            status: "active",
+            relatedMemberIds: [member.id],
+          });
+        }
+      });
+
+      // Analyze relationship health based on interaction quality
+      members.forEach(member => {
+        const memberInteractions = interactionsByMember.get(member.id) || [];
+        if (memberInteractions.length >= 3) {
+          const recentQuality = memberInteractions.slice(0, 3).reduce((sum, int) => sum + (int.quality || 0), 0) / 3;
+          if (recentQuality < 3) {
+            insights.push({
+              userId: user.id,
+              type: "relationship_health",
+              title: `Strengthen Bond with ${member.name}`,
+              description: "Recent interactions suggest there might be room to improve this relationship.",
+              suggestedAction: "Consider having a meaningful conversation or planning a quality activity together.",
+              priority: 1,
+              status: "active",
+              relatedMemberIds: [member.id],
+            });
+          }
+        }
+      });
+
+      // Store new insights
+      if (insights.length > 0) {
+        const storedInsights = await db
+          .insert(villageInsights)
+          .values(insights)
+          .returning();
+
+        return res.json(storedInsights);
+      }
+
+      return res.json([]);
+    } catch (error) {
+      console.error("Failed to generate insights:", error);
+      res.status(500).json({ message: "Failed to generate insights" });
+    }
+  });
+
+  // Implement insight endpoint
+  app.post("/api/insights/:id/implement", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const user = req.user as User;
+    const insightId = parseInt(req.params.id);
+
+    if (isNaN(insightId)) {
+      return res.status(400).json({ message: "Invalid insight ID" });
+    }
+
+    try {
+      const [updated] = await db
+        .update(villageInsights)
+        .set({
+          status: "implemented",
+          implementedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(villageInsights.id, insightId),
+            eq(villageInsights.userId, user.id)
+          )
+        )
+        .returning();
+
+      if (!updated) {
+        return res.status(404).json({ message: "Insight not found" });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error implementing insight:", error);
+      res.status(500).json({ message: "Failed to implement insight" });
     }
   });
 
