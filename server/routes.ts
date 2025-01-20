@@ -931,7 +931,8 @@ Conversation: ${JSON.stringify(messages)}`,
   });
 
   app.post("/api/message-feedback", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {      return res.status(401).send("Not authenticated");
+    if (!req.isAuthenticated() || !req.user) {      
+      return res.status(401).send("Not authenticated");
     }
 
     const user = req.user as User;
@@ -1311,6 +1312,68 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
 
   // Register village routes
   app.use("/api/village", villageRouter);
+
+  // Add insights routes after existing routes
+  app.get("/api/insights", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const user = req.user as User;
+
+    try {
+      const insights = await db.query.villageInsights.findMany({
+        where: and(
+          eq(villageInsights.userId, user.id),
+          eq(villageInsights.status, "active")
+        ),
+        orderBy: [desc(villageInsights.priority)],
+      });
+
+      res.json(insights);
+    } catch (error) {
+      console.error("Failed to fetch insights:", error);
+      res.status(500).json({ message: "Failed to fetch insights" });
+    }
+  });
+
+  app.post("/api/insights/implement/:id", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const user = req.user as User;
+    const insightId = parseInt(req.params.id);
+
+    if (isNaN(insightId)) {
+      return res.status(400).json({ message: "Invalid insight ID" });
+    }
+
+    try {
+      const [updated] = await db
+        .update(villageInsights)
+        .set({
+          status: "implemented",
+          implementedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(villageInsights.id, insightId),
+            eq(villageInsights.userId, user.id)
+          )
+        )
+        .returning();
+
+      if (!updated) {
+        return res.status(404).json({ message: "Insight not found" });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Failed to update insight:", error);
+      res.status(500).json({ message: "Failed to update insight" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

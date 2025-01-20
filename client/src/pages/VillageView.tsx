@@ -48,6 +48,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useVillageMemories } from "@/hooks/use-village-memories";
 import { VillageMemberMemories } from "@/components/VillageMemberMemories";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import InsightsPanel from "@/components/InsightsPanel"; // Import InsightsPanel
+
 
 const CATEGORY_COLORS = {
   informeel: "#22c55e", // Green
@@ -656,43 +658,34 @@ export default function VillageView() {
         </div>
       </div>
 
+      {/* Village suggestions - Replaced with InsightsPanel */}
       <div className="fixed bottom-20 left-4 z-50">
         <div
-          className="bg-white rounded-2xl shadow-md w-auto max-w-xs overflow-hidden transition-all duration-300"
-          style={{ maxHeight: '300px' }}
+          className="bg-white rounded-2xl shadow-md w-auto max-w-sm overflow-hidden transition-all duration-300"
+          style={{ maxHeight: isSuggestionsOpen ? '400px' : '60px' }}
         >
           <div
             onClick={() => setIsSuggestionsOpen(!isSuggestionsOpen)}
             className="flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-gray-50"
           >
-            <span>
-              Er zijn <strong className="text-orange-500">3</strong> village
-              suggesties
+            <span className="flex items-center gap-2">
+              <Lightbulb className="w-4 h-4 text-orange-500" />
+              <span>Village Insights</span>
             </span>
-            <ChevronLeft className={`w-5 h-5 transform transition-transform duration-300 ml-2 ${isSuggestionsOpen ? 'rotate-270' : 'rotate-90'}`} />
+            <ChevronLeft
+              className={`w-5 h-5 transform transition-transform duration-300 ml-2 ${
+                isSuggestionsOpen ? 'rotate-270' : 'rotate-90'
+              }`}
+            />
           </div>
           {isSuggestionsOpen && (
             <div className="px-4 pb-4">
-              {[
-                { title: 'Add Andy', description: 'Start with adding your first village member' },
-                { title: 'Build your village', description: 'Learn how to grow your support network' },
-                { title: 'Watch the Village video', description: 'See how the Village feature works' }
-              ].map((suggestion, index) => (
-                <div
-                  key={index}
-                  className="mt-2 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors"
-                  onClick={() => {
-                    console.log(`Clicked: ${suggestion.title}`);
-                  }}
-                >
-                  <h4 className="font-medium text-sm text-gray-800">{suggestion.title}</h4>
-                  <p className="text-xs text-gray-500 mt-1">{suggestion.description}</p>
-                </div>
-              ))}
+              <InsightsPanel />
             </div>
           )}
         </div>
       </div>
+
 
       <Dialog open={isOpen} onOpenChange={(open) => {
         setIsOpen(open);

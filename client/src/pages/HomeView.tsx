@@ -7,6 +7,7 @@ import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
 import { SuggestionFeedback } from "@/components/SuggestionFeedback";
+import { InsightsPanel } from "@/components/InsightsPanel";
 
 // Image handling functions remain unchanged
 const handleImageLoad = (imageName: string) => {
@@ -148,7 +149,7 @@ export default function HomeView() {
         ) : null}
       </div>
 
-      {/* Village Section */}
+      {/* Village Section with AI Insights */}
       <div className="w-full">
         <div
           className="rounded-xl p-6 relative overflow-hidden min-h-[200px]"
@@ -164,13 +165,16 @@ export default function HomeView() {
             <h2 className="text-2xl font-baskerville">Mijn Village</h2>
           </div>
           <h3 className="text-l mb-4">Laat je Village bloeien</h3>
+
+          {/* AI Insights Panel */}
+          <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
+            <InsightsPanel maxItems={3} displayStyle="compact" />
+          </div>
+
           <div className="flex justify-end">
             <Link href="/village">
               <div className="bg-white rounded-full px-4 py-2 shadow-sm inline-flex items-center gap-2 cursor-pointer">
-                <span>
-                  Er zijn <strong className="text-orange-500">3</strong> village
-                  suggesties
-                </span>
+                <span>Bekijk je Village</span>
                 <ChevronRight className="w-4 h-4" />
               </div>
             </Link>
