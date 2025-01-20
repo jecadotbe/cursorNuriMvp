@@ -21,7 +21,7 @@ const handleImageError = (imageName: string, error: any) => {
 
 export default function HomeView() {
   const { user } = useUser();
-  const { getLatestPrompt, markPromptAsUsed, chats } = useChatHistory();
+  const { getLatestPrompt, markPromptAsUsed, chats, isLoading } = useChatHistory();
   const [prompt, setPrompt] = useState<{
     text: string;
     type: string;
@@ -30,7 +30,6 @@ export default function HomeView() {
     relatedChatTitle?: string;
     suggestionId?: number;
   } | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const [, navigate] = useLocation();
@@ -41,19 +40,20 @@ export default function HomeView() {
     let mounted = true;
 
     const loadPrompt = async () => {
-      if (!prompt) {
-        try {
-          const result = await getLatestPrompt();
-          if (mounted) {
-            setPrompt(result.prompt);
-            setIsLoading(false);
-          }
-        } catch (err) {
-          if (mounted) {
-            console.error('Failed to load initial prompt:', err);
-            setError('Failed to load recommendation');
-            setIsLoading(false);
-          }
+      if (!user) {
+        return; // Don't load if user is not authenticated
+      }
+
+      try {
+        const result = await getLatestPrompt();
+        if (mounted) {
+          setPrompt(result.prompt);
+          setError(null);
+        }
+      } catch (err) {
+        if (mounted) {
+          console.error('Failed to load initial prompt:', err);
+          setError('Failed to load recommendation');
         }
       }
     };
@@ -63,7 +63,7 @@ export default function HomeView() {
     return () => {
       mounted = false;
     };
-  }, []); // Run only once on mount
+  }, [user, getLatestPrompt]); // Dependencies include user and getLatestPrompt
 
   const handlePromptClick = async () => {
     if (!prompt) return;
@@ -157,7 +157,10 @@ export default function HomeView() {
       <div className="px-5 py-6">
         {isLoading ? (
           <Card className="bg-white animate-pulse mb-4">
-            <CardContent className="p-4 h-24" />
+            <CardContent className="p-4">
+              <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            </CardContent>
           </Card>
         ) : error ? (
           <Card className="bg-white mb-4">

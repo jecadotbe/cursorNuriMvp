@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Chat, PromptSuggestion } from "@db/schema";
 import { useToast } from "./use-toast";
+import { useUser } from "./use-user";
 
 async function fetchChatHistory(): Promise<Chat[]> {
   const response = await fetch("/api/chats?sort=desc", {
@@ -43,17 +44,23 @@ async function markSuggestionAsUsed(id: number): Promise<void> {
 
 export function useChatHistory() {
   const { toast } = useToast();
+  const { user, isLoading: isUserLoading } = useUser();
 
-  const { data: chats = [], isLoading, error, refetch } = useQuery<Chat[], Error>({
+  const { data: chats = [], isLoading: isChatsLoading, error: chatsError, refetch: refetchChats } = useQuery<Chat[], Error>({
     queryKey: ["chats"],
     queryFn: fetchChatHistory,
+    enabled: !!user, // Only fetch when user is authenticated
   });
 
-  const { data: suggestion, refetch: refetchSuggestion } = useQuery<PromptSuggestion>({
+  const { 
+    data: suggestion, 
+    isLoading: isSuggestionLoading,
+    error: suggestionError,
+    refetch: refetchSuggestion 
+  } = useQuery<PromptSuggestion>({
     queryKey: ["suggestion"],
     queryFn: fetchSuggestion,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    enabled: true, // Automatically fetch when the hook is mounted
+    enabled: !!user, // Only fetch when user is authenticated
     retry: false,
     onError: (error) => {
       console.error('Failed to fetch suggestion:', error);
@@ -67,6 +74,10 @@ export function useChatHistory() {
 
   const getLatestPrompt = async () => {
     try {
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
       if (suggestion) {
         return {
           prompt: {
@@ -107,14 +118,19 @@ export function useChatHistory() {
       await refetchSuggestion(); // Fetch a new suggestion after marking the current one as used
     } catch (error) {
       console.error('Failed to mark suggestion as used:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to mark suggestion as used",
+      });
     }
   };
 
   return {
     chats,
-    isLoading,
-    error,
-    refetch,
+    isLoading: isUserLoading || isChatsLoading || isSuggestionLoading,
+    error: chatsError || suggestionError,
+    refetch: refetchChats,
     getLatestPrompt,
     markPromptAsUsed,
   };
