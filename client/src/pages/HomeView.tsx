@@ -128,7 +128,7 @@ export default function HomeView() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                      <div className="text-orange-500 font-semibold text-sm tracking-wide">
+                      <div className="text-orange-500 font-semibold text-sm tracking-wide uppercase">
                         Op basis van onze gesprekken
                       </div>
                     </div>
