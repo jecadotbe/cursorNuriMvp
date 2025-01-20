@@ -3,16 +3,20 @@ import type { Chat, PromptSuggestion } from "@db/schema";
 import { useToast } from "./use-toast";
 
 async function fetchChatHistory(): Promise<Chat[]> {
-  const response = await fetch("/api/chats?sort=desc", {
-    credentials: "include",
-  });
+  try {
+    const response = await fetch("/api/chats?sort=desc", {
+      credentials: "include",
+    });
 
-  if (!response.ok) {
-    console.error('Chat history fetch failed:', await response.text());
-    throw new Error(`Failed to fetch chat history: ${response.status}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch chat history: ${response.status}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Chat history fetch failed:', error);
+    throw error;
   }
-
-  return response.json();
 }
 
 async function fetchSuggestion(): Promise<PromptSuggestion> {
@@ -22,68 +26,68 @@ async function fetchSuggestion(): Promise<PromptSuggestion> {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Suggestion fetch failed:', errorText);
-      throw new Error(`Failed to fetch suggestion: ${response.status} - ${errorText}`);
+      throw new Error(`Failed to fetch suggestion: ${response.status}`);
     }
 
-    const data = await response.json();
-    console.log('Fetched suggestion:', data);
-    return data;
+    return response.json();
   } catch (error) {
-    console.error('Suggestion fetch error:', error);
+    console.error('Suggestion fetch failed:', error);
     throw error;
   }
 }
 
 async function markSuggestionAsUsed(id: number): Promise<void> {
-  const response = await fetch(`/api/suggestions/${id}/use`, {
-    method: 'POST',
-    credentials: 'include',
-  });
+  try {
+    const response = await fetch(`/api/suggestions/${id}/use`, {
+      method: 'POST',
+      credentials: 'include',
+    });
 
-  if (!response.ok) {
-    console.error('Mark suggestion as used failed:', await response.text());
-    throw new Error(`Failed to mark suggestion as used: ${response.status}`);
+    if (!response.ok) {
+      throw new Error(`Failed to mark suggestion as used: ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Mark suggestion as used failed:', error);
+    throw error;
   }
 }
 
 export function useChatHistory() {
   const { toast } = useToast();
 
-  // Chat history query
+  // Chat history query with proper caching
   const { 
     data: chats = [], 
-    isLoading: isChatsLoading, 
+    isLoading, 
     error: chatsError,
     refetch: refetchChats 
-  } = useQuery<Chat[], Error>({
-    queryKey: ["chats"],
+  } = useQuery({
+    queryKey: ["/api/chats"],
     queryFn: fetchChatHistory,
-    staleTime: 5 * 60 * 1000, // Cache chat history for 5 minutes
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    retry: 2,
+    refetchOnWindowFocus: false,
   });
 
-  // Separate suggestion query that runs immediately and independently
+  // Separate suggestion query with proper error handling
   const { 
     data: suggestion, 
-    isLoading: isSuggestionLoading, 
+    isLoading: isSuggestionLoading,
     error: suggestionError,
     refetch: refetchSuggestion 
-  } = useQuery<PromptSuggestion>({
-    queryKey: ["suggestion"],
+  } = useQuery({
+    queryKey: ["/api/suggestions"],
     queryFn: fetchSuggestion,
-    staleTime: 0, // Always fetch fresh suggestions
-    retry: 2,
-    retryDelay: 1000,
-    refetchOnMount: true, // Refetch when component mounts
-    refetchOnWindowFocus: true, // Refetch when window regains focus
-    enabled: true, // Always enabled to fetch immediately
-    onError: (error) => {
-      console.error('Failed to fetch suggestion:', error);
+    staleTime: 30 * 1000, // Cache for 30 seconds
+    cacheTime: 1 * 60 * 1000, // Keep in cache for 1 minute
+    retry: 1,
+    enabled: true,
+    onError: () => {
       toast({
         variant: "destructive",
-        title: "Fout bij laden",
-        description: "Er ging iets mis bij het laden van je suggestie. Probeer het opnieuw.",
+        title: "Error loading suggestions",
+        description: "Failed to load suggestions. Please try again later.",
       });
     },
   });
@@ -91,7 +95,6 @@ export function useChatHistory() {
   const getLatestPrompt = async () => {
     try {
       if (suggestion) {
-        console.log('Returning suggestion:', suggestion);
         return {
           prompt: {
             text: suggestion.text,
@@ -103,8 +106,6 @@ export function useChatHistory() {
           }
         };
       }
-
-      console.log('No suggestion available, returning null');
       return null;
     } catch (error) {
       console.error('Failed to get prompt:', error);
@@ -118,12 +119,17 @@ export function useChatHistory() {
       await refetchSuggestion();
     } catch (error) {
       console.error('Failed to mark suggestion as used:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to mark suggestion as used.",
+      });
     }
   };
 
   return {
     chats,
-    isChatsLoading,
+    isLoading,
     isSuggestionLoading,
     chatsError,
     suggestionError,
