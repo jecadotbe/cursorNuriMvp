@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 import type { Chat, PromptSuggestion } from "@db/schema";
 import { useToast } from "./use-toast";
 
@@ -19,13 +19,16 @@ async function fetchChatHistory(): Promise<Chat[]> {
   }
 }
 
-async function fetchSuggestion(): Promise<PromptSuggestion> {
+async function fetchSuggestion(): Promise<PromptSuggestion | null> {
   try {
     const response = await fetch('/api/suggestions', {
       credentials: 'include',
     });
 
     if (!response.ok) {
+      if (response.status === 404) {
+        return null;
+      }
       throw new Error(`Failed to fetch suggestion: ${response.status}`);
     }
 
@@ -55,7 +58,7 @@ async function markSuggestionAsUsed(id: number): Promise<void> {
 export function useChatHistory() {
   const { toast } = useToast();
 
-  // Chat history query with proper error handling and caching
+  // Chat history query with optimized caching and error handling
   const { 
     data: chats = [], 
     isLoading, 
@@ -64,33 +67,30 @@ export function useChatHistory() {
   } = useQuery({
     queryKey: ["/api/chats"],
     queryFn: fetchChatHistory,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000,   // 10 minutes
-    retry: 2,
-    refetchOnWindowFocus: false,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000,    // 5 minutes
+    retry: 1,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true
   });
 
   // Suggestion query with optimized configuration
+  const suggestionQueryOptions: UseQueryOptions<PromptSuggestion | null, Error> = {
+    queryKey: ["/api/suggestions"],
+    queryFn: fetchSuggestion,
+    staleTime: 15 * 1000,     // 15 seconds
+    gcTime: 30 * 1000,        // 30 seconds
+    retry: 1,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true
+  };
+
   const { 
     data: suggestion, 
     isLoading: isSuggestionLoading,
     error: suggestionError,
     refetch: refetchSuggestion 
-  } = useQuery({
-    queryKey: ["/api/suggestions"],
-    queryFn: fetchSuggestion,
-    staleTime: 30 * 1000,     // 30 seconds
-    gcTime: 60 * 1000,        // 1 minute
-    retry: 1,
-    enabled: true,
-    onError: () => {
-      toast({
-        variant: "destructive",
-        title: "Error loading suggestions",
-        description: "Failed to load suggestions. Please try again later.",
-      });
-    },
-  });
+  } = useQuery(suggestionQueryOptions);
 
   const getLatestPrompt = async () => {
     try {
@@ -101,7 +101,7 @@ export function useChatHistory() {
             type: suggestion.type,
             context: suggestion.context,
             relatedChatId: suggestion.relatedChatId?.toString(),
-            relatedChatTitle: suggestion.relatedChatTitle,
+            relatedChatTitle: suggestion.relatedChatTitle ?? undefined,
             suggestionId: suggestion.id
           }
         };
@@ -109,6 +109,11 @@ export function useChatHistory() {
       return null;
     } catch (error) {
       console.error('Failed to get prompt:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load the latest prompt"
+      });
       return null;
     }
   };

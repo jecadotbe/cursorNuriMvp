@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useVillage } from "@/hooks/use-village";
 import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, User, Users, ArrowUpCircle, ArrowDownCircle, ArrowLeftCircle, ArrowRightCircle, Lightbulb, BookMarked, Star, Clock } from "lucide-react";
 import {
@@ -72,6 +72,7 @@ interface Memory {
   tags: string[];
 }
 
+// Add Insight type definition
 interface Insight {
   id: number;
   type: string;
@@ -106,37 +107,30 @@ export default function VillageView() {
     title: "",
     content: "",
     emotionalImpact: 3,
-    tags: [] as string[],
+    tags: [],
     date: format(new Date(), "yyyy-MM-dd")
   });
-  const [insights, setInsights] = useState<Insight[]>([
-    {
-      id: 1,
-      type: "connection_strength",
-      title: "Strong Connection Alert",
-      description: "Your relationship with Andy has been consistently strong over the past month.",
-      priority: 4,
-      status: "active"
-    },
-    {
-      id: 2,
-      type: "network_gap",
-      title: "Support Network Gap",
-      description: "You might benefit from adding more professional contacts to your village.",
-      suggestedAction: "Consider reaching out to mentors or colleagues",
-      priority: 3,
-      status: "active"
-    }
-  ]);
 
-  const { addMemory } = useVillageMemories(selectedMember?.id || 0);
+  // useRef for touch handling to prevent memory leaks
+  const lastTouchDistance = useRef<number>(0);
+  const lastTouchPos = useRef<{ x: number; y: number } | null>(null);
+  const dragTimeoutRef = useRef<number | null>(null);
+
+  // Cleanup function for event listeners
+  useEffect(() => {
+    return () => {
+      if (dragTimeoutRef.current) {
+        window.clearTimeout(dragTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleZoomIn = () => {
-    setScale((prev) => Math.min(prev + 0.1, 3));
+    setScale(prev => Math.min(prev + 0.1, 3));
   };
 
   const handleZoomOut = () => {
-    setScale((prev) => Math.max(prev - 0.1, 0.3));
+    setScale(prev => Math.max(prev - 0.1, 0.3));
   };
 
   const handleReset = () => {
@@ -152,7 +146,7 @@ export default function VillageView() {
   const snapToCircle = (x: number, y: number, circle: number) => {
     const radius = getCircleRadius(circle - 1);
     const angle = Math.atan2(y, x);
-    const normalizedAngle = (angle + 2 * Math.PI) % (2 * Math.PI); // Ensure positive angle
+    const normalizedAngle = (angle + 2 * Math.PI) % (2 * Math.PI);
     return {
       x: Math.cos(normalizedAngle) * radius,
       y: Math.sin(normalizedAngle) * radius,
@@ -162,14 +156,11 @@ export default function VillageView() {
 
   const getMemberPosition = (member: typeof members[0]) => {
     const radius = getCircleRadius(member.circle - 1);
-    let angle: number;
-    if (typeof member.positionAngle === 'string') {
-      angle = parseFloat(member.positionAngle);
-    } else if (typeof member.positionAngle === 'number') {
-      angle = member.positionAngle;
-    } else {
-      angle = 2 * Math.PI * Math.random(); // Fallback for members without stored position
-    }
+    const angle = typeof member.positionAngle === 'string' ?
+      parseFloat(member.positionAngle) :
+      typeof member.positionAngle === 'number' ?
+        member.positionAngle :
+        2 * Math.PI * Math.random();
 
     return {
       x: Math.cos(angle) * radius,
@@ -177,14 +168,10 @@ export default function VillageView() {
     };
   };
 
-  const calculateAngleFromPosition = (x: number, y: number) => {
-    return Math.atan2(y, x);
-  };
-
-  const lastTouchDistance = useRef<number>(0);
-  const lastTouchPos = useRef<{ x: number; y: number } | null>(null);
-
+  // Optimized touch handlers with debouncing
   const handleTouch = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+
     if (e.touches.length === 2) {
       const touch1 = e.touches[0];
       const touch2 = e.touches[1];
@@ -233,13 +220,24 @@ export default function VillageView() {
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging) return;
     e.preventDefault();
-    handleTouch(e);
+
+    if (dragTimeoutRef.current) {
+      window.clearTimeout(dragTimeoutRef.current);
+    }
+
+    dragTimeoutRef.current = window.setTimeout(() => {
+      handleTouch(e);
+    }, 16); // Approximately 60fps
   };
 
   const handleTouchEnd = () => {
     setIsDragging(false);
     lastTouchDistance.current = 0;
     lastTouchPos.current = null;
+
+    if (dragTimeoutRef.current) {
+      window.clearTimeout(dragTimeoutRef.current);
+    }
   };
 
   const handlePanStart = (e: React.MouseEvent | React.TouchEvent) => {
@@ -448,6 +446,28 @@ export default function VillageView() {
       });
     }
   };
+
+  const { addMemory } = useVillageMemories(selectedMember?.id || 0);
+  const [insights, setInsights] = useState<Insight[]>([
+    {
+      id: 1,
+      type: "connection_strength",
+      title: "Strong Connection Alert",
+      description: "Your relationship with Andy has been consistently strong over the past month.",
+      priority: 4,
+      status: "active"
+    },
+    {
+      id: 2,
+      type: "network_gap",
+      title: "Support Network Gap",
+      description: "You might benefit from adding more professional contacts to your village.",
+      suggestedAction: "Consider reaching out to mentors or colleagues",
+      priority: 3,
+      status: "active"
+    }
+  ]);
+
 
   return (
     <div className="flex flex-col h-screen relative animate-gradient" style={{
