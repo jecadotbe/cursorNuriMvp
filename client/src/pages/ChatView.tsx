@@ -468,6 +468,21 @@ const formatMessageContent = (content: string) => {
   return content
     .split('\n\n')
     .map(paragraph => {
+      // Handle numbered lists
+      if (paragraph.match(/^\d+\./)) {
+        const items = paragraph.split('\n').map(item => 
+          item.replace(/^\d+\.\s*(.*)$/, '<li>$1</li>')
+        ).join('');
+        return `<ol>${items}</ol>`;
+      }
+      // Handle bullet points
+      if (paragraph.match(/^[*-]/)) {
+        const items = paragraph.split('\n').map(item => 
+          item.replace(/^[*-]\s*(.*)$/, '<li>$1</li>')
+        ).join('');
+        return `<ul>${items}</ul>`;
+      }
+      // Handle existing formatting
       paragraph = paragraph.replace(/\*(.*?)\*/g, '<em>$1</em>');
       paragraph = paragraph.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
       return paragraph;
@@ -475,7 +490,7 @@ const formatMessageContent = (content: string) => {
     .map((paragraph, i) => (
       <p
         key={i}
-        className={`${i > 0 ? 'mt-4' : ''}`}
+        className={`${i > 0 ? 'mt-4' : ''} [&>ul]:list-disc [&>ul]:ml-4 [&>ol]:list-decimal [&>ol]:ml-4 [&>li]:ml-2`}
         dangerouslySetInnerHTML={{ __html: paragraph }}
       />
     ));
