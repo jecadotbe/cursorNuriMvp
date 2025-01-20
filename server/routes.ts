@@ -326,7 +326,10 @@ export function registerRoutes(app: Express): Server {
 
   // Get cached suggestion for homepage
   app.get("/api/suggestions", async (req, res) => {
+    console.log("Suggestions endpoint called");
+
     if (!req.isAuthenticated() || !req.user) {
+      console.log("User not authenticated");
       return res.status(401).send("Not authenticated");
     }
 
@@ -334,11 +337,17 @@ export function registerRoutes(app: Express): Server {
     const now = new Date();
 
     try {
+      console.log("Fetching profile data for user:", user.id);
       // Get user's profile data for personalized suggestions
       const profile = await db.query.parentProfiles.findFirst({
         where: eq(parentProfiles.userId, user.id),
       });
 
+      if (!profile) {
+        console.log("No profile found for user:", user.id);
+      }
+
+      console.log("Fetching recent chats");
       // Get recent chats for context
       const recentChats = await db.query.chats.findMany({
         where: eq(chats.userId, user.id),
@@ -351,17 +360,18 @@ export function registerRoutes(app: Express): Server {
       if (profile?.onboardingData) {
         personalizedContext = `
 Parent's Profile:
-- Experience Level: ${profile.onboardingData.basicInfo?.experienceLevel}
-- Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel}
-- Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ")}
+${profile.onboardingData.basicInfo?.experienceLevel ? `- Experience Level: ${profile.onboardingData.basicInfo.experienceLevel}` : ''}
+${profile.onboardingData.stressAssessment?.stressLevel ? `- Stress Level: ${profile.onboardingData.stressAssessment.stressLevel}` : ''}
+${profile.onboardingData.stressAssessment?.primaryConcerns?.length ? `- Primary Concerns: ${profile.onboardingData.stressAssessment.primaryConcerns.join(", ")}` : ''}
 ${profile.onboardingData.childProfiles
           ?.map(
-            (child) =>
+            (child: any) =>
               `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
           )
           .join("\n")}`;
       }
 
+      console.log("Generating suggestion with Anthropic");
       const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 150,
@@ -392,24 +402,31 @@ Generate a single, concise conversation starter that feels personal and engaging
         ],
       });
 
+      console.log("Received Anthropic response");
       const responseText =
         response.content[0].type === "text" ? response.content[0].text : "";
       let parsedResponse;
 
       try {
         parsedResponse = JSON.parse(responseText);
+        console.log("Parsed response:", parsedResponse);
       } catch (parseError) {
+        console.error("Failed to parse response directly:", parseError);
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
+          console.error("Could not extract JSON from response:", responseText);
           throw new Error("Could not extract valid JSON from response");
         }
         parsedResponse = JSON.parse(jsonMatch[0]);
+        console.log("Parsed response from match:", parsedResponse);
       }
 
       if (!parsedResponse?.prompt?.text) {
+        console.error("Invalid response structure:", parsedResponse);
         throw new Error("Response missing required prompt structure");
       }
 
+      console.log("Storing suggestion in database");
       // Store the new suggestion
       const [suggestion] = await db
         .insert(promptSuggestions)
@@ -425,6 +442,7 @@ Generate a single, concise conversation starter that feels personal and engaging
         })
         .returning();
 
+      console.log("Successfully created suggestion:", suggestion);
       res.json(suggestion);
     } catch (error) {
       console.error("Suggestion generation error:", error);
@@ -526,11 +544,11 @@ Parent's Context:
 - Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel}
 - Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ")}
 ${profile.onboardingData.childProfiles
-              ?.map(
-                (child) =>
-                  `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
-              )
-              .join("\n")}`;
+                ?.map(
+                  (child: any) =>
+                    `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
+                )
+                .join("\n")}`;
           contextualizedPrompt += `\n\n${profileContext}`;
         }
 
