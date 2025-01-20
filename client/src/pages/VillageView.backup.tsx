@@ -1,5 +1,4 @@
-
-import { useState, useRef } from "react";
+import { useState, useRef, createRef } from "react";
 import { useVillage } from "@/hooks/use-village";
 import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, User, ArrowUpCircle, ArrowDownCircle, ArrowLeftCircle, ArrowRightCircle } from "lucide-react";
 import {
@@ -66,6 +65,14 @@ export default function VillageView() {
   });
   const [memberToEdit, setMemberToEdit] = useState<typeof members[0] | null>(null);
   const [memberToDelete, setMemberToDelete] = useState<typeof members[0] | null>(null);
+  const memberRefs = useRef(new Map());
+
+  const getMemberRef = (memberId: number) => {
+    if (!memberRefs.current.has(memberId)) {
+      memberRefs.current.set(memberId, createRef());
+    }
+    return memberRefs.current.get(memberId);
+  };
 
   const handleZoomIn = () => {
     setScale((prev) => Math.min(prev + 0.1, 3));
@@ -500,10 +507,12 @@ export default function VillageView() {
             {members.map((member) => {
               const pos = getMemberPosition(member);
               const categoryColor = member.category ? CATEGORY_COLORS[member.category] : "#6b7280";
+              const nodeRef = getMemberRef(member.id);
 
               return (
                 <Draggable
                   key={member.id}
+                  nodeRef={nodeRef}
                   defaultPosition={pos}
                   onStop={(e, data) => {
                     // Calculate which circle the member was dropped on
@@ -527,6 +536,7 @@ export default function VillageView() {
                   bounds="parent"
                 >
                   <div
+                    ref={nodeRef}
                     className="absolute cursor-move member-pill group flex items-center"
                     style={{ transform: "translate(-50%, -50%)" }}
                   >
