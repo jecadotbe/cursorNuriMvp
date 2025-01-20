@@ -2,15 +2,14 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUser } from "@/hooks/use-user";
 import { useChatHistory } from "@/hooks/use-chat-history";
-import { MessageSquare, Clock, ChevronRight } from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { MessageSquare, ChevronRight } from "lucide-react";
+import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { format } from 'date-fns';
 import { SuggestionFeedback } from "@/components/SuggestionFeedback";
 
 export default function HomeView() {
   const { user } = useUser();
-  const { getLatestPrompt, markPromptAsUsed, chats, isSuggestionLoading } = useChatHistory();
+  const { getLatestPrompt, markPromptAsUsed, isSuggestionLoading } = useChatHistory();
   const [prompt, setPrompt] = useState<{
     text: string;
     type: string;
@@ -25,7 +24,7 @@ export default function HomeView() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [currentSuggestionId, setCurrentSuggestionId] = useState<number | null>(null);
 
-  // Load suggestion on mount and when user changes
+  // Load suggestion when component mounts or user changes
   useEffect(() => {
     let mounted = true;
 
@@ -33,23 +32,29 @@ export default function HomeView() {
       try {
         const result = await getLatestPrompt();
         if (mounted && result?.prompt) {
+          console.log("Setting prompt:", result.prompt);
           setPrompt(result.prompt);
           setError(null);
+        } else if (mounted) {
+          console.log("No prompt available");
+          setError("Geen suggestie beschikbaar");
         }
       } catch (err) {
         if (mounted) {
           console.error('Failed to load initial prompt:', err);
-          setError('Failed to load recommendation');
+          setError('Er ging iets mis bij het laden van de suggestie');
         }
       }
     };
 
-    loadPrompt();
+    if (user?.id) {
+      loadPrompt();
+    }
 
     return () => {
       mounted = false;
     };
-  }, [user?.id]); // Reload when user changes
+  }, [user?.id, getLatestPrompt]);
 
   const handlePromptClick = async () => {
     if (!prompt) return;
