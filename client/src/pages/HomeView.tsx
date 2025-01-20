@@ -1,14 +1,125 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUser } from "@/hooks/use-user";
-import { MessageSquare, Clock, ChevronRight } from "lucide-react";
+import { useChatHistory } from "@/hooks/use-chat-history";
+import { MessageSquare, Users, Clock, ChevronRight } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { format } from 'date-fns';
+import { SuggestionFeedback } from "@/components/SuggestionFeedback";
+
+// Add image load success handler
+const handleImageLoad = (imageName: string) => {
+  console.log(`Successfully loaded image: ${imageName}`);
+};
+
+// Add detailed error handling
+const handleImageError = (imageName: string, error: any) => {
+  console.error(`Failed to load image: ${imageName}`, error);
+  console.log('Image path attempted:', `/images/${imageName}`);
+};
 
 export default function HomeView() {
   const { user } = useUser();
+  const { getLatestPrompt, markPromptAsUsed, chats } = useChatHistory();
+  const [prompt, setPrompt] = useState<{
+    text: string;
+    type: string;
+    context?: string;
+    relatedChatId?: string;
+    relatedChatTitle?: string;
+    suggestionId?: number;
+  } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [currentSuggestionId, setCurrentSuggestionId] = useState<number | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadPrompt = async () => {
+      if (!prompt) {
+        try {
+          const result = await getLatestPrompt();
+          if (mounted) {
+            setPrompt(result.prompt);
+            setIsLoading(false);
+          }
+        } catch (err) {
+          if (mounted) {
+            console.error('Failed to load initial prompt:', err);
+            setError('Failed to load recommendation');
+            setIsLoading(false);
+          }
+        }
+      }
+    };
+
+    loadPrompt();
+
+    return () => {
+      mounted = false;
+    };
+  }, []); // Run only once on mount
+
+  const handlePromptClick = async () => {
+    if (!prompt) return;
+
+    try {
+      // If this is a cached suggestion, mark it as used
+      if (prompt.suggestionId) {
+        await markPromptAsUsed(prompt.suggestionId);
+        // Store the suggestion ID for feedback
+        setCurrentSuggestionId(prompt.suggestionId);
+      }
+
+      if (prompt.context === "existing" && prompt.relatedChatId) {
+        // Navigate to existing chat
+        navigate(`/chat/${prompt.relatedChatId}`);
+      } else {
+        // Create new chat with the prompt
+        const response = await fetch('/api/chats', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
+            messages: [{
+              role: 'assistant',
+              content: prompt.text
+            }],
+          }),
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create new chat');
+        }
+
+        const newChat = await response.json();
+        navigate(`/chat/${newChat.id}`);
+      }
+
+      // Show feedback dialog after successful navigation
+      setShowFeedback(true);
+    } catch (error) {
+      console.error('Error handling prompt:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not process the prompt. Please try again.",
+      });
+    }
+  };
+
+  const handleFeedbackClose = () => {
+    setShowFeedback(false);
+    setCurrentSuggestionId(null);
+  };
 
   return (
     <div className="flex-1 bg-[#F2F0E5] overflow-y-auto">
@@ -21,7 +132,9 @@ export default function HomeView() {
                 src="/images/nuri_logo.png"
                 alt="Nuri Logo"
                 className="w-full object-contain self-end block"
+                onLoad={() => handleImageLoad('nuri_logo.png')}
                 onError={(e) => {
+                  handleImageError('nuri_logo.png', e);
                   e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='200' viewBox='0 0 150 200'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui' font-size='16' fill='%23666'%3ENuri%3C/text%3E%3C/svg%3E";
                 }}
               />
@@ -31,12 +144,50 @@ export default function HomeView() {
                 Dag {user?.username},
               </h1>
               <p className="text-xl">
-                Fijn je weer te zien.<br/>
+                Fijn je weer te zien.
+                <br />
                 Waarover wil je praten?
               </p>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Chat Prompt */}
+      <div className="px-5 py-6">
+        {isLoading ? (
+          <Card className="bg-white animate-pulse mb-4">
+            <CardContent className="p-4 h-24" />
+          </Card>
+        ) : error ? (
+          <Card className="bg-white mb-4">
+            <CardContent className="p-4">
+              <p className="text-red-500">{error}</p>
+            </CardContent>
+          </Card>
+        ) : prompt && (
+          <div onClick={handlePromptClick}>
+            <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer mb-4">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="text-orange-500 font-medium text-sm mb-2">
+                      {prompt.type === 'action' ? 'ACTIE' : prompt.type === 'reflection' ? 'REFLECTIE' : 'VERVOLG'}
+                    </div>
+                    <p className="text-lg pr-8">{prompt.text}</p>
+                    {prompt.context === "existing" && prompt.relatedChatTitle && (
+                      <div className="mt-2 text-sm text-gray-500 flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4" />
+                        <span>Vervolg op: {prompt.relatedChatTitle}</span>
+                      </div>
+                    )}
+                  </div>
+                  <ChevronRight className="w-6 h-6 text-gray-400 flex-shrink-0" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
 
       {/* Village Section */}
@@ -72,7 +223,7 @@ export default function HomeView() {
       {/* Learning Section */}
       <div className="w-full">
         <div
-          className="rounded-xl p-6 relative overflow-hidden"
+          className="rounded-xl p-6 relative overflow-hidden mb-4"
           style={{
             background: "linear-gradient(180deg, #F8DD9F 0%, #F2F0E5 35%)",
           }}
@@ -82,12 +233,14 @@ export default function HomeView() {
               <img src="/images/LearningIcon.svg" alt="Learning" className="w-6 h-6" />
               <h2 className="text-2xl font-baskerville">Verder leren</h2>
             </div>
+
           </div>
+          {/* One Card */}
 
           <div className="space-y-3">
             {OneCard.map((video, index) => (
               <Link key={index} href="/learn">
-                <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer">
+                <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer mb-4">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-4">
                       <div className="w-24 h-24 flex-shrink-0">
@@ -116,11 +269,70 @@ export default function HomeView() {
               </Link>
             ))}
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            {learningVideos.map((video, index) => (
+              <Link key={index} href="/learn" className="h-full">
+                <Card
+                  className="
+          bg-white 
+          border-2 border-[#E5E7EB] 
+          hover:shadow-md 
+          hover:border-[#D1D5DB]
+          transition-all
+          duration-200
+          cursor-pointer 
+          overflow-hidden 
+          h-full 
+          rounded-lg
+        "
+                >
+                  <CardContent className="p-4">
+                    <img
+                      src={video.image}
+                      alt={video.title}
+                      className="w-full aspect-[16/9] object-cover rounded-lg mb-4"
+                      onLoad={() => handleImageLoad(video.image.split('/').pop()!)}
+                      onError={(e) => {
+                        handleImageError(video.image.split('/').pop()!, e);
+                        e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui' font-size='12' fill='%23666'%3EThumbnail%3C/text%3E%3C/svg%3E";
+                      }}
+                    />
+                    <h3 className="text-xl font-baskerville text-[#2F4644] mb-3">{video.title}</h3>
+                    <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-white border border-[#E5E7EB]">
+                      <Clock className="w-4 h-4 mr-2 text-gray-500" />
+                      <span className="text-sm text-gray-600">{video.duration}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
+      {showFeedback && currentSuggestionId && (
+        <SuggestionFeedback
+          suggestionId={currentSuggestionId}
+          open={showFeedback}
+          onClose={handleFeedbackClose}
+        />
+      )}
     </div>
   );
 }
+
+const learningVideos = [
+  {
+    title: "Wat is Aware Parenting?",
+    duration: "10 min",
+    image: "/images/alexander-dummer-ncyGJJ0TSLM-unsplash (1).jpg",
+  },
+  {
+    title: "Niet straffen en belonen; hoe dan?",
+    duration: "5 min",
+    image: "/images/fabian-centeno-Snce5c3YjgI-unsplash.jpg",
+  },
+
+];
 
 const OneCard = [
   {
@@ -128,13 +340,5 @@ const OneCard = [
     duration: "10 min",
     image: "/images/alexander-dummer-ncyGJJ0TSLM-unsplash (1).jpg",
   },
+
 ];
-
-const handleImageLoad = (imageName: string) => {
-  console.log(`Successfully loaded image: ${imageName}`);
-};
-
-const handleImageError = (imageName: string, error: any) => {
-  console.error(`Failed to load image: ${imageName}`, error);
-  console.log('Image path attempted:', `/images/${imageName}`);
-};

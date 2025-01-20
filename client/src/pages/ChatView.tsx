@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useChat } from "@/hooks/use-chat";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, Plus, Mic, ArrowUpCircle, Expand, Circle } from "lucide-react";
+import { ArrowLeft, Plus, Mic, ArrowUpCircle, Expand, Circle, BookOpen, RefreshCw, Star } from "lucide-react";
 import { format } from "date-fns";
 import { MessageFeedback } from "@/components/MessageFeedback";
 import { SuggestionChips } from "@/components/SuggestionChips";
@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
+import { PromptLibrary } from "@/components/PromptLibrary";
 import { useVoiceInput } from "@/hooks/use-voice-input";
 import { MicrophoneVisualizer } from "@/components/MicrophoneVisualizer";
 
@@ -41,7 +42,8 @@ export default function ChatView() {
   const { messages, sendMessage, isLoading, chatId } = useChat();
   const [inputText, setInputText] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showPromptLibrary, setShowPromptLibrary] = useState(false);
+const [showSuggestions, setShowSuggestions] = useState(false);
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [currentSuggestions, setCurrentSuggestions] = useState<string[]>(DEFAULT_SUGGESTIONS);
@@ -62,15 +64,15 @@ export default function ChatView() {
     }
   );
 
-  const scrollToBottom = useCallback(() => {
+  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
+  };
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isLoading, scrollToBottom]);
+  }, [messages, isLoading]);
 
-  const initializeChat = useCallback(async () => {
+  const initializeChat = async () => {
     if (!chatId && !isInitializing) {
       setIsInitializing(true);
       try {
@@ -106,18 +108,18 @@ export default function ChatView() {
         setIsInitializing(false);
       }
     }
-  }, [chatId, isInitializing, navigate, toast]);
+  };
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value;
     setInputText(newText);
     checkForUncertainty(newText);
     if (newText.trim() && !chatId) {
       initializeChat();
     }
-  }, [chatId, initializeChat, checkForUncertainty]);
+  };
 
-  const handleSend = useCallback(async () => {
+  const handleSend = async () => {
     if (inputText.trim()) {
       if (!chatId) {
         await initializeChat();
@@ -128,7 +130,7 @@ export default function ChatView() {
       setIsExpanded(false);
       await sendMessage(text);
     }
-  }, [inputText, chatId, initializeChat, sendMessage]);
+  };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -172,7 +174,12 @@ export default function ChatView() {
     }
   };
 
-  const checkForUncertainty = useCallback((text: string) => {
+  const handlePromptSelect = (prompt: string) => {
+    setInputText(prompt);
+    setShowPromptLibrary(false);
+  };
+
+  const checkForUncertainty = (text: string) => {
     const uncertaintyPatterns = [
       'weet niet',
       'help mij',
@@ -189,71 +196,62 @@ export default function ChatView() {
       text.toLowerCase().includes(pattern.toLowerCase())
     );
 
+    console.log('[DEBUG] Uncertainty check:', { text, hasUncertainty });
+
     if (hasUncertainty) {
-      setCurrentSuggestions([
+      const suggestions = [
         "Help mij even op weg?",
         "Ik weet niet waar te beginnen",
         "Kan je een voorbeeld geven?",
         "Wat zou jij aanraden?",
         "Leg eens uit hoe andere ouders dit aanpakken"
-      ]);
+      ];
+      setCurrentSuggestions(suggestions);
+      console.log('[DEBUG] Setting suggestions:', suggestions);
     } else if (!text.trim()) {
       setCurrentSuggestions(DEFAULT_SUGGESTIONS);
     } else {
       setCurrentSuggestions([]);
     }
-  }, []);
+  };
 
-  const generateContextualSuggestions = useCallback(async () => {
+  const generateContextualSuggestions = async () => {
     if (!chatId || messages.length === 0) return;
 
     setIsLoadingSuggestions(true);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-
     try {
       const response = await fetch(`/api/suggestions/generate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           chatId,
           lastMessageContent: messages[messages.length - 1].content,
         }),
         credentials: 'include',
-        signal: controller.signal,
       });
 
-      clearTimeout(timeoutId);
-
-      if (!response.ok) throw new Error('Failed to generate suggestions');
+      if (!response.ok) {
+        throw new Error('Failed to generate suggestions');
+      }
 
       const data = await response.json();
-      if (Array.isArray(data.suggestions)) {
-        setCurrentSuggestions(data.suggestions);
-      } else {
-        setCurrentSuggestions(DEFAULT_SUGGESTIONS);
-      }
+      setCurrentSuggestions(data.suggestions);
     } catch (error) {
       console.error('Error generating suggestions:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not generate suggestions. Using default suggestions instead.",
+      });
       setCurrentSuggestions(DEFAULT_SUGGESTIONS);
-
-      if (error instanceof Error) {
-        const message = error.name === 'AbortError'
-          ? "Suggestion generation timed out. Using default suggestions."
-          : "Could not generate suggestions. Using default suggestions instead.";
-
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: message,
-        });
-      }
     } finally {
       setIsLoadingSuggestions(false);
     }
-  }, [chatId, messages, toast]);
+  };
 
-  const handleSuggestionSelect = useCallback(async (suggestion: string) => {
+  const handleSuggestionSelect = async (suggestion: string) => {
     if (!chatId) {
       await initializeChat();
       if (!chatId) return;
@@ -261,12 +259,7 @@ export default function ChatView() {
     setInputText('');
     setCurrentSuggestions([]);
     await sendMessage(suggestion);
-  }, [chatId, initializeChat, sendMessage]);
-
-  // Prevent clicks from propagating through the dialog
-  const handleDialogClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-  }, []);
+  };
 
   return (
     <div className="flex flex-col h-screen animate-gradient" style={{
@@ -276,19 +269,13 @@ export default function ChatView() {
       <div className="w-full px-4 py-3 flex items-center justify-between border-b border-gray-200 bg-white fixed top-0 left-0 z-50 shadow-sm">
         <div className="flex items-center gap-4">
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              window.history.back();
-            }}
+            onClick={() => window.history.back()}
             className="p-2 hover:bg-gray-100 rounded-lg"
           >
             <ArrowLeft className="w-6 h-6 text-gray-600" />
           </button>
           <Link href="/chat">
-            <button
-              onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200"
-            >
+            <button className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200">
               <Circle className="w-4 h-4" />
               <span>Geschiedenis</span>
             </button>
@@ -296,10 +283,13 @@ export default function ChatView() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowNewChatDialog(true);
-            }}
+            onClick={() => setShowPromptLibrary(!showPromptLibrary)}
+            className={`p-2 hover:bg-gray-100 rounded-lg ${showPromptLibrary ? 'bg-gray-100' : ''}`}
+          >
+            <BookOpen className="w-6 h-6 text-[#629785]" />
+          </button>
+          <button
+            onClick={() => setShowNewChatDialog(true)}
             className={`p-2 ${theme.accent} hover:bg-[#4A7566] rounded-full`}
           >
             <Plus className="w-6 h-6 text-white" />
@@ -404,8 +394,7 @@ export default function ChatView() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={(e) => {
-                    e.stopPropagation();
+                  onClick={() => {
                     generateContextualSuggestions();
                     setShowSuggestions(true);
                   }}
@@ -419,10 +408,7 @@ export default function ChatView() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowSuggestions(!showSuggestions);
-                  }}
+                  onClick={() => setShowSuggestions(!showSuggestions)}
                   className="flex items-center gap-2"
                 >
                   <Star className="w-4 h-4" />
@@ -441,8 +427,14 @@ export default function ChatView() {
         </div>
       </div>
 
+      <PromptLibrary
+        onSelectPrompt={handlePromptSelect}
+        isExpanded={showPromptLibrary}
+        onToggle={() => setShowPromptLibrary(!showPromptLibrary)}
+      />
+
       <AlertDialog open={showNewChatDialog} onOpenChange={setShowNewChatDialog}>
-        <AlertDialogContent onClick={handleDialogClick}>
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Start a New Conversation?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -452,24 +444,17 @@ export default function ChatView() {
           <AlertDialogFooter>
             <Button
               variant="outline"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowNewChatDialog(false);
-              }}
+              onClick={() => setShowNewChatDialog(false)}
             >
               Cancel
             </Button>
-            <Button
-              onClick={(e) => {
-                e.stopPropagation();
-                startNewChat();
-              }}
-            >
+            <Button onClick={startNewChat}>
               Start New Chat
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Hide navigation on this page */}
       <style>{`
         nav {
           display: none !important;
