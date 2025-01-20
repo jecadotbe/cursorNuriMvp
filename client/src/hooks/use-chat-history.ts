@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Chat, PromptSuggestion } from "@db/schema";
 import { useToast } from "./use-toast";
-import { useUser } from "./use-user";
 
 async function fetchChatHistory(): Promise<Chat[]> {
   const response = await fetch("/api/chats?sort=desc", {
@@ -25,9 +24,6 @@ async function fetchSuggestion(): Promise<PromptSuggestion> {
   });
 
   if (!response.ok) {
-    if (response.status === 401) {
-      throw new Error('Not authenticated');
-    }
     throw new Error(`${response.status}: ${await response.text()}`);
   }
 
@@ -47,38 +43,30 @@ async function markSuggestionAsUsed(id: number): Promise<void> {
 
 export function useChatHistory() {
   const { toast } = useToast();
-  const { user, isLoading: isUserLoading } = useUser();
 
-  const { data: chats = [], isLoading: isChatsLoading, error, refetch } = useQuery<Chat[], Error>({
+  const { data: chats = [], isLoading, error, refetch } = useQuery<Chat[], Error>({
     queryKey: ["chats"],
     queryFn: fetchChatHistory,
-    enabled: !!user, // Only fetch if user is authenticated
   });
 
-  const { data: suggestion, isLoading: isSuggestionLoading, refetch: refetchSuggestion } = useQuery<PromptSuggestion>({
+  const { data: suggestion, refetch: refetchSuggestion } = useQuery<PromptSuggestion>({
     queryKey: ["suggestion"],
     queryFn: fetchSuggestion,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    enabled: !!user, // Only fetch if user is authenticated
+    enabled: true, // Automatically fetch when the hook is mounted
     retry: false,
     onError: (error) => {
       console.error('Failed to fetch suggestion:', error);
-      if (error.message !== 'Not authenticated') {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to load suggestion",
-        });
-      }
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load suggestion",
+      });
     },
   });
 
   const getLatestPrompt = async () => {
     try {
-      if (!user) {
-        throw new Error('Not authenticated');
-      }
-
       if (suggestion) {
         return {
           prompt: {
@@ -124,7 +112,7 @@ export function useChatHistory() {
 
   return {
     chats,
-    isLoading: isUserLoading || isChatsLoading || isSuggestionLoading,
+    isLoading,
     error,
     refetch,
     getLatestPrompt,

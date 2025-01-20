@@ -21,7 +21,7 @@ const handleImageError = (imageName: string, error: any) => {
 
 export default function HomeView() {
   const { user } = useUser();
-  const { getLatestPrompt, markPromptAsUsed, chats, isLoading: isChatHistoryLoading } = useChatHistory();
+  const { getLatestPrompt, markPromptAsUsed, chats } = useChatHistory();
   const [prompt, setPrompt] = useState<{
     text: string;
     type: string;
@@ -30,6 +30,7 @@ export default function HomeView() {
     relatedChatTitle?: string;
     suggestionId?: number;
   } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const [, navigate] = useLocation();
@@ -40,18 +41,19 @@ export default function HomeView() {
     let mounted = true;
 
     const loadPrompt = async () => {
-      if (!user) return; // Don't load if no user
-
-      try {
-        const result = await getLatestPrompt();
-        if (mounted) {
-          setPrompt(result.prompt);
-          setError(null);
-        }
-      } catch (err) {
-        if (mounted) {
-          console.error('Failed to load initial prompt:', err);
-          setError('Failed to load recommendation');
+      if (!prompt) {
+        try {
+          const result = await getLatestPrompt();
+          if (mounted) {
+            setPrompt(result.prompt);
+            setIsLoading(false);
+          }
+        } catch (err) {
+          if (mounted) {
+            console.error('Failed to load initial prompt:', err);
+            setError('Failed to load recommendation');
+            setIsLoading(false);
+          }
         }
       }
     };
@@ -61,7 +63,7 @@ export default function HomeView() {
     return () => {
       mounted = false;
     };
-  }, [user, getLatestPrompt]); // Add user as dependency
+  }, []); // Run only once on mount
 
   const handlePromptClick = async () => {
     if (!prompt) return;
@@ -153,12 +155,9 @@ export default function HomeView() {
 
       {/* Chat Prompt */}
       <div className="px-5 py-6">
-        {isChatHistoryLoading ? (
+        {isLoading ? (
           <Card className="bg-white animate-pulse mb-4">
-            <CardContent className="p-4">
-              <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            </CardContent>
+            <CardContent className="p-4 h-24" />
           </Card>
         ) : error ? (
           <Card className="bg-white mb-4">
