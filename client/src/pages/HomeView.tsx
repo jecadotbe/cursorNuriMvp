@@ -7,7 +7,7 @@ import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
 import { SuggestionFeedback } from "@/components/SuggestionFeedback";
-import { InsightsPanel } from "@/components/InsightsPanel";
+import InsightsPanel from "@/components/InsightsPanel"; // Update import statement
 
 // Image handling functions remain unchanged
 const handleImageLoad = (imageName: string) => {

@@ -19,9 +19,16 @@ interface Insight {
 interface InsightsPanelProps {
   variant?: "sidebar" | "embedded";
   onClose?: () => void;
+  displayStyle?: "compact" | "full";
+  maxItems?: number;
 }
 
-export function InsightsPanel({ variant = "embedded", onClose }: InsightsPanelProps) {
+export function InsightsPanel({ 
+  variant = "embedded", 
+  onClose,
+  displayStyle = "full",
+  maxItems 
+}: InsightsPanelProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -93,11 +100,12 @@ export function InsightsPanel({ variant = "embedded", onClose }: InsightsPanelPr
   }
 
   const activeInsights = insights?.filter(i => i.status === "active") || [];
+  const displayInsights = maxItems ? activeInsights.slice(0, maxItems) : activeInsights;
 
   if (variant === "embedded") {
     return (
       <div className="space-y-4">
-        {activeInsights.map((insight) => {
+        {displayInsights.map((insight) => {
           const Icon = getInsightIcon(insight.type);
           const colorClass = getInsightColor(insight.type);
 
@@ -111,7 +119,7 @@ export function InsightsPanel({ variant = "embedded", onClose }: InsightsPanelPr
               </CardHeader>
               <CardContent className="text-sm text-gray-600">
                 <p>{insight.description}</p>
-                {insight.suggestedAction && (
+                {displayStyle === "full" && insight.suggestedAction && (
                   <div className="mt-2">
                     <Badge variant="secondary" className="text-xs">
                       Suggested Action
@@ -119,14 +127,16 @@ export function InsightsPanel({ variant = "embedded", onClose }: InsightsPanelPr
                     <p className="mt-1 text-sm">{insight.suggestedAction}</p>
                   </div>
                 )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-3"
-                  onClick={() => implementInsight.mutate(insight.id)}
-                >
-                  Mark as Done
-                </Button>
+                {displayStyle === "full" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-3"
+                    onClick={() => implementInsight.mutate(insight.id)}
+                  >
+                    Mark as Done
+                  </Button>
+                )}
               </CardContent>
             </Card>
           );
@@ -148,7 +158,7 @@ export function InsightsPanel({ variant = "embedded", onClose }: InsightsPanelPr
       </div>
       <div className="p-4 space-y-4">
         <AnimatePresence>
-          {activeInsights.map((insight) => {
+          {displayInsights.map((insight) => {
             const Icon = getInsightIcon(insight.type);
             const colorClass = getInsightColor(insight.type);
 
@@ -194,3 +204,6 @@ export function InsightsPanel({ variant = "embedded", onClose }: InsightsPanelPr
     </div>
   );
 }
+
+// Add default export while maintaining named export
+export default InsightsPanel;
