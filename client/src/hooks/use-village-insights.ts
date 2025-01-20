@@ -18,8 +18,17 @@ export function useVillageInsights() {
 
   const { data: insights, isLoading, error } = useQuery<VillageInsight[]>({
     queryKey: ['/api/insights'],
-    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-    refetchInterval: 10 * 60 * 1000, // Refetch every 10 minutes
+    retry: 1,
+    staleTime: 0, // Always fetch fresh data
+    refetchInterval: 30000, // Refetch every 30 seconds for testing
+    onError: (error: Error) => {
+      console.error('Failed to fetch insights:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load insights. Please try again.",
+      });
+    }
   });
 
   const implementInsight = useMutation({
