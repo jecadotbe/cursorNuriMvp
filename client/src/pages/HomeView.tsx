@@ -25,21 +25,21 @@ export default function HomeView() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [currentSuggestionId, setCurrentSuggestionId] = useState<number | null>(null);
 
+  // Load suggestion on mount and when user changes
   useEffect(() => {
     let mounted = true;
 
     const loadPrompt = async () => {
-      if (!prompt) {
-        try {
-          const result = await getLatestPrompt();
-          if (mounted && result?.prompt) {
-            setPrompt(result.prompt);
-          }
-        } catch (err) {
-          if (mounted) {
-            console.error('Failed to load initial prompt:', err);
-            setError('Failed to load recommendation');
-          }
+      try {
+        const result = await getLatestPrompt();
+        if (mounted && result?.prompt) {
+          setPrompt(result.prompt);
+          setError(null);
+        }
+      } catch (err) {
+        if (mounted) {
+          console.error('Failed to load initial prompt:', err);
+          setError('Failed to load recommendation');
         }
       }
     };
@@ -49,7 +49,7 @@ export default function HomeView() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [user?.id]); // Reload when user changes
 
   const handlePromptClick = async () => {
     if (!prompt) return;
@@ -69,7 +69,6 @@ export default function HomeView() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
             messages: [{
               role: 'assistant',
               content: prompt.text
@@ -95,11 +94,6 @@ export default function HomeView() {
         description: "Could not process the prompt. Please try again.",
       });
     }
-  };
-
-  const handleFeedbackClose = () => {
-    setShowFeedback(false);
-    setCurrentSuggestionId(null);
   };
 
   return (
@@ -169,91 +163,14 @@ export default function HomeView() {
         )}
       </div>
 
-      {/* Village Section */}
-      <div className="w-full">
-        <div
-          className="rounded-xl p-6 relative overflow-hidden min-h-[200px]"
-          style={{
-            backgroundImage: `url('/images/village_circles.png'), linear-gradient(180deg, #C9E1D4 0%, #F2F0E5 35%)`,
-            backgroundPosition: "right top",
-            backgroundRepeat: "no-repeat",
-            backgroundSize: "contain",
-          }}
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <img src="/images/VillageIcon.svg" alt="Village" className="w-6 h-6" />
-            <h2 className="text-2xl font-baskerville">Mijn Village</h2>
-          </div>
-          <h3 className="text-l mb-4">Laat je Village bloeien</h3>
-          <div className="flex justify-end">
-            <Link href="/village">
-              <div className="bg-white rounded-full px-4 py-2 shadow-sm inline-flex items-center gap-2 cursor-pointer">
-                <span>
-                  Er zijn <strong className="text-orange-500">3</strong> village
-                  suggesties
-                </span>
-                <ChevronRight className="w-4 h-4" />
-              </div>
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Learning Section */}
-      <div className="w-full">
-        <div
-          className="rounded-xl p-6 relative overflow-hidden mb-4"
-          style={{
-            background: "linear-gradient(180deg, #F8DD9F 0%, #F2F0E5 35%)",
-          }}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <img src="/images/LearningIcon.svg" alt="Learning" className="w-6 h-6" />
-              <h2 className="text-2xl font-baskerville">Verder leren</h2>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            {OneCard.map((video, index) => (
-              <Link key={index} href="/learn">
-                <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer mb-4">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-24 h-24 flex-shrink-0">
-                        <img
-                          src={video.image}
-                          alt={video.title}
-                          className="w-full h-full object-cover rounded-lg"
-                          onLoad={() => handleImageLoad(video.image.split('/').pop()!)}
-                          onError={(e) => {
-                            handleImageError(video.image.split('/').pop()!, e);
-                            e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui' font-size='12' fill='%23666'%3EThumbnail%3C/text%3E%3C/svg%3E";
-                          }}
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-xl font-baskerville mb-2">{video.title}</h3>
-                        <div className="inline-flex items-center px-4 py-1 rounded-full bg-[#E8E6DC] text-sm">
-                          <Clock className="w-4 h-4 mr-1" />
-                          <span>{video.duration}</span>
-                        </div>
-                      </div>
-                      <ChevronRight className="w-6 h-6 text-gray-400" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </div>
-
       {showFeedback && currentSuggestionId && (
         <SuggestionFeedback
           suggestionId={currentSuggestionId}
           open={showFeedback}
-          onClose={handleFeedbackClose}
+          onClose={() => {
+            setShowFeedback(false);
+            setCurrentSuggestionId(null);
+          }}
         />
       )}
     </div>

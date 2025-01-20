@@ -51,11 +51,11 @@ async function markSuggestionAsUsed(id: number): Promise<void> {
 export function useChatHistory() {
   const { toast } = useToast();
 
-  // Separate chat history query
+  // Chat history query
   const { 
     data: chats = [], 
     isLoading: isChatsLoading, 
-    error: chatsError, 
+    error: chatsError,
     refetch: refetchChats 
   } = useQuery<Chat[], Error>({
     queryKey: ["chats"],
@@ -63,11 +63,11 @@ export function useChatHistory() {
     staleTime: 5 * 60 * 1000, // Cache chat history for 5 minutes
   });
 
-  // Independent suggestion query
+  // Separate suggestion query that runs immediately and independently
   const { 
     data: suggestion, 
     isLoading: isSuggestionLoading, 
-    error: suggestionError, 
+    error: suggestionError,
     refetch: refetchSuggestion 
   } = useQuery<PromptSuggestion>({
     queryKey: ["suggestion"],
@@ -75,6 +75,9 @@ export function useChatHistory() {
     staleTime: 0, // Always fetch fresh suggestions
     retry: 2,
     retryDelay: 1000,
+    refetchOnMount: true, // Refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window regains focus
+    enabled: true, // Always enabled to fetch immediately
     onError: (error) => {
       console.error('Failed to fetch suggestion:', error);
       toast({
