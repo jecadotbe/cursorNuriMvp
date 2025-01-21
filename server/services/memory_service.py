@@ -30,15 +30,16 @@ def create_memory(user_id: int, content: str, metadata: Optional[Dict[str, Any]]
         print(f"Content: {content[:100]}...")
         print(f"Metadata: {json.dumps(metadata, indent=2)}")
 
-        # Create the memory
+        # Create the memory with proper metadata handling
         result = memory_client.add(
             content,
             user_id=str(user_id),
             metadata={
                 **(metadata or {}),
-                "source": "nuri-chat",
-                "type": "conversation",
-                "category": "chat_history"
+                "source": metadata.get("source", "nuri-chat"),
+                "type": metadata.get("type", "conversation"),
+                "category": metadata.get("category", "chat_history"),
+                "timestamp": str(metadata.get("timestamp", None))
             }
         )
 
@@ -53,19 +54,18 @@ def create_memory(user_id: int, content: str, metadata: Optional[Dict[str, Any]]
         print(f"Error creating memory: {str(e)}")
         raise
 
-def get_relevant_memories(user_id: int, current_context: str) -> List[Dict]:
+def get_relevant_memories(user_id: int, current_context: str, limit: int = 5) -> List[Dict]:
     try:
         print(f"Getting relevant memories for user {user_id}")
         print(f"Context: {current_context[:100]}...")
 
-        # Search for relevant memories
+        # Search for relevant memories with proper filtering
         memories = memory_client.search(
             current_context,
             user_id=str(user_id),
-            limit=5,
-            metadata={
+            limit=limit,
+            metadata_filter={
                 "source": "nuri-chat",
-                "type": "conversation",
                 "category": "chat_history"
             }
         )
@@ -90,9 +90,8 @@ def search_memories(user_id: int, query: str) -> List[Dict]:
         memories = memory_client.search(
             query,
             user_id=str(user_id),
-            metadata={
+            metadata_filter={
                 "source": "nuri-chat",
-                "type": "conversation",
                 "category": "chat_history"
             }
         )

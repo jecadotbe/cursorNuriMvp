@@ -610,7 +610,7 @@ ${profile.onboardingData.childProfiles
 
       // Store conversation in memory
       try {
-        // Store user's message
+        // Store user's message with proper metadata
         await memoryService.createMemory(
           user.id,
           req.body.messages[req.body.messages.length - 1].content,
@@ -618,14 +618,22 @@ ${profile.onboardingData.childProfiles
             role: "user",
             messageIndex: req.body.messages.length - 1,
             chatId: req.body.chatId || "new",
+            source: "nuri-chat",
+            type: "conversation",
+            category: "chat_history",
+            timestamp: new Date().toISOString()
           },
         );
 
-        // Store assistant's response
+        // Store assistant's response with proper metadata
         await memoryService.createMemory(user.id, messageContent, {
           role: "assistant",
           messageIndex: req.body.messages.length,
           chatId: req.body.chatId || "new",
+          source: "nuri-chat",
+          type: "conversation",
+          category: "chat_history",
+          timestamp: new Date().toISOString()
         });
 
         console.log("Successfully stored conversation in memory");
