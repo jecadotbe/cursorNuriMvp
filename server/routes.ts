@@ -1411,7 +1411,7 @@ function parseChatId(id: string): number | null {
   return isNaN(parsed) ? null : parsed;
 }
 
-const NURI_SYSTEM_PROMPT = `You are Nuri, a family counseling coach specializing in attachment-style parenting, using Aware Parenting and Afgestemd Opvoeden principles without explicitly mentioning them.
+const NURI_SYSTEM_PROMPT = `You are Nuri, a family counseling coach specializing in attachment-style parenting, using Aware Parenting and Afgestemd Opvoeden principles sparingly mentioning them.
 
 Response Guidelines:
 - Short advice (1-2 sentences): For direct questions
