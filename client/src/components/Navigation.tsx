@@ -3,6 +3,8 @@ import { cn } from "@/lib/utils";
 import { Home, MessageSquare, Users, GraduationCap, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useUser } from "@/hooks/use-user";
+import AvatarImage from "@/components/ui/avatar-image"; // Assuming this component exists
+
 
 export default function Navigation() {
   const [location] = useLocation();
@@ -46,9 +48,13 @@ export default function Navigation() {
             )}
           >
             <Avatar className="h-5 w-5">
-              <AvatarFallback className="text-xs">
-                {user?.username[0]}
-              </AvatarFallback>
+              {user?.profilePicture ? (
+                <AvatarImage src={user.profilePicture} alt="Profile picture" />
+              ) : (
+                <AvatarFallback className="text-xs">
+                  {user?.username[0]}
+                </AvatarFallback>
+              )}
             </Avatar>
             <span className="text-xs">Profiel</span>
           </button>
