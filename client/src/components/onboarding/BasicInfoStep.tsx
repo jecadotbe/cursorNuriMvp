@@ -29,14 +29,16 @@ const formSchema = z.object({
 
 type BasicInfoStepProps = {
   onComplete: (data: z.infer<typeof formSchema>) => void;
+  initialData?: z.infer<typeof formSchema>;
 };
 
-export default function BasicInfoStep({ onComplete }: BasicInfoStepProps) {
+export default function BasicInfoStep({ onComplete, initialData }: BasicInfoStepProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: initialData || {
       name: "",
       email: "",
+      experienceLevel: undefined,
     },
   });
 

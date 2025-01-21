@@ -17,7 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -33,15 +32,17 @@ const formSchema = z.object({
 
 type StressAssessmentStepProps = {
   onComplete: (data: z.infer<typeof formSchema>) => void;
+  initialData?: z.infer<typeof formSchema>;
 };
 
-export default function StressAssessmentStep({ onComplete }: StressAssessmentStepProps) {
+export default function StressAssessmentStep({ onComplete, initialData }: StressAssessmentStepProps) {
   const [newConcern, setNewConcern] = useState("");
   const [newSupport, setNewSupport] = useState("");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: initialData || {
+      stressLevel: undefined,
       primaryConcerns: [],
       supportNetwork: [],
     },
