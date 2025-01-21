@@ -19,7 +19,6 @@ import { OnboardingProvider } from "@/context/onboarding-context";
 import OnboardingTooltip from "@/components/OnboardingTooltip";
 import LearnDetailView from "./pages/LearnDetailView";
 import OnboardingPage from "@/pages/onboarding";
-import RAGDashboard from "@/pages/rag-dashboard"; // Add import
 
 function Router() {
   const { user, isLoading } = useUser();
@@ -56,7 +55,6 @@ function Router() {
           <Route path="/learn/:id" component={LearnDetailView} />
           <Route path="/profile" component={ProfileView} />
           <Route path="/profile/edit" component={EditProfileView} />
-          <Route path="/rag" component={RAGDashboard} /> {/* Add new route */}
           <Route component={NotFound} />
         </Switch>
       </div>
