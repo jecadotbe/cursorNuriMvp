@@ -668,38 +668,7 @@ export default function VillageView() {
         </div>
       </div>
 
-      {/* Village suggestions - Replaced with InsightsPanel */}
-      <div className="fixed bottom-20 left-4 z-50">
-        <div
-          className="bg-white rounded-2xl shadow-md w-auto max-w-sm overflow-hidden transition-all duration-300"
-          style={{ maxHeight: isSuggestionsOpen ? '400px' : '60px' }}
-        >
-          <div
-            onClick={() => setIsSuggestionsOpen(!isSuggestionsOpen)}
-            className="flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-gray-50"
-          >
-            <span className="flex items-center gap-2">
-              <Lightbulb className="w-4 h-4 text-orange-500" />
-              <span>Village Insights</span>
-            </span>
-            <ChevronLeft
-              className={`w-5 h-5 transform transition-transform duration-300 ml-2 ${
-                isSuggestionsOpen ? 'rotate-270' : 'rotate-90'
-              }`}
-            />
-          </div>
-          {isSuggestionsOpen && (
-            <div className="px-4 pb-4">
-              <InsightsPanel 
-                maxItems={5}
-                displayStyle="full"
-                showActions={true}
-                autoRefresh={true}
-              />
-            </div>
-          )}
-        </div>
-      </div>
+     
 
 
       <Dialog open={isOpen} onOpenChange={(open) => {
@@ -925,51 +894,7 @@ export default function VillageView() {
         </DialogContent>
       </Dialog>
 
-      {/* Insights Panel */}
-      <Sheet open={isInsightsPanelOpen} onOpenChange={setIsInsightsPanelOpen}>
-        <SheetTrigger asChild>
-          <Button
-            variant="outline"
-            className="fixed bottom-36 right-4 w-12 h-12 rounded-full p-0 flex items-center justify-center"
-          >
-            <Lightbulb className="h-6 w-6" />
-          </Button>
-        </SheetTrigger>
-        <SheetContent>
-          <SheetHeader>
-            <SheetTitle>Village Insights</SheetTitle>
-            <SheetDescription>
-              AI-powered insights about your support network
-            </SheetDescription>
-          </SheetHeader>
-          <div className="mt-4 space-y-4">
-            {insights.map((insight) => (
-              <Card key={insight.id}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">
-                      {insight.title}
-                    </CardTitle>
-                    <Badge
-                      variant={insight.priority >= 4 ? "destructive" : "secondary"}
-                    >
-                      Priority {insight.priority}
-                    </Badge>
-                  </div>
-                  <CardDescription>{insight.description}</CardDescription>
-                </CardHeader>
-                {insight.suggestedAction && (
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      Suggested Action: {insight.suggestedAction}
-                    </p>
-                  </CardContent>
-                )}
-              </Card>
-            ))}
-          </div>
-        </SheetContent>
-      </Sheet>
+      
       <div className="hidden">
         <MinimapView
           members={members}
