@@ -52,7 +52,7 @@ import InsightsPanel from "@/components/InsightsPanel";
 
 const CATEGORY_COLORS = {
   informeel: "#3C9439", // Green
-  formeel: "#3b82f6",   // Blue
+  formeel: "#EE4B92",   // Pink
   inspiratie: "#f59e0b", // Orange
 } as const;
 
