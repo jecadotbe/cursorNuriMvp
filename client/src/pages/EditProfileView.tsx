@@ -10,12 +10,12 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { ChevronLeft, Loader2 } from "lucide-react";
 
 type OnboardingData = {
-  basicInfo?: {
+  basicInfo: {
     name: string;
     email: string;
     experienceLevel: "first_time" | "experienced" | "multiple_children";
   };
-  stressAssessment?: {
+  stressAssessment: {
     stressLevel: "low" | "moderate" | "high" | "very_high";
     primaryConcerns: string[];
     supportNetwork: string[];
@@ -33,20 +33,55 @@ type OnboardingData = {
   };
 };
 
+type ProfileResponse = {
+  onboardingData: OnboardingData;
+};
+
+const defaultFormData: OnboardingData = {
+  basicInfo: {
+    name: "",
+    email: "",
+    experienceLevel: "first_time",
+  },
+  stressAssessment: {
+    stressLevel: "low",
+    primaryConcerns: [],
+    supportNetwork: [],
+  },
+};
+
 export default function EditProfileView() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [formData, setFormData] = useState<OnboardingData>({});
+  const [formData, setFormData] = useState<OnboardingData>(defaultFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch existing profile data
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading, error } = useQuery<ProfileResponse>({
     queryKey: ['/api/onboarding/progress'],
+    onError: (err) => {
+      toast({
+        title: "Error",
+        description: "Failed to load profile data. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   useEffect(() => {
     if (profile?.onboardingData) {
-      setFormData(profile.onboardingData);
+      setFormData({
+        ...defaultFormData,
+        ...profile.onboardingData,
+        basicInfo: {
+          ...defaultFormData.basicInfo,
+          ...profile.onboardingData.basicInfo,
+        },
+        stressAssessment: {
+          ...defaultFormData.stressAssessment,
+          ...profile.onboardingData.stressAssessment,
+        },
+      });
     }
   }, [profile]);
 
@@ -62,7 +97,8 @@ export default function EditProfileView() {
       });
 
       if (!response.ok) {
-        throw new Error(await response.text());
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to update profile");
       }
 
       return response.json();
@@ -74,7 +110,7 @@ export default function EditProfileView() {
       });
       setLocation("/profile");
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to update profile",
@@ -132,7 +168,7 @@ export default function EditProfileView() {
               <Label htmlFor="name">Naam</Label>
               <Input
                 id="name"
-                value={formData.basicInfo?.name || ""}
+                value={formData.basicInfo.name}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
@@ -150,7 +186,7 @@ export default function EditProfileView() {
               <Input
                 id="email"
                 type="email"
-                value={formData.basicInfo?.email || ""}
+                value={formData.basicInfo.email}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
@@ -166,13 +202,13 @@ export default function EditProfileView() {
             <div className="space-y-2">
               <Label htmlFor="experienceLevel">Ervaring niveau</Label>
               <Select
-                value={formData.basicInfo?.experienceLevel}
+                value={formData.basicInfo.experienceLevel}
                 onValueChange={(value) =>
                   setFormData({
                     ...formData,
                     basicInfo: {
                       ...formData.basicInfo,
-                      experienceLevel: value as "first_time" | "experienced" | "multiple_children",
+                      experienceLevel: value,
                     },
                   })
                 }
@@ -198,13 +234,13 @@ export default function EditProfileView() {
             <div className="space-y-2">
               <Label htmlFor="stressLevel">Stress niveau</Label>
               <Select
-                value={formData.stressAssessment?.stressLevel}
+                value={formData.stressAssessment.stressLevel}
                 onValueChange={(value) =>
                   setFormData({
                     ...formData,
                     stressAssessment: {
                       ...formData.stressAssessment,
-                      stressLevel: value as "low" | "moderate" | "high" | "very_high",
+                      stressLevel: value,
                     },
                   })
                 }
