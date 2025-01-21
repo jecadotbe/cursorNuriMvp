@@ -107,25 +107,37 @@ export default function EditProfileView() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: OnboardingData) => {
-      const response = await fetch("/api/profile/update", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-        credentials: 'include'
-      });
+      try {
+        const response = await fetch("/api/profile/update", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+          credentials: 'include'
+        });
 
-      const text = await response.text();
-      if (!response.ok) {
-        throw new Error(text || "Failed to update profile");
+        const responseText = await response.text();
+        console.log('Response text:', responseText); // Debug log
+
+        if (!response.ok) {
+          throw new Error(responseText || `HTTP error! status: ${response.status}`);
+        }
+
+        // Only try to parse as JSON if we expect a JSON response
+        if (response.headers.get("content-type")?.includes("application/json")) {
+          if (!isValidJson(responseText)) {
+            throw new Error('Server returned invalid JSON');
+          }
+          return JSON.parse(responseText);
+        }
+
+        // If we don't get JSON back but the request was successful, return a default response
+        return { success: true };
+      } catch (error) {
+        console.error('Update profile error:', error);
+        throw error;
       }
-
-      if (!isValidJson(text)) {
-        throw new Error('Invalid response format: expected JSON');
-      }
-
-      return JSON.parse(text);
     },
     onSuccess: () => {
       toast({
