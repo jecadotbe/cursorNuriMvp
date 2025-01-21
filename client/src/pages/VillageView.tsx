@@ -1,5 +1,7 @@
 import { useState, useRef, createRef } from "react";
 import { useVillage } from "@/hooks/use-village";
+import { useUser } from "@/hooks/use-user";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, User, Users, ArrowUpCircle, ArrowDownCircle, ArrowLeftCircle, ArrowRightCircle, Lightbulb, BookMarked, Star, Clock } from "lucide-react";
 import {
   Dialog,
@@ -85,6 +87,7 @@ interface Insight {
 
 export default function VillageView() {
   const { members, addMember, updateMember, deleteMember } = useVillage();
+  const { user } = useUser();
   const { toast } = useToast();
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -574,10 +577,18 @@ export default function VillageView() {
             ))}
 
             <div
-              className="absolute w-24 h-24 bg-[#F4F1E4] rounded-full flex items-center justify-center border-2 border-[#629785]"
+              className="absolute w-24 h-24 rounded-full flex items-center justify-center"
               style={{ boxShadow: "0 0 30px rgba(254, 176, 25, 0.4)" }}
             >
-              <Users className="w-12 h-12 text-[#629785]" />
+              <Avatar className="w-full h-full border-2 border-[#629785]">
+                {user?.profilePicture ? (
+                  <AvatarImage src={user.profilePicture} alt="Profile" className="object-cover" />
+                ) : (
+                  <AvatarFallback className="bg-[#F4F1E4] text-[#629785]">
+                    <Users className="w-12 h-12" />
+                  </AvatarFallback>
+                )}
+              </Avatar>
             </div>
 
             {members.map((member) => {
