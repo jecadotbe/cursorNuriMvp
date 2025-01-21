@@ -13,6 +13,7 @@ export default function Navigation() {
     { icon: MessageSquare, label: "Nuri", href: "/chat", onboarding: "chat" },
     { icon: Users, label: "Village", href: "/village", onboarding: "village" },
     { icon: GraduationCap, label: "Learn", href: "/learn", onboarding: "learn" },
+    { icon: FileText, label: "RAG", href: "/rag" },
   ];
 
   return (
