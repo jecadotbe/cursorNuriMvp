@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { createProxyMiddleware } from 'http-proxy-middleware';
 import { setupAuth } from "./auth";
 import { db } from "@db";
 import {
@@ -22,10 +23,6 @@ import {format} from 'date-fns'
 import { and, eq, desc } from "drizzle-orm";
 import { db } from "@db";
 import { villageMembers, villageMemberMemories } from "@db/schema";
-
-// Add after the existing imports
-import { villageInsights } from "@db/schema";
-import { eq, desc } from "drizzle-orm";
 
 
 const getVillageContext = async (userId: number) => {
@@ -103,6 +100,15 @@ Recent memories: ${
 };
 
 export function registerRoutes(app: Express): Server {
+  // Add proxy for RAG endpoints
+  app.use('/api/rag', createProxyMiddleware({
+    target: 'http://localhost:5001',
+    changeOrigin: true,
+    pathRewrite: {
+      '^/api/rag': '/api/rag'
+    }
+  }));
+
   setupAuth(app);
 
   // Add new profile update endpoint
