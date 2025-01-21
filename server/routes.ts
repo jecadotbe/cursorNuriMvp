@@ -941,7 +941,7 @@ Conversation: ${JSON.stringify(messages)}`,
       const feedback = await db
                 .insert(messageFeedback)
         .values({
-          userId: userid,
+          userId: user.id,
           messageId: req.body.messageId,
           feedbackType: req.body.feedbackType,
           chatId: req.body.chatId,
@@ -1585,45 +1585,28 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
       const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 1024,
-        system: `You are analyzing a parent's support network ("village"). Generate actionable insights based on these specific metrics:
-
-1. Category Balance Analysis:
-- Evaluate distribution across categories (formal, informal, inspiration)
-- Identify underrepresented categories
-- Suggest specific improvements
-
-2. Circle Analysis:
-- Assess balance between inner (1-2), middle (3), and outer (4-5) circles
-- Flag concerning patterns (e.g., too many distant connections)
-- Recommend circle adjustments
-
-3. Interaction Health:
-- Review interaction frequency patterns
-- Identify members needing attention
-- Suggest concrete interaction improvements
-
-4. Network Gap Analysis:
-- Detect missing support types
-- Identify potential role conflicts
-- Recommend specific additions to network
-
-Format each insight as:
-{
-  "type": "category_balance" | "circle_distribution" | "interaction_pattern" | "network_gap",
-  "title": "Clear, actionable title",
-  "description": "2-3 sentence explanation of the insight",
-  "suggestedAction": "Specific, achievable next step",
-  "priority": 1-5 (5 = highest),
-  "relatedMemberIds": [relevant member IDs] or null,
-  "metricSource": "Which metric led to this insight"
-}`,
+        temperature: 0.7,
+        system: `You are an API that analyzes parent support networks ("villages"). 
+        You MUST respond with ONLY a JSON array of insights, no additional text or explanation.
+        Each insight in the array must follow this exact structure:
+        {
+          "type": "category_balance" | "circle_distribution" | "interaction_pattern" | "network_gap",
+          "title": string,
+          "description": string,
+          "suggestedAction": string,
+          "priority": number between 1-5,
+          "relatedMemberIds": number[] | null,
+          "metricSource": string
+        }`,
         messages: [{
           role: "user",
-          content: `Generate insights based on these network metrics:
-          ${JSON.stringify(networkMetrics, null, 2)}
+          content: `Generate insights based on these network metrics and member details. Respond with ONLY a JSON array:
 
-          Village Members Details:
-          ${JSON.stringify(members.map(m => ({
+Network Metrics:
+${JSON.stringify(networkMetrics, null, 2)}
+
+Village Members:
+${JSON.stringify(members.map(m => ({
             id: m.id,
             name: m.name,
             category: m.category,
@@ -1637,29 +1620,46 @@ Format each insight as:
       });
 
       const responseText = response.content[0].type === "text" ? response.content[0].text : "";
-      let insights;
 
-      try {
-        insights = JSON.parse(responseText);
-      } catch (parseError) {
-        const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-        if (!jsonMatch) {
-          throw new Error("Could not extract valid JSON from response");
-        }
-        insights = JSON.parse(jsonMatch[0]);
+      // Attempt to find and parse JSON array in the response
+      const jsonMatch = responseText.match(/\[\s*\{[\s\S]*\}\s*\]/);
+      if (!jsonMatch) {
+        throw new Error("Could not find valid JSON array in response");
       }
 
-      // Validate insights structure
+      let insights;
+      try {
+        insights = JSON.parse(jsonMatch[0]);
+        if (!Array.isArray(insights)) {
+          throw new Error("Parsed response is not an array");
+        }
+      } catch (parseError) {
+        console.error("JSON parsing error:", parseError);
+        console.error("Response text:", responseText);
+        throw new Error("Failed to parse insights response");
+      }
+
+      // Validate each insight's structure
       const validInsights = insights.filter((insight: any) => {
+        const validTypes = ["category_balance", "circle_distribution", "interaction_pattern", "network_gap"];
         return (
-          insight.type &&
-          insight.title &&
-          insight.description &&
-          typeof insight.priority === 'number' &&
+          insight &&
+          typeof insight === "object" &&
+          validTypes.includes(insight.type) &&
+          typeof insight.title === "string" &&
+          typeof insight.description === "string" &&
+          typeof insight.suggestedAction === "string" &&
+          typeof insight.priority === "number" &&
           insight.priority >= 1 &&
-          insight.priority <= 5
+          insight.priority <= 5 &&
+          (insight.relatedMemberIds === null || Array.isArray(insight.relatedMemberIds)) &&
+          typeof insight.metricSource === "string"
         );
       });
+
+      if (validInsights.length === 0) {
+        throw new Error("No valid insights found in response");
+      }
 
       // Save validated insights
       const savedInsights = await db
@@ -1670,9 +1670,9 @@ Format each insight as:
             type: insight.type,
             title: insight.title,
             description: insight.description,
-            suggestedAction: insight.suggestedAction || null,
+            suggestedAction: insight.suggestedAction,
             priority: insight.priority,
-            relatedMemberIds: insight.relatedMemberIds || null,
+            relatedMemberIds: insight.relatedMemberIds,
             status: "active",
             metadata: {
               metricSource: insight.metricSource,
@@ -1689,12 +1689,14 @@ Format each insight as:
       console.error("Failed to generate insights:", error);
       res.status(500).json({
         error: "Failed to generate insights",
-        details: error instanceof Error ? error.message : "Unknown error"
+        details: error instanceof Error ? error.message : "Unknown error",
+
       });
     }
   });
 
-  // Helper functions for network analysis
+  // Helper functions remain unchanged
+
   function calculateCategoryDistribution(members: any[]) {
     const distribution = {
       formal: 0,
