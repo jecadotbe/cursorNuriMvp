@@ -14,10 +14,12 @@ export interface Memory {
   content: string;
   metadata?: Record<string, any>;
   createdAt: Date;
+  relevance?: number;
 }
 
 export class MemoryService {
   private static instance: MemoryService;
+  private readonly RELEVANCE_THRESHOLD = 0.6; // Only include memories with relevance score above this
 
   private constructor() {}
 
@@ -48,7 +50,8 @@ export class MemoryService {
           ...metadata,
           source: metadata?.source || 'nuri-chat',
           type: metadata?.type || 'conversation',
-          category: metadata?.category || 'chat_history'
+          category: metadata?.category || 'chat_history',
+          timestamp: new Date().toISOString() // Add timestamp for better context matching
         }
       });
 
@@ -78,26 +81,41 @@ export class MemoryService {
     try {
       console.log('Getting relevant memories for context:', currentContext.substring(0, 100) + '...');
 
-      // Search for memories using mem0ai search API
+      // Search for memories using mem0ai search API with relevance scoring
       const memories = await client.search(currentContext, {
         user_id: userId.toString(),
         metadata: {
           source: 'nuri-chat',
           type: 'conversation',
           category: 'chat_history'
+        },
+        options: {
+          limit: 5, // Limit number of returned memories
+          minRelevance: this.RELEVANCE_THRESHOLD // Only return highly relevant memories
         }
       });
 
       console.log('Found memories:', memories.length);
+      console.log('Memory relevance scores:', memories.map(m => ({
+        id: m.id,
+        relevance: m.relevance,
+        content: m.content.substring(0, 50) + '...'
+      })));
 
-      return memories.map(memory => ({
-        id: memory.id,
-        content: Array.isArray(memory.content) ? 
-          memory.content[0].content : 
-          (memory.memory || memory.content),
-        metadata: memory.metadata,
-        createdAt: new Date(memory.created_at || new Date())
-      }));
+      // Filter and sort memories by relevance
+      return memories
+        .filter(memory => memory.relevance >= this.RELEVANCE_THRESHOLD)
+        .map(memory => ({
+          id: memory.id,
+          content: Array.isArray(memory.content) ? 
+            memory.content[0].content : 
+            (memory.memory || memory.content),
+          metadata: memory.metadata,
+          createdAt: new Date(memory.created_at || new Date()),
+          relevance: memory.relevance
+        }))
+        .sort((a, b) => (b.relevance || 0) - (a.relevance || 0))
+        .slice(0, 3); // Only use top 3 most relevant memories
     } catch (error) {
       console.error('Error getting relevant memories:', error);
       return [];
@@ -112,17 +130,23 @@ export class MemoryService {
           source: 'nuri-chat',
           type: 'conversation',
           category: 'chat_history'
+        },
+        options: {
+          minRelevance: this.RELEVANCE_THRESHOLD
         }
       });
 
-      return memories.map(memory => ({
-        id: memory.id,
-        content: Array.isArray(memory.content) ? 
-          memory.content[0].content : 
-          (memory.memory || memory.content),
-        metadata: memory.metadata,
-        createdAt: new Date(memory.created_at || new Date())
-      }));
+      return memories
+        .filter(memory => memory.relevance >= this.RELEVANCE_THRESHOLD)
+        .map(memory => ({
+          id: memory.id,
+          content: Array.isArray(memory.content) ? 
+            memory.content[0].content : 
+            (memory.memory || memory.content),
+          metadata: memory.metadata,
+          createdAt: new Date(memory.created_at || new Date()),
+          relevance: memory.relevance
+        }));
     } catch (error) {
       console.error('Error searching memories:', error);
       return [];

@@ -582,15 +582,24 @@ ${profile.onboardingData.childProfiles
         console.log("Found relevant memories:", relevantMemories.length);
 
         if (relevantMemories && relevantMemories.length > 0) {
-          // Format memories for context
-          const memoryContext = relevantMemories
-            .map((m) => `Previous conversation: ${m.content}`)
-            .join("\n\n");
+          // Sort memories by relevance and only use highly relevant ones
+          const contextMemories = relevantMemories
+            .filter(m => m.relevance && m.relevance >= 0.6)
+            .slice(0, 3); // Only use top 3 most relevant memories
 
-          // Add memory context to the system prompt
-          contextualizedPrompt += `\n\nRelevant context from previous conversations:\n${memoryContext}`;
+          if (contextMemories.length > 0) {
+            // Format memories for context, including relevance scores
+            const memoryContext = contextMemories
+              .map((m) => `Previous relevant conversation (relevance: ${m.relevance?.toFixed(2)}): ${m.content}`)
+              .join("\n\n");
 
-          console.log("Added memory context to prompt");
+            // Add memory context to the system prompt
+            contextualizedPrompt += `\n\nRelevant context from previous conversations:\n${memoryContext}`;
+
+            console.log("Added memory context to prompt with relevance filtering");
+          } else {
+            console.log("No memories met the relevance threshold");
+          }
         }
       } catch (memoryError) {
         console.error("Error fetching memories or profile:", memoryError);
@@ -730,16 +739,23 @@ ${profile.onboardingData.childProfiles
         messages[messages.length - 1]?.content || "",
       );
 
-      // Get recent chats for context
-      const recentChats = await db.query.chats.findMany({
-        where: eq(chats.userId, user.id),
-        orderBy: desc(chats.updatedAt),
-        limit: 5,
-      });
+      console.log("Context analysis - relevant memories found:", relevantMemories.length);
+      console.log("Memory relevance scores:", relevantMemories.map(m => ({
+        relevance: m.relevance,
+        contentPreview: m.content.substring(0, 50)
+      })));
 
-      const memoryContext = relevantMemories
-        .map((m) => `Previous conversation: ${m.content}`)
+      // Filter memories by relevance
+      const significantMemories = relevantMemories
+        .filter(m => m.relevance && m.relevance >= 0.6)
+        .slice(0, 3);
+
+      const memoryContext = significantMemories
+        .map((m) => `Previous relevant conversation (relevance: ${m.relevance?.toFixed(2)}): ${m.content}`)
         .join("\n\n");
+
+      console.log("Using memory context length:", memoryContext.length);
+      console.log("Number of significant memories used:", significantMemories.length);
 
       const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
