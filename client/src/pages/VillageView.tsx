@@ -616,7 +616,7 @@ export default function VillageView() {
                     <div
                       className={`mr-2 rounded-full`}
                       style={{
-                        backgroundColor: "#FFF384",
+                        backgroundColor: categoryColor,
                         width: member.contactFrequency === 'S' ? '0.5rem' :
                           member.contactFrequency === 'M' ? '0.875rem' :
                           member.contactFrequency === 'L' ? '1.25rem' :
