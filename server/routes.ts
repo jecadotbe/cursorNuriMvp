@@ -2,20 +2,10 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
-import { users } from "@db/schema";
+import { users, villageMembers, villageMemberMemories, villageMemberInteractions, chats, messageFeedback, promptSuggestions, suggestionFeedback, parentProfiles } from "@db/schema";
 import path from "path";
 import fs from "fs/promises";
 import fileUpload from "express-fileupload";
-import {
-  villageMembers,
-  villageMemberMemories,
-  villageMemberInteractions,
-  chats,
-  messageFeedback,
-  promptSuggestions,
-  suggestionFeedback,
-  parentProfiles,
-} from "@db/schema";
 import { eq, desc, and, isNull, gte } from "drizzle-orm";
 import { anthropic } from "./anthropic";
 import type { User } from "./auth";
@@ -31,6 +21,115 @@ export function registerRoutes(app: Express): Server {
   }));
 
   setupAuth(app);
+
+  // Add onboarding routes
+  app.get("/api/onboarding/progress", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    const user = req.user as User;
+
+    try {
+      const profile = await db.query.parentProfiles.findFirst({
+        where: eq(parentProfiles.userId, user.id),
+      });
+
+      res.json({
+        currentOnboardingStep: profile?.currentOnboardingStep || 1,
+        completedOnboarding: profile?.completedOnboarding || false,
+        onboardingData: profile?.onboardingData || {}
+      });
+    } catch (error) {
+      console.error("Failed to fetch onboarding progress:", error);
+      res.status(500).json({
+        message: "Failed to fetch onboarding progress",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.post("/api/onboarding/progress", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    const user = req.user as User;
+    const { step, data } = req.body;
+
+    try {
+      const [profile] = await db
+        .insert(parentProfiles)
+        .values({
+          userId: user.id,
+          currentOnboardingStep: step,
+          onboardingData: data,
+          completedOnboarding: false
+        })
+        .onConflictDoUpdate({
+          target: [parentProfiles.userId],
+          set: {
+            currentOnboardingStep: step,
+            onboardingData: data,
+            updatedAt: new Date()
+          }
+        })
+        .returning();
+
+      res.json({
+        currentOnboardingStep: profile.currentOnboardingStep,
+        completedOnboarding: profile.completedOnboarding,
+        onboardingData: profile.onboardingData
+      });
+    } catch (error) {
+      console.error("Failed to save onboarding progress:", error);
+      res.status(500).json({
+        message: "Failed to save onboarding progress",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.post("/api/onboarding/complete", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    const user = req.user as User;
+    const finalData = req.body;
+
+    try {
+      const [profile] = await db
+        .insert(parentProfiles)
+        .values({
+          userId: user.id,
+          onboardingData: finalData,
+          completedOnboarding: true,
+          currentOnboardingStep: 4 // Final step
+        })
+        .onConflictDoUpdate({
+          target: [parentProfiles.userId],
+          set: {
+            onboardingData: finalData,
+            completedOnboarding: true,
+            currentOnboardingStep: 4,
+            updatedAt: new Date()
+          }
+        })
+        .returning();
+
+      res.json({
+        message: "Onboarding completed successfully",
+        profile
+      });
+    } catch (error) {
+      console.error("Failed to complete onboarding:", error);
+      res.status(500).json({
+        message: "Failed to complete onboarding",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
 
   // Profile picture upload endpoint
   app.post("/api/profile/picture", async (req, res) => {
