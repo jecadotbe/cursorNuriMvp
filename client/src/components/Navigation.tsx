@@ -1,9 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Home, MessageSquare, Users, GraduationCap, User } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUser } from "@/hooks/use-user";
-import AvatarImage from "@/components/ui/avatar-image"; // Assuming this component exists
 
 
 export default function Navigation() {
