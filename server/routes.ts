@@ -5,7 +5,6 @@ import { db } from "@db";
 import {
   villageMembers,
   villageMemberMemories,
-  villageInsights,
   villageMemberInteractions,
   chats,
   messageFeedback,
@@ -19,14 +18,6 @@ import type { User } from "./auth";
 import { memoryService } from "./services/memory";
 import villageRouter from "./routes/village";
 import {format} from 'date-fns'
-import { and, eq, desc } from "drizzle-orm";
-import { db } from "@db";
-import { villageMembers, villageMemberMemories } from "@db/schema";
-
-// Add after the existing imports
-import { villageInsights } from "@db/schema";
-import { eq, desc } from "drizzle-orm";
-
 
 const getVillageContext = async (userId: number) => {
   try {
@@ -1136,129 +1127,6 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
     }
   });
 
-  // Village insights endpoints
-  app.get("/api/village/insights", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).send("Not authenticated");
-    }
-
-    const user = req.user as User;
-
-    try {
-      const insights = await db.query.villageInsights.findMany({
-        where: eq(villageInsights.userId, user.id),
-        orderBy: [desc(villageInsights.priority), desc(villageInsights.createdAt)]
-      });
-
-      res.json(insights);
-    } catch (error) {
-      console.error("Failed to fetch insights:", error);
-      res.status(500).json({ message: "Failed to fetch insights" });
-    }
-  });
-
-  app.post("/api/village/insights/generate", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).send("Not authenticated");
-    }
-
-    const user = req.user as User;
-
-    try {
-      // Fetch all village members
-      const members = await db.query.villageMembers.findMany({
-        where: eq(villageMembers.userId, user.id)
-      });
-
-      // Fetch recent interactions
-      const interactions = await db.query.villageMemberInteractions.findMany({
-        where: eq(villageMemberInteractions.userId, user.id),
-        orderBy: desc(villageMemberInteractions.date),
-        limit: 50
-      });
-
-      // Build context for AI analysis
-      const networkContext = {
-        members: members.map(m => ({
-          name: m.name,
-          type: m.type,
-          circle: m.circle,
-          category: m.category,
-          contactFrequency: m.contactFrequency
-        })),
-        recentInteractions: interactions.map(i => ({
-          memberId: i.villageMemberId,
-          type: i.type,
-          date: i.date,
-          quality: i.quality
-        }))
-      };
-
-      // Generate insights using Anthropic
-      const response = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
-        max_tokens: 1024,
-        system: `You are analyzing a support network ("village") for a parent. Generate insights about network health, gaps, and opportunities for improvement.
-                Consider:
-                - Connection strength based on interaction frequency and quality
-                - Network gaps in different support categories
-                - Opportunities to strengthen relationships
-                - Suggestions for better network utilization
-
-                Format as a JSON array of insights, each with:
-                {
-                  "type": "connection_strength" | "network_gap" | "interaction_suggestion" | "relationship_health",
-                  "title": "brief title",
-                  "description": "detailed insight",
-                  "suggestedAction": "specific action to take (optional)",
-                  "priority": 1-5 (higher = more important),
-                  "relatedMemberIds": [member IDs] or null
-                }`,
-        messages: [{
-          role: "user",
-          content: `Generate insights for this support network: ${JSON.stringify(networkContext)}`
-        }]
-      });
-
-      const responseText = response.content[0].type === "text" ? response.content[0].text : "";
-      let insights;
-
-      try {
-        insights = JSON.parse(responseText);
-      } catch (parseError) {
-        const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-        if (!jsonMatch) {
-          throw new Error("Could not extract valid JSON from response");
-        }
-        insights = JSON.parse(jsonMatch[0]);
-      }
-
-      // Save generated insights
-      const savedInsights = await db
-        .insert(villageInsights)
-        .values(
-          insights.map((insight: any) => ({
-            userId: user.id,
-            type: insight.type,
-            title: insight.title,
-            description: insight.description,
-            suggestedAction: insight.suggestedAction || null,
-            priority: insight.priority,
-            relatedMemberIds: insight.relatedMemberIds || null,
-            status: "active"
-          }))
-        )
-        .returning();
-
-      res.json(savedInsights);
-    } catch (error) {
-      console.error("Failed to generate insights:", error);
-      res.status(500).json({
-        error: "Failed to generate insights",
-        details: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
 
   // Village member interactions endpoints
   app.post("/api/village/members/:memberId/interactions", async (req, res) => {
@@ -1319,28 +1187,6 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
   app.use("/api/village", villageRouter);
 
   // Add insights routes after existing routes
-  app.get("/api/insights", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).send("Not authenticated");
-    }
-
-    const user = req.user as User;
-
-    try {
-      const insights = await db.query.villageInsights.findMany({
-        where: and(
-          eq(villageInsights.userId, user.id),
-          eq(villageInsights.status, "active")
-        ),
-        orderBy: [desc(villageInsights.priority)],
-      });
-
-      res.json(insights);
-    } catch (error) {
-      console.error("Failed to fetch insights:", error);
-      res.status(500).json({ message: "Failed to fetch insights" });
-    }
-  });
 
   app.post("/api/insights/implement/:id", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
@@ -1380,8 +1226,7 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
     }
   });
 
-  // Add insights generation API endpoint
-  app.get("/api/insights", async (req, res) => {
+    app.get("/api/insights", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
     }

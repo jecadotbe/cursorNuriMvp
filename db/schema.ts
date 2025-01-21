@@ -4,13 +4,6 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Define all enums first
-export const insightTypeEnum = pgEnum("insight_type_enum", [
-  "connection_strength",
-  "network_gap",
-  "interaction_suggestion",
-  "relationship_health"
-]);
-
 export const stressLevelEnum = pgEnum("stress_level_enum", [
   "low",
   "moderate",
@@ -141,22 +134,6 @@ export const villageMemberMemoriesRelations = relations(villageMemberMemories, (
   }),
 }));
 
-export const villageInsights = pgTable("village_insights", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  type: insightTypeEnum("type").notNull(),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  suggestedAction: text("suggested_action"),
-  priority: integer("priority").notNull(),
-  status: text("status").default("active"),
-  relatedMemberIds: integer("related_member_ids").array(),
-  metadata: jsonb("metadata"),
-  implementedAt: timestamp("implemented_at"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
 export const villageMemberInteractions = pgTable("village_member_interactions", {
   id: serial("id").primaryKey(),
   villageMemberId: integer("village_member_id").references(() => villageMembers.id).notNull(),
@@ -237,8 +214,6 @@ export const insertSuggestionFeedbackSchema = createInsertSchema(suggestionFeedb
 export const selectSuggestionFeedbackSchema = createSelectSchema(suggestionFeedback);
 export const insertVillageMemberMemorySchema = createInsertSchema(villageMemberMemories);
 export const selectVillageMemberMemorySchema = createSelectSchema(villageMemberMemories);
-export const insertVillageInsightSchema = createInsertSchema(villageInsights);
-export const selectVillageInsightSchema = createSelectSchema(villageInsights);
 export const insertVillageMemberInteractionSchema = createInsertSchema(villageMemberInteractions);
 export const selectVillageMemberInteractionSchema = createSelectSchema(villageMemberInteractions);
 
@@ -265,7 +240,5 @@ export type SuggestionFeedback = typeof suggestionFeedback.$inferSelect;
 export type InsertSuggestionFeedback = typeof suggestionFeedback.$inferInsert;
 export type VillageMemberMemory = typeof villageMemberMemories.$inferSelect;
 export type InsertVillageMemberMemory = typeof villageMemberMemories.$inferInsert;
-export type VillageInsight = typeof villageInsights.$inferSelect;
-export type InsertVillageInsight = typeof villageInsights.$inferInsert;
 export type VillageMemberInteraction = typeof villageMemberInteractions.$inferSelect;
 export type InsertVillageMemberInteraction = typeof villageMemberInteractions.$inferInsert;

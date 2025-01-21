@@ -7,7 +7,6 @@ import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
 import { SuggestionFeedback } from "@/components/SuggestionFeedback";
-import InsightsPanel from "@/components/InsightsPanel"; // Update import statement
 
 // Image handling functions remain unchanged
 const handleImageLoad = (imageName: string) => {
@@ -149,44 +148,6 @@ export default function HomeView() {
         ) : null}
       </div>
 
-      {/* Village Section with AI Insights */}
-      <div className="w-full">
-        <div
-          className="rounded-xl p-6 relative overflow-hidden min-h-[200px]"
-          style={{
-            backgroundImage: `url('/images/village_circles.png'), linear-gradient(180deg, #C9E1D4 0%, #F2F0E5 35%)`,
-            backgroundPosition: "right top",
-            backgroundRepeat: "no-repeat",
-            backgroundSize: "contain",
-          }}
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <img src="/images/VillageIcon.svg" alt="Village" className="w-6 h-6" />
-            <h2 className="text-2xl font-baskerville">Mijn Village</h2>
-          </div>
-          <h3 className="text-l mb-4">Laat je Village bloeien</h3>
-
-          {/* AI Insights Panel */}
-          <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
-            <InsightsPanel 
-              maxItems={3} 
-              displayStyle="compact"
-              showActions={false}
-              autoRefresh={true}
-            />
-          </div>
-
-          <div className="flex justify-end">
-            <Link href="/village">
-              <div className="bg-white rounded-full px-4 py-2 shadow-sm inline-flex items-center gap-2 cursor-pointer">
-                <span>Bekijk je Village</span>
-                <ChevronRight className="w-4 h-4" />
-              </div>
-            </Link>
-          </div>
-        </div>
-      </div>
-
       {/* Learning Section */}
       <div className="w-full">
         <div
@@ -200,10 +161,9 @@ export default function HomeView() {
               <img src="/images/LearningIcon.svg" alt="Learning" className="w-6 h-6" />
               <h2 className="text-2xl font-baskerville">Verder leren</h2>
             </div>
-
           </div>
-          {/* One Card */}
 
+          {/* One Card */}
           <div className="space-y-3">
             {OneCard.map((video, index) => (
               <Link key={index} href="/learn">
@@ -298,7 +258,6 @@ const learningVideos = [
     duration: "5 min",
     image: "/images/fabian-centeno-Snce5c3YjgI-unsplash.jpg",
   },
-
 ];
 
 const OneCard = [
@@ -307,5 +266,4 @@ const OneCard = [
     duration: "10 min",
     image: "/images/alexander-dummer-ncyGJJ0TSLM-unsplash (1).jpg",
   },
-
 ];
