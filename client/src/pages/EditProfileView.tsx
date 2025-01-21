@@ -20,17 +20,6 @@ type OnboardingData = {
     primaryConcerns: string[];
     supportNetwork: string[];
   };
-  childProfiles?: Array<{
-    name: string;
-    age: number;
-    specialNeeds: string[];
-  }>;
-  goals?: {
-    shortTerm: string[];
-    longTerm: string[];
-    supportAreas: string[];
-    communicationPreference: string;
-  };
 };
 
 type ProfileResponse = {
@@ -50,6 +39,15 @@ const defaultFormData: OnboardingData = {
   },
 };
 
+const isValidJson = (text: string): boolean => {
+  try {
+    JSON.parse(text);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 export default function EditProfileView() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -57,12 +55,34 @@ export default function EditProfileView() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch existing profile data
-  const { data: profile, isLoading, error } = useQuery<ProfileResponse>({
+  const { data: profile, isLoading } = useQuery<ProfileResponse>({
     queryKey: ['/api/onboarding/progress'],
-    onError: (err) => {
+    retry: false,
+    queryFn: async ({ queryKey }) => {
+      const response = await fetch(queryKey[0] as string, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch profile data');
+      }
+
+      const text = await response.text();
+      if (!isValidJson(text)) {
+        throw new Error('Invalid response format: expected JSON');
+      }
+
+      const data = JSON.parse(text);
+      if (!data.onboardingData) {
+        throw new Error('Invalid response format: missing onboardingData');
+      }
+
+      return data;
+    },
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: "Failed to load profile data. Please try again.",
+        description: error.message || "Failed to load profile data",
         variant: "destructive",
       });
     },
@@ -96,12 +116,16 @@ export default function EditProfileView() {
         credentials: 'include'
       });
 
+      const text = await response.text();
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Failed to update profile");
+        throw new Error(text || "Failed to update profile");
       }
 
-      return response.json();
+      if (!isValidJson(text)) {
+        throw new Error('Invalid response format: expected JSON');
+      }
+
+      return JSON.parse(text);
     },
     onSuccess: () => {
       toast({
@@ -203,7 +227,7 @@ export default function EditProfileView() {
               <Label htmlFor="experienceLevel">Ervaring niveau</Label>
               <Select
                 value={formData.basicInfo.experienceLevel}
-                onValueChange={(value) =>
+                onValueChange={(value: "first_time" | "experienced" | "multiple_children") =>
                   setFormData({
                     ...formData,
                     basicInfo: {
@@ -235,7 +259,7 @@ export default function EditProfileView() {
               <Label htmlFor="stressLevel">Stress niveau</Label>
               <Select
                 value={formData.stressAssessment.stressLevel}
-                onValueChange={(value) =>
+                onValueChange={(value: "low" | "moderate" | "high" | "very_high") =>
                   setFormData({
                     ...formData,
                     stressAssessment: {
