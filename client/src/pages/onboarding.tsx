@@ -49,50 +49,66 @@ export default function OnboardingPage() {
   const totalSteps = 4;
   const progress = (step / totalSteps) * 100;
 
-  // Fetch existing progress
+  // Helper function to handle API responses
+  const handleApiResponse = async (response: Response) => {
+    const contentType = response.headers.get("content-type");
+    if (!response.ok) {
+      const errorText = contentType?.includes("application/json") 
+        ? (await response.json()).message
+        : await response.text();
+      throw new Error(errorText || `HTTP error! status: ${response.status}`);
+    }
+
+    if (!contentType?.includes("application/json")) {
+      throw new Error("Invalid response format: expected JSON");
+    }
+
+    return response.json();
+  };
+
   const { data: savedProgress, isLoading } = useQuery<OnboardingProgressResponse>({
     queryKey: ['/api/onboarding/progress'],
-    onSuccess: (data) => {
-      if (data.completedOnboarding) {
+    queryFn: async () => {
+      const response = await fetch('/api/onboarding/progress', {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      return handleApiResponse(response);
+    }
+  });
+
+  useEffect(() => {
+    if (savedProgress) {
+      if (savedProgress.completedOnboarding) {
         setLocation("/");
         return;
       }
-      setStep(data.currentOnboardingStep || 1);
-      setOnboardingData(data.onboardingData || {});
-    },
-    onError: (error) => {
-      console.error("Failed to fetch progress:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load your progress. Starting from the beginning.",
-        variant: "destructive",
-      });
-    },
-  });
+      setStep(savedProgress.currentOnboardingStep || 1);
+      setOnboardingData(savedProgress.onboardingData || {});
+    }
+  }, [savedProgress, setLocation]);
 
   // Save progress mutation
   const saveProgressMutation = useMutation({
     mutationFn: async (data: { step: number; data: OnboardingData }) => {
       const response = await fetch("/api/onboarding/progress", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-        credentials: 'include'
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        credentials: 'include',
+        body: JSON.stringify(data)
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Failed to save progress");
-      }
-
-      const responseData = await response.json();
-      return responseData;
+      return handleApiResponse(response);
     },
     onError: (error: Error) => {
       console.error("Failed to save progress:", error);
       toast({
         title: "Error",
-        description: "Failed to save your progress. Don't worry, you can continue.",
+        description: error.message || "Failed to save your progress. Don't worry, you can continue.",
         variant: "destructive",
       });
     },
@@ -105,17 +121,12 @@ export default function OnboardingPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Accept": "application/json"
         },
-        body: JSON.stringify(data),
-        credentials: 'include'
+        credentials: 'include',
+        body: JSON.stringify(data)
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Failed to complete onboarding");
-      }
-
-      return response.json();
+      return handleApiResponse(response);
     },
     onSuccess: () => {
       toast({
