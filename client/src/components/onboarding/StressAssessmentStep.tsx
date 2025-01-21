@@ -85,7 +85,7 @@ export default function StressAssessmentStep({ onComplete }: StressAssessmentSte
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 bg-transparent">
         <FormField
           control={form.control}
           name="stressLevel"

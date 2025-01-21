@@ -101,7 +101,7 @@ export default function ChildProfileStep({ onComplete }: ChildProfileStepProps) 
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-transparent">
       <div className="flex gap-2 mb-4">
         {form.watch("children").map((_, index) => (
           <Button
