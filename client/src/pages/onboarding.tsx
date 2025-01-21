@@ -34,6 +34,12 @@ export type OnboardingData = {
   };
 };
 
+type OnboardingProgressResponse = {
+  currentOnboardingStep: number;
+  completedOnboarding: boolean;
+  onboardingData: OnboardingData;
+};
+
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({});
@@ -44,7 +50,7 @@ export default function OnboardingPage() {
   const progress = (step / totalSteps) * 100;
 
   // Fetch existing progress
-  const { data: savedProgress, isLoading } = useQuery({
+  const { data: savedProgress, isLoading } = useQuery<OnboardingProgressResponse>({
     queryKey: ['/api/onboarding/progress'],
     onSuccess: (data) => {
       if (data.completedOnboarding) {
@@ -53,6 +59,14 @@ export default function OnboardingPage() {
       }
       setStep(data.currentOnboardingStep || 1);
       setOnboardingData(data.onboardingData || {});
+    },
+    onError: (error) => {
+      console.error("Failed to fetch progress:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load your progress. Starting from the beginning.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -67,13 +81,14 @@ export default function OnboardingPage() {
       });
 
       if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error || "Failed to save progress");
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to save progress");
       }
 
-      return response.json();
+      const responseData = await response.json();
+      return responseData;
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Failed to save progress:", error);
       toast({
         title: "Error",
@@ -86,7 +101,6 @@ export default function OnboardingPage() {
   // Complete onboarding mutation
   const completeOnboardingMutation = useMutation({
     mutationFn: async (data: OnboardingData) => {
-      console.log("Submitting onboarding data:", data);
       const response = await fetch("/api/onboarding/complete", {
         method: "POST",
         headers: {
@@ -97,8 +111,8 @@ export default function OnboardingPage() {
       });
 
       if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error || "Failed to complete onboarding");
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to complete onboarding");
       }
 
       return response.json();
@@ -110,7 +124,7 @@ export default function OnboardingPage() {
       });
       setTimeout(() => setLocation("/"), 1000);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Onboarding error:", error);
       toast({
         title: "Error",
@@ -124,25 +138,22 @@ export default function OnboardingPage() {
     const updatedData = { ...onboardingData, ...stepData };
     setOnboardingData(updatedData);
 
-    // Save progress after each step
     try {
+      // Save progress after each step
       await saveProgressMutation.mutateAsync({
-        step: step,
+        step,
         data: updatedData,
       });
-    } catch (error) {
-      console.error("Failed to save progress:", error);
-    }
 
-    if (step < totalSteps) {
-      setStep(step + 1);
-    } else {
-      // This is the final step
-      try {
+      if (step < totalSteps) {
+        setStep(step + 1);
+      } else {
+        // This is the final step
         await completeOnboardingMutation.mutateAsync(updatedData);
-      } catch (error) {
-        console.error("Failed to complete onboarding:", error);
       }
+    } catch (error) {
+      // Error is already handled by the mutations
+      console.error("Step completion error:", error);
     }
   };
 
@@ -185,7 +196,7 @@ export default function OnboardingPage() {
             )}
             {step === 3 && (
               <ChildProfileStep
-                onComplete={(data) => handleStepComplete({ childProfiles: data.children })}
+                onComplete={(data) => handleStepComplete({ childProfiles: data })}
                 initialData={onboardingData.childProfiles}
               />
             )}
