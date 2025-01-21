@@ -155,7 +155,10 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6 flex flex-col items-center justify-center">
+    <div className="min-h-screen p-6 flex flex-col items-center justify-center animate-gradient" style={{
+      backgroundSize: "400% 400%",
+      background: `linear-gradient(135deg, #F8DD9F 0%, #F2F0E5 50%, #F2F0E5 100%)`
+    }}>
       <div className="w-full max-w-2xl space-y-6">
         <div className="space-y-2 text-center">
           <h1 className="text-3xl font-bold tracking-tighter">Welcome to Nuri</h1>
