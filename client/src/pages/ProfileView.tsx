@@ -7,7 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
 import { ChevronRight, Edit2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -39,6 +40,7 @@ type OnboardingData = {
 export default function ProfileView() {
   const { user, logout } = useUser();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
   const { data: profile } = useQuery({
     queryKey: ['/api/onboarding/progress'],
