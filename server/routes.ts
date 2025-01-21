@@ -2,6 +2,10 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
+import { users } from "@db/schema";
+import path from "path";
+import fs from "fs/promises";
+import fileUpload from "express-fileupload";
 import {
   villageMembers,
   villageMemberMemories,
@@ -12,294 +16,66 @@ import {
   suggestionFeedback,
   parentProfiles,
 } from "@db/schema";
-import { eq, desc, and, isNull, lt, gte, sql } from "drizzle-orm";
+import { eq, desc, and, isNull, gte } from "drizzle-orm";
 import { anthropic } from "./anthropic";
 import type { User } from "./auth";
 import { memoryService } from "./services/memory";
-import villageRouter from "./routes/village";
-import {format} from 'date-fns'
-
-const getVillageContext = async (userId: number) => {
-  try {
-    // Get village members with their recent memories
-    const members = await db
-      .select({
-        id: villageMembers.id,
-        name: villageMembers.name,
-        type: villageMembers.type,
-        role: villageMembers.role,
-        category: villageMembers.category,
-      })
-      .from(villageMembers)
-      .where(eq(villageMembers.userId, userId));
-
-    if (!members || members.length === 0) {
-      return null;
-    }
-
-    // Get memories for each member
-    const membersWithMemories = await Promise.all(
-      members.map(async (member) => {
-        const memories = await db
-          .select({
-            title: villageMemberMemories.title,
-            content: villageMemberMemories.content,
-            date: villageMemberMemories.date,
-          })
-          .from(villageMemberMemories)
-          .where(
-            and(
-              eq(villageMemberMemories.villageMemberId, member.id),
-              eq(villageMemberMemories.userId, userId)
-            )
-          )
-          .orderBy(desc(villageMemberMemories.date))
-          .limit(3);
-
-        return {
-          ...member,
-          memories,
-        };
-      })
-    );
-
-    // Format context string with all available information
-    const contextString = membersWithMemories
-      .map(
-        (member) => `
-Member: ${member.name}
-Role: ${member.role || 'Not specified'}
-Type: ${member.type}
-Category: ${member.category || 'Not specified'}
-Recent memories: ${
-          member.memories.length > 0
-            ? member.memories
-                .map(
-                  (memory) =>
-                    `\n  - ${format(new Date(memory.date), 'MM/dd/yyyy')}: ${
-                      memory.title
-                    } - ${memory.content.substring(0, 100)}...`
-                )
-                .join('')
-            : '\n  No recent memories'
-        }`
-      )
-      .join('\n\n');
-
-    return `\n\nVillage Context:\nYour support network includes the following members:\n${contextString}`;
-  } catch (error) {
-    console.error('Error getting village context:', error);
-    return '';
-  }
-};
+import { villageRouter } from "./routes/village";
 
 export function registerRoutes(app: Express): Server {
+  // Add file upload middleware
+  app.use(fileUpload({
+    limits: { fileSize: 2 * 1024 * 1024 }, // 2MB max file size
+    abortOnLimit: true,
+    createParentPath: true
+  }));
+
   setupAuth(app);
 
-  // Add new profile update endpoint
+  // Profile picture upload endpoint
   app.post("/api/profile/picture", async (req, res) => {
-  if (!req.isAuthenticated() || !req.user) {
-    return res.status(401).send("Not authenticated");
-  }
-
-  const user = req.user as User;
-  const file = req.files?.profilePicture;
-
-  if (!file || Array.isArray(file)) {
-    return res.status(400).json({ message: "No file uploaded" });
-  }
-
-  if (file.size > 2 * 1024 * 1024) {
-    return res.status(400).json({ message: "File size must be less than 2MB" });
-  }
-
-  if (!file.mimetype.startsWith('image/')) {
-    return res.status(400).json({ message: "Only image files are allowed" });
-  }
-
-  try {
-    const fileName = `profile-${user.id}-${Date.now()}${path.extname(file.name)}`;
-    const filePath = path.join('public/uploads', fileName);
-    
-    await fs.promises.mkdir('public/uploads', { recursive: true });
-    await file.mv(filePath);
-
-    await db.update(users)
-      .set({ profilePicture: `/uploads/${fileName}` })
-      .where(eq(users.id, user.id));
-
-    res.json({ profilePicture: `/uploads/${fileName}` });
-  } catch (error) {
-    console.error('Error uploading file:', error);
-    res.status(500).json({ message: "Failed to upload file" });
-  }
-});
-
-app.post("/api/profile/update", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
     }
 
     const user = req.user as User;
-    const data = req.body;
+    const file = req.files?.profilePicture;
+
+    if (!file || Array.isArray(file)) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.mimetype)) {
+      return res.status(400).json({ message: "Invalid file type. Only JPEG, PNG, GIF and WebP images are allowed" });
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      return res.status(400).json({ message: "File size must be less than 2MB" });
+    }
 
     try {
-      const [profile] = await db
-        .update(parentProfiles)
-        .set({
-          name: data.basicInfo.name,
-          email: data.basicInfo.email,
-          stressLevel: data.stressAssessment.stressLevel,
-          experienceLevel: data.basicInfo.experienceLevel,
-          primaryConcerns: data.stressAssessment.primaryConcerns,
-          supportNetwork: data.stressAssessment.supportNetwork,
-          onboardingData: data,
-          updatedAt: new Date(),
-        })
-        .where(eq(parentProfiles.userId, user.id))
-        .returning();
+      // Create unique filename
+      const fileName = `profile-${user.id}-${Date.now()}${path.extname(file.name)}`;
+      const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+      const filePath = path.join(uploadDir, fileName);
 
-      res.json(profile);
+      // Ensure uploads directory exists
+      await fs.mkdir(uploadDir, { recursive: true });
+
+      // Move uploaded file
+      await file.mv(filePath);
+
+      // Update user profile in database
+      await db.update(users)
+        .set({ profilePicture: `/uploads/${fileName}` })
+        .where(eq(users.id, user.id));
+
+      res.json({ profilePicture: `/uploads/${fileName}` });
     } catch (error) {
-      console.error("Failed to update profile:", error);
-      res.status(500).json({ message: "Failed to update profile" });
-    }
-  });
-
-  // Save onboarding progress
-  app.post("/api/onboarding/progress", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).send("Not authenticated");
-    }
-
-    const user = req.user as User;
-    const { step, data } = req.body;
-
-    try {
-      const [profile] = await db
-        .update(parentProfiles)
-        .set({
-          currentOnboardingStep: step,
-          onboardingData: data,
-          updatedAt: new Date(),
-        })
-        .where(eq(parentProfiles.userId, user.id))
-        .returning();
-
-      if (!profile) {
-        // If no profile exists, create one
-        const [newProfile] = await db
-          .insert(parentProfiles)
-          .values({
-            userId: user.id,
-            name: data.basicInfo?.name || "",
-            email: data.basicInfo?.email || "",
-            stressLevel: "low", // Will be updated when stress assessment is completed
-            experienceLevel: data.basicInfo?.experienceLevel || "first_time",
-            currentOnboardingStep: step,
-            onboardingData: data,
-          })
-          .returning();
-
-        return res.json(newProfile);
-      }
-
-      res.json(profile);
-    } catch (error) {
-      console.error("Failed to save onboarding progress:", error);
-      res.status(500).json({ message: "Failed to save progress" });
-    }
-  });
-
-  // Get onboarding progress
-  app.get("/api/onboarding/progress", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).send("Not authenticated");
-    }
-
-    const user = req.user as User;
-
-    try {
-      const profile = await db.query.parentProfiles.findFirst({
-        where: eq(parentProfiles.userId, user.id),
-      });
-
-      if (!profile) {
-        return res.json({
-          currentOnboardingStep: 1,
-          onboardingData: {},
-          completedOnboarding: false,
-        });
-      }
-
-      res.json({
-        currentOnboardingStep: profile.currentOnboardingStep,
-        onboardingData: profile.onboardingData,
-        completedOnboarding: profile.completedOnboarding,
-      });
-    } catch (error) {
-      console.error("Failed to get onboarding progress:", error);
-      res.status(500).json({ message: "Failed to get progress" });
-    }
-  });
-
-  // Complete onboarding endpoint
-  app.post("/api/onboarding/complete", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).send("Not authenticated");
-    }
-
-    const user = req.user as User;
-    const data = req.body;
-
-    try {
-      // First check if a profile exists
-      const existingProfile = await db.query.parentProfiles.findFirst({
-        where: eq(parentProfiles.userId, user.id),
-      });
-
-      let profile;
-      if (existingProfile) {
-        // Update existing profile
-        [profile] = await db
-          .update(parentProfiles)
-          .set({
-            name: data.basicInfo.name,
-            email: data.basicInfo.email,
-            stressLevel: data.stressAssessment.stressLevel,
-            experienceLevel: data.basicInfo.experienceLevel,
-            primaryConcerns: data.stressAssessment.primaryConcerns,
-            supportNetwork: data.stressAssessment.supportNetwork,
-            completedOnboarding: true,
-            currentOnboardingStep: 4,
-            onboardingData: data,
-            updatedAt: new Date(),
-          })
-          .where(eq(parentProfiles.userId, user.id))
-          .returning();
-      } else {
-        // Create new profile
-        [profile] = await db
-          .insert(parentProfiles)
-          .values({
-            userId: user.id,
-            name: data.basicInfo.name,
-            email: data.basicInfo.email,
-            stressLevel: data.stressAssessment.stressLevel,
-            experienceLevel: data.basicInfo.experienceLevel,
-            primaryConcerns: data.stressAssessment.primaryConcerns,
-            supportNetwork: data.stressAssessment.supportNetwork,
-            completedOnboarding: true,
-            currentOnboardingStep: 4,
-            onboardingData: data,
-          })
-          .returning();
-      }
-
-      res.json(profile);
-    } catch (error) {
-      console.error("Failed to complete onboarding:", error);
-      res.status(500).json({ message: "Failed to complete onboarding" });
+      console.error('Error uploading file:', error);
+      res.status(500).json({ message: "Failed to upload file" });
     }
   });
 
@@ -1136,11 +912,11 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
         where: and(
           eq(villageMembers.id, memberId),
           eq(villageMembers.userId, user.id)
-        ),
+        )
       });
 
       if (!member) {
-        return res.status(404).json({ message: "Village member not found" });
+                return res.status(404).json({ message: "Village member not found" });
       }
 
       // Create new memory
@@ -1224,7 +1000,6 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
   // Register village routes
   app.use("/api/village", villageRouter);
 
-  // Add insights routes after existing routes
 
   app.post("/api/insights/implement/:id", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
@@ -1240,15 +1015,15 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
 
     try {
       const [updated] = await db
-        .update(villageInsights)
+        .update(parentProfiles)
         .set({
           status: "implemented",
           implementedAt: new Date(),
         })
         .where(
           and(
-            eq(villageInsights.id, insightId),
-            eq(villageInsights.userId, user.id)
+            eq(parentProfiles.id, insightId),
+            eq(parentProfiles.userId, user.id)
           )
         )
         .returning();
@@ -1282,7 +1057,7 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
 
       console.log("Found village members:", members.length);
 
-      const insights: Array<typeof villageInsights.$inferInsert> = [];
+      const insights: Array<typeof parentProfiles.$inferInsert> = [];
 
       // Always generate some basic insights if we have members
       if (members.length > 0) {
@@ -1361,7 +1136,7 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
       // Store new insights if we have any
       if (insights.length > 0) {
         const storedInsights = await db
-          .insert(villageInsights)
+          .insert(parentProfiles)
           .values(insights)
           .returning();
 
@@ -1392,15 +1167,15 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
 
     try {
       const [updated] = await db
-        .update(villageInsights)
+        .update(parentProfiles)
         .set({
           status: "implemented",
           implementedAt: new Date(),
         })
         .where(
           and(
-            eq(villageInsights.id, insightId),
-            eq(villageInsights.userId, user.id)
+            eq(parentProfiles.id, insightId),
+            eq(parentProfiles.userId, user.id)
           )
         )
         .returning();
@@ -1445,3 +1220,21 @@ Remember:
 - Focus on the parent's immediate needs
 - Balance empathy with practical guidance
 - Stay solution-focused while validating feelings`;
+
+async function getVillageContext(userId: number): Promise<string | null> {
+  try {
+    const members = await db.query.villageMembers.findMany({
+      where: eq(villageMembers.userId, userId),
+    });
+
+    if (members.length === 0) {
+      return null;
+    }
+
+    const memberNames = members.map((member) => member.name).join(", ");
+    return `\n\nVillage Members: ${memberNames}`;
+  } catch (error) {
+    console.error("Error fetching village context:", error);
+    return null;
+  }
+}

@@ -4,7 +4,8 @@ import { villageMembers, type User } from "@db/schema";
 import { eq, and } from "drizzle-orm";
 import type { Request, Response } from "express";
 
-const router = Router();
+// Create and export the router
+export const villageRouter = Router();
 
 // Add type for authenticated request
 interface AuthenticatedRequest extends Request {
@@ -12,7 +13,7 @@ interface AuthenticatedRequest extends Request {
 }
 
 // Get all village members for the current user
-router.get("/", async (req: AuthenticatedRequest, res: Response) => {
+villageRouter.get("/", async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -32,7 +33,7 @@ router.get("/", async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // Create a new village member
-router.post("/", async (req: AuthenticatedRequest, res: Response) => {
+villageRouter.post("/", async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -63,7 +64,7 @@ router.post("/", async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // Update a village member
-router.put("/:id", async (req: AuthenticatedRequest, res: Response) => {
+villageRouter.put("/:id", async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -116,7 +117,7 @@ router.put("/:id", async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // Delete a village member
-router.delete("/:id", async (req: AuthenticatedRequest, res: Response) => {
+villageRouter.delete("/:id", async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -153,5 +154,3 @@ router.delete("/:id", async (req: AuthenticatedRequest, res: Response) => {
     res.status(500).json({ message: "Failed to delete village member" });
   }
 });
-
-export default router;
