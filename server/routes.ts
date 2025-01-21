@@ -142,6 +142,42 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
+      // Store onboarding data in mem0
+      try {
+        const onboardingContent = `
+Parent Profile:
+Name: ${name}
+Email: ${email}
+Experience Level: ${experienceLevel}
+Stress Level: ${stressLevel}
+${finalData.stressAssessment?.primaryConcerns ? `Primary Concerns: ${finalData.stressAssessment.primaryConcerns.join(', ')}` : ''}
+
+${finalData.childProfiles && Array.isArray(finalData.childProfiles) ?
+          `Children:
+${finalData.childProfiles.map((child: any) =>
+            `- ${child.name} (Age: ${child.age})${child.specialNeeds?.length ? ` Special needs: ${child.specialNeeds.join(', ')}` : ''}`
+          ).join('\n')}` : ''}
+
+${finalData.goals ? `
+Goals:
+${finalData.goals.shortTerm?.length ? `Short term: ${finalData.goals.shortTerm.join(', ')}` : ''}
+${finalData.goals.longTerm?.length ? `Long term: ${finalData.goals.longTerm.join(', ')}` : ''}
+${finalData.goals.supportAreas?.length ? `Support areas: ${finalData.goals.supportAreas.join(', ')}` : ''}
+Communication preference: ${finalData.goals.communicationPreference || 'Not specified'}
+` : ''}`;
+
+        await memoryService.createMemory(user.id, onboardingContent, {
+          type: 'onboarding_profile',
+          category: 'user_profile',
+          source: 'onboarding'
+        });
+
+        console.log('Successfully stored onboarding data in memory layer');
+      } catch (memoryError) {
+        console.error('Failed to store onboarding data in memory:', memoryError);
+        // Continue with database storage even if memory storage fails
+      }
+
       const [profile] = await db
         .insert(parentProfiles)
         .values({
@@ -339,21 +375,21 @@ export function registerRoutes(app: Express): Server {
       // Build personalized context from onboarding data
       let personalizedContext = "";
       if (profile?.onboardingData) {
+        const childProfiles = Array.isArray(profile.onboardingData.childProfiles) ? profile.onboardingData.childProfiles : [];
         personalizedContext = `
 Parent's Profile:
-- Experience Level: ${profile.onboardingData.basicInfo?.experienceLevel}
-- Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel}
-- Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ")}
-${profile.onboardingData.childProfiles
-          ?.map(
-            (child) =>
-              `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
-          )
-          .join("\n")}
+- Experience Level: ${profile.onboardingData.basicInfo?.experienceLevel || 'Not specified'}
+- Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel || 'Not specified'}
+- Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ") || 'None specified'}
+${childProfiles.length > 0
+          ? childProfiles.map((child: any) =>
+              `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`
+            ).join("\n")
+          : 'No children profiles specified'}
 
 Goals:
-${profile.onboardingData.goals?.shortTerm?.length ? `- Short term goals: ${profile.onboardingData.goals.shortTerm.join(", ")}` : ""}
-${profile.onboardingData.goals?.longTerm?.length ? `- Long term goals: ${profile.onboardingData.goals.longTerm.join(", ")}` : ""}
+${profile.onboardingData.goals?.shortTerm?.length ? `- Short term goals: ${profile.onboardingData.goals.shortTerm.join(", ")}` : ''}
+${profile.onboardingData.goals?.longTerm?.length ? `- Long term goals: ${profile.onboardingData.goals.longTerm.join(", ")}` : ''}
 `;
       }
 
