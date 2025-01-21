@@ -1561,60 +1561,78 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
     const user = req.user as User;
 
     try {
-      // Get all village members
+      // Get all village members with their details and recent interactions
       const members = await db.query.villageMembers.findMany({
         where: eq(villageMembers.userId, user.id),
         with: {
-          interactions: {
-            orderBy: [desc(villageMemberInteractions.date)],
-            limit: 10
+          memories: {
+            orderBy: [desc(villageMemberMemories.date)],
+            limit: 5
           }
         }
       });
 
-      // Build network analysis context
-      const networkContext = {
-        members: members.map(m => ({
-          id: m.id,
-          name: m.name,
-          type: m.type,
-          circle: m.circle,
-          category: m.category,
-          contactFrequency: m.contactFrequency,
-          recentInteractions: m.interactions
-        }))
+      // Calculate network metrics
+      const networkMetrics = {
+        totalMembers: members.length,
+        categoryDistribution: calculateCategoryDistribution(members),
+        circleDistribution: calculateCircleDistribution(members),
+        interactionFrequency: calculateInteractionFrequency(members),
+        networkGaps: identifyNetworkGaps(members)
       };
 
-      // Generate AI insights
+      // Generate AI insights based on network analysis
       const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 1024,
-        system: `You are analyzing a support network ("village") for a parent. Generate actionable insights about network health, gaps, and opportunities.
+        system: `You are analyzing a parent's support network ("village"). Generate actionable insights based on these specific metrics:
 
-              Consider:
-              - Connection strength based on interaction frequency and quality
-              - Network gaps in different support categories
-              - Opportunities to strengthen relationships
-              - Suggestions for better network utilization
+1. Category Balance Analysis:
+- Evaluate distribution across categories (formal, informal, inspiration)
+- Identify underrepresented categories
+- Suggest specific improvements
 
-              Format response as a JSON array of insights. Each insight must have:
-              {
-                "type": "connection_strength" | "network_gap" | "interaction_suggestion" | "relationship_health",
-                "title": "brief, actionable title",
-                "description": "2-3 sentence explanation",
-                "suggestedAction": "specific, concrete action to take",
-                "priority": number 1-5 (5 = highest),
-                "relatedMemberIds": [member IDs] or null
-              }
+2. Circle Analysis:
+- Assess balance between inner (1-2), middle (3), and outer (4-5) circles
+- Flag concerning patterns (e.g., too many distant connections)
+- Recommend circle adjustments
 
-              Ensure insights are:
-              1. Specific and actionable
-              2. Based on actual network data
-              3. Prioritized by impact
-              4. Include clear next steps`,
+3. Interaction Health:
+- Review interaction frequency patterns
+- Identify members needing attention
+- Suggest concrete interaction improvements
+
+4. Network Gap Analysis:
+- Detect missing support types
+- Identify potential role conflicts
+- Recommend specific additions to network
+
+Format each insight as:
+{
+  "type": "category_balance" | "circle_distribution" | "interaction_pattern" | "network_gap",
+  "title": "Clear, actionable title",
+  "description": "2-3 sentence explanation of the insight",
+  "suggestedAction": "Specific, achievable next step",
+  "priority": 1-5 (5 = highest),
+  "relatedMemberIds": [relevant member IDs] or null,
+  "metricSource": "Which metric led to this insight"
+}`,
         messages: [{
           role: "user",
-          content: `Generate insights for this support network: ${JSON.stringify(networkContext)}`
+          content: `Generate insights based on these network metrics:
+          ${JSON.stringify(networkMetrics, null, 2)}
+
+          Village Members Details:
+          ${JSON.stringify(members.map(m => ({
+            id: m.id,
+            name: m.name,
+            category: m.category,
+            circle: m.circle,
+            recentMemories: m.memories.map(mem => ({
+              date: mem.date,
+              content: mem.content
+            }))
+          })), null, 2)}`
         }]
       });
 
@@ -1656,7 +1674,10 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
             priority: insight.priority,
             relatedMemberIds: insight.relatedMemberIds || null,
             status: "active",
-            metadata: {},
+            metadata: {
+              metricSource: insight.metricSource,
+              generatedAt: new Date().toISOString()
+            },
             createdAt: new Date(),
             updatedAt: new Date()
           }))
@@ -1672,6 +1693,122 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
       });
     }
   });
+
+  // Helper functions for network analysis
+  function calculateCategoryDistribution(members: any[]) {
+    const distribution = {
+      formal: 0,
+      informal: 0,
+      inspiration: 0
+    };
+
+    members.forEach(member => {
+      if (member.category) {
+        distribution[member.category as keyof typeof distribution]++;
+      }
+    });
+
+    return {
+      ...distribution,
+      analysis: {
+        balanced: Math.max(...Object.values(distribution)) - Math.min(...Object.values(distribution)) <= 2,
+        dominantCategory: Object.entries(distribution)
+          .reduce((a, b) => a[1] > b[1] ? a : b)[0],
+        weakestCategory: Object.entries(distribution)
+          .reduce((a, b) => a[1] < b[1] ? a : b)[0]
+      }
+    };
+  }
+
+  function calculateCircleDistribution(members: any[]) {
+    const distribution = {
+      inner: 0, // circles 1-2
+      middle: 0, // circle 3
+      outer: 0 // circles 4-5
+    };
+
+    members.forEach(member => {
+      if (member.circle <= 2) distribution.inner++;
+      else if (member.circle === 3) distribution.middle++;
+      else if (member.circle >= 4) distribution.outer++;
+    });
+
+    return {
+      ...distribution,
+      analysis: {
+        balanced: distribution.inner >= 3 && distribution.middle >= 4,
+        concerningPatterns: {
+          tooManyOuter: distribution.outer > distribution.inner + distribution.middle,
+          tooFewInner: distribution.inner < 2,
+          middleHeavy: distribution.middle > distribution.inner * 2
+        }
+      }
+    };
+  }
+
+  function calculateInteractionFrequency(members: any[]) {
+    const now = new Date();
+    const monthAgo = new Date();
+    monthAgo.setMonth(monthAgo.getMonth() - 1);
+
+    return members.map(member => ({
+      memberId: member.id,
+      name: member.name,
+      recentInteractions: member.memories.filter((m: any) => new Date(m.date) >= monthAgo).length,
+      needsAttention: member.memories.length === 0 || 
+        new Date(member.memories[0].date) < monthAgo
+    })).reduce((acc, curr) => {
+      acc[curr.memberId] = {
+        name: curr.name,
+        recentInteractions: curr.recentInteractions,
+        needsAttention: curr.needsAttention
+      };
+      return acc;
+    }, {});
+  }
+
+  function identifyNetworkGaps(members: any[]) {
+    const gaps = [];
+    const categories = ['formal', 'informal', 'inspiration'];
+    const roles = new Set(members.map(m => m.role).filter(Boolean));
+
+    // Check category coverage
+    categories.forEach(category => {
+      if (!members.some(m => m.category === category)) {
+        gaps.push({
+          type: 'category_gap',
+          category,
+          description: `No members in ${category} category`
+        });
+      }
+    });
+
+    // Check circle distribution
+    const circles = members.map(m => m.circle);
+    for (let i = 1; i <= 5; i++) {
+      if (!circles.includes(i)) {
+        gaps.push({
+          type: 'circle_gap',
+          circle: i,
+          description: `No members in circle ${i}`
+        });
+      }
+    }
+
+    // Essential role gaps (customize based on your application's needs)
+    const essentialRoles = ['family', 'friend', 'professional'];
+    essentialRoles.forEach(role => {
+      if (!roles.has(role)) {
+        gaps.push({
+          type: 'role_gap',
+          role,
+          description: `Missing essential role: ${role}`
+        });
+      }
+    });
+
+    return gaps;
+  }
 
   app.post("/api/insights/:id/implement", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
