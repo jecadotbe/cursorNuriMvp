@@ -40,6 +40,26 @@ type OnboardingProgressResponse = {
   onboardingData: OnboardingData;
 };
 
+const handleApiResponse = async (response: Response) => {
+  try {
+    // First try to parse as JSON regardless of content-type
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP error! status: ${response.status}`);
+    }
+
+    return data;
+  } catch (error) {
+    if (!response.ok) {
+      // If JSON parsing failed and response is not ok, try to get error message from text
+      const errorText = await response.text();
+      throw new Error(errorText || `HTTP error! status: ${response.status}`);
+    }
+    throw new Error("Failed to parse response as JSON");
+  }
+};
+
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({});
@@ -49,33 +69,30 @@ export default function OnboardingPage() {
   const totalSteps = 4;
   const progress = (step / totalSteps) * 100;
 
-  // Helper function to handle API responses
-  const handleApiResponse = async (response: Response) => {
-    const contentType = response.headers.get("content-type");
-    if (!response.ok) {
-      const errorText = contentType?.includes("application/json") 
-        ? (await response.json()).message
-        : await response.text();
-      throw new Error(errorText || `HTTP error! status: ${response.status}`);
-    }
-
-    if (!contentType?.includes("application/json")) {
-      throw new Error("Invalid response format: expected JSON");
-    }
-
-    return response.json();
-  };
-
   const { data: savedProgress, isLoading } = useQuery<OnboardingProgressResponse>({
     queryKey: ['/api/onboarding/progress'],
     queryFn: async () => {
-      const response = await fetch('/api/onboarding/progress', {
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-      return handleApiResponse(response);
+      try {
+        const response = await fetch('/api/onboarding/progress', {
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+        return handleApiResponse(response);
+      } catch (error) {
+        console.error('Failed to fetch progress:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load your progress. Starting from the beginning.",
+          variant: "destructive",
+        });
+        return {
+          currentOnboardingStep: 1,
+          completedOnboarding: false,
+          onboardingData: {}
+        };
+      }
     }
   });
 
@@ -90,7 +107,6 @@ export default function OnboardingPage() {
     }
   }, [savedProgress, setLocation]);
 
-  // Save progress mutation
   const saveProgressMutation = useMutation({
     mutationFn: async (data: { step: number; data: OnboardingData }) => {
       const response = await fetch("/api/onboarding/progress", {
@@ -111,10 +127,9 @@ export default function OnboardingPage() {
         description: error.message || "Failed to save your progress. Don't worry, you can continue.",
         variant: "destructive",
       });
-    },
+    }
   });
 
-  // Complete onboarding mutation
   const completeOnboardingMutation = useMutation({
     mutationFn: async (data: OnboardingData) => {
       const response = await fetch("/api/onboarding/complete", {
@@ -142,7 +157,7 @@ export default function OnboardingPage() {
         description: error.message || "Failed to complete onboarding. Please try again.",
         variant: "destructive",
       });
-    },
+    }
   });
 
   const handleStepComplete = async (stepData: Partial<OnboardingData>) => {
@@ -150,7 +165,6 @@ export default function OnboardingPage() {
     setOnboardingData(updatedData);
 
     try {
-      // Save progress after each step
       await saveProgressMutation.mutateAsync({
         step,
         data: updatedData,
@@ -159,7 +173,6 @@ export default function OnboardingPage() {
       if (step < totalSteps) {
         setStep(step + 1);
       } else {
-        // This is the final step
         await completeOnboardingMutation.mutateAsync(updatedData);
       }
     } catch (error) {
