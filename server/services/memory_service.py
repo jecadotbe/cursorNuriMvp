@@ -30,16 +30,20 @@ def create_memory(user_id: int, content: str, metadata: Optional[Dict[str, Any]]
         print(f"Content: {content[:100]}...")
         print(f"Metadata: {json.dumps(metadata, indent=2)}")
 
+        # Create default metadata if none provided
+        if metadata is None:
+            metadata = {}
+
         # Create the memory with proper metadata handling
         result = memory_client.add(
             content,
             user_id=str(user_id),
             metadata={
-                **(metadata or {}),
                 "source": metadata.get("source", "nuri-chat"),
                 "type": metadata.get("type", "conversation"),
                 "category": metadata.get("category", "chat_history"),
-                "timestamp": str(metadata.get("timestamp", None))
+                "timestamp": metadata.get("timestamp", None),
+                **metadata  # Include any other metadata fields
             }
         )
 
@@ -48,7 +52,7 @@ def create_memory(user_id: int, content: str, metadata: Optional[Dict[str, Any]]
             "id": result.id,
             "content": content,
             "metadata": result.metadata,
-            "createdAt": result.created_at.isoformat()
+            "createdAt": result.created_at.isoformat() if hasattr(result, 'created_at') else None
         }
     except Exception as e:
         print(f"Error creating memory: {str(e)}")
@@ -76,7 +80,7 @@ def get_relevant_memories(user_id: int, current_context: str, limit: int = 5) ->
             "id": memory.id,
             "content": memory.content,
             "metadata": memory.metadata,
-            "createdAt": memory.created_at.isoformat()
+            "createdAt": memory.created_at.isoformat() if hasattr(memory, 'created_at') else None
         } for memory in memories]
 
         print(f"Returning memories: {json.dumps(result, indent=2)}")
@@ -100,7 +104,7 @@ def search_memories(user_id: int, query: str) -> List[Dict]:
             "id": memory.id,
             "content": memory.content,
             "metadata": memory.metadata,
-            "createdAt": memory.created_at.isoformat()
+            "createdAt": memory.created_at.isoformat() if hasattr(memory, 'created_at') else None
         } for memory in memories]
     except Exception as e:
         print(f"Error searching memories: {str(e)}")

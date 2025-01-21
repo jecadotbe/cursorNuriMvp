@@ -46,25 +46,25 @@ export class MemoryService {
         user_id: userId.toString(),
         metadata: {
           ...metadata,
-          source: 'nuri-chat',
-          type: 'conversation',
-          category: 'chat_history'
+          source: metadata?.source || 'nuri-chat',
+          type: metadata?.type || 'conversation',
+          category: metadata?.category || 'chat_history'
         }
       });
 
       console.log('Memory creation result:', result);
 
-      // According to mem0ai docs, result is an array of events
-      const memoryId = result[0]?.id || result.id; // Handle both array and single result
+      // According to mem0ai docs, result is an array of memories
+      const memoryId = Array.isArray(result) ? result[0]?.id : result.id;
 
       return {
         id: memoryId,
         content,
         metadata: {
           ...metadata,
-          source: 'nuri-chat',
-          type: 'conversation',
-          category: 'chat_history'
+          source: metadata?.source || 'nuri-chat',
+          type: metadata?.type || 'conversation',
+          category: metadata?.category || 'chat_history'
         },
         createdAt: new Date()
       };
@@ -94,9 +94,9 @@ export class MemoryService {
         id: memory.id,
         content: Array.isArray(memory.content) ? 
           memory.content[0].content : 
-          (memory.memory || memory.content), // Handle different response formats
+          (memory.memory || memory.content),
         metadata: memory.metadata,
-        createdAt: new Date(memory.created_at)
+        createdAt: new Date(memory.created_at || new Date())
       }));
     } catch (error) {
       console.error('Error getting relevant memories:', error);
@@ -119,9 +119,9 @@ export class MemoryService {
         id: memory.id,
         content: Array.isArray(memory.content) ? 
           memory.content[0].content : 
-          (memory.memory || memory.content), // Handle different response formats
+          (memory.memory || memory.content),
         metadata: memory.metadata,
-        createdAt: new Date(memory.created_at)
+        createdAt: new Date(memory.created_at || new Date())
       }));
     } catch (error) {
       console.error('Error searching memories:', error);
