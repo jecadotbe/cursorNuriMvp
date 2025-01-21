@@ -939,7 +939,7 @@ Conversation: ${JSON.stringify(messages)}`,
     const user = req.user as User;
     try {
       const feedback = await db
-                .insert(messageFeedback)
+                        .insert(messageFeedback)
         .values({
           userId: user.id,
           messageId: req.body.messageId,
