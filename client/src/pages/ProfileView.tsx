@@ -73,6 +73,16 @@ export default function ProfileView() {
         { label: "Beheer abonnement", href: "#" },
       ],
     },
+    {
+      title: "DEVELOPMENT",
+      items: [
+        { 
+          label: "RAG Dashboard", 
+          action: () => setLocation("/rag"),
+          description: "Knowledge Base Management"
+        },
+      ],
+    },
   ];
 
   const onboardingData = profile?.onboardingData as OnboardingData;
