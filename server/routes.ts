@@ -22,6 +22,12 @@ import {format} from 'date-fns'
 import { and, eq, desc } from "drizzle-orm";
 import { db } from "@db";
 import { villageMembers, villageMemberMemories } from "@db/schema";
+import {
+  villageMembers,
+  villageMemberMemories,
+  villageInsights,
+  insightTypeEnum,
+} from "@db/schema";
 
 
 const getVillageContext = async (userId: number) => {
@@ -1317,24 +1323,26 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
   // Add insights routes after existing routes
   app.get("/api/insights", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).send("Not authenticated");
+      return res.status(401).json({ message: "Not authenticated" });
     }
 
     const user = req.user as User;
-
     try {
       const insights = await db.query.villageInsights.findMany({
         where: and(
           eq(villageInsights.userId, user.id),
           eq(villageInsights.status, "active")
         ),
-        orderBy: [desc(villageInsights.priority)],
+        orderBy: [desc(villageInsights.priority), desc(villageInsights.createdAt)]
       });
 
-      res.json(insights);
+      return res.json(insights);
     } catch (error) {
-      console.error("Failed to fetch insights:", error);
-      res.status(500).json({ message: "Failed to fetch insights" });
+      console.error("Error fetching insights:", error);
+      return res.status(500).json({ 
+        error: "Failed to fetch insights",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
@@ -1377,123 +1385,120 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
   });
 
   // Add insights generation API endpoint
-  app.get("/api/insights", async (req, res) => {
+  app.post("/api/insights/generate", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).send("Not authenticated");
+      return res.status(401).json({ message: "Not authenticated" });
     }
 
     const user = req.user as User;
 
     try {
-      console.log("Generating insights for user:", user.id);
-
-      // Get all village members
-      const members = await db
-        .select()
-        .from(villageMembers)
-        .where(eq(villageMembers.userId, user.id));
-
-      console.log("Found village members:", members.length);
-
-      const insights: Array<typeof villageInsights.$inferInsert> = [];
-
-      // Always generate some basic insights if we have members
-      if (members.length > 0) {
-        // Generate category distribution insight
-        const categoryCounts = new Map<string, number>();
-        members.forEach(member => {
-          if (member.category) {
-            categoryCounts.set(member.category, (categoryCounts.get(member.category) || 0) + 1);
+      // Get all village members with their details and recent interactions
+      const members = await db.query.villageMembers.findMany({
+        where: eq(villageMembers.userId, user.id),
+        with: {
+          memories: {
+            orderBy: [desc(villageMemberMemories.date)],
+            limit: 5
           }
-        });
+        }
+      });
 
-        // Check category balance
-        const categories = ['informeel', 'formeel', 'inspiratie'];
-        categories.forEach(category => {
-          if (!categoryCounts.has(category) || categoryCounts.get(category)! < 2) {
-            insights.push({
-              userId: user.id,
-              type: "network_gap",
-              title: `Strengthen Your ${category} Support`,
-              description: `Your village could benefit from more ${category} support members.`,
-              suggestedAction: `Consider adding more ${category} connections to create a more balanced support network.`,
-              priority: 2,
-              status: "active",
-              relatedMemberIds: [],
-              metadata: {},
-              createdAt: new Date(),
-              updatedAt: new Date()
-            });
-          }
-        });
+      if (!members || members.length === 0) {
+        return res.status(400).json({ message: "No village members found" });
+      }
 
-        // Generate connection strength insights
-        members.forEach(member => {
-          if (member.contactFrequency === 'S') {
-            insights.push({
-              userId: user.id,
-              type: "connection_strength",
-              title: `Strengthen Bond with ${member.name}`,
-              description: `Regular contact with ${member.name} can enhance your support network.`,
-              suggestedAction: "Try increasing contact frequency through regular check-ins or activities.",
-              priority: 3,
-              status: "active",
-              relatedMemberIds: [member.id],
-              metadata: {},
-              createdAt: new Date(),
-              updatedAt: new Date()
-            });
-          }
-        });
+      // Generate insights using Anthropic
+      const response = await anthropic.messages.create({
+        model: "claude-3-5-sonnet-20241022",
+        max_tokens: 1024,
+        temperature: 0.7,
+        system: `You are an API that analyzes parent support networks ("villages").
+        You MUST return ONLY a JSON array containing insights.
+        Each insight MUST use ONLY these exact types: "connection_strength", "network_gap", "interaction_suggestion", "relationship_health"
 
-        // Generate circle balance insights
-        const circleDistribution = new Map<number, number>();
-        members.forEach(member => {
-          circleDistribution.set(member.circle, (circleDistribution.get(member.circle) || 0) + 1);
-        });
+        Format each insight exactly as:
+        {
+          "type": "connection_strength" | "network_gap" | "interaction_suggestion" | "relationship_health",
+          "title": string,
+          "description": string,
+          "suggestedAction": string,
+          "priority": number (1-5),
+          "relatedMemberIds": number[] | null
+        }`,
+        messages: [{
+          role: "user",
+          content: `Generate insights for this village network: ${JSON.stringify(members)}`
+        }]
+      });
 
-        if (!circleDistribution.has(1) || circleDistribution.get(1)! < 3) {
-          insights.push({
+      const responseText = response.content[0].type === "text" ? response.content[0].text : "";
+      let insights;
+
+      try {
+        // Extract JSON array from response
+        const jsonMatch = responseText.match(/\[\s*\{[\s\S]*\}\s*\]/);
+        if (!jsonMatch) {
+          throw new Error("Invalid response format");
+        }
+        insights = JSON.parse(jsonMatch[0]);
+      } catch (parseError) {
+        console.error("Parse error:", parseError, "Response:", responseText);
+        throw new Error("Failed to parse insights response");
+      }
+
+      // Validate insight types match our enum
+      const validTypes = Object.values(insightTypeEnum.enumValues);
+      const validInsights = insights.filter((insight: any) => 
+        validTypes.includes(insight.type) &&
+        typeof insight.title === "string" &&
+        typeof insight.description === "string" &&
+        typeof insight.suggestedAction === "string" &&
+        typeof insight.priority === "number" &&
+        insight.priority >= 1 &&
+        insight.priority <= 5
+      );
+
+      if (validInsights.length === 0) {
+        throw new Error("No valid insights generated");
+      }
+
+      // Save insights to database
+      const savedInsights = await db
+        .insert(villageInsights)
+        .values(
+          validInsights.map((insight: any) => ({
             userId: user.id,
-            type: "network_gap",
-            title: "Strengthen Inner Circle",
-            description: "Your inner circle could benefit from more close connections.",
-            suggestedAction: "Consider which relationships could be strengthened to become part of your inner circle.",
-            priority: 1,
+            type: insight.type,
+            title: insight.title,
+            description: insight.description,
+            suggestedAction: insight.suggestedAction,
+            priority: insight.priority,
+            relatedMemberIds: insight.relatedMemberIds || null,
             status: "active",
-            relatedMemberIds: [],
-            metadata: {},
+            metadata: {
+              generatedAt: new Date().toISOString()
+            },
             createdAt: new Date(),
             updatedAt: new Date()
-          });
-        }
-      }
+          }))
+        )
+        .returning();
 
-      console.log("Generated insights:", insights.length);
-
-      // Store new insights if we have any
-      if (insights.length > 0) {
-        const storedInsights = await db
-          .insert(villageInsights)
-          .values(insights)
-          .returning();
-
-        console.log("Stored insights:", storedInsights.length);
-        return res.json(storedInsights);
-      }
-
-      // If no new insights, return empty array
-      return res.json([]);
+      res.json(savedInsights);
     } catch (error) {
       console.error("Failed to generate insights:", error);
-      res.status(500).json({ message: "Failed to generate insights" });
+      res.status(500).json({
+        error: "Failed to generate insights",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
   // Implement insight endpoint
   app.post("/api/insights/:id/implement", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).send("Not authenticated");
+      return res.status(401).json({ message: "Not authenticated" });
     }
 
     const user = req.user as User;
@@ -1509,23 +1514,28 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
         .set({
           status: "implemented",
           implementedAt: new Date(),
+          updatedAt: new Date(),
         })
         .where(
           and(
             eq(villageInsights.id, insightId),
-            eq(villageInsights.userId, user.id)
+            eq(villageInsights.userId, user.id),
+            eq(villageInsights.status, "active")
           )
         )
         .returning();
 
       if (!updated) {
-        return res.status(404).json({ message: "Insight not found" });
+        return res.status(404).json({ message: "Insight not found or already implemented" });
       }
 
       res.json(updated);
     } catch (error) {
-      console.error("Error implementing insight:", error);
-      res.status(500).json({ message: "Failed to implement insight" });
+      console.error("Failed to implement insight:", error);
+      res.status(500).json({
+        error: "Failed to implement insight",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
@@ -1696,7 +1706,6 @@ ${JSON.stringify(members.map(m => ({
   });
 
   // Helper functions remain unchanged
-
   function calculateCategoryDistribution(members: any[]) {
     const distribution = {
       formal: 0,
@@ -1852,6 +1861,7 @@ ${JSON.stringify(members.map(m => ({
     }
   });
 
+
   const httpServer = createServer(app);
   return httpServer;
 }
@@ -1881,3 +1891,4 @@ Remember:
 - Focus on the parent's immediate needs
 - Balance empathy with practical guidance
 - Stay solution-focused while validating feelings`;
+}
