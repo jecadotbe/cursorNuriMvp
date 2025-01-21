@@ -8,34 +8,70 @@ export interface VillageInsight {
   description: string;
   suggestedAction?: string;
   priority: number;
-  status: string;
+  status: "active" | "implemented";
   relatedMemberIds?: number[];
+  implementedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-export function useVillageInsights() {
+interface UseVillageInsightsOptions {
+  enabled?: boolean;
+  refetchInterval?: number | false;
+}
+
+export function useVillageInsights(options: UseVillageInsightsOptions = {}) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: insights, isLoading, error } = useQuery<VillageInsight[]>({
+  const {
+    data: insights = [],
+    isLoading,
+    error,
+    refetch
+  } = useQuery<VillageInsight[]>({
     queryKey: ['/api/insights'],
-    retry: 1,
-    staleTime: 0,
-    refetchInterval: 30000,
-    gcTime: 0,
-    throwOnError: false,
-    onSuccess: (data) => {
-      if (!data || data.length === 0) {
-        console.log('No insights available');
+    refetchInterval: options.refetchInterval ?? 30000,
+    enabled: options.enabled ?? true,
+  });
+
+  const generateInsights = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/insights/generate', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
       }
+
+      return response.json();
+    },
+    onSuccess: (newInsights) => {
+      queryClient.setQueryData(['/api/insights'], (oldInsights: VillageInsight[] = []) => {
+        // Merge new insights with existing ones, avoiding duplicates
+        const existingIds = new Set(oldInsights.map(i => i.id));
+        return [
+          ...oldInsights,
+          ...newInsights.filter((i: VillageInsight) => !existingIds.has(i.id))
+        ];
+      });
+
+      toast({
+        title: "Success",
+        description: "Generated new insights for your village",
+      });
     },
     onError: (error: Error) => {
-      console.error('Failed to fetch insights:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to load insights. Please try again.",
+        description: "Failed to generate new insights. Please try again.",
       });
-    }
+      console.error('Failed to generate insights:', error);
+    },
   });
 
   const implementInsight = useMutation({
@@ -46,13 +82,19 @@ export function useVillageInsights() {
       });
 
       if (!response.ok) {
-        throw new Error(await response.text());
+        const error = await response.text();
+        throw new Error(error);
       }
 
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/insights'] });
+    onSuccess: (implementedInsight) => {
+      queryClient.setQueryData(['/api/insights'], (oldInsights: VillageInsight[] = []) => {
+        return oldInsights.map(insight =>
+          insight.id === implementedInsight.id ? implementedInsight : insight
+        );
+      });
+
       toast({
         title: "Success",
         description: "Insight marked as implemented",
@@ -62,15 +104,19 @@ export function useVillageInsights() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message,
+        description: "Failed to implement insight. Please try again.",
       });
+      console.error('Failed to implement insight:', error);
     },
   });
 
   return {
-    insights: insights || [],
+    insights: insights.filter(i => i.status === "active"),
+    implementedInsights: insights.filter(i => i.status === "implemented"),
     isLoading,
     error,
+    generateInsights,
     implementInsight,
+    refetch,
   };
 }
