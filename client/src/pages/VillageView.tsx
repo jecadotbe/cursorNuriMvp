@@ -51,7 +51,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InsightsPanel from "@/components/InsightsPanel";
 
 const CATEGORY_COLORS = {
-  informeel: "#22c55e", // Green
+  informeel: "#3C9439", // Green
   formeel: "#3b82f6",   // Blue
   inspiratie: "#f59e0b", // Orange
 } as const;
