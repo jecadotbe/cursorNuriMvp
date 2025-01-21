@@ -106,7 +106,10 @@ export default function EditProfileView() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen animate-gradient" style={{
+      backgroundSize: "400% 400%",
+      background: `linear-gradient(135deg, #F8DD9F 0%, #F2F0E5 50%, #F2F0E5 100%)`
+    }}>
       <div className="p-4 border-b">
         <Button
           variant="ghost"
