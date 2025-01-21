@@ -122,15 +122,24 @@ export default function ProfileView() {
                       credentials: 'include'
                     });
 
-                    if (!response.ok) throw new Error('Upload failed');
-
                     const data = await response.json();
+                    
+                    if (!response.ok) {
+                      throw new Error(data.message || 'Upload failed');
+                    }
+
+                    toast({
+                      title: "Success",
+                      description: "Profile picture updated successfully"
+                    });
+                    
                     window.location.reload();
                   } catch (error) {
+                    console.error('Upload error:', error);
                     toast({
                       variant: "destructive",
                       title: "Error",
-                      description: "Failed to upload profile picture"
+                      description: error instanceof Error ? error.message : "Failed to upload profile picture"
                     });
                   }
                 }}
