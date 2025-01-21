@@ -119,8 +119,15 @@ export default function ProfileView() {
                     const response = await fetch('/api/profile/picture', {
                       method: 'POST',
                       body: formData,
-                      credentials: 'include'
+                      credentials: 'include',
+                      headers: {
+                        'Accept': 'application/json'
+                      }
                     });
+
+                    if (!response.ok) {
+                      throw new Error('Upload failed');
+                    }
 
                     const data = await response.json();
                     
