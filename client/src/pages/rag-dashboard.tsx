@@ -137,9 +137,16 @@ export default function RAGDashboard() {
           <CardTitle>Test Knowledge Base</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground mb-4">
-            Coming soon: Test your knowledge base with queries
-          </p>
+          <div className="space-y-4">
+            <Input 
+              placeholder="Enter your query..."
+              className="w-full"
+            />
+            <Button className="w-full">
+              <Search className="mr-2 h-4 w-4" />
+              Test Query
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
