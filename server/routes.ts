@@ -58,42 +58,52 @@ export function registerRoutes(app: Express): Server {
     const { step, data } = req.body;
 
     try {
-      // Extract required fields from onboarding data
+      // Extract fields from onboarding data
       const name = data.basicInfo?.name || "";
       const email = data.basicInfo?.email || "";
-      const stressLevel = data.stressAssessment?.stressLevel;
-      const experienceLevel = data.basicInfo?.experienceLevel;
+      const stressLevel = data.stressAssessment?.stressLevel || "moderate"; // Default value
+      const experienceLevel = data.basicInfo?.experienceLevel || "first_time"; // Default value
 
-      const [profile] = await db
-        .insert(parentProfiles)
-        .values({
-          userId: user.id,
-          name: name,
-          email: email,
-          stressLevel: stressLevel as any, // Cast to enum type
-          experienceLevel: experienceLevel as any, // Cast to enum type
-          currentOnboardingStep: step,
-          onboardingData: data,
-          completedOnboarding: false,
-        })
-        .onConflictDoUpdate({
-          target: parentProfiles.userId,
-          set: {
-            name: name || undefined,
-            email: email || undefined,
-            stressLevel: stressLevel as any || undefined,
-            experienceLevel: experienceLevel as any || undefined,
+      // Only save to parent_profiles if we have the required data
+      if (step >= 2 && data.basicInfo?.name && data.basicInfo?.email) {
+        const [profile] = await db
+          .insert(parentProfiles)
+          .values({
+            userId: user.id,
+            name,
+            email,
+            stressLevel: stressLevel as any,
+            experienceLevel: experienceLevel as any,
             currentOnboardingStep: step,
             onboardingData: data,
-            updatedAt: new Date(),
-          },
-        })
-        .returning();
+            completedOnboarding: false,
+          })
+          .onConflictDoUpdate({
+            target: parentProfiles.userId,
+            set: {
+              name,
+              email,
+              stressLevel: data.stressAssessment?.stressLevel as any || undefined,
+              experienceLevel: data.basicInfo?.experienceLevel as any || undefined,
+              currentOnboardingStep: step,
+              onboardingData: data,
+              updatedAt: new Date(),
+            },
+          })
+          .returning();
 
+        return res.json({
+          currentOnboardingStep: profile.currentOnboardingStep,
+          completedOnboarding: profile.completedOnboarding,
+          onboardingData: profile.onboardingData,
+        });
+      }
+
+      // For early steps, just return the current progress without saving to database
       res.json({
-        currentOnboardingStep: profile.currentOnboardingStep,
-        completedOnboarding: profile.completedOnboarding,
-        onboardingData: profile.onboardingData,
+        currentOnboardingStep: step,
+        completedOnboarding: false,
+        onboardingData: data,
       });
     } catch (error) {
       console.error("Failed to save onboarding progress:", error);
@@ -906,16 +916,169 @@ Conversation: ${JSON.stringify(messages)}`,
     });
   });
 
-  app.post("/api/suggestions/generate", async (req, res) => {
+  app.get("/api/insights", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const user = req.user as User;
+
+    try {
+      console.log("Generating insights for user:", user.id);
+
+      // Get all village members
+      const members = await db
+        .select()
+        .from(villageMembers)
+        .where(eq(villageMembers.userId, user.id));
+
+      console.log("Found village members:", members.length);
+
+      const insights: Array<typeof parentProfiles.$inferInsert> = [];
+
+      // Always generate some basic insights if we have members
+      if (members.length > 0) {
+        // Generate category distribution insight
+        const categoryCounts = new Map<string, number>();
+        members.forEach(member => {
+          if (member.category) {
+            categoryCounts.set(member.category, (categoryCounts.get(member.category) || 0) + 1);
+          }
+        });
+
+        // Check category balance
+        const categories = ['informeel', 'formeel', 'inspiratie'];
+        categories.forEach(category => {
+          if (!categoryCounts.has(category) || categoryCounts.get(category)! < 2) {
+            insights.push({
+              userId: user.id,
+              type: "network_gap",
+              title: `Strengthen Your ${category} Support`,
+              description: `Your village could benefit from more ${category} support members.`,
+              suggestedAction: `Consider adding more ${category} connections to create a more balanced support network.`,
+              priority: 2,
+              status: "active",
+              relatedMemberIds: [],
+              metadata: {},
+              createdAt: new Date(),
+              updatedAt: new Date()
+            });
+          }
+        });
+
+        // Generate connection strength insights
+        members.forEach(member => {
+          if (member.contactFrequency === 'S') {
+            insights.push({
+              userId: user.id,
+              type: "connection_strength",
+              title: `Strengthen Bond with ${member.name}`,
+              description: `Regular contact with ${member.name} can enhance your support network.`,
+              suggestedAction: "Try increasing contact frequency through regular check-ins or activities.",
+              priority: 3,
+              status: "active",
+              relatedMemberIds: [member.id],
+              metadata: {},
+              createdAt: new Date(),
+              updatedAt: new Date()
+            });
+          }
+        });
+
+        // Generate circle balance insights
+        const circleDistribution = new Map<number, number>();
+        members.forEach(member => {
+          circleDistribution.set(member.circle, (circleDistribution.get(member.circle) || 0) + 1);
+        });
+
+        if (!circleDistribution.has(1) || circleDistribution.get(1)! < 3) {
+          insights.push({
+            userId: user.id,
+            type: "network_gap",
+            title: "Strengthen Inner Circle",
+            description: "Your inner circle could benefit from more close connections.",
+            suggestedAction: "Consider which relationships could be strengthened to become part of your inner circle.",
+            priority: 1,
+            status: "active",
+            relatedMemberIds: [],
+            metadata: {},
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+        }
+      }
+
+      console.log("Generated insights:", insights.length);
+
+      // Store new insights if we have any
+      if (insights.length > 0) {
+        const storedInsights = await db
+          .insert(parentProfiles)
+          .values(insights)
+          .returning();
+
+        console.log("Stored insights:", storedInsights.length);
+        return res.json(storedInsights);
+      }
+
+      // If no new insights, return empty array
+      return res.json([]);
+    } catch (error) {
+      console.error("Failed to generate insights:", error);
+      res.status(500).json({ message: "Failed to generate insights" });
+    }
+  });
+
+  // Implement insight endpoint
+  app.post("/api/insights/:id/implement", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const user = req.user as User;
+    const insightId = parseInt(req.params.id);
+
+    if (isNaN(insightId)) {
+      return res.status(400).json({ message: "Invalid insight ID" });
+    }
+
+    try {
+      const [updated] = await db
+        .update(parentProfiles)
+        .set({
+          status: "implemented",
+          implementedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(parentProfiles.id, insightId),
+            eq(parentProfiles.userId, user.id)
+          )
+        )
+        .returning();
+
+      if (!updated) {
+        return res.status(404).json({ message: "Insight not found" });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error implementing insight:", error);
+      res.status(500).json({ message: "Failed to implement insight" });
+    }
+  });
+
+  app.get("/api/suggestions/generate", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Notauthenticated");
-    }    const user = req.user as User;
+    }
+    const user = req.user as User;
     const { chatId, lastMessageContent } = req.body;
 
     try {
       // Get recent chats for context
       const recentChats = await db.query.chats.findMany({
-        where: eq(chats.userId,id),
+        where: eq(chats.userId, user.id),
         orderBy: desc(chats.updatedAt),
         limit: 5,
       });
@@ -938,7 +1101,7 @@ Conversation: ${JSON.stringify(messages)}`,
         messages: [
           {
             role: "user",
-            content:`Based onthis message and conversation history, generate 3-5 natural follow-up prompts that would help continue the conversation naturally. These should be phrased as things a parent might say or ask.
+            content: `Based on this message and conversation history, generate 3-5 natural follow-up prompts that would help continue the conversation naturally. These should be phrased as things a parent might say or ask.
 Last message: "${lastMessageContent}"
 
 Format the response as a JSON array of strings, like this:
@@ -1149,158 +1312,6 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
     } catch (error) {
       console.error("Failed to update insight:", error);
       res.status(500).json({ message: "Failed to update insight" });
-    }
-  });
-
-    app.get("/api/insights", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).send("Not authenticated");
-    }
-
-    const user = req.user as User;
-
-    try {
-      console.log("Generating insights for user:", user.id);
-
-      // Get all village members
-      const members = await db
-        .select()
-        .from(villageMembers)
-        .where(eq(villageMembers.userId, user.id));
-
-      console.log("Found village members:", members.length);
-
-      const insights: Array<typeof parentProfiles.$inferInsert> = [];
-
-      // Always generate some basic insights if we have members
-      if (members.length > 0) {
-        // Generate category distribution insight
-        const categoryCounts = new Map<string, number>();
-        members.forEach(member => {
-          if (member.category) {
-            categoryCounts.set(member.category, (categoryCounts.get(member.category) || 0) + 1);
-          }
-        });
-
-        // Check category balance
-        const categories = ['informeel', 'formeel', 'inspiratie'];
-        categories.forEach(category => {
-          if (!categoryCounts.has(category) || categoryCounts.get(category)! < 2) {
-            insights.push({
-              userId: user.id,
-              type: "network_gap",
-              title: `Strengthen Your ${category} Support`,
-              description: `Your village could benefit from more ${category} support members.`,
-              suggestedAction: `Consider adding more ${category} connections to create a more balanced support network.`,
-              priority: 2,
-              status: "active",
-              relatedMemberIds: [],
-              metadata: {},
-              createdAt: new Date(),
-              updatedAt: new Date()
-            });
-          }
-        });
-
-        // Generate connection strength insights
-        members.forEach(member => {
-          if (member.contactFrequency === 'S') {
-            insights.push({
-              userId: user.id,
-              type: "connection_strength",
-              title: `Strengthen Bond with ${member.name}`,
-              description: `Regular contact with ${member.name} can enhance your support network.`,
-              suggestedAction: "Try increasing contact frequency through regular check-ins or activities.",
-              priority: 3,
-              status: "active",
-              relatedMemberIds: [member.id],
-              metadata: {},
-              createdAt: new Date(),
-              updatedAt: new Date()
-            });
-          }
-        });
-
-        // Generate circle balance insights
-        const circleDistribution = new Map<number, number>();
-        members.forEach(member => {
-          circleDistribution.set(member.circle, (circleDistribution.get(member.circle) || 0) + 1);
-        });
-
-        if (!circleDistribution.has(1) || circleDistribution.get(1)! < 3) {
-          insights.push({
-            userId: user.id,
-            type: "network_gap",
-            title: "Strengthen Inner Circle",
-            description: "Your inner circle could benefit from more close connections.",
-            suggestedAction: "Consider which relationships could be strengthened to become part of your inner circle.",
-            priority: 1,
-            status: "active",
-            relatedMemberIds: [],
-            metadata: {},
-            createdAt: new Date(),
-            updatedAt: new Date()
-          });
-        }
-      }
-
-      console.log("Generated insights:", insights.length);
-
-      // Store new insights if we have any
-      if (insights.length > 0) {
-        const storedInsights = await db
-          .insert(parentProfiles)
-          .values(insights)
-          .returning();
-
-        console.log("Stored insights:", storedInsights.length);
-        return res.json(storedInsights);
-      }
-
-      // If no new insights, return empty array
-      return res.json([]);
-    } catch (error) {
-      console.error("Failed to generate insights:", error);
-      res.status(500).json({ message: "Failed to generate insights" });
-    }
-  });
-
-  // Implement insight endpoint
-  app.post("/api/insights/:id/implement", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).send("Not authenticated");
-    }
-
-    const user = req.user as User;
-    const insightId = parseInt(req.params.id);
-
-    if (isNaN(insightId)) {
-      return res.status(400).json({ message: "Invalid insight ID" });
-    }
-
-    try {
-      const [updated] = await db
-        .update(parentProfiles)
-        .set({
-          status: "implemented",
-          implementedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(parentProfiles.id, insightId),
-            eq(parentProfiles.userId, user.id)
-          )
-        )
-        .returning();
-
-      if (!updated) {
-        return res.status(404).json({ message: "Insight not found" });
-      }
-
-      res.json(updated);
-    } catch (error) {
-      console.error("Error implementing insight:", error);
-      res.status(500).json({ message: "Failed to implement insight" });
     }
   });
 
