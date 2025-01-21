@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, pgEnum, numeric } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, pgEnum, numeric, unique, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -53,6 +53,11 @@ export const parentProfiles = pgTable("parent_profiles", {
   onboardingData: jsonb("onboarding_data").default({}),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    userIdIdx: unique("parent_profiles_user_id_idx").on(table.userId),
+    emailIdx: index("parent_profiles_email_idx").on(table.email),
+  };
 });
 
 export const children = pgTable("children", {
