@@ -97,7 +97,45 @@ export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
   // Add new profile update endpoint
-  app.post("/api/profile/update", async (req, res) => {
+  app.post("/api/profile/picture", async (req, res) => {
+  if (!req.isAuthenticated() || !req.user) {
+    return res.status(401).send("Not authenticated");
+  }
+
+  const user = req.user as User;
+  const file = req.files?.profilePicture;
+
+  if (!file || Array.isArray(file)) {
+    return res.status(400).json({ message: "No file uploaded" });
+  }
+
+  if (file.size > 2 * 1024 * 1024) {
+    return res.status(400).json({ message: "File size must be less than 2MB" });
+  }
+
+  if (!file.mimetype.startsWith('image/')) {
+    return res.status(400).json({ message: "Only image files are allowed" });
+  }
+
+  try {
+    const fileName = `profile-${user.id}-${Date.now()}${path.extname(file.name)}`;
+    const filePath = path.join('public/uploads', fileName);
+    
+    await fs.promises.mkdir('public/uploads', { recursive: true });
+    await file.mv(filePath);
+
+    await db.update(users)
+      .set({ profilePicture: `/uploads/${fileName}` })
+      .where(eq(users.id, user.id));
+
+    res.json({ profilePicture: `/uploads/${fileName}` });
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    res.status(500).json({ message: "Failed to upload file" });
+  }
+});
+
+app.post("/api/profile/update", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
     }
