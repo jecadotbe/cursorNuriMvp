@@ -168,7 +168,12 @@ export default function HomeView() {
 
           {/* AI Insights Panel */}
           <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
-            <InsightsPanel maxItems={3} displayStyle="compact" />
+            <InsightsPanel 
+              maxItems={3} 
+              displayStyle="compact"
+              showActions={false}
+              autoRefresh={true}
+            />
           </div>
 
           <div className="flex justify-end">

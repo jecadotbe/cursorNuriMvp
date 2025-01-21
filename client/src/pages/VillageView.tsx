@@ -690,7 +690,12 @@ export default function VillageView() {
           </div>
           {isSuggestionsOpen && (
             <div className="px-4 pb-4">
-              <InsightsPanel />
+              <InsightsPanel 
+                maxItems={5}
+                displayStyle="full"
+                showActions={true}
+                autoRefresh={true}
+              />
             </div>
           )}
         </div>
