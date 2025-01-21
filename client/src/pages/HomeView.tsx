@@ -148,6 +148,34 @@ export default function HomeView() {
         ) : null}
       </div>
 
+      {/* Village Section */}
+      <div className="w-full">
+        <div
+          className="rounded-xl p-6 relative overflow-hidden min-h-[200px]"
+          style={{
+            backgroundImage: `url('/images/village_circles.png'), linear-gradient(180deg, #C9E1D4 0%, #F2F0E5 35%)`,
+            backgroundPosition: "right top",
+            backgroundRepeat: "no-repeat",
+            backgroundSize: "contain",
+          }}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <img src="/images/VillageIcon.svg" alt="Village" className="w-6 h-6" />
+            <h2 className="text-2xl font-baskerville">Mijn Village</h2>
+          </div>
+          <h3 className="text-l mb-4">Laat je Village bloeien</h3>
+
+          <div className="flex justify-end mt-4">
+            <Link href="/village">
+              <div className="bg-white rounded-full px-4 py-2 shadow-sm inline-flex items-center gap-2 cursor-pointer hover:shadow-md transition-shadow">
+                <span>Bekijk je Village</span>
+                <ChevronRight className="w-4 h-4" />
+              </div>
+            </Link>
+          </div>
+        </div>
+      </div>
+
       {/* Learning Section */}
       <div className="w-full">
         <div
@@ -201,17 +229,17 @@ export default function HomeView() {
               <Link key={index} href="/learn" className="h-full">
                 <Card
                   className="
-          bg-white 
-          border-2 border-[#E5E7EB] 
-          hover:shadow-md 
-          hover:border-[#D1D5DB]
-          transition-all
-          duration-200
-          cursor-pointer 
-          overflow-hidden 
-          h-full 
-          rounded-lg
-        "
+                    bg-white 
+                    border-2 border-[#E5E7EB] 
+                    hover:shadow-md 
+                    hover:border-[#D1D5DB]
+                    transition-all
+                    duration-200
+                    cursor-pointer 
+                    overflow-hidden 
+                    h-full 
+                    rounded-lg
+                  "
                 >
                   <CardContent className="p-4">
                     <img
