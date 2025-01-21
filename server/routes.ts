@@ -123,17 +123,44 @@ export function registerRoutes(app: Express): Server {
     const finalData = req.body;
 
     try {
+      // Extract required fields from onboarding data
+      const name = finalData.basicInfo?.name;
+      const email = finalData.basicInfo?.email;
+      const stressLevel = finalData.stressAssessment?.stressLevel;
+      const experienceLevel = finalData.basicInfo?.experienceLevel;
+
+      // Validate required fields
+      if (!name || !email || !stressLevel || !experienceLevel) {
+        return res.status(400).json({
+          message: "Missing required fields",
+          details: {
+            name: !name,
+            email: !email,
+            stressLevel: !stressLevel,
+            experienceLevel: !experienceLevel
+          }
+        });
+      }
+
       const [profile] = await db
         .insert(parentProfiles)
         .values({
           userId: user.id,
+          name,
+          email,
+          stressLevel: stressLevel as any,
+          experienceLevel: experienceLevel as any,
           onboardingData: finalData,
           completedOnboarding: true,
           currentOnboardingStep: 4 // Final step
         })
         .onConflictDoUpdate({
-          target: [parentProfiles.userId],
+          target: parentProfiles.userId,
           set: {
+            name,
+            email,
+            stressLevel: stressLevel as any,
+            experienceLevel: experienceLevel as any,
             onboardingData: finalData,
             completedOnboarding: true,
             currentOnboardingStep: 4,
