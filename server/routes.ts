@@ -58,34 +58,48 @@ export function registerRoutes(app: Express): Server {
     const { step, data } = req.body;
 
     try {
+      // Extract required fields from onboarding data
+      const name = data.basicInfo?.name || "";
+      const email = data.basicInfo?.email || "";
+      const stressLevel = data.stressAssessment?.stressLevel;
+      const experienceLevel = data.basicInfo?.experienceLevel;
+
       const [profile] = await db
         .insert(parentProfiles)
         .values({
           userId: user.id,
+          name: name,
+          email: email,
+          stressLevel: stressLevel as any, // Cast to enum type
+          experienceLevel: experienceLevel as any, // Cast to enum type
           currentOnboardingStep: step,
           onboardingData: data,
-          completedOnboarding: false
+          completedOnboarding: false,
         })
         .onConflictDoUpdate({
-          target: [parentProfiles.userId],
+          target: parentProfiles.userId,
           set: {
+            name: name || undefined,
+            email: email || undefined,
+            stressLevel: stressLevel as any || undefined,
+            experienceLevel: experienceLevel as any || undefined,
             currentOnboardingStep: step,
             onboardingData: data,
-            updatedAt: new Date()
-          }
+            updatedAt: new Date(),
+          },
         })
         .returning();
 
       res.json({
         currentOnboardingStep: profile.currentOnboardingStep,
         completedOnboarding: profile.completedOnboarding,
-        onboardingData: profile.onboardingData
+        onboardingData: profile.onboardingData,
       });
     } catch (error) {
       console.error("Failed to save onboarding progress:", error);
       res.status(500).json({
         message: "Failed to save onboarding progress",
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
@@ -901,7 +915,7 @@ Conversation: ${JSON.stringify(messages)}`,
     try {
       // Get recent chats for context
       const recentChats = await db.query.chats.findMany({
-        where: eq(chats.userId, user.id),
+        where: eq(chats.userId,id),
         orderBy: desc(chats.updatedAt),
         limit: 5,
       });
@@ -1015,7 +1029,7 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
       });
 
       if (!member) {
-                return res.status(404).json({ message: "Village member not found" });
+        return res.status(404).json({ message: "Village member not found" });
       }
 
       // Create new memory
