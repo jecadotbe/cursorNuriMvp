@@ -53,7 +53,7 @@ import InsightsPanel from "@/components/InsightsPanel";
 const CATEGORY_COLORS = {
   informeel: "#3C9439", // Green
   formeel: "#EE4B92",   // Pink
-  inspiratie: "#f59e0b", // Orange
+  inspiratie: "#4D3A88", // Purple
 } as const;
 
 interface NewVillageMember {
