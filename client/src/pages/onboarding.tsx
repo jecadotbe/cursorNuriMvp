@@ -41,22 +41,23 @@ type OnboardingProgressResponse = {
 };
 
 const handleApiResponse = async (response: Response) => {
+  const responseText = await response.text(); // Read the response text only once
+
   try {
-    // First try to parse as JSON regardless of content-type
-    const data = await response.json();
+    // Try to parse the text as JSON
+    const data = JSON.parse(responseText);
 
     if (!response.ok) {
       throw new Error(data.message || `HTTP error! status: ${response.status}`);
     }
 
     return data;
-  } catch (error) {
+  } catch (parseError) {
+    // If JSON parsing failed, use the original response text
     if (!response.ok) {
-      // If JSON parsing failed and response is not ok, try to get error message from text
-      const errorText = await response.text();
-      throw new Error(errorText || `HTTP error! status: ${response.status}`);
+      throw new Error(responseText || `HTTP error! status: ${response.status}`);
     }
-    throw new Error("Failed to parse response as JSON");
+    throw new Error("Invalid server response");
   }
 };
 
