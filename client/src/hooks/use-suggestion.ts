@@ -18,6 +18,8 @@ export function useSuggestion() {
   const queryClient = useQueryClient();
 
   const generateSuggestions = async (chatId: number | null, lastMessageContent: string): Promise<string[]> => {
+    console.log('Calling generateSuggestions with:', { chatId, lastMessageContent });
+
     try {
       const response = await fetch(`/api/suggestions/generate`, {
         method: 'POST',
@@ -31,14 +33,24 @@ export function useSuggestion() {
         credentials: 'include',
       });
 
+      console.log('Suggestions API response status:', response.status);
+
       if (!response.ok) {
-        throw new Error('Failed to generate suggestions');
+        throw new Error(`Failed to generate suggestions: ${response.status}`);
       }
 
       const data: GenerateSuggestionsResponse = await response.json();
-      return data.suggestions || [];
+      console.log('Parsed suggestions response:', data);
+
+      // Validate response structure
+      if (!data || !Array.isArray(data.suggestions)) {
+        console.error('Invalid response format:', data);
+        throw new Error('Invalid response format: expected suggestions array');
+      }
+
+      return data.suggestions;
     } catch (error) {
-      console.error('Error generating suggestions:', error);
+      console.error('Error in generateSuggestions:', error);
       throw error;
     }
   };

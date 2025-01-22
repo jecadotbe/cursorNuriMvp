@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useChat } from "@/hooks/use-chat";
+import { useSuggestion } from "@/hooks/use-suggestion";
 import { Link, useLocation } from "wouter";
 import { ArrowLeft, Plus, Mic, ArrowUpCircle, Expand, Circle, BookOpen, RefreshCw, Star } from "lucide-react";
 import { format } from "date-fns";
@@ -42,6 +43,7 @@ const DEFAULT_SUGGESTIONS = [
 
 export default function ChatView() {
   const { messages, sendMessage, isLoading, chatId } = useChat();
+  const { generateSuggestions, isLoading: isSuggestionsLoading } = useSuggestion();
   const [inputText, setInputText] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPromptLibrary, setShowPromptLibrary] = useState(false);
@@ -226,10 +228,15 @@ export default function ChatView() {
 
     setIsLoadingSuggestions(true);
     try {
+      console.log('Generating suggestions for chat:', chatId);
+      console.log('Last message:', messages[messages.length - 1]?.content);
+
       const suggestions = await generateSuggestions(
-        chatId,
+        Number(chatId),
         messages[messages.length - 1]?.content || ''
       );
+
+      console.log('Received suggestions:', suggestions);
       setCurrentSuggestions(suggestions);
     } catch (error) {
       console.error('Error generating suggestions:', error);
@@ -252,31 +259,6 @@ export default function ChatView() {
     setInputText('');
     setCurrentSuggestions([]);
     await sendMessage(suggestion);
-  };
-
-  // Placeholder for the actual implementation.  Replace with your actual function.
-  const generateSuggestions = async (chatId: string | null, lastMessage: string): Promise<string[]> => {
-    const response = await fetch(`/api/suggestions/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        chatId: chatId || null,
-        lastMessageContent: lastMessage
-      }),
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to generate suggestions: ${response.status}`);
-    }
-
-    const data = await response.json();
-    if (!data || !Array.isArray(data.suggestions)) {
-      throw new Error('Invalid response format: expected suggestions array');
-    }
-    return data.suggestions;
   };
 
 
@@ -418,7 +400,7 @@ export default function ChatView() {
                     generateContextualSuggestions();
                     setShowSuggestions(true);
                   }}
-                  disabled={isLoadingSuggestions || !chatId}
+                  disabled={isLoadingSuggestions || !chatId || isSuggestionsLoading}
                   className="flex items-center gap-2"
                 >
                   <RefreshCw className={`w-4 h-4 ${isLoadingSuggestions ? 'animate-spin' : ''}`} />
