@@ -230,7 +230,10 @@ export default function ChatView() {
   };
 
   const generateContextualSuggestions = async () => {
-    if (!chatId || messages.length === 0) return;
+    if (!chatId || messages.length === 0) {
+      setCurrentSuggestions(DEFAULT_SUGGESTIONS);
+      return;
+    }
 
     setIsLoadingSuggestions(true);
     try {
@@ -247,10 +250,16 @@ export default function ChatView() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate suggestions');
+        throw new Error(`Failed to generate suggestions: ${response.status}`);
       }
 
       const data = await response.json();
+
+      if (!data || !Array.isArray(data.suggestions)) {
+        console.error('Invalid response format:', data);
+        throw new Error('Invalid response format: expected suggestions array');
+      }
+
       setCurrentSuggestions(data.suggestions);
     } catch (error) {
       console.error('Error generating suggestions:', error);
