@@ -21,6 +21,7 @@ import { anthropic } from "./anthropic";
 import type { User } from "./auth";
 import { memoryService } from "./services/memory";
 import { villageRouter } from "./routes/village";
+import { searchBooks } from "./rag";
 
 export function registerRoutes(app: Express): Server {
   // Add file upload middleware
@@ -261,12 +262,10 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
     // Validate file type
     const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
     if (!allowedTypes.includes(file.mimetype)) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Invalid file type. Only JPEG, PNG, GIF and WebP images are allowed",
-        });
+      return res.status(400).json({
+        message:
+          "Invalid file type. Only JPEG, PNG, GIF and WebP images are allowed",
+      });
     }
 
     if (file.size > 2 * 1024 * 1024) {
@@ -596,6 +595,13 @@ Analyze the available context and provide a relevant suggestion. For new users o
 
         // Add village context to the prompt
         const villageContextString = await getVillageContext(user.id);
+
+        const ragContext = await searchBooks(
+          req.body.messages[req.body.messages.length - 1].content,
+          2,
+        );
+
+        console.log(ragContext);
 
         // Get relevant memories for context
         const relevantMemories = await memoryService.getRelevantMemories(
