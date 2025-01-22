@@ -15,11 +15,13 @@ export function useChat() {
   const params = useParams();
   const chatId = params?.id;
   const [, navigate] = useLocation();
+  console.log("[DEBUG] useChat hook initialized with chatId:", chatId);
 
   // Load existing chat messages or latest chat if no ID is provided
   const { data: chatData, isLoading: isChatLoading } = useQuery<Chat>({
     queryKey: chatId ? [`/api/chats/${chatId}`] : ["/api/chats/latest"],
     retry: (failureCount, error: any) => {
+      console.log("[DEBUG] Chat query retry:", { failureCount, error });
       // Only retry on network errors, not on 404s or other API errors
       return failureCount < 3 && error?.message?.includes('network');
     },
@@ -54,6 +56,12 @@ export function useChat() {
 
   const mutation = useMutation({
     mutationFn: async (content: string) => {
+      console.log("[DEBUG] Sending chat message:", {
+        content,
+        chatId: chatData?.id,
+        messageCount: messages.length
+      });
+
       const userMessage: Message = { role: "user", content };
 
       // Update messages immediately for better UX

@@ -96,10 +96,8 @@ export function registerRoutes(app: Express): Server {
             set: {
               name,
               email,
-              stressLevel:
-                (data.stressAssessment?.stressLevel as any) || undefined,
-              experienceLevel:
-                (data.basicInfo?.experienceLevel as any) || undefined,
+              stressLevel: (data.stressAssessment?.stressLevel as any) || undefined,
+              experienceLevel: (data.basicInfo?.experienceLevel as any) || undefined,
               currentOnboardingStep: step,
               onboardingData: data,
               updatedAt: new Date(),
@@ -130,12 +128,18 @@ export function registerRoutes(app: Express): Server {
   });
 
   app.post("/api/onboarding/complete", async (req, res) => {
+    console.log("[DEBUG] Starting onboarding completion");
     if (!req.isAuthenticated() || !req.user) {
+      console.log("[DEBUG] User not authenticated");
       return res.status(401).json({ message: "Not authenticated" });
     }
 
     const user = req.user as User;
     const finalData = req.body;
+    console.log("[DEBUG] Onboarding completion data:", {
+      userId: user.id,
+      dataFields: Object.keys(finalData)
+    });
 
     try {
       // Extract required fields from onboarding data
@@ -146,6 +150,12 @@ export function registerRoutes(app: Express): Server {
 
       // Validate required fields
       if (!name || !email || !stressLevel || !experienceLevel) {
+        console.log("[DEBUG] Missing required fields:", {
+          name: !name,
+          email: !email,
+          stressLevel: !stressLevel,
+          experienceLevel: !experienceLevel
+        });
         return res.status(400).json({
           message: "Missing required fields",
           details: {
@@ -168,28 +178,28 @@ Stress Level: ${stressLevel}
 ${finalData.stressAssessment?.primaryConcerns ? `Primary Concerns: ${finalData.stressAssessment.primaryConcerns.join(", ")}` : ""}
 
 ${
-  finalData.childProfiles && Array.isArray(finalData.childProfiles)
-    ? `Children:
+          finalData.childProfiles && Array.isArray(finalData.childProfiles)
+            ? `Children:
 ${finalData.childProfiles
-  .map(
-    (child: any) =>
-      `- ${child.name} (Age: ${child.age})${child.specialNeeds?.length ? ` Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
-  )
-  .join("\n")}`
-    : ""
-}
+            .map(
+              (child: any) =>
+                `- ${child.name} (Age: ${child.age})${child.specialNeeds?.length ? ` Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
+            )
+            .join("\n")}`
+            : ""
+        }
 
 ${
-  finalData.goals
-    ? `
+          finalData.goals
+            ? `
 Goals:
 ${finalData.goals.shortTerm?.length ? `Short term: ${finalData.goals.shortTerm.join(", ")}` : ""}
 ${finalData.goals.longTerm?.length ? `Long term: ${finalData.goals.longTerm.join(", ")}` : ""}
 ${finalData.goals.supportAreas?.length ? `Support areas: ${finalData.goals.supportAreas.join(", ")}` : ""}
 Communication preference: ${finalData.goals.communicationPreference || "Not specified"}
 `
-    : ""
-}`;
+            : ""
+        }`;
         // console.log("Saving onboarding content to mem0:\n", onboardingContent);
         await memoryService.createMemory(user.id, onboardingContent, {
           type: "onboarding_profile",
@@ -420,15 +430,15 @@ Parent's Profile:
 - Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel || "Not specified"}
 - Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ") || "None specified"}
 ${
-  childProfiles.length > 0
-    ? childProfiles
-        .map(
-          (child: any) =>
-            `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
-        )
-        .join("\n")
-    : "No children profiles specified"
-}
+          childProfiles.length > 0
+            ? childProfiles
+                .map(
+                  (child: any) =>
+                    `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
+                )
+                .join("\n")
+            : "No children profiles specified"
+        }
 
 Goals:
 ${profile.onboardingData.goals?.shortTerm?.length ? `- Short term goals: ${profile.onboardingData.goals.shortTerm.join(", ")}` : ""}
@@ -637,38 +647,38 @@ CONTEXT SECTIONS RELATED TO CURRENT USER:
 
 1. User Profile:
 ${
-  profile?.onboardingData
-    ? `
+          profile?.onboardingData
+            ? `
 - Experience Level: ${profile.onboardingData.basicInfo?.experienceLevel || "Not specified"}
 - Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel || "Not specified"}
 - Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ") || "None specified"}
 ${
-  profile.onboardingData.childProfiles
-    ?.map(
-      (child: any) =>
-        `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
-    )
-    .join("\n") || "No children profiles specified"
-}`
-    : ""
-}
+            profile.onboardingData.childProfiles
+              ?.map(
+                (child: any) =>
+                  `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
+              )
+              .join("\n") || "No children profiles specified"
+          }`
+            : ""
+        }
 
 2. Village Network:
 ${villageContextString || "No village context available"}
 
 3. Conversation History:
 ${
-  relevantMemories && relevantMemories.length > 0
-    ? relevantMemories
-        .filter((m) => m.relevance && m.relevance >= 0.6)
-        .slice(0, 3)
-        .map(
-          (m) =>
-            `Previous relevant conversation (relevance: ${m.relevance?.toFixed(2)}): ${m.content}`,
-        )
-        .join("\n\n")
-    : "No relevant conversation history"
-}
+          relevantMemories && relevantMemories.length > 0
+            ? relevantMemories
+                .filter((m) => m.relevance && m.relevance >= 0.6)
+                .slice(0, 3)
+                .map(
+                  (m) =>
+                    `Previous relevant conversation (relevance: ${m.relevance?.toFixed(2)}): ${m.content}`,
+                )
+                .join("\n\n")
+            : "No relevant conversation history"
+        }
 
 4. Potential retrieved content that can help you with answering:
 These contents are coming mainly from 2 books that are written by "Lynn Geerinck", the co-founder of Nuri. The books names are "Goed Omringd" and "Wie zorgt voor mijn kinderen". The content start here:
@@ -915,7 +925,6 @@ ${mergedRAG || "No relevant content available"}
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
     }
-
     const chatId = parseChatId(req.params.chatId);
     if (chatId === null) {
       return res.status(400).json({ message: "Invalid chat ID" });
