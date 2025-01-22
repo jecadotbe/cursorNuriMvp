@@ -559,6 +559,12 @@ Analyze the available context and provide a relevant suggestion. For new users o
           req.body.messages[req.body.messages.length - 1].content,
         );
 
+        const { PATTERN_PROMPTS, STRUCTURE_PROMPTS } = await import('./lib/response-patterns');
+        const getRandomPattern = () => Math.floor(Math.random() * PATTERN_PROMPTS.length);
+        const getRandomStructure = () => Math.floor(Math.random() * STRUCTURE_PROMPTS.length);
+        const pattern = getRandomPattern();
+        const structure = getRandomStructure();
+
         const response = await anthropic.messages.create({
           model: "claude-3-5-sonnet-20241022",
           max_tokens: 512,
@@ -589,6 +595,10 @@ ${relevantMemories && relevantMemories.length > 0
 
 -------------------
 ${NURI_SYSTEM_PROMPT}
+
+RESPONSE STYLE:
+${PATTERN_PROMPTS[pattern]}
+${STRUCTURE_PROMPTS[structure]}
 
 ADDITIONAL INSTRUCTIONS:
 - Despite the context above, keep responses concise and focused
