@@ -41,10 +41,9 @@ type OnboardingProgressResponse = {
 };
 
 const handleApiResponse = async (response: Response) => {
-  const responseText = await response.text(); // Read the response text only once
+  const responseText = await response.text(); 
 
   try {
-    // Try to parse the text as JSON
     const data = JSON.parse(responseText);
 
     if (!response.ok) {
@@ -53,7 +52,6 @@ const handleApiResponse = async (response: Response) => {
 
     return data;
   } catch (parseError) {
-    // If JSON parsing failed, use the original response text
     if (!response.ok) {
       throw new Error(responseText || `HTTP error! status: ${response.status}`);
     }
@@ -177,7 +175,6 @@ export default function OnboardingPage() {
         await completeOnboardingMutation.mutateAsync(updatedData);
       }
     } catch (error) {
-      // Error is already handled by the mutations
       console.error("Step completion error:", error);
     }
   };
@@ -197,9 +194,9 @@ export default function OnboardingPage() {
     }}>
       <div className="w-full max-w-2xl space-y-6">
         <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold tracking-tighter">Welcome to Nuri</h1>
+          <h1 className="text-3xl font-bold tracking-tighter">Welkom bij Nuri</h1>
           <p className="text-muted-foreground">
-            Let's get to know you better to provide personalized support
+            Laten we je beter leren kennen om gepersonaliseerde ondersteuning te bieden
           </p>
         </div>
 
