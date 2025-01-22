@@ -148,7 +148,7 @@ export default function HomeView() {
                 </CardContent>
               </Card>
             </div>
-            {suggestions.length > 1 && (
+            {suggestions && suggestions.length > 0 && (
               <div className="flex items-center justify-center w-full mb-6">
                 <Button
                   variant="secondary"
