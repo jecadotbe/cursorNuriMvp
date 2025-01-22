@@ -11,10 +11,14 @@ import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, CheckCircle2, Circle } from "lucide-react";
+import { RESPONSE_PATTERNS, RESPONSE_STRUCTURES } from '@/lib/response-patterns';
 
-interface ResponsePattern {
-  type: 'DIRECT' | 'REFLECTIVE' | 'STORY_BASED' | 'COLLABORATIVE';
-  structure: 'VALIDATE_FIRST' | 'PRACTICAL_FIRST' | 'SCENARIO_BASED' | 'STEP_BY_STEP';
+type ResponsePatternType = typeof RESPONSE_PATTERNS[keyof typeof RESPONSE_PATTERNS];
+type ResponseStructureType = typeof RESPONSE_STRUCTURES[keyof typeof RESPONSE_STRUCTURES];
+
+export interface ResponsePattern {
+  type: ResponsePatternType;
+  structure: ResponseStructureType;
   progress: {
     empathy: number;
     advice: number;

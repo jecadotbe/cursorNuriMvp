@@ -19,7 +19,7 @@ import { useUser } from "@/hooks/use-user";
 import { PromptLibrary } from "@/components/PromptLibrary";
 import { useVoiceInput } from "@/hooks/use-voice-input";
 import { MicrophoneVisualizer } from "@/components/MicrophoneVisualizer";
-import { ResponsePatternPreview } from "@/components/ResponsePatternPreview";
+import { ResponsePatternPreview, ResponsePattern } from "@/components/ResponsePatternPreview";
 import { renderMarkdown } from "@/lib/markdown";
 
 const theme = {
@@ -66,7 +66,7 @@ export default function ChatView() {
     }
   );
   const [showPatternPreview, setShowPatternPreview] = useState(false);
-  const [currentPattern, setCurrentPattern] = useState({
+  const [currentPattern, setCurrentPattern] = useState<ResponsePattern>({
     type: 'REFLECTIVE',
     structure: 'VALIDATE_FIRST',
     progress: {
