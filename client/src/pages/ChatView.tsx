@@ -226,38 +226,17 @@ export default function ChatView() {
 
     setIsLoadingSuggestions(true);
     try {
-      if (!messages.length) {
-      setCurrentSuggestions(DEFAULT_SUGGESTIONS);
-      return;
-    }
-
-    const response = await fetch(`/api/suggestions/generate`, {
+      const response = await fetch(`/api/suggestions/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          chatId: chatId || null,
-          lastMessageContent: messages[messages.length - 1]?.content || ''
+          chatId,
+          lastMessageContent: messages[messages.length - 1].content,
         }),
         credentials: 'include',
       });
-
-    // Log the response for debugging
-    const responseText = await response.text();
-    console.log('Suggestions API response:', responseText);
-
-    if (!response.ok) {
-      throw new Error(`Failed to generate suggestions: ${response.status} - ${responseText}`);
-    }
-
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (e) {
-      console.error('Failed to parse suggestions response:', e);
-      throw new Error('Invalid response format: expected JSON');
-    }
 
       if (!response.ok) {
         throw new Error(`Failed to generate suggestions: ${response.status}`);
