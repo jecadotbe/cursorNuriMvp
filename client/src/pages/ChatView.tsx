@@ -19,7 +19,7 @@ import { useUser } from "@/hooks/use-user";
 import { PromptLibrary } from "@/components/PromptLibrary";
 import { useVoiceInput } from "@/hooks/use-voice-input";
 import { MicrophoneVisualizer } from "@/components/MicrophoneVisualizer";
-import { ResponsePatternPreview, ResponsePattern } from "@/components/ResponsePatternPreview";
+
 import { renderMarkdown } from "@/lib/markdown";
 
 const theme = {
@@ -65,18 +65,7 @@ export default function ChatView() {
       }
     }
   );
-  const [showPatternPreview, setShowPatternPreview] = useState(false);
-  const [currentPattern, setCurrentPattern] = useState<ResponsePattern>({
-    type: 'REFLECTIVE',
-    structure: 'VALIDATE_FIRST',
-    progress: {
-      empathy: 0,
-      advice: 0,
-      examples: 0
-    },
-    wordCount: 0,
-    isCompliant: true
-  });
+  
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -311,12 +300,7 @@ export default function ChatView() {
           >
             <BookOpen className="w-6 h-6 text-[#629785]" />
           </button>
-          <button
-            onClick={() => setShowPatternPreview(!showPatternPreview)}
-            className="p-2 hover:bg-gray-100 rounded-lg"
-          >
-            <BookOpen className="w-6 h-6 text-[#629785]" />
-          </button>
+          
           <button
             onClick={() => setShowNewChatDialog(true)}
             className={`p-2 ${theme.accent} hover:bg-[#4A7566] rounded-full`}
@@ -483,16 +467,7 @@ export default function ChatView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <ResponsePatternPreview
-        currentPattern={currentPattern}
-        isVisible={showPatternPreview}
-        onPatternChange={(pattern) => {
-          setCurrentPattern(prev => ({
-            ...prev,
-            ...pattern
-          }));
-        }}
-      />
+      
       {/* Hide navigation on this page */}
       <style>{`
         nav {
