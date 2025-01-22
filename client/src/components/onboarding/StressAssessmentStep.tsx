@@ -24,10 +24,10 @@ import { useState } from "react";
 
 const formSchema = z.object({
   stressLevel: z.enum(["low", "moderate", "high", "very_high"], {
-    required_error: "Selecteer je huidige stressniveau",
+    required_error: "Please select your current stress level",
   }),
-  primaryConcerns: z.array(z.string()).min(1, "Voeg ten minste één zorg toe"),
-  supportNetwork: z.array(z.string()).min(1, "Voeg ten minste één ondersteuningspersoon of -groep toe"),
+  primaryConcerns: z.array(z.string()).min(1, "Please add at least one concern"),
+  supportNetwork: z.array(z.string()).min(1, "Please add at least one support person or group"),
 });
 
 type StressAssessmentStepProps = {
@@ -92,23 +92,23 @@ export default function StressAssessmentStep({ onComplete, initialData }: Stress
           name="stressLevel"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Huidig Stressniveau</FormLabel>
+              <FormLabel>Current Stress Level</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecteer je stressniveau" />
+                    <SelectValue placeholder="Select your stress level" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="low">Laag - Ik kan het goed aan</SelectItem>
+                  <SelectItem value="low">Low - I'm managing well</SelectItem>
                   <SelectItem value="moderate">
-                    Gemiddeld - Enkele uitdagingen maar het lukt
+                    Moderate - Some challenges but coping
                   </SelectItem>
                   <SelectItem value="high">
-                    Hoog - Vaak overweldigd
+                    High - Feeling overwhelmed often
                   </SelectItem>
                   <SelectItem value="very_high">
-                    Zeer hoog - Heb veel ondersteuning nodig
+                    Very High - Need significant support
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -122,13 +122,13 @@ export default function StressAssessmentStep({ onComplete, initialData }: Stress
           name="primaryConcerns"
           render={() => (
             <FormItem>
-              <FormLabel>Belangrijkste Zorgen over Opvoeding</FormLabel>
+              <FormLabel>Primary Parenting Concerns</FormLabel>
               <div className="space-y-2">
                 <div className="flex gap-2">
                   <Input
                     value={newConcern}
                     onChange={(e) => setNewConcern(e.target.value)}
-                    placeholder="Voer een zorg in"
+                    placeholder="Enter a concern"
                     onKeyPress={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -137,7 +137,7 @@ export default function StressAssessmentStep({ onComplete, initialData }: Stress
                     }}
                   />
                   <Button type="button" onClick={addConcern}>
-                    Toevoegen
+                    Add
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -165,13 +165,13 @@ export default function StressAssessmentStep({ onComplete, initialData }: Stress
           name="supportNetwork"
           render={() => (
             <FormItem>
-              <FormLabel>Ondersteuningsnetwerk</FormLabel>
+              <FormLabel>Support Network</FormLabel>
               <div className="space-y-2">
                 <div className="flex gap-2">
                   <Input
                     value={newSupport}
                     onChange={(e) => setNewSupport(e.target.value)}
-                    placeholder="Voeg familie, vrienden of professionals toe"
+                    placeholder="Add family, friends, or professionals"
                     onKeyPress={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -180,7 +180,7 @@ export default function StressAssessmentStep({ onComplete, initialData }: Stress
                     }}
                   />
                   <Button type="button" onClick={addSupport}>
-                    Toevoegen
+                    Add
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -204,7 +204,7 @@ export default function StressAssessmentStep({ onComplete, initialData }: Stress
         />
 
         <Button type="submit" className="w-full">
-          Doorgaan
+          Continue
         </Button>
       </form>
     </Form>

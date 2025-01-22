@@ -58,7 +58,7 @@ export default function OnboardingTooltip() {
 
     const step = steps[currentStep];
     const targetEl = document.querySelector(step.target) as HTMLElement;
-
+    
     const updatePosition = () => {
       const newPosition = calculatePosition(
         targetEl,
@@ -105,7 +105,7 @@ export default function OnboardingTooltip() {
                 size="sm"
                 onClick={skip}
               >
-                Overslaan
+                Skip
               </Button>
               {currentStep > 0 && (
                 <Button
@@ -113,7 +113,7 @@ export default function OnboardingTooltip() {
                   size="sm"
                   onClick={prev}
                 >
-                  Terug
+                  Back
                 </Button>
               )}
             </div>
@@ -121,7 +121,7 @@ export default function OnboardingTooltip() {
               size="sm"
               onClick={next}
             >
-              {isLastStep ? "Aan de slag" : "Volgende"}
+              {isLastStep ? "Get Started" : "Next"}
             </Button>
           </div>
         </motion.div>
