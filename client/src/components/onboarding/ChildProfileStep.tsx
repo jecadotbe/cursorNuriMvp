@@ -17,13 +17,13 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 
 const childSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
+  name: z.string().min(2, "Naam moet minimaal 2 tekens bevatten"),
   age: z.number().min(0).max(18),
   specialNeeds: z.array(z.string()),
 });
 
 const formSchema = z.object({
-  children: z.array(childSchema).min(1, "Please add at least one child"),
+  children: z.array(childSchema).min(1, "Voeg ten minste één kind toe"),
 });
 
 type ChildProfileStepProps = {
@@ -110,7 +110,7 @@ export default function ChildProfileStep({ onComplete }: ChildProfileStepProps) 
             onClick={() => setActiveChildIndex(index)}
             className="flex items-center gap-2"
           >
-            Child {index + 1}
+            Kind {index + 1}
             {form.watch("children").length > 1 && (
               <X
                 className="h-4 w-4 hover:text-destructive"
@@ -128,7 +128,7 @@ export default function ChildProfileStep({ onComplete }: ChildProfileStepProps) 
           className="flex items-center gap-2"
         >
           <Plus className="h-4 w-4" />
-          Add Child
+          Kind Toevoegen
         </Button>
       </div>
 
@@ -141,9 +141,9 @@ export default function ChildProfileStep({ onComplete }: ChildProfileStepProps) 
                 name={`children.${activeChildIndex}.name`}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Child's Name</FormLabel>
+                    <FormLabel>Naam van het Kind</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Enter child's name" />
+                      <Input {...field} placeholder="Voer de naam van het kind in" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -155,7 +155,7 @@ export default function ChildProfileStep({ onComplete }: ChildProfileStepProps) 
                 name={`children.${activeChildIndex}.age`}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Age</FormLabel>
+                    <FormLabel>Leeftijd</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -175,13 +175,13 @@ export default function ChildProfileStep({ onComplete }: ChildProfileStepProps) 
                 name={`children.${activeChildIndex}.specialNeeds`}
                 render={() => (
                   <FormItem>
-                    <FormLabel>Special Needs or Considerations</FormLabel>
+                    <FormLabel>Speciale Behoeften of Aandachtspunten</FormLabel>
                     <div className="space-y-2">
                       <div className="flex gap-2">
                         <Input
                           value={newSpecialNeed}
                           onChange={(e) => setNewSpecialNeed(e.target.value)}
-                          placeholder="Add special needs or considerations"
+                          placeholder="Voeg speciale behoeften of aandachtspunten toe"
                           onKeyPress={(e) => {
                             if (e.key === "Enter") {
                               e.preventDefault();
@@ -193,7 +193,7 @@ export default function ChildProfileStep({ onComplete }: ChildProfileStepProps) 
                           type="button"
                           onClick={() => addSpecialNeed(activeChildIndex)}
                         >
-                          Add
+                          Toevoegen
                         </Button>
                       </div>
                       <div className="flex flex-wrap gap-2">
@@ -217,7 +217,7 @@ export default function ChildProfileStep({ onComplete }: ChildProfileStepProps) 
               />
 
               <Button type="submit" className="w-full">
-                Continue
+                Doorgaan
               </Button>
             </form>
           </Form>

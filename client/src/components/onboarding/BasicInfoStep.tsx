@@ -20,10 +20,10 @@ import {
 } from "@/components/ui/select";
 
 const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
+  name: z.string().min(2, "Naam moet minimaal 2 tekens bevatten"),
+  email: z.string().email("Voer een geldig e-mailadres in"),
   experienceLevel: z.enum(["first_time", "experienced", "multiple_children"], {
-    required_error: "Please select your parenting experience",
+    required_error: "Selecteer je ervaring met ouderschap",
   }),
 });
 
@@ -54,9 +54,9 @@ export default function BasicInfoStep({ onComplete, initialData }: BasicInfoStep
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Your Name</FormLabel>
+              <FormLabel>Jouw Naam</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your name" {...field} />
+                <Input placeholder="Voer je naam in" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -68,11 +68,11 @@ export default function BasicInfoStep({ onComplete, initialData }: BasicInfoStep
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email Address</FormLabel>
+              <FormLabel>E-mailadres</FormLabel>
               <FormControl>
                 <Input
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder="Voer je e-mailadres in"
                   {...field}
                 />
               </FormControl>
@@ -86,25 +86,25 @@ export default function BasicInfoStep({ onComplete, initialData }: BasicInfoStep
           name="experienceLevel"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Parenting Experience</FormLabel>
+              <FormLabel>Ervaring met Ouderschap</FormLabel>
               <Select
                 onValueChange={field.onChange}
                 defaultValue={field.value}
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select your experience level" />
+                    <SelectValue placeholder="Selecteer je ervaringsniveau" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="first_time">
-                    First-time parent
+                    Eerste keer ouder
                   </SelectItem>
                   <SelectItem value="experienced">
-                    Experienced parent
+                    Ervaren ouder
                   </SelectItem>
                   <SelectItem value="multiple_children">
-                    Parent of multiple children
+                    Ouder van meerdere kinderen
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -114,7 +114,7 @@ export default function BasicInfoStep({ onComplete, initialData }: BasicInfoStep
         />
 
         <Button type="submit" className="w-full">
-          Continue
+          Doorgaan
         </Button>
       </form>
     </Form>

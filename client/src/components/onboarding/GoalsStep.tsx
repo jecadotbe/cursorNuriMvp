@@ -23,11 +23,11 @@ import {
 } from "@/components/ui/select";
 
 const formSchema = z.object({
-  shortTerm: z.array(z.string()).min(1, "Add at least one short-term goal"),
-  longTerm: z.array(z.string()).min(1, "Add at least one long-term goal"),
-  supportAreas: z.array(z.string()).min(1, "Select at least one area where you need support"),
+  shortTerm: z.array(z.string()).min(1, "Voeg ten minste één korte termijn doel toe"),
+  longTerm: z.array(z.string()).min(1, "Voeg ten minste één lange termijn doel toe"),
+  supportAreas: z.array(z.string()).min(1, "Selecteer ten minste één gebied waar je ondersteuning nodig hebt"),
   communicationPreference: z.string({
-    required_error: "Please select your preferred communication style",
+    required_error: "Selecteer je voorkeursmanier van communiceren",
   }),
 });
 
@@ -52,10 +52,10 @@ export default function GoalsStep({ onComplete }: GoalsStepProps) {
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     try {
-      console.log("Submitting goals data:", data);
+      console.log("Doelen gegevens versturen:", data);
       onComplete(data);
     } catch (error) {
-      console.error("Error submitting goals:", error);
+      console.error("Fout bij het versturen van doelen:", error);
     }
   };
 
@@ -115,13 +115,13 @@ export default function GoalsStep({ onComplete }: GoalsStepProps) {
           name="shortTerm"
           render={() => (
             <FormItem>
-              <FormLabel>Short-term Parenting Goals</FormLabel>
+              <FormLabel>Korte Termijn Opvoedingsdoelen</FormLabel>
               <div className="space-y-2">
                 <div className="flex gap-2">
                   <Input
                     value={newShortTerm}
                     onChange={(e) => setNewShortTerm(e.target.value)}
-                    placeholder="Add a short-term goal"
+                    placeholder="Voeg een korte termijn doel toe"
                     onKeyPress={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -130,7 +130,7 @@ export default function GoalsStep({ onComplete }: GoalsStepProps) {
                     }}
                   />
                   <Button type="button" onClick={addShortTerm}>
-                    Add
+                    Toevoegen
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -158,13 +158,13 @@ export default function GoalsStep({ onComplete }: GoalsStepProps) {
           name="longTerm"
           render={() => (
             <FormItem>
-              <FormLabel>Long-term Parenting Goals</FormLabel>
+              <FormLabel>Lange Termijn Opvoedingsdoelen</FormLabel>
               <div className="space-y-2">
                 <div className="flex gap-2">
                   <Input
                     value={newLongTerm}
                     onChange={(e) => setNewLongTerm(e.target.value)}
-                    placeholder="Add a long-term goal"
+                    placeholder="Voeg een lange termijn doel toe"
                     onKeyPress={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -173,7 +173,7 @@ export default function GoalsStep({ onComplete }: GoalsStepProps) {
                     }}
                   />
                   <Button type="button" onClick={addLongTerm}>
-                    Add
+                    Toevoegen
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -201,13 +201,13 @@ export default function GoalsStep({ onComplete }: GoalsStepProps) {
           name="supportAreas"
           render={() => (
             <FormItem>
-              <FormLabel>Areas Needing Support</FormLabel>
+              <FormLabel>Gebieden waar Ondersteuning Nodig Is</FormLabel>
               <div className="space-y-2">
                 <div className="flex gap-2">
                   <Input
                     value={newSupportArea}
                     onChange={(e) => setNewSupportArea(e.target.value)}
-                    placeholder="Add an area where you need support"
+                    placeholder="Voeg een gebied toe waar je ondersteuning nodig hebt"
                     onKeyPress={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -216,7 +216,7 @@ export default function GoalsStep({ onComplete }: GoalsStepProps) {
                     }}
                   />
                   <Button type="button" onClick={addSupportArea}>
-                    Add
+                    Toevoegen
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -244,23 +244,23 @@ export default function GoalsStep({ onComplete }: GoalsStepProps) {
           name="communicationPreference"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Preferred Communication Style</FormLabel>
+              <FormLabel>Voorkeur Communicatiestijl</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select your communication style" />
+                    <SelectValue placeholder="Selecteer je communicatiestijl" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="direct">Direct and concise</SelectItem>
+                  <SelectItem value="direct">Direct en bondig</SelectItem>
                   <SelectItem value="detailed">
-                    Detailed with explanations
+                    Gedetailleerd met uitleg
                   </SelectItem>
                   <SelectItem value="collaborative">
-                    Collaborative discussion
+                    Samenwerkend gesprek
                   </SelectItem>
                   <SelectItem value="supportive">
-                    Supportive and encouraging
+                    Ondersteunend en aanmoedigend
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -270,7 +270,7 @@ export default function GoalsStep({ onComplete }: GoalsStepProps) {
         />
 
         <Button type="submit" className="w-full">
-          Complete Onboarding
+          Onboarding Afronden
         </Button>
       </form>
     </Form>
