@@ -542,7 +542,7 @@ Analyze the available context and provide a relevant suggestion. For new users o
 
     try {
       const user = req.user as User;
-      let contextualizedPrompt = NURI_SYSTEM_PROMPT;
+      let contextualizedPrompt = "";
 
       try {
         // Get user's profile data for context
@@ -552,26 +552,6 @@ Analyze the available context and provide a relevant suggestion. For new users o
 
         // Add village context to the prompt
         const villageContextString = await getVillageContext(user.id);
-        if (villageContextString) {
-          contextualizedPrompt += villageContextString;
-        }
-
-        // Add profile context if available
-        if (profile?.onboardingData) {
-          const profileContext = `
-Parent's Context:
-- Experience Level: ${profile.onboardingData.basicInfo?.experienceLevel}
-- Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel}
-- Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ")}
-${profile.onboardingData.childProfiles
-            ?.map(
-              (child) =>
-                `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
-            )
-            .join("\n")}`;
-          contextualizedPrompt += `\n\n${profileContext}`;
-        }
-
 
         // Get relevant memories for context
         const relevantMemories = await memoryService.getRelevantMemories(
@@ -579,126 +559,137 @@ ${profile.onboardingData.childProfiles
           req.body.messages[req.body.messages.length - 1].content,
         );
 
-        console.log("Found relevant memories:", relevantMemories.length);
+        const response = await anthropic.messages.create({
+          model: "claude-3-5-sonnet-20241022",
+          max_tokens: 512,
+          temperature: 0.7,
+          system: `
+CONTEXT SECTIONS:
 
-        if (relevantMemories && relevantMemories.length > 0) {
-          // Sort memories by relevance and only use highly relevant ones
-          const contextMemories = relevantMemories
-            .filter(m => m.relevance && m.relevance >= 0.6)
-            .slice(0, 3); // Only use top 3 most relevant memories
+1. User Profile:
+${profile?.onboardingData ? `
+- Experience Level: ${profile.onboardingData.basicInfo?.experienceLevel || 'Not specified'}
+- Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel || 'Not specified'}
+- Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ") || 'None specified'}
+${profile.onboardingData.childProfiles?.map(
+    (child: any) => `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`
+  ).join("\n") || 'No children profiles specified'}` : ''}
 
-          if (contextMemories.length > 0) {
-            // Format memories for context, including relevance scores
-            const memoryContext = contextMemories
-              .map((m) => `Previous relevant conversation (relevance: ${m.relevance?.toFixed(2)}): ${m.content}`)
-              .join("\n\n");
+2. Village Network:
+${villageContextString || 'No village context available'}
 
-            // Add memory context to the system prompt
-            contextualizedPrompt += `\n\nRelevant context from previous conversations:\n${memoryContext}`;
+3. Conversation History:
+${relevantMemories && relevantMemories.length > 0
+  ? relevantMemories
+      .filter(m => m.relevance && m.relevance >= 0.6)
+      .slice(0, 3)
+      .map((m) => `Previous relevant conversation (relevance: ${m.relevance?.toFixed(2)}): ${m.content}`)
+      .join("\n\n")
+  : 'No relevant conversation history'}
 
-            console.log("Added memory context to prompt with relevance filtering");
-          } else {
-            console.log("No memories met the relevance threshold");
-          }
-        }
-      } catch (memoryError) {
-        console.error("Error fetching memories or profile:", memoryError);
-      }
+-------------------
+${NURI_SYSTEM_PROMPT}
 
-      // Generate response with context
-      const response = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
-        max_tokens: 512,
-        temperature: 0.7,
-        system: contextualizedPrompt,
-        messages: req.body.messages,
-      });
+ADDITIONAL INSTRUCTIONS:
+- Despite the context above, keep responses concise and focused
+- Prioritize addressing the current question directly
+- Use context to inform the response, not to expand it
+`,
+          messages: req.body.messages,
+        });
 
-      const messageContent =
-        response.content[0].type === "text" ? response.content[0].text : "";
+        const messageContent =
+          response.content[0].type === "text" ? response.content[0].text : "";
 
-      // Store conversation in memory
-      try {
-        // Store user's message with proper metadata
-        await memoryService.createMemory(
-          user.id,
-          req.body.messages[req.body.messages.length - 1].content,
-          {
-            role: "user",
-            messageIndex: req.body.messages.length - 1,
+        // Store conversation in memory
+        try {
+          // Store user's message with proper metadata
+          await memoryService.createMemory(
+            user.id,
+            req.body.messages[req.body.messages.length - 1].content,
+            {
+              role: "user",
+              messageIndex: req.body.messages.length - 1,
+              chatId: req.body.chatId || "new",
+              source: "nuri-chat",
+              type: "conversation",
+              category: "chat_history",
+              timestamp: new Date().toISOString()
+            }
+          );
+
+          // Store assistant's response with proper metadata
+          await memoryService.createMemory(user.id, messageContent, {
+            role: "assistant",
+            messageIndex: req.body.messages.length,
             chatId: req.body.chatId || "new",
             source: "nuri-chat",
             type: "conversation",
             category: "chat_history",
             timestamp: new Date().toISOString()
-          },
-        );
+          });
 
-        // Store assistant's response with proper metadata
-        await memoryService.createMemory(user.id, messageContent, {
-          role: "assistant",
-          messageIndex: req.body.messages.length,
-          chatId: req.body.chatId || "new",
-          source: "nuri-chat",
-          type: "conversation",
-          category: "chat_history",
-          timestamp: new Date().toISOString()
-        });
-
-        console.log("Successfully stored conversation in memory");
-      } catch (memoryError) {
-        console.error("Error storing memories:", memoryError);
-      }
-
-      // Save to database
-      if (req.body.chatId) {
-        const chatId = parseChatId(req.body.chatId);
-        if (chatId === null) {
-          return res.status(400).json({ message: "Invalid chat ID" });
+          console.log("Successfully stored conversation in memory");
+        } catch (memoryError) {
+          console.error("Error storing memories:", memoryError);
         }
 
-        const existingChat = await db.query.chats.findFirst({
-          where: eq(chats.id, chatId),
-        });
+        // Save to database
+        if (req.body.chatId) {
+          const chatId = parseChatId(req.body.chatId);
+          if (chatId === null) {
+            return res.status(400).json({ message: "Invalid chat ID" });
+          }
 
-        if (!existingChat || existingChat.userId !== user.id) {
-          return res.status(403).json({ message: "Unauthorized" });
+          const existingChat = await db.query.chats.findFirst({
+            where: eq(chats.id, chatId),
+          });
+
+          if (!existingChat || existingChat.userId !== user.id) {
+            return res.status(403).json({ message: "Unauthorized" });
+          }
+
+          await db
+            .update(chats)
+            .set({
+              messages: req.body.messages.concat([
+                { role: "assistant", content: messageContent },
+              ]),
+              updatedAt: new Date(),
+            })
+            .where(eq(chats.id, chatId));
+        } else {
+          // Create a new chat
+          const [newChat] = await db
+            .insert(chats)
+            .values({
+              userId: user.id,
+              title: `Chat ${new Date().toLocaleDateString()}`,
+              messages: req.body.messages.concat([
+                { role: "assistant", content: messageContent },
+              ]),
+              updatedAt: new Date(),
+            })
+            .returning();
+
+          console.log("Created new chat:", newChat);
         }
 
-        await db
-          .update(chats)
-          .set({
-            messages: req.body.messages.concat([
-              { role: "assistant", content: messageContent },
-            ]),
-            updatedAt: new Date(),
-          })
-          .where(eq(chats.id, chatId));
-      } else {
-        // Create a new chat
-        const [newChat] = await db
-          .insert(chats)
-          .values({
-            userId: user.id,
-            title: `Chat ${new Date().toLocaleDateString()}`,
-            messages: req.body.messages.concat([
-              { role: "assistant", content: messageContent },
-            ]),
-            updatedAt: new Date(),
-          })
-          .returning();
-
-        console.log("Created new chat:", newChat);
+        res.json({
+          content: messageContent,
+        });
+      } catch (error) {
+        console.error("API error:", error);
+        res.status(500).json({
+          message: "Failed to process request",
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
       }
-
-      res.json({
-        content: messageContent,
-      });
-    } catch (error: any) {
-      console.error("API error:", error);
-      res.status(500).json({
-        message: "Failed to process request",
-        error: error.message,
+    } catch (error) {
+      console.error("Authentication error:", error);
+      res.status(401).json({
+        message: "Authentication failed",
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
@@ -899,7 +890,7 @@ ${profile.onboardingData.childProfiles
               role: "user",
               content: `Based on this conversation, provide a JSON response in this exact format:
 {
-  "title": "short title capturing main parenting theme (max 5 words)",
+  "title": "shorttitle capturing main parenting theme (max 5 words)",
   "summary": "brief summary focusing on parenting insights (max 2 sentences)",
   "emotionalJourney": "describe how parent's emotions evolved through the conversation"
 }
