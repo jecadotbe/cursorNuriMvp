@@ -1,5 +1,5 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, pgEnum, numeric, unique, index } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, pgEnum, numeric, unique, index, real } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -51,12 +51,16 @@ export const parentProfiles = pgTable("parent_profiles", {
   completedOnboarding: boolean("completed_onboarding").default(false),
   currentOnboardingStep: integer("current_onboarding_step").default(1),
   onboardingData: jsonb("onboarding_data").default({}),
+  // Store embedding as text for compatibility, will be converted to vector
+  profileEmbedding: text("profile_embedding").default('[]'),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => {
   return {
     userIdIdx: unique("parent_profiles_user_id_idx").on(table.userId),
     emailIdx: index("parent_profiles_email_idx").on(table.email),
+    // Index will be created via SQL for the vector column
+    profileEmbeddingIdx: index("parent_profiles_embedding_idx").on(table.profileEmbedding),
   };
 });
 
@@ -161,8 +165,15 @@ export const chats = pgTable("chats", {
   messages: jsonb("messages").notNull(),
   metadata: jsonb("metadata"),
   tags: text("tags").array(),
+  // Store embedding as text for compatibility, will be converted to vector
+  contentEmbedding: text("content_embedding").default('[]'),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    // Index will be created via SQL for the vector column
+    contentEmbeddingIdx: index("chats_content_embedding_idx").on(table.contentEmbedding),
+  };
 });
 
 export const messageFeedback = pgTable("message_feedback", {
