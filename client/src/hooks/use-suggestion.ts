@@ -2,8 +2,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { PromptSuggestion } from "@db/schema";
 import { useToast } from "./use-toast";
 
-async function fetchSuggestion(): Promise<PromptSuggestion> {
-  const response = await fetch('/api/suggestions', {
+async function fetchSuggestions(): Promise<PromptSuggestion[]> {
+  const response = await fetch('/api/suggestions/all', {
     credentials: 'include',
   });
 
@@ -19,13 +19,13 @@ export function useSuggestion() {
   const queryClient = useQueryClient();
 
   const {
-    data: suggestion,
+    data: suggestions = [],
     isLoading,
     error,
     refetch
   } = useQuery({
-    queryKey: ['suggestion'],
-    queryFn: fetchSuggestion,
+    queryKey: ['suggestions'],
+    queryFn: fetchSuggestions,
     gcTime: 0, // Don't cache invalidated data
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
   });
@@ -41,8 +41,8 @@ export function useSuggestion() {
         throw new Error(`${response.status}: ${await response.text()}`);
       }
 
-      // Invalidate the suggestion query to fetch a new one
-      queryClient.invalidateQueries({ queryKey: ['suggestion'] });
+      // Invalidate the suggestions query to fetch new ones
+      queryClient.invalidateQueries({ queryKey: ['suggestions'] });
     } catch (error) {
       console.error('Failed to mark suggestion as used:', error);
       toast({
@@ -54,7 +54,7 @@ export function useSuggestion() {
   };
 
   return {
-    suggestion,
+    suggestions,
     isLoading,
     error,
     refetch,

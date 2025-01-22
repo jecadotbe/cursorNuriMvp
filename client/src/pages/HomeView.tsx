@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUser } from "@/hooks/use-user";
 import { useSuggestion } from "@/hooks/use-suggestion";
-import { MessageSquare, Users, Clock, ChevronRight } from "lucide-react";
+import { MessageSquare, Users, Clock, ChevronRight, RefreshCw } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
 import { SuggestionFeedback } from "@/components/SuggestionFeedback";
+import { Button } from "@/components/ui/button";
 
-// Image handling functions remain unchanged
+
 const handleImageLoad = (imageName: string) => {
   console.log(`Successfully loaded image: ${imageName}`);
 };
@@ -20,25 +21,29 @@ const handleImageError = (imageName: string, error: any) => {
 
 export default function HomeView() {
   const { user } = useUser();
-  const { suggestion, isLoading, markAsUsed } = useSuggestion();
+  const { suggestions, isLoading, markAsUsed } = useSuggestion();
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [showFeedback, setShowFeedback] = useState(false);
   const [currentSuggestionId, setCurrentSuggestionId] = useState<number | null>(null);
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
+  const currentSuggestion = suggestions?.[currentIndex];
+
+  const handleNextSuggestion = () => {
+    setCurrentIndex((prev) => (prev + 1) % suggestions.length);
+  };
+
   const handlePromptClick = async () => {
-    if (!suggestion) return;
+    if (!currentSuggestion) return;
 
     try {
-      // Mark suggestion as used and store ID for feedback
-      await markAsUsed(suggestion.id);
-      setCurrentSuggestionId(suggestion.id);
+      await markAsUsed(currentSuggestion.id);
+      setCurrentSuggestionId(currentSuggestion.id);
 
-      if (suggestion.context === "existing" && suggestion.relatedChatId) {
-        // Navigate to existing chat
-        navigate(`/chat/${suggestion.relatedChatId}`);
+      if (currentSuggestion.context === "existing" && currentSuggestion.relatedChatId) {
+        navigate(`/chat/${currentSuggestion.relatedChatId}`);
       } else {
-        // Create new chat with the prompt
         const response = await fetch('/api/chats', {
           method: 'POST',
           headers: {
@@ -48,7 +53,7 @@ export default function HomeView() {
             title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
             messages: [{
               role: 'assistant',
-              content: suggestion.text
+              content: currentSuggestion.text
             }],
           }),
           credentials: 'include',
@@ -62,7 +67,6 @@ export default function HomeView() {
         navigate(`/chat/${newChat.id}`);
       }
 
-      // Show feedback dialog after successful navigation
       setShowFeedback(true);
     } catch (error) {
       console.error('Error handling prompt:', error);
@@ -81,7 +85,6 @@ export default function HomeView() {
 
   return (
     <div className="flex-1 bg-[#F2F0E5] overflow-y-auto">
-      {/* Greeting Section with Logo */}
       <div className="w-full bg-gradient-to-r from-[#F8DD9F] to-[#F2F0E5] via-[#F2F0E5] via-45% ">
         <div className="px-4 pt-8">
           <div className="flex items-end gap-8">
@@ -111,7 +114,6 @@ export default function HomeView() {
         </div>
       </div>
 
-      {/* Chat Prompt */}
       <div className="px-5 py-6">
         {isLoading ? (
           <Card className="bg-white animate-pulse mb-4">
@@ -120,35 +122,49 @@ export default function HomeView() {
               <div className="h-4 bg-gray-200 rounded w-1/2"></div>
             </CardContent>
           </Card>
-        ) : suggestion ? (
-          <div onClick={handlePromptClick}>
-            <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer mb-4 animate-border">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                      <div className="text-orange-500 font-semibold text-sm tracking-wide uppercase">
-                        Op basis van onze gesprekken
+        ) : suggestions?.length > 0 ? (
+          <div>
+            <div onClick={handlePromptClick}>
+              <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer mb-4 animate-border">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                        <div className="text-orange-500 font-semibold text-sm tracking-wide uppercase">
+                          Op basis van onze gesprekken
+                        </div>
                       </div>
+                      <p className="text-lg pr-8">{currentSuggestion?.text}</p>
+                      {currentSuggestion?.context === "existing" && currentSuggestion?.relatedChatTitle && (
+                        <div className="mt-2 text-sm text-gray-500 flex items-center gap-2">
+                          <MessageSquare className="w-4 h-4" />
+                          <span>Vervolg op: {currentSuggestion.relatedChatTitle}</span>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-lg pr-8">{suggestion.text}</p>
-                    {suggestion.context === "existing" && suggestion.relatedChatTitle && (
-                      <div className="mt-2 text-sm text-gray-500 flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4" />
-                        <span>Vervolg op: {suggestion.relatedChatTitle}</span>
-                      </div>
-                    )}
+                    <ChevronRight className="w-6 h-6 text-gray-400 flex-shrink-0" />
                   </div>
-                  <ChevronRight className="w-6 h-6 text-gray-400 flex-shrink-0" />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
+            {suggestions.length > 1 && (
+              <div className="flex items-center justify-between px-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-500 hover:text-gray-700"
+                  onClick={handleNextSuggestion}
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Toon andere suggestie ({currentIndex + 1}/{suggestions.length})
+                </Button>
+              </div>
+            )}
           </div>
         ) : null}
       </div>
 
-      {/* Village Section */}
       <div className="w-full">
         <div
           className="rounded-xl p-6 relative overflow-hidden min-h-[200px]"
@@ -176,7 +192,6 @@ export default function HomeView() {
         </div>
       </div>
 
-      {/* Learning Section */}
       <div className="w-full">
         <div
           className="rounded-xl p-6 relative overflow-hidden mb-4"
@@ -191,7 +206,6 @@ export default function HomeView() {
             </div>
           </div>
 
-          {/* One Card */}
           <div className="space-y-3">
             {OneCard.map((video, index) => (
               <Link key={index} href="/learn">

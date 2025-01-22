@@ -1403,6 +1403,36 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
     }
   });
 
+  app.get("/api/suggestions/all", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const user = req.user as User;
+    const now = new Date();
+
+    try {
+      // Find unused, non-expired suggestions
+      const suggestions = await db.query.promptSuggestions.findMany({
+        where: and(
+          eq(promptSuggestions.userId, user.id),
+          isNull(promptSuggestions.usedAt),
+          gte(promptSuggestions.expiresAt, now),
+        ),
+        orderBy: [
+          desc(promptSuggestions.relevance),
+          desc(promptSuggestions.createdAt),
+        ],
+        limit: 3, // Limit to 3 suggestions
+      });
+
+      res.json(suggestions);
+    } catch (error) {
+      console.error("Error fetching suggestions:", error);
+      res.status(500).json({ message: "Failed to fetch suggestions" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
