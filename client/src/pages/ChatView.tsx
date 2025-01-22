@@ -494,11 +494,18 @@ export default function ChatView() {
   );
 }
 
+const replaceTemplateVariables = (content: string) => {
+  const now = new Date();
+  const formattedDateTime = format(now, "d MMMM yyyy 'om' HH:mm");
+  return content.replace(/{{currentDateTime}}/g, formattedDateTime);
+};
+
 const formatMessageContent = (content: string) => {
+  const processedContent = replaceTemplateVariables(content);
   return (
     <div
       className="prose prose-sm max-w-none dark:prose-invert"
-      dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
+      dangerouslySetInnerHTML={{ __html: renderMarkdown(processedContent) }}
     />
   );
 };
