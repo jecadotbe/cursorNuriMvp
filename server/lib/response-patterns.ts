@@ -12,14 +12,28 @@ export const RESPONSE_STRUCTURES = {
   STEP_BY_STEP: 'step_by_step'
 } as const;
 
-export const getRandomPattern = () => {
-  const patterns = Object.values(RESPONSE_PATTERNS);
-  return patterns[Math.floor(Math.random() * patterns.length)];
+// Map onboarding preferences to response patterns
+export const ONBOARDING_TO_PATTERN_MAP = {
+  'direct': RESPONSE_PATTERNS.DIRECT,
+  'detailed': RESPONSE_PATTERNS.STORY_BASED,
+  'collaborative': RESPONSE_PATTERNS.COLLABORATIVE,
+  'supportive': RESPONSE_PATTERNS.REFLECTIVE,
+} as const;
+
+// Map communication styles to appropriate structures
+export const STYLE_TO_STRUCTURE_MAP = {
+  'direct': RESPONSE_STRUCTURES.PRACTICAL_FIRST,
+  'detailed': RESPONSE_STRUCTURES.STEP_BY_STEP,
+  'collaborative': RESPONSE_STRUCTURES.SCENARIO_BASED,
+  'supportive': RESPONSE_STRUCTURES.VALIDATE_FIRST,
+} as const;
+
+export const getPatternForUser = (communicationPreference: string) => {
+  return ONBOARDING_TO_PATTERN_MAP[communicationPreference as keyof typeof ONBOARDING_TO_PATTERN_MAP] || RESPONSE_PATTERNS.REFLECTIVE;
 };
 
-export const getRandomStructure = () => {
-  const structures = Object.values(RESPONSE_STRUCTURES);
-  return structures[Math.floor(Math.random() * structures.length)];
+export const getStructureForUser = (communicationPreference: string) => {
+  return STYLE_TO_STRUCTURE_MAP[communicationPreference as keyof typeof STYLE_TO_STRUCTURE_MAP] || RESPONSE_STRUCTURES.VALIDATE_FIRST;
 };
 
 // Pattern-specific prompt additions
