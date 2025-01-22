@@ -154,25 +154,29 @@ export default function ChatHistoryView() {
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[425px]">
                           <DialogHeader>
-                            <DialogTitle>Edit Chat Title</DialogTitle>
+                            <DialogTitle>Titel aanpassen</DialogTitle>
                           </DialogHeader>
                           <div className="grid gap-4 py-4">
                             <Input
                               id="title"
                               defaultValue={chat.title || ''}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  const newTitle = e.currentTarget.value;
-                                  if (newTitle && newTitle !== chat.title) {
-                                    fetch(`/api/chats/${chat.id}`, {
-                                      method: 'PATCH',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ title: newTitle })
-                                    }).then(() => window.location.reload());
-                                  }
+                            />
+                          </div>
+                          <div className="flex justify-end mt-4">
+                            <Button
+                              onClick={() => {
+                                const newTitle = (document.getElementById('title') as HTMLInputElement).value;
+                                if (newTitle && newTitle !== chat.title) {
+                                  fetch(`/api/chats/${chat.id}`, {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ title: newTitle })
+                                  }).then(() => window.location.reload());
                                 }
                               }}
-                            />
+                            >
+                              Opslaan
+                            </Button>
                           </div>
                         </DialogContent>
                       </Dialog>
