@@ -20,7 +20,6 @@ import { PromptLibrary } from "@/components/PromptLibrary";
 import { useVoiceInput } from "@/hooks/use-voice-input";
 import { MicrophoneVisualizer } from "@/components/MicrophoneVisualizer";
 import { ResponsePatternPreview } from "@/components/ResponsePatternPreview";
-import ReactMarkdown from 'react-markdown';
 
 const theme = {
   primary: 'bg-[#DEDBCA]',
@@ -275,14 +274,6 @@ export default function ChatView() {
     await sendMessage(suggestion);
   };
 
-  const formatMessageContent = (content: string) => {
-    return (
-      <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-headings:my-2">
-        <ReactMarkdown>{content}</ReactMarkdown>
-      </div>
-    );
-  };
-
   return (
     <div className="flex flex-col h-screen animate-gradient" style={{
       backgroundSize: "400% 400%",
@@ -336,7 +327,7 @@ export default function ChatView() {
             <Avatar sender={message.role} />
             <div className="flex flex-col">
               <div
-                className={`px-4 py-3 rounded-2xl max-w-[80%] sm:max-w-[70%] md:max-w-[60%] chat-message ${
+                className={`px-4 py-3 rounded-2xl  max-w-[280px] chat-message ${
                   message.role === 'user'
                     ? `${theme.primary} ${theme.text.primary}`
                     : `${theme.secondary} ${theme.text.secondary}`
@@ -344,7 +335,7 @@ export default function ChatView() {
               >
                 {message.role === 'assistant' ? (
                   <>
-                    <div className="prose prose-sm prose-stone dark:prose-invert max-w-none">
+                    <div>
                       {formatMessageContent(message.content)}
                     </div>
                     {message.role === 'assistant' &&
@@ -501,6 +492,38 @@ export default function ChatView() {
     </div>
   );
 }
+
+const formatMessageContent = (content: string) => {
+  return content
+    .split('\n\n')
+    .map(paragraph => {
+      // Handle numbered lists
+      if (paragraph.match(/^\d+\./)) {
+        const items = paragraph.split('\n').map(item =>
+          item.replace(/^\d+\.\s*(.*)$/, '<li>$1</li>')
+        ).join('');
+        return `<ol>${items}</ol>`;
+      }
+      // Handle bullet points
+      if (paragraph.match(/^[*-]/)) {
+        const items = paragraph.split('\n').map(item =>
+          item.replace(/^[*-]\s*(.*)$/, '<li>$1</li>')
+        ).join('');
+        return `<ul>${items}</ul>`;
+      }
+      // Handle existing formatting
+      paragraph = paragraph.replace(/\*(.*?)\*/g, '<em>$1</em>');
+      paragraph = paragraph.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      return paragraph;
+    })
+    .map((paragraph, i) => (
+      <p
+        key={i}
+        className={`${i > 0 ? 'mt-4' : ''} [&>ul]:list-disc [&>ul]:ml-4 [&>ol]:list-decimal [&>ol]:ml-4 [&>li]:ml-2`}
+        dangerouslySetInnerHTML={{ __html: paragraph }}
+      />
+    ));
+};
 
 const TypingIndicator = () => (
   <div className="flex space-x-2 p-3 bg-gray-100 rounded-2xl w-16">

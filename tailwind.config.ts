@@ -13,57 +13,15 @@ export default {
       typography: {
         DEFAULT: {
           css: {
-            color: 'inherit',
-            p: {
+            'p:not(:first-child)': {
               marginTop: '1em',
-              marginBottom: '1em',
             },
-            'ul, ol': {
-              padding: '0 0 0 1.5em',
-              margin: '1em 0',
-            },
-            'ul > li': {
-              paddingLeft: '0.375em',
-              position: 'relative',
-            },
-            'ol > li': {
-              paddingLeft: '0.375em',
-            },
-            table: {
-              borderCollapse: 'collapse',
-              marginTop: '1em',
-              marginBottom: '1em',
-            },
-            'table th, table td': {
-              border: '1px solid #e5e7eb',
-              padding: '0.5em 1em',
-            },
-            'table th': {
-              backgroundColor: '#f9fafb',
-              fontWeight: '600',
-            },
-            code: {
-              color: 'inherit',
-              backgroundColor: '#f3f4f6',
-              borderRadius: '0.25em',
-              padding: '0.2em 0.4em',
-            },
-            'pre code': {
-              backgroundColor: 'transparent',
-              padding: '0',
-            },
-            'blockquote p': {
-              borderLeftWidth: '4px',
-              borderLeftColor: '#e5e7eb',
-              paddingLeft: '1em',
+            'em': {
               fontStyle: 'italic',
-            },
-            strong: {
-              fontWeight: '600',
               color: 'inherit',
             },
-            em: {
-              fontStyle: 'italic',
+            'strong': {
+              fontWeight: '600',
               color: 'inherit',
             },
           },
