@@ -39,7 +39,7 @@ export default function AuthPage() {
         <CardContent>
           <Tabs defaultValue="login">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
+              <TabsTrigger value="login">Inloggen</TabsTrigger>
               <TabsTrigger value="register">Registreren</TabsTrigger>
             </TabsList>
 
@@ -53,7 +53,7 @@ export default function AuthPage() {
                   className="space-y-4"
                 >
                   <div className="space-y-2">
-                    <Label htmlFor="username">Username</Label>
+                    <Label htmlFor="username">Gebruikersnaam</Label>
                     <Input
                       id="username"
                       type="text"
@@ -63,7 +63,7 @@ export default function AuthPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
+                    <Label htmlFor="password">Wachtwoord</Label>
                     <Input
                       id="password"
                       type="password"
@@ -78,10 +78,10 @@ export default function AuthPage() {
                     disabled={isSubmitting}
                   >
                     {isSubmitting
-                      ? "Loading..."
+                      ? "Laden..."
                       : tab === "login"
-                      ? "Login"
-                      : "Register"}
+                      ? "Inloggen"
+                      : "Registreren"}
                   </Button>
                 </form>
               </TabsContent>
