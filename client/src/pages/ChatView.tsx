@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 import { useChat } from "@/hooks/use-chat";
-import { useSuggestion } from "@/hooks/use-suggestion";
 import { Link, useLocation } from "wouter";
 import { ArrowLeft, Plus, Mic, ArrowUpCircle, Expand, Circle, BookOpen, RefreshCw, Star } from "lucide-react";
 import { format } from "date-fns";
@@ -43,7 +42,6 @@ const DEFAULT_SUGGESTIONS = [
 
 export default function ChatView() {
   const { messages, sendMessage, isLoading, chatId } = useChat();
-  const { generateSuggestions, isLoading: isSuggestionsLoading } = useSuggestion();
   const [inputText, setInputText] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPromptLibrary, setShowPromptLibrary] = useState(false);
@@ -67,7 +65,7 @@ export default function ChatView() {
       }
     }
   );
-
+  
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -228,16 +226,51 @@ export default function ChatView() {
 
     setIsLoadingSuggestions(true);
     try {
-      console.log('Generating suggestions for chat:', chatId);
-      console.log('Last message:', messages[messages.length - 1]?.content);
+      if (!messages.length) {
+      setCurrentSuggestions(DEFAULT_SUGGESTIONS);
+      return;
+    }
 
-      const suggestions = await generateSuggestions(
-        Number(chatId),
-        messages[messages.length - 1]?.content || ''
-      );
+    const response = await fetch(`/api/suggestions/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chatId: chatId || null,
+          lastMessageContent: messages[messages.length - 1]?.content || ''
+        }),
+        credentials: 'include',
+      });
 
-      console.log('Received suggestions:', suggestions);
-      setCurrentSuggestions(suggestions);
+    // Log the response for debugging
+    const responseText = await response.text();
+    console.log('Suggestions API response:', responseText);
+
+    if (!response.ok) {
+      throw new Error(`Failed to generate suggestions: ${response.status} - ${responseText}`);
+    }
+
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.error('Failed to parse suggestions response:', e);
+      throw new Error('Invalid response format: expected JSON');
+    }
+
+      if (!response.ok) {
+        throw new Error(`Failed to generate suggestions: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!data || !Array.isArray(data.suggestions)) {
+        console.error('Invalid response format:', data);
+        throw new Error('Invalid response format: expected suggestions array');
+      }
+
+      setCurrentSuggestions(data.suggestions);
     } catch (error) {
       console.error('Error generating suggestions:', error);
       toast({
@@ -260,7 +293,6 @@ export default function ChatView() {
     setCurrentSuggestions([]);
     await sendMessage(suggestion);
   };
-
 
   return (
     <div className="flex flex-col h-screen animate-gradient" style={{
@@ -289,7 +321,7 @@ export default function ChatView() {
           >
             <BookOpen className="w-6 h-6 text-[#629785]" />
           </button>
-
+          
           <button
             onClick={() => setShowNewChatDialog(true)}
             className={`p-2 ${theme.accent} hover:bg-[#4A7566] rounded-full`}
@@ -400,7 +432,7 @@ export default function ChatView() {
                     generateContextualSuggestions();
                     setShowSuggestions(true);
                   }}
-                  disabled={isLoadingSuggestions || !chatId || isSuggestionsLoading}
+                  disabled={isLoadingSuggestions || !chatId}
                   className="flex items-center gap-2"
                 >
                   <RefreshCw className={`w-4 h-4 ${isLoadingSuggestions ? 'animate-spin' : ''}`} />
@@ -456,7 +488,7 @@ export default function ChatView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
+      
       {/* Hide navigation on this page */}
       <style>{`
         nav {
