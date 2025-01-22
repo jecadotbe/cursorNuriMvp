@@ -19,6 +19,7 @@ import { useUser } from "@/hooks/use-user";
 import { PromptLibrary } from "@/components/PromptLibrary";
 import { useVoiceInput } from "@/hooks/use-voice-input";
 import { MicrophoneVisualizer } from "@/components/MicrophoneVisualizer";
+import { ResponsePatternPreview } from "@/components/ResponsePatternPreview";
 
 const theme = {
   primary: 'bg-[#DEDBCA]',
@@ -43,7 +44,7 @@ export default function ChatView() {
   const [inputText, setInputText] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPromptLibrary, setShowPromptLibrary] = useState(false);
-const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [currentSuggestions, setCurrentSuggestions] = useState<string[]>(DEFAULT_SUGGESTIONS);
@@ -63,6 +64,18 @@ const [showSuggestions, setShowSuggestions] = useState(false);
       }
     }
   );
+  const [showPatternPreview, setShowPatternPreview] = useState(false);
+  const [currentPattern, setCurrentPattern] = useState({
+    type: 'REFLECTIVE',
+    structure: 'VALIDATE_FIRST',
+    progress: {
+      empathy: 0,
+      advice: 0,
+      examples: 0
+    },
+    wordCount: 0,
+    isCompliant: true
+  });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -289,6 +302,12 @@ const [showSuggestions, setShowSuggestions] = useState(false);
             <BookOpen className="w-6 h-6 text-[#629785]" />
           </button>
           <button
+            onClick={() => setShowPatternPreview(!showPatternPreview)}
+            className="p-2 hover:bg-gray-100 rounded-lg"
+          >
+            <BookOpen className="w-6 h-6 text-[#629785]" />
+          </button>
+          <button
             onClick={() => setShowNewChatDialog(true)}
             className={`p-2 ${theme.accent} hover:bg-[#4A7566] rounded-full`}
           >
@@ -454,6 +473,16 @@ const [showSuggestions, setShowSuggestions] = useState(false);
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <ResponsePatternPreview
+        currentPattern={currentPattern}
+        isVisible={showPatternPreview}
+        onPatternChange={(pattern) => {
+          setCurrentPattern(prev => ({
+            ...prev,
+            ...pattern
+          }));
+        }}
+      />
       {/* Hide navigation on this page */}
       <style>{`
         nav {
@@ -470,14 +499,14 @@ const formatMessageContent = (content: string) => {
     .map(paragraph => {
       // Handle numbered lists
       if (paragraph.match(/^\d+\./)) {
-        const items = paragraph.split('\n').map(item => 
+        const items = paragraph.split('\n').map(item =>
           item.replace(/^\d+\.\s*(.*)$/, '<li>$1</li>')
         ).join('');
         return `<ol>${items}</ol>`;
       }
       // Handle bullet points
       if (paragraph.match(/^[*-]/)) {
-        const items = paragraph.split('\n').map(item => 
+        const items = paragraph.split('\n').map(item =>
           item.replace(/^[*-]\s*(.*)$/, '<li>$1</li>')
         ).join('');
         return `<ul>${items}</ul>`;
