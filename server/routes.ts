@@ -11,7 +11,6 @@ import { anthropic } from "./anthropic";
 import type { User } from "./auth";
 import { memoryService } from "./services/memory";
 import { villageRouter } from "./routes/village";
-import { search } from "./rag";
 
 export function registerRoutes(app: Express): Server {
   // Add file upload middleware
@@ -891,7 +890,7 @@ ADDITIONAL INSTRUCTIONS:
 
     try {
       // Generate title, summary, and emotional context analysis only if there are messages
-      if (messages.length> 0) {
+      if (messages.length > 0) {
         const analyzeResponse = await anthropic.messages.create({
           model: "claude-3-5-sonnet-20241022",
           max_tokens: 1024,
@@ -1401,25 +1400,6 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
     } catch (error) {
       console.error("Failed to update insight:", error);
       res.status(500).json({ message: "Failed to update insight" });
-    }
-  });
-
-  // Test RAG search endpoint
-  app.get("/api/search", async (req, res) => {
-    try {
-      const query = req.query.q as string;
-      if (!query) {
-        return res.status(400).json({ error: "Query parameter 'q' is required" });
-      }
-
-      const results = await search(query);
-      res.json(results);
-    } catch (error) {
-      console.error("Search error:", error);
-      res.status(500).json({ 
-        error: "Search failed", 
-        details: error instanceof Error ? error.message : "Unknown error" 
-      });
     }
   });
 
