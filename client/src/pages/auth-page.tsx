@@ -18,16 +18,44 @@ export default function AuthPage() {
   const handleSubmit = async (action: "login" | "register") => {
     setIsSubmitting(true);
     setError(null);
+    
+    if (!username || !password) {
+      setError("Gebruikersnaam en wachtwoord zijn verplicht");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Wachtwoord moet minimaal 6 tekens bevatten");
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       if (action === "login") {
         await login({ username, password });
       } else {
+        if (username.length < 3) {
+          throw new Error("Gebruikersnaam moet minimaal 3 tekens bevatten");
+        }
         await register({ username, password });
         // After successful registration, redirect to onboarding
         setLocation("/onboarding");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Er is een fout opgetreden");
+      if (err instanceof Error) {
+        if (err.message.includes("already exists")) {
+          setError("Deze gebruikersnaam bestaat al");
+        } else if (err.message.includes("Incorrect password")) {
+          setError("Incorrect wachtwoord");
+        } else if (err.message.includes("Incorrect username")) {
+          setError("Gebruikersnaam niet gevonden");
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError("Er is een fout opgetreden");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -77,7 +105,9 @@ export default function AuthPage() {
                     />
                   </div>
                   {error && (
-                    <div className="text-red-500 text-sm mb-4">{error}</div>
+                    <div className="bg-destructive/10 text-destructive px-3 py-2 rounded-md text-sm mb-4">
+                      {error}
+                    </div>
                   )}
                   <Button
                     type="submit"
