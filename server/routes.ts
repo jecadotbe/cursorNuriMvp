@@ -610,10 +610,10 @@ ${villageContextString || 'No village context available'}
 3. Conversation History:
 ${relevantMemories && relevantMemories.length > 0
   ? relevantMemories
-      .filter(m => m.relevance && m.relevance >= 0.6)
-      .slice(0, 3)
-      .map((m) => `Previous relevant conversation (relevance: ${m.relevance?.toFixed(2)}): ${m.content}`)
-      .join("\n\n")
+    .filter(m => m.relevance && m.relevance >= 0.6)
+    .slice(0, 3)
+    .map((m) => `Previous relevant conversation (relevance: ${m.relevance?.toFixed(2)}): ${m.content}`)
+    .join("\n\n")
   : 'No relevant conversation history'}
 
 -------------------
@@ -883,7 +883,7 @@ ADDITIONAL INSTRUCTIONS:
       orderBy: desc(chats.updatedAt),
     });
 
-    res.json(userChats);
+    res.json(useruserChats);
   });
 
   app.get("/api/chats/latest", async (req, res) => {    if (!req.isAuthenticated() || !req.user) {
