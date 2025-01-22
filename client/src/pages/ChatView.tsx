@@ -336,7 +336,7 @@ export default function ChatView() {
             <Avatar sender={message.role} />
             <div className="flex flex-col">
               <div
-                className={`px-4 py-3 rounded-2xl  max-w-[280px] chat-message ${
+                className={`px-4 py-3 rounded-2xl max-w-[80%] sm:max-w-[70%] md:max-w-[60%] chat-message ${
                   message.role === 'user'
                     ? `${theme.primary} ${theme.text.primary}`
                     : `${theme.secondary} ${theme.text.secondary}`
@@ -344,7 +344,7 @@ export default function ChatView() {
               >
                 {message.role === 'assistant' ? (
                   <>
-                    <div>
+                    <div className="prose prose-sm prose-stone dark:prose-invert max-w-none">
                       {formatMessageContent(message.content)}
                     </div>
                     {message.role === 'assistant' &&
