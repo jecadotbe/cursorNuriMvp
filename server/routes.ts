@@ -190,7 +190,7 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
 `
     : ""
 }`;
-
+        // console.log("Saving onboarding content to mem0:\n", onboardingContent);
         await memoryService.createMemory(user.id, onboardingContent, {
           type: "onboarding_profile",
           category: "user_profile",
@@ -619,12 +619,7 @@ Analyze the available context and provide a relevant suggestion. For new users o
           Math.floor(Math.random() * STRUCTURE_PROMPTS.length);
         const pattern = getRandomPattern();
         const structure = getRandomStructure();
-
-        const response = await anthropic.messages.create({
-          model: "claude-3-5-sonnet-20241022",
-          max_tokens: 512,
-          temperature: 0.7,
-          system: `
+        const mainPrompt = `
 CONTEXT SECTIONS:
 
 1. User Profile:
@@ -679,7 +674,15 @@ ADDITIONAL INSTRUCTIONS:
 - Despite the context above, keep responses concise and focused
 - Prioritize addressing the current question directly
 - Use context to inform the response, not to expand it
-`,
+`;
+
+        console.log("the prompt sent to the model is:\n " + mainPrompt);
+
+        const response = await anthropic.messages.create({
+          model: "claude-3-5-sonnet-20241022",
+          max_tokens: 512,
+          temperature: 0.4,
+          system: mainPrompt,
           messages: req.body.messages,
         });
 
