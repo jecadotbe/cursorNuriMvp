@@ -12,10 +12,12 @@ export default function AuthPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [, setLocation] = useLocation();
 
   const handleSubmit = async (action: "login" | "register") => {
     setIsSubmitting(true);
+    setError(null);
     try {
       if (action === "login") {
         await login({ username, password });
@@ -24,6 +26,8 @@ export default function AuthPage() {
         // After successful registration, redirect to onboarding
         setLocation("/onboarding");
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Er is een fout opgetreden");
     } finally {
       setIsSubmitting(false);
     }
@@ -72,6 +76,9 @@ export default function AuthPage() {
                       required
                     />
                   </div>
+                  {error && (
+                    <div className="text-red-500 text-sm mb-4">{error}</div>
+                  )}
                   <Button
                     type="submit"
                     className="w-full"
