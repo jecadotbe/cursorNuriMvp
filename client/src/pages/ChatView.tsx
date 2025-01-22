@@ -65,7 +65,7 @@ export default function ChatView() {
       }
     }
   );
-  
+
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -226,12 +226,7 @@ export default function ChatView() {
 
     setIsLoadingSuggestions(true);
     try {
-      if (!messages.length) {
-      setCurrentSuggestions(DEFAULT_SUGGESTIONS);
-      return;
-    }
-
-    const response = await fetch(`/api/suggestions/generate`, {
+      const response = await fetch(`/api/suggestions/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -243,27 +238,21 @@ export default function ChatView() {
         credentials: 'include',
       });
 
-    // Log the response for debugging
-    const responseText = await response.text();
-    console.log('Suggestions API response:', responseText);
-
-    if (!response.ok) {
-      throw new Error(`Failed to generate suggestions: ${response.status} - ${responseText}`);
-    }
-
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (e) {
-      console.error('Failed to parse suggestions response:', e);
-      throw new Error('Invalid response format: expected JSON');
-    }
+      // Parse response data
+      const responseText = await response.text();
+      console.log('Suggestions API response:', responseText);
 
       if (!response.ok) {
-        throw new Error(`Failed to generate suggestions: ${response.status}`);
+        throw new Error(`Failed to generate suggestions: ${response.status} - ${responseText}`);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Failed to parse suggestions response:', e);
+        throw new Error('Invalid response format: expected JSON');
+      }
 
       if (!data || !Array.isArray(data.suggestions)) {
         console.error('Invalid response format:', data);
@@ -321,7 +310,7 @@ export default function ChatView() {
           >
             <BookOpen className="w-6 h-6 text-[#629785]" />
           </button>
-          
+
           <button
             onClick={() => setShowNewChatDialog(true)}
             className={`p-2 ${theme.accent} hover:bg-[#4A7566] rounded-full`}
@@ -488,7 +477,7 @@ export default function ChatView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
+
       {/* Hide navigation on this page */}
       <style>{`
         nav {
