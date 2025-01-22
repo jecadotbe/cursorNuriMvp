@@ -238,21 +238,12 @@ export default function ChatView() {
         credentials: 'include',
       });
 
-      // Parse response data
-      const responseText = await response.text();
-      console.log('Suggestions API response:', responseText);
-
       if (!response.ok) {
-        throw new Error(`Failed to generate suggestions: ${response.status} - ${responseText}`);
+        throw new Error(`Failed to generate suggestions: ${response.status}`);
       }
 
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        console.error('Failed to parse suggestions response:', e);
-        throw new Error('Invalid response format: expected JSON');
-      }
+      const data = await response.json();
+      console.log('Parsed suggestions response:', data);
 
       if (!data || !Array.isArray(data.suggestions)) {
         console.error('Invalid response format:', data);

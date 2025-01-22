@@ -1,7 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
-import type { Chat, PromptSuggestion } from "@db/schema";
+import type { Chat } from "@db/schema";
 import { useToast } from "./use-toast";
 import { useUser } from "./use-user";
+
+interface Suggestion {
+  id: number;
+  text: string;
+  type: string;
+  context: string;
+  relevance: number;
+  relatedChatId: number | null;
+  relatedChatTitle: string | null;
+  usedAt: Date | null;
+  expiresAt: Date;
+}
 
 async function fetchChatHistory(): Promise<Chat[]> {
   const response = await fetch("/api/chats?sort=desc", {
@@ -9,17 +21,13 @@ async function fetchChatHistory(): Promise<Chat[]> {
   });
 
   if (!response.ok) {
-    if (response.status >= 500) {
-      throw new Error(`${response.status}: ${response.statusText}`);
-    }
-
     throw new Error(`${response.status}: ${await response.text()}`);
   }
 
   return response.json();
 }
 
-async function fetchSuggestion(): Promise<PromptSuggestion> {
+async function fetchSuggestion(): Promise<Suggestion> {
   const response = await fetch('/api/suggestions', {
     credentials: 'include',
   });
@@ -46,10 +54,15 @@ export function useChatHistory() {
   const { toast } = useToast();
   const { user, isLoading: isUserLoading } = useUser();
 
-  const { data: chats = [], isLoading: isChatsLoading, error: chatsError, refetch: refetchChats } = useQuery<Chat[], Error>({
+  const { 
+    data: chats = [], 
+    isLoading: isChatsLoading, 
+    error: chatsError, 
+    refetch: refetchChats 
+  } = useQuery<Chat[], Error>({
     queryKey: ["chats"],
     queryFn: fetchChatHistory,
-    enabled: !!user, // Only fetch when user is authenticated
+    enabled: !!user,
   });
 
   const { 
@@ -57,19 +70,11 @@ export function useChatHistory() {
     isLoading: isSuggestionLoading,
     error: suggestionError,
     refetch: refetchSuggestion 
-  } = useQuery<PromptSuggestion>({
+  } = useQuery<Suggestion>({
     queryKey: ["suggestion"],
     queryFn: fetchSuggestion,
-    enabled: !!user, // Only fetch when user is authenticated
+    enabled: !!user,
     retry: false,
-    onError: (error) => {
-      console.error('Failed to fetch suggestion:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load suggestion",
-      });
-    },
   });
 
   const getLatestPrompt = async () => {
@@ -91,7 +96,6 @@ export function useChatHistory() {
         };
       }
 
-      // Fallback to default prompt if no suggestion is available
       return {
         prompt: {
           text: "Let's talk about your parenting journey",
@@ -101,7 +105,6 @@ export function useChatHistory() {
       };
     } catch (error) {
       console.error('Failed to get prompt:', error);
-      // Provide a safe fallback
       return {
         prompt: {
           text: "Let's continue our conversation about parenting",
@@ -115,7 +118,7 @@ export function useChatHistory() {
   const markPromptAsUsed = async (suggestionId: number) => {
     try {
       await markSuggestionAsUsed(suggestionId);
-      await refetchSuggestion(); // Fetch a new suggestion after marking the current one as used
+      await refetchSuggestion();
     } catch (error) {
       console.error('Failed to mark suggestion as used:', error);
       toast({
