@@ -579,6 +579,7 @@ Analyze the available context and provide a relevant suggestion. For new users o
   });
 
   app.post("/api/chat", async (req, res) => {
+    console.log("the current request is:\n" + req.body.messages);
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
     }
@@ -620,7 +621,19 @@ Analyze the available context and provide a relevant suggestion. For new users o
         const pattern = getRandomPattern();
         const structure = getRandomStructure();
         const mainPrompt = `
-CONTEXT SECTIONS:
+
+${NURI_SYSTEM_PROMPT}
+
+RESPONSE STYLE:
+- ${PATTERN_PROMPTS[pattern]}
+- ${STRUCTURE_PROMPTS[structure]}
+- If there is relevant conversation history that mentions a specific response style that the user likes, use that response style.
+
+ADDITIONAL INSTRUCTIONS:
+- Prioritize addressing the current question directly
+- Use context to inform the response, not to expand it
+
+CONTEXT SECTIONS RELATED TO CURRENT USER:
 
 1. User Profile:
 ${
@@ -662,18 +675,6 @@ These contents are coming mainly from 2 books that are written by "Lynn Geerinck
 <start helper content>
 ${mergedRAG || "No relevant content available"}
 <end helper content>
-CONTEXT:
--------------------
-${NURI_SYSTEM_PROMPT}
-
-RESPONSE STYLE:
-${PATTERN_PROMPTS[pattern]}
-${STRUCTURE_PROMPTS[structure]}
-
-ADDITIONAL INSTRUCTIONS:
-- Despite the context above, keep responses concise and focused
-- Prioritize addressing the current question directly
-- Use context to inform the response, not to expand it
 `;
 
         console.log("the prompt sent to the model is:\n " + mainPrompt);
