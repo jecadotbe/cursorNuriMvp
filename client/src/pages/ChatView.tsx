@@ -226,31 +226,11 @@ export default function ChatView() {
 
     setIsLoadingSuggestions(true);
     try {
-      const response = await fetch(`/api/suggestions/generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          chatId: chatId || null,
-          lastMessageContent: messages[messages.length - 1]?.content || ''
-        }),
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to generate suggestions: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Parsed suggestions response:', data);
-
-      if (!data || !Array.isArray(data.suggestions)) {
-        console.error('Invalid response format:', data);
-        throw new Error('Invalid response format: expected suggestions array');
-      }
-
-      setCurrentSuggestions(data.suggestions);
+      const suggestions = await generateSuggestions(
+        chatId,
+        messages[messages.length - 1]?.content || ''
+      );
+      setCurrentSuggestions(suggestions);
     } catch (error) {
       console.error('Error generating suggestions:', error);
       toast({
@@ -273,6 +253,32 @@ export default function ChatView() {
     setCurrentSuggestions([]);
     await sendMessage(suggestion);
   };
+
+  // Placeholder for the actual implementation.  Replace with your actual function.
+  const generateSuggestions = async (chatId: string | null, lastMessage: string): Promise<string[]> => {
+    const response = await fetch(`/api/suggestions/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        chatId: chatId || null,
+        lastMessageContent: lastMessage
+      }),
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to generate suggestions: ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (!data || !Array.isArray(data.suggestions)) {
+      throw new Error('Invalid response format: expected suggestions array');
+    }
+    return data.suggestions;
+  };
+
 
   return (
     <div className="flex flex-col h-screen animate-gradient" style={{

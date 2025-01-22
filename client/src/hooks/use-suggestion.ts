@@ -1,32 +1,66 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { PromptSuggestion } from "@db/schema";
-import { useToast } from "./use-toast";
+import { useToast } from "@/hooks/use-toast";
 
-async function fetchSuggestion(): Promise<PromptSuggestion> {
-  const response = await fetch('/api/suggestions', {
-    credentials: 'include',
-  });
+interface Suggestion {
+  id: number;
+  text: string;
+  type: string;
+  context: string;
+  relevance: number;
+}
 
-  if (!response.ok) {
-    throw new Error(`${response.status}: ${await response.text()}`);
-  }
-
-  return response.json();
+interface GenerateSuggestionsResponse {
+  suggestions: string[];
 }
 
 export function useSuggestion() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const generateSuggestions = async (chatId: number | null, lastMessageContent: string): Promise<string[]> => {
+    try {
+      const response = await fetch(`/api/suggestions/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chatId,
+          lastMessageContent
+        }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate suggestions');
+      }
+
+      const data: GenerateSuggestionsResponse = await response.json();
+      return data.suggestions || [];
+    } catch (error) {
+      console.error('Error generating suggestions:', error);
+      throw error;
+    }
+  };
+
   const {
-    data: suggestion,
+    data: currentSuggestion,
     isLoading,
     error,
     refetch
-  } = useQuery({
+  } = useQuery<Suggestion>({
     queryKey: ['suggestion'],
-    queryFn: fetchSuggestion,
-    gcTime: 0, // Don't cache invalidated data
+    queryFn: async () => {
+      const response = await fetch('/api/suggestions', {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch suggestion');
+      }
+
+      return response.json();
+    },
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
   });
 
@@ -38,26 +72,26 @@ export function useSuggestion() {
       });
 
       if (!response.ok) {
-        throw new Error(`${response.status}: ${await response.text()}`);
+        throw new Error('Failed to mark suggestion as used');
       }
 
-      // Invalidate the suggestion query to fetch a new one
       queryClient.invalidateQueries({ queryKey: ['suggestion'] });
     } catch (error) {
-      console.error('Failed to mark suggestion as used:', error);
+      console.error('Error marking suggestion as used:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to mark suggestion as used",
+        description: "Failed to mark suggestion as used"
       });
     }
   };
 
   return {
-    suggestion,
+    currentSuggestion,
     isLoading,
     error,
     refetch,
+    generateSuggestions,
     markAsUsed,
   };
 }
