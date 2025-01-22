@@ -601,7 +601,9 @@ Analyze the available context and provide a relevant suggestion. For new users o
           2,
         );
 
-        console.log(ragContext);
+        const ragContent = ragContext.map((document) => document.pageContent);
+        console.log("Amr is here:");
+        console.log(ragContent);
 
         // Get relevant memories for context
         const relevantMemories = await memoryService.getRelevantMemories(
