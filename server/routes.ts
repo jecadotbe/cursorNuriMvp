@@ -11,6 +11,7 @@ import { anthropic } from "./anthropic";
 import type { User } from "./auth";
 import { memoryService } from "./services/memory";
 import { villageRouter } from "./routes/village";
+import { search } from "./rag";
 
 export function registerRoutes(app: Express): Server {
   // Add file upload middleware
@@ -21,6 +22,28 @@ export function registerRoutes(app: Express): Server {
   }));
 
   setupAuth(app);
+
+  // Add the test route for RAG search
+  app.post("/api/rag/search", async (req, res) => {
+    try {
+      const { query, limit } = req.body;
+
+      if (!query || typeof query !== "string") {
+        return res.status(400).json({ 
+          error: "Query parameter is required and must be a string" 
+        });
+      }
+
+      const results = await search(query, limit);
+      res.json({ results });
+    } catch (error) {
+      console.error("RAG search error:", error);
+      res.status(500).json({ 
+        error: "Failed to perform search",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
 
   // Add onboarding routes
   app.get("/api/onboarding/progress", async (req, res) => {
@@ -578,7 +601,7 @@ ${profile?.onboardingData ? `
 - Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel || 'Not specified'}
 - Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ") || 'None specified'}
 ${profile.onboardingData.childProfiles?.map(
-    (child: any) => `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`
+    (child: any) => `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, special needs: ${child.specialNeeds.join(", ")}` : ""}`
   ).join("\n") || 'No children profiles specified'}` : ''}
 
 2. Village Network:
@@ -863,8 +886,7 @@ ADDITIONAL INSTRUCTIONS:
     res.json(userChats);
   });
 
-  app.get("/api/chats/latest", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
+  app.get("/api/chats/latest", async (req, res) => {    if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
     }
 
