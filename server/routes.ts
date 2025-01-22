@@ -2,7 +2,17 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
-import { users, villageMembers, villageMemberMemories, villageMemberInteractions, chats, messageFeedback, promptSuggestions, suggestionFeedback, parentProfiles } from "@db/schema";
+import {
+  users,
+  villageMembers,
+  villageMemberMemories,
+  villageMemberInteractions,
+  chats,
+  messageFeedback,
+  promptSuggestions,
+  suggestionFeedback,
+  parentProfiles,
+} from "@db/schema";
 import path from "path";
 import fs from "fs/promises";
 import fileUpload from "express-fileupload";
@@ -11,39 +21,18 @@ import { anthropic } from "./anthropic";
 import type { User } from "./auth";
 import { memoryService } from "./services/memory";
 import { villageRouter } from "./routes/village";
-import { search } from "./rag";
 
 export function registerRoutes(app: Express): Server {
   // Add file upload middleware
-  app.use(fileUpload({
-    limits: { fileSize: 2 * 1024 * 1024 }, // 2MB max file size
-    abortOnLimit: true,
-    createParentPath: true
-  }));
+  app.use(
+    fileUpload({
+      limits: { fileSize: 2 * 1024 * 1024 }, // 2MB max file size
+      abortOnLimit: true,
+      createParentPath: true,
+    }),
+  );
 
   setupAuth(app);
-
-  // Add the test route for RAG search
-  app.post("/api/rag/search", async (req, res) => {
-    try {
-      const { query, limit } = req.body;
-
-      if (!query || typeof query !== "string") {
-        return res.status(400).json({ 
-          error: "Query parameter is required and must be a string" 
-        });
-      }
-
-      const results = await search(query, limit);
-      res.json({ results });
-    } catch (error) {
-      console.error("RAG search error:", error);
-      res.status(500).json({ 
-        error: "Failed to perform search",
-        details: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
 
   // Add onboarding routes
   app.get("/api/onboarding/progress", async (req, res) => {
@@ -61,13 +50,13 @@ export function registerRoutes(app: Express): Server {
       res.json({
         currentOnboardingStep: profile?.currentOnboardingStep || 1,
         completedOnboarding: profile?.completedOnboarding || false,
-        onboardingData: profile?.onboardingData || {}
+        onboardingData: profile?.onboardingData || {},
       });
     } catch (error) {
       console.error("Failed to fetch onboarding progress:", error);
       res.status(500).json({
         message: "Failed to fetch onboarding progress",
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
@@ -106,8 +95,10 @@ export function registerRoutes(app: Express): Server {
             set: {
               name,
               email,
-              stressLevel: data.stressAssessment?.stressLevel as any || undefined,
-              experienceLevel: data.basicInfo?.experienceLevel as any || undefined,
+              stressLevel:
+                (data.stressAssessment?.stressLevel as any) || undefined,
+              experienceLevel:
+                (data.basicInfo?.experienceLevel as any) || undefined,
               currentOnboardingStep: step,
               onboardingData: data,
               updatedAt: new Date(),
@@ -160,8 +151,8 @@ export function registerRoutes(app: Express): Server {
             name: !name,
             email: !email,
             stressLevel: !stressLevel,
-            experienceLevel: !experienceLevel
-          }
+            experienceLevel: !experienceLevel,
+          },
         });
       }
 
@@ -173,31 +164,44 @@ Name: ${name}
 Email: ${email}
 Experience Level: ${experienceLevel}
 Stress Level: ${stressLevel}
-${finalData.stressAssessment?.primaryConcerns ? `Primary Concerns: ${finalData.stressAssessment.primaryConcerns.join(', ')}` : ''}
+${finalData.stressAssessment?.primaryConcerns ? `Primary Concerns: ${finalData.stressAssessment.primaryConcerns.join(", ")}` : ""}
 
-${finalData.childProfiles && Array.isArray(finalData.childProfiles) ?
-          `Children:
-${finalData.childProfiles.map((child: any) =>
-            `- ${child.name} (Age: ${child.age})${child.specialNeeds?.length ? ` Special needs: ${child.specialNeeds.join(', ')}` : ''}`
-          ).join('\n')}` : ''}
+${
+  finalData.childProfiles && Array.isArray(finalData.childProfiles)
+    ? `Children:
+${finalData.childProfiles
+  .map(
+    (child: any) =>
+      `- ${child.name} (Age: ${child.age})${child.specialNeeds?.length ? ` Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
+  )
+  .join("\n")}`
+    : ""
+}
 
-${finalData.goals ? `
+${
+  finalData.goals
+    ? `
 Goals:
-${finalData.goals.shortTerm?.length ? `Short term: ${finalData.goals.shortTerm.join(', ')}` : ''}
-${finalData.goals.longTerm?.length ? `Long term: ${finalData.goals.longTerm.join(', ')}` : ''}
-${finalData.goals.supportAreas?.length ? `Support areas: ${finalData.goals.supportAreas.join(', ')}` : ''}
-Communication preference: ${finalData.goals.communicationPreference || 'Not specified'}
-` : ''}`;
+${finalData.goals.shortTerm?.length ? `Short term: ${finalData.goals.shortTerm.join(", ")}` : ""}
+${finalData.goals.longTerm?.length ? `Long term: ${finalData.goals.longTerm.join(", ")}` : ""}
+${finalData.goals.supportAreas?.length ? `Support areas: ${finalData.goals.supportAreas.join(", ")}` : ""}
+Communication preference: ${finalData.goals.communicationPreference || "Not specified"}
+`
+    : ""
+}`;
 
         await memoryService.createMemory(user.id, onboardingContent, {
-          type: 'onboarding_profile',
-          category: 'user_profile',
-          source: 'onboarding'
+          type: "onboarding_profile",
+          category: "user_profile",
+          source: "onboarding",
         });
 
-        console.log('Successfully stored onboarding data in memory layer');
+        console.log("Successfully stored onboarding data in memory layer");
       } catch (memoryError) {
-        console.error('Failed to store onboarding data in memory:', memoryError);
+        console.error(
+          "Failed to store onboarding data in memory:",
+          memoryError,
+        );
         // Continue with database storage even if memory storage fails
       }
 
@@ -211,7 +215,7 @@ Communication preference: ${finalData.goals.communicationPreference || 'Not spec
           experienceLevel: experienceLevel as any,
           onboardingData: finalData,
           completedOnboarding: true,
-          currentOnboardingStep: 4 // Final step
+          currentOnboardingStep: 4, // Final step
         })
         .onConflictDoUpdate({
           target: parentProfiles.userId,
@@ -223,20 +227,20 @@ Communication preference: ${finalData.goals.communicationPreference || 'Not spec
             onboardingData: finalData,
             completedOnboarding: true,
             currentOnboardingStep: 4,
-            updatedAt: new Date()
-          }
+            updatedAt: new Date(),
+          },
         })
         .returning();
 
       res.json({
         message: "Onboarding completed successfully",
-        profile
+        profile,
       });
     } catch (error) {
       console.error("Failed to complete onboarding:", error);
       res.status(500).json({
         message: "Failed to complete onboarding",
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
@@ -255,19 +259,26 @@ Communication preference: ${finalData.goals.communicationPreference || 'Not spec
     }
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
     if (!allowedTypes.includes(file.mimetype)) {
-      return res.status(400).json({ message: "Invalid file type. Only JPEG, PNG, GIF and WebP images are allowed" });
+      return res
+        .status(400)
+        .json({
+          message:
+            "Invalid file type. Only JPEG, PNG, GIF and WebP images are allowed",
+        });
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      return res.status(400).json({ message: "File size must be less than 2MB" });
+      return res
+        .status(400)
+        .json({ message: "File size must be less than 2MB" });
     }
 
     try {
       // Create unique filename
       const fileName = `profile-${user.id}-${Date.now()}${path.extname(file.name)}`;
-      const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+      const uploadDir = path.join(process.cwd(), "public", "uploads");
       const filePath = path.join(uploadDir, fileName);
 
       // Ensure uploads directory exists
@@ -277,13 +288,14 @@ Communication preference: ${finalData.goals.communicationPreference || 'Not spec
       await file.mv(filePath);
 
       // Update user profile in database
-      await db.update(users)
+      await db
+        .update(users)
         .set({ profilePicture: `/uploads/${fileName}` })
         .where(eq(users.id, user.id));
 
       res.json({ profilePicture: `/uploads/${fileName}` });
     } catch (error) {
-      console.error('Error uploading file:', error);
+      console.error("Error uploading file:", error);
       res.status(500).json({ message: "Failed to upload file" });
     }
   });
@@ -398,21 +410,30 @@ Communication preference: ${finalData.goals.communicationPreference || 'Not spec
       // Build personalized context from onboarding data
       let personalizedContext = "";
       if (profile?.onboardingData) {
-        const childProfiles = Array.isArray(profile.onboardingData.childProfiles) ? profile.onboardingData.childProfiles : [];
+        const childProfiles = Array.isArray(
+          profile.onboardingData.childProfiles,
+        )
+          ? profile.onboardingData.childProfiles
+          : [];
         personalizedContext = `
 Parent's Profile:
-- Experience Level: ${profile.onboardingData.basicInfo?.experienceLevel || 'Not specified'}
-- Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel || 'Not specified'}
-- Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ") || 'None specified'}
-${childProfiles.length > 0
-          ? childProfiles.map((child: any) =>
-              `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`
-            ).join("\n")
-          : 'No children profiles specified'}
+- Experience Level: ${profile.onboardingData.basicInfo?.experienceLevel || "Not specified"}
+- Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel || "Not specified"}
+- Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ") || "None specified"}
+${
+  childProfiles.length > 0
+    ? childProfiles
+        .map(
+          (child: any) =>
+            `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
+        )
+        .join("\n")
+    : "No children profiles specified"
+}
 
 Goals:
-${profile.onboardingData.goals?.shortTerm?.length ? `- Short term goals: ${profile.onboardingData.goals.shortTerm.join(", ")}` : ''}
-${profile.onboardingData.goals?.longTerm?.length ? `- Long term goals: ${profile.onboardingData.goals.longTerm.join(", ")}` : ''}
+${profile.onboardingData.goals?.shortTerm?.length ? `- Short term goals: ${profile.onboardingData.goals.shortTerm.join(", ")}` : ""}
+${profile.onboardingData.goals?.longTerm?.length ? `- Long term goals: ${profile.onboardingData.goals.longTerm.join(", ")}` : ""}
 `;
       }
 
@@ -582,9 +603,13 @@ Analyze the available context and provide a relevant suggestion. For new users o
           req.body.messages[req.body.messages.length - 1].content,
         );
 
-        const { PATTERN_PROMPTS, STRUCTURE_PROMPTS } = await import('./lib/response-patterns');
-        const getRandomPattern = () => Math.floor(Math.random() * PATTERN_PROMPTS.length);
-        const getRandomStructure = () => Math.floor(Math.random() * STRUCTURE_PROMPTS.length);
+        const { PATTERN_PROMPTS, STRUCTURE_PROMPTS } = await import(
+          "./lib/response-patterns"
+        );
+        const getRandomPattern = () =>
+          Math.floor(Math.random() * PATTERN_PROMPTS.length);
+        const getRandomStructure = () =>
+          Math.floor(Math.random() * STRUCTURE_PROMPTS.length);
         const pattern = getRandomPattern();
         const structure = getRandomStructure();
 
@@ -596,25 +621,39 @@ Analyze the available context and provide a relevant suggestion. For new users o
 CONTEXT SECTIONS:
 
 1. User Profile:
-${profile?.onboardingData ? `
-- Experience Level: ${profile.onboardingData.basicInfo?.experienceLevel || 'Not specified'}
-- Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel || 'Not specified'}
-- Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ") || 'None specified'}
-${profile.onboardingData.childProfiles?.map(
-    (child: any) => `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, special needs: ${child.specialNeeds.join(", ")}` : ""}`
-  ).join("\n") || 'No children profiles specified'}` : ''}
+${
+  profile?.onboardingData
+    ? `
+- Experience Level: ${profile.onboardingData.basicInfo?.experienceLevel || "Not specified"}
+- Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel || "Not specified"}
+- Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ") || "None specified"}
+${
+  profile.onboardingData.childProfiles
+    ?.map(
+      (child: any) =>
+        `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
+    )
+    .join("\n") || "No children profiles specified"
+}`
+    : ""
+}
 
 2. Village Network:
-${villageContextString || 'No village context available'}
+${villageContextString || "No village context available"}
 
 3. Conversation History:
-${relevantMemories && relevantMemories.length > 0
-  ? relevantMemories
-    .filter(m => m.relevance && m.relevance >= 0.6)
-    .slice(0, 3)
-    .map((m) => `Previous relevant conversation (relevance: ${m.relevance?.toFixed(2)}): ${m.content}`)
-    .join("\n\n")
-  : 'No relevant conversation history'}
+${
+  relevantMemories && relevantMemories.length > 0
+    ? relevantMemories
+        .filter((m) => m.relevance && m.relevance >= 0.6)
+        .slice(0, 3)
+        .map(
+          (m) =>
+            `Previous relevant conversation (relevance: ${m.relevance?.toFixed(2)}): ${m.content}`,
+        )
+        .join("\n\n")
+    : "No relevant conversation history"
+}
 
 -------------------
 ${NURI_SYSTEM_PROMPT}
@@ -647,8 +686,8 @@ ADDITIONAL INSTRUCTIONS:
               source: "nuri-chat",
               type: "conversation",
               category: "chat_history",
-              timestamp: new Date().toISOString()
-            }
+              timestamp: new Date().toISOString(),
+            },
           );
 
           // Store assistant's response with proper metadata
@@ -659,7 +698,7 @@ ADDITIONAL INSTRUCTIONS:
             source: "nuri-chat",
             type: "conversation",
             category: "chat_history",
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           });
 
           console.log("Successfully stored conversation in memory");
@@ -763,23 +802,35 @@ ADDITIONAL INSTRUCTIONS:
         messages[messages.length - 1]?.content || "",
       );
 
-      console.log("Context analysis - relevant memories found:", relevantMemories.length);
-      console.log("Memory relevance scores:", relevantMemories.map(m => ({
-        relevance: m.relevance,
-        contentPreview: m.content.substring(0, 50)
-      })));
+      console.log(
+        "Context analysis - relevant memories found:",
+        relevantMemories.length,
+      );
+      console.log(
+        "Memory relevance scores:",
+        relevantMemories.map((m) => ({
+          relevance: m.relevance,
+          contentPreview: m.content.substring(0, 50),
+        })),
+      );
 
       // Filter memories by relevance
       const significantMemories = relevantMemories
-        .filter(m => m.relevance && m.relevance >= 0.6)
+        .filter((m) => m.relevance && m.relevance >= 0.6)
         .slice(0, 3);
 
       const memoryContext = significantMemories
-        .map((m) => `Previous relevant conversation (relevance: ${m.relevance?.toFixed(2)}): ${m.content}`)
+        .map(
+          (m) =>
+            `Previous relevant conversation (relevance: ${m.relevance?.toFixed(2)}): ${m.content}`,
+        )
         .join("\n\n");
 
       console.log("Using memory context length:", memoryContext.length);
-      console.log("Number of significant memories used:", significantMemories.length);
+      console.log(
+        "Number of significant memories used:",
+        significantMemories.length,
+      );
 
       const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
@@ -883,10 +934,11 @@ ADDITIONAL INSTRUCTIONS:
       orderBy: desc(chats.updatedAt),
     });
 
-    res.json(useruserChats);
+    res.json(userChats);
   });
 
-  app.get("/api/chats/latest", async (req, res) => {    if (!req.isAuthenticated() || !req.user) {
+  app.get("/api/chats/latest", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
     }
 
@@ -974,14 +1026,14 @@ Conversation: ${JSON.stringify(messages)}`,
   });
 
   app.post("/api/message-feedback", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {      
+    if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
     }
 
     const user = req.user as User;
     try {
       const feedback = await db
-                .insert(messageFeedback)
+        .insert(messageFeedback)
         .values({
           userId: user.id,
           messageId: req.body.messageId,
@@ -1050,16 +1102,22 @@ Conversation: ${JSON.stringify(messages)}`,
       if (members.length > 0) {
         // Generate category distribution insight
         const categoryCounts = new Map<string, number>();
-        members.forEach(member => {
+        members.forEach((member) => {
           if (member.category) {
-            categoryCounts.set(member.category, (categoryCounts.get(member.category) || 0) + 1);
+            categoryCounts.set(
+              member.category,
+              (categoryCounts.get(member.category) || 0) + 1,
+            );
           }
         });
 
         // Check category balance
-        const categories = ['informeel', 'formeel', 'inspiratie'];
-        categories.forEach(category => {
-          if (!categoryCounts.has(category) || categoryCounts.get(category)! < 2) {
+        const categories = ["informeel", "formeel", "inspiratie"];
+        categories.forEach((category) => {
+          if (
+            !categoryCounts.has(category) ||
+            categoryCounts.get(category)! < 2
+          ) {
             insights.push({
               userId: user.id,
               type: "network_gap",
@@ -1071,34 +1129,38 @@ Conversation: ${JSON.stringify(messages)}`,
               relatedMemberIds: [],
               metadata: {},
               createdAt: new Date(),
-              updatedAt: new Date()
+              updatedAt: new Date(),
             });
           }
         });
 
         // Generate connection strength insights
-        members.forEach(member => {
-          if (member.contactFrequency === 'S') {
+        members.forEach((member) => {
+          if (member.contactFrequency === "S") {
             insights.push({
               userId: user.id,
               type: "connection_strength",
               title: `Strengthen Bond with ${member.name}`,
               description: `Regular contact with ${member.name} can enhance your support network.`,
-              suggestedAction: "Try increasing contact frequency through regular check-ins or activities.",
+              suggestedAction:
+                "Try increasing contact frequency through regular check-ins or activities.",
               priority: 3,
               status: "active",
               relatedMemberIds: [member.id],
               metadata: {},
               createdAt: new Date(),
-              updatedAt: new Date()
+              updatedAt: new Date(),
             });
           }
         });
 
         // Generate circle balance insights
         const circleDistribution = new Map<number, number>();
-        members.forEach(member => {
-          circleDistribution.set(member.circle, (circleDistribution.get(member.circle) || 0) + 1);
+        members.forEach((member) => {
+          circleDistribution.set(
+            member.circle,
+            (circleDistribution.get(member.circle) || 0) + 1,
+          );
         });
 
         if (!circleDistribution.has(1) || circleDistribution.get(1)! < 3) {
@@ -1106,14 +1168,16 @@ Conversation: ${JSON.stringify(messages)}`,
             userId: user.id,
             type: "network_gap",
             title: "Strengthen Inner Circle",
-            description: "Your inner circle could benefit from more close connections.",
-            suggestedAction: "Consider which relationships could be strengthened to become part of your inner circle.",
+            description:
+              "Your inner circle could benefit from more close connections.",
+            suggestedAction:
+              "Consider which relationships could be strengthened to become part of your inner circle.",
             priority: 1,
             status: "active",
             relatedMemberIds: [],
             metadata: {},
             createdAt: new Date(),
-            updatedAt: new Date()
+            updatedAt: new Date(),
           });
         }
       }
@@ -1162,8 +1226,8 @@ Conversation: ${JSON.stringify(messages)}`,
         .where(
           and(
             eq(parentProfiles.id, insightId),
-            eq(parentProfiles.userId, user.id)
-          )
+            eq(parentProfiles.userId, user.id),
+          ),
         )
         .returning();
 
@@ -1266,9 +1330,9 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
       const memories = await db.query.villageMemberMemories.findMany({
         where: and(
           eq(villageMemberMemories.userId, user.id),
-          eq(villageMemberMemories.villageMemberId, memberId)
+          eq(villageMemberMemories.villageMemberId, memberId),
         ),
-        orderBy: desc(villageMemberMemories.date)
+        orderBy: desc(villageMemberMemories.date),
       });
 
       res.json(memories);
@@ -1297,8 +1361,8 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
       const member = await db.query.villageMembers.findFirst({
         where: and(
           eq(villageMembers.id, memberId),
-          eq(villageMembers.userId, user.id)
-        )
+          eq(villageMembers.userId, user.id),
+        ),
       });
 
       if (!member) {
@@ -1327,7 +1391,6 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
     }
   });
 
-
   // Village member interactions endpoints
   app.post("/api/village/members/:memberId/interactions", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
@@ -1348,7 +1411,7 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
           date: new Date(date),
           duration,
           quality,
-          notes
+          notes,
         })
         .returning();
 
@@ -1371,9 +1434,9 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
       const interactions = await db.query.villageMemberInteractions.findMany({
         where: and(
           eq(villageMemberInteractions.userId, user.id),
-          eq(villageMemberInteractions.villageMemberId, memberId)
+          eq(villageMemberInteractions.villageMemberId, memberId),
         ),
-        orderBy: desc(villageMemberInteractions.date)
+        orderBy: desc(villageMemberInteractions.date),
       });
 
       res.json(interactions);
@@ -1385,7 +1448,6 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
 
   // Register village routes
   app.use("/api/village", villageRouter);
-
 
   app.post("/api/insights/implement/:id", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
@@ -1409,8 +1471,8 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
         .where(
           and(
             eq(parentProfiles.id, insightId),
-            eq(parentProfiles.userId, user.id)
-          )
+            eq(parentProfiles.userId, user.id),
+          ),
         )
         .returning();
 
