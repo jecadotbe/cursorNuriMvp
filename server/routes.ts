@@ -22,12 +22,6 @@ import type { User } from "./auth";
 import { memoryService } from "./services/memory";
 import { villageRouter } from "./routes/village";
 import { searchBooks } from "./rag";
-import { 
-  getPatternForUser, 
-  getStructureForUser, 
-  PATTERN_PROMPTS, 
-  STRUCTURE_PROMPTS 
-} from './lib/response-patterns';
 
 export function registerRoutes(app: Express): Server {
   // Add file upload middleware
@@ -102,8 +96,10 @@ export function registerRoutes(app: Express): Server {
             set: {
               name,
               email,
-              stressLevel: (data.stressAssessment?.stressLevel as any) || undefined,
-              experienceLevel: (data.basicInfo?.experienceLevel as any) || undefined,
+              stressLevel:
+                (data.stressAssessment?.stressLevel as any) || undefined,
+              experienceLevel:
+                (data.basicInfo?.experienceLevel as any) || undefined,
               currentOnboardingStep: step,
               onboardingData: data,
               updatedAt: new Date(),
@@ -172,28 +168,28 @@ Stress Level: ${stressLevel}
 ${finalData.stressAssessment?.primaryConcerns ? `Primary Concerns: ${finalData.stressAssessment.primaryConcerns.join(", ")}` : ""}
 
 ${
-          finalData.childProfiles && Array.isArray(finalData.childProfiles)
-            ? `Children:
+  finalData.childProfiles && Array.isArray(finalData.childProfiles)
+    ? `Children:
 ${finalData.childProfiles
-              .map(
-                (child: any) =>
-                  `- ${child.name} (Age: ${child.age})${child.specialNeeds?.length ? ` Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
-              )
-              .join("\n")}`
-            : ""
-        }
+  .map(
+    (child: any) =>
+      `- ${child.name} (Age: ${child.age})${child.specialNeeds?.length ? ` Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
+  )
+  .join("\n")}`
+    : ""
+}
 
 ${
-          finalData.goals
-            ? `
+  finalData.goals
+    ? `
 Goals:
 ${finalData.goals.shortTerm?.length ? `Short term: ${finalData.goals.shortTerm.join(", ")}` : ""}
 ${finalData.goals.longTerm?.length ? `Long term: ${finalData.goals.longTerm.join(", ")}` : ""}
 ${finalData.goals.supportAreas?.length ? `Support areas: ${finalData.goals.supportAreas.join(", ")}` : ""}
 Communication preference: ${finalData.goals.communicationPreference || "Not specified"}
 `
-            : ""
-        }`;
+    : ""
+}`;
         // console.log("Saving onboarding content to mem0:\n", onboardingContent);
         await memoryService.createMemory(user.id, onboardingContent, {
           type: "onboarding_profile",
@@ -424,15 +420,15 @@ Parent's Profile:
 - Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel || "Not specified"}
 - Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ") || "None specified"}
 ${
-          childProfiles.length > 0
-            ? childProfiles
-                .map(
-                  (child: any) =>
-                    `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
-                )
-                .join("\n")
-            : "No children profiles specified"
-        }
+  childProfiles.length > 0
+    ? childProfiles
+        .map(
+          (child: any) =>
+            `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
+        )
+        .join("\n")
+    : "No children profiles specified"
+}
 
 Goals:
 ${profile.onboardingData.goals?.shortTerm?.length ? `- Short term goals: ${profile.onboardingData.goals.shortTerm.join(", ")}` : ""}
@@ -608,25 +604,29 @@ Analyze the available context and provide a relevant suggestion. For new users o
 
         const ragContent = ragContext.map((document) => document.pageContent);
         const mergedRAG = ragContent.join("\n\n");
-
+        // console.log(mergedRAG);
         // Get relevant memories for context
         const relevantMemories = await memoryService.getRelevantMemories(
           user.id,
           req.body.messages[req.body.messages.length - 1].content,
         );
 
-        // Get user's communication preference from onboarding data
-        const communicationPreference = profile?.onboardingData?.goals?.communicationPreference || 'supportive';
-        const pattern = getPatternForUser(communicationPreference);
-        const structure = getStructureForUser(communicationPreference);
-
+        const { PATTERN_PROMPTS, STRUCTURE_PROMPTS } = await import(
+          "./lib/response-patterns"
+        );
+        const getRandomPattern = () =>
+          Math.floor(Math.random() * PATTERN_PROMPTS.length);
+        const getRandomStructure = () =>
+          Math.floor(Math.random() * STRUCTURE_PROMPTS.length);
+        const pattern = getRandomPattern();
+        const structure = getRandomStructure();
         const mainPrompt = `
+
 ${NURI_SYSTEM_PROMPT}
 
 RESPONSE STYLE:
 - ${PATTERN_PROMPTS[pattern]}
 - ${STRUCTURE_PROMPTS[structure]}
-- Always maintain consistency with the user's chosen communication style: ${communicationPreference}
 - If there is relevant conversation history that mentions a specific response style that the user likes, use that response style.
 
 ADDITIONAL INSTRUCTIONS:
@@ -637,38 +637,38 @@ CONTEXT SECTIONS RELATED TO CURRENT USER:
 
 1. User Profile:
 ${
-          profile?.onboardingData
-            ? `
+  profile?.onboardingData
+    ? `
 - Experience Level: ${profile.onboardingData.basicInfo?.experienceLevel || "Not specified"}
 - Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel || "Not specified"}
 - Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ") || "None specified"}
 ${
-            profile.onboardingData.childProfiles
-              ?.map(
-                (child: any) =>
-                  `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
-              )
-              .join("\n") || "No children profiles specified"
-          }`
-            : ""
-        }
+  profile.onboardingData.childProfiles
+    ?.map(
+      (child: any) =>
+        `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
+    )
+    .join("\n") || "No children profiles specified"
+}`
+    : ""
+}
 
 2. Village Network:
 ${villageContextString || "No village context available"}
 
 3. Conversation History:
 ${
-          relevantMemories && relevantMemories.length > 0
-            ? relevantMemories
-                .filter((m) => m.relevance && m.relevance >= 0.6)
-                .slice(0, 3)
-                .map(
-                  (m) =>
-                    `Previous relevant conversation (relevance: ${m.relevance?.toFixed(2)}): ${m.content}`,
-                )
-                .join("\n\n")
-            : "No relevant conversation history"
-        }
+  relevantMemories && relevantMemories.length > 0
+    ? relevantMemories
+        .filter((m) => m.relevance && m.relevance >= 0.6)
+        .slice(0, 3)
+        .map(
+          (m) =>
+            `Previous relevant conversation (relevance: ${m.relevance?.toFixed(2)}): ${m.content}`,
+        )
+        .join("\n\n")
+    : "No relevant conversation history"
+}
 
 4. Potential retrieved content that can help you with answering:
 These contents are coming mainly from 2 books that are written by "Lynn Geerinck", the co-founder of Nuri. The books names are "Goed Omringd" and "Wie zorgt voor mijn kinderen". The content start here:
@@ -1513,7 +1513,7 @@ function parseChatId(id: string): number | null {
   return isNaN(parsed) ? null : parsed;
 }
 
-const NURI_SYSTEM_PROMPT = `You are Nuri, a family counseling coach specializing in attachment-style parenting, using Aware Parenting and Afgestemd Opvoeden principles sparingly mentioning them.
+const NURI_SYSTEM_PROMPT = `You are Nuri, a digital (ios & android) app that is specialize family counseling in attachment-style parenting, using Aware Parenting and Afgestemd Opvoeden principles sparingly mentioning them. The Apps has 3 domains outisde the chat. The Village where people can build a support network in real life. Learning section where you can learn about our methods and tips. The homepage where you can find all your actions and insights
 
 Communication Style:
 - Natural Dutch/Flemish with accepted English terms
@@ -1524,6 +1524,8 @@ Communication Style:
 - Find the meaning behind the question posed
 
 Remember:
+- KEEP A CONVERSATIONAL STYLE that keeps the conversation flowing
+- KEEP YOUR USE FOR Bullet-points TO MINIMUM ON NEED BASIS
 - Keep responses conversational and authentic
 - Explore the parents context and their emotions
 - Focus on the parent's immediate needs

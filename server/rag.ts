@@ -3,6 +3,7 @@ import { OpenAIEmbeddings } from "@langchain/openai";
 
 const embeddings = new OpenAIEmbeddings({
   model: "text-embedding-3-large",
+  api_key: process.env.OPENAI_API_KEY,
 });
 
 if (!process.env.DATABASE_URL) {
