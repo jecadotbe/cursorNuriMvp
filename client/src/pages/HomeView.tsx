@@ -149,11 +149,11 @@ export default function HomeView() {
               </Card>
             </div>
             {suggestions.length > 1 && (
-              <div className="flex items-center justify-between px-1">
+              <div className="flex items-center justify-center w-full mb-6">
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-gray-500 hover:text-gray-700"
+                  variant="secondary"
+                  size="default"
+                  className="w-full max-w-md shadow-sm hover:shadow-md transition-shadow"
                   onClick={handleNextSuggestion}
                 >
                   <RefreshCw className="w-4 h-4 mr-2" />
