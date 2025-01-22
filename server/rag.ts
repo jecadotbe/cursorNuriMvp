@@ -5,6 +5,7 @@ import {
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { PoolConfig } from "pg";
 
+// Initialize embeddings with API key
 const embeddings = new OpenAIEmbeddings({
   model: "text-embedding-3-large",
 });
@@ -26,13 +27,17 @@ const config = {
     contentColumnName: "document",
     metadataColumnName: "cmetadata",
   },
-  // supported distance strategies: cosine (default), innerProduct, or euclidean
   distanceStrategy: "cosine" as DistanceStrategy,
 };
 
-const vectorStore = await PGVectorStore.initialize(embeddings, config);
+// Initialize vector store
+async function initVectorStore() {
+  return await PGVectorStore.initialize(embeddings, config);
+}
 
-async function search(input: string, k: number) {
+// Search function
+export async function search(input: string, k: number = 3) {
+  const vectorStore = await initVectorStore();
   const similaritySearchResults = await vectorStore.similaritySearch(input, k);
   return similaritySearchResults;
 }
