@@ -602,9 +602,8 @@ Analyze the available context and provide a relevant suggestion. For new users o
         );
 
         const ragContent = ragContext.map((document) => document.pageContent);
-        console.log("Amr is here:");
-        console.log(ragContent);
-
+        const mergedRAG = ragContent.join("\n\n");
+        // console.log(mergedRAG);
         // Get relevant memories for context
         const relevantMemories = await memoryService.getRelevantMemories(
           user.id,
@@ -663,6 +662,12 @@ ${
     : "No relevant conversation history"
 }
 
+4. Potential retrieved content that can help you with answering:
+These contents are coming mainly from 2 books that are written by "Lynn Geerinck", the co-founder of Nuri. The books names are "Goed Omringd" and "Wie zorgt voor mijn kinderen". The content start here:
+<start helper content>
+${mergedRAG || "No relevant content available"}
+<end helper content>
+CONTEXT:
 -------------------
 ${NURI_SYSTEM_PROMPT}
 
