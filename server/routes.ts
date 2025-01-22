@@ -652,14 +652,22 @@ ${
 - Experience Level: ${profile.onboardingData.basicInfo?.experienceLevel || "Not specified"}
 - Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel || "Not specified"}
 - Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ") || "None specified"}
-${
-            profile.onboardingData.childProfiles
-              ?.map(
-                (child: any) =>
-                  `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
-              )
-              .join("\n") || "No children profiles specified"
-          }`
+${(() => {
+  const childProfiles = profile.onboardingData.childProfiles;
+  if (!childProfiles || !Array.isArray(childProfiles)) {
+    return "No children profiles specified";
+  }
+  return childProfiles
+    .map(
+      (child: any) =>
+        `Child: ${child.name || 'Unknown'}, Age: ${child.age || 'Unknown'}${
+          Array.isArray(child.specialNeeds) && child.specialNeeds.length
+            ? `, Special needs: ${child.specialNeeds.join(", ")}`
+            : ""
+        }`,
+    )
+    .join("\n");
+})()}`
             : ""
         }
 
@@ -907,7 +915,7 @@ ${mergedRAG || "No relevant content available"}
         recentChats.length > 0
       ) {
         const mostRelevantChat = recentChats[0];
-        parsedResponse.prompt.relatedChatId = mostRelevantChat.id;
+        parsedResponse.prompt.prompt.relatedChatId = mostRelevantChat.id;
         parsedResponse.prompt.relatedChatTitle = mostRelevantChat.title;
       }
 
