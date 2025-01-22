@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -9,12 +8,26 @@ import { format } from "date-fns";
 import type { Chat } from "@db/schema";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { renderMarkdown } from "@/lib/markdown";
 
 // Add proper typing for the chat messages
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
 }
+
+const replaceTemplateVariables = (content: string) => {
+  const now = new Date();
+  const formattedDateTime = format(now, "d MMMM yyyy 'om' HH:mm");
+  return content.replace(/{{currentDateTime}}/g, formattedDateTime);
+};
+
+const formatMessagePreview = (content: string) => {
+  const processedContent = replaceTemplateVariables(content);
+  // Strip HTML tags for preview
+  const strippedContent = processedContent.replace(/<[^>]+>/g, '');
+  return strippedContent;
+};
 
 export default function ChatHistoryView() {
   const { chats = [], isLoading } = useChatHistory();
@@ -164,9 +177,15 @@ export default function ChatHistoryView() {
                         </DialogContent>
                       </Dialog>
                     </div>
-                    <p className="text-sm text-gray-500 line-clamp-2 mt-1 mb-2 break-words font-baskerville">
-                      {lastMessage?.content || "Geen berichten"}
-                    </p>
+                    <div className="prose prose-sm text-gray-500 line-clamp-2 mt-1 mb-2 break-words font-baskerville">
+                      {lastMessage?.content ? (
+                        <div dangerouslySetInnerHTML={{ 
+                          __html: formatMessagePreview(lastMessage.content)
+                        }} />
+                      ) : (
+                        "Geen berichten"
+                      )}
+                    </div>
                     <div className="flex items-center justify-between">
                       <div className="text-xs text-gray-500">
                         {format(chatDate, "d MMM yyyy")}
