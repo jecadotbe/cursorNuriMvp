@@ -472,6 +472,17 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
         .map(chat => chat.content)
         .join("\n\n");
 
+      // Get relevant memories for context
+      const relevantMemories = await memoryService.getRelevantMemories(
+        user.id,
+        req.body.messages[req.body.messages.length - 1]?.content || "",
+      );
+
+      const memoryContext = relevantMemories
+        .filter(m => m.relevance && m.relevance >= 0.6)
+        .map(m => `Previous conversation: ${m.content}`)
+        .join("\n\n");
+
       // Build personalized context from onboarding data
       let personalizedContext = "";
       if (profile?.onboardingData) {
