@@ -468,13 +468,6 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
         where: eq(parentProfiles.userId, user.id),
       });
 
-      // Get recent chat history directly from database
-      const recentChats = await db.query.chats.findMany({
-        where: eq(chats.userId, user.id),
-        orderBy: [desc(chats.createdAt)],
-        limit: 3
-      });
-      
       const chatContext = recentChats
         .map(chat => chat.content)
         .join("\n\n");
