@@ -115,11 +115,17 @@ export default function HomeView() {
 
       {/* Chat Prompt */}
       <div className="px-5 py-6">
-        {isLoading ? (
-          <Card className="bg-white animate-pulse mb-4">
+        {(isLoading || suggestionLoading) ? (
+          <Card className="bg-white mb-4">
             <CardContent className="p-4">
-              <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                <div className="w-48 h-4 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+              <div className="space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+              </div>
             </CardContent>
           </Card>
         ) : suggestion ? (
