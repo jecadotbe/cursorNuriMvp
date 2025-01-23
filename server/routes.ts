@@ -475,12 +475,12 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
       // Get relevant memories for context
       const relevantMemories = await memoryService.getRelevantMemories(
         user.id,
-        req.body.messages[req.body.messages.length - 1]?.content || "",
+        req.body.messages?.length ? req.body.messages[req.body.messages.length - 1].content : "",
       );
 
       const memoryContext = relevantMemories
         .filter(m => m.relevance && m.relevance >= 0.6)
-        .map(m => `Previous conversation: ${m.content}`)
+        .map(m => m.content)
         .join("\n\n");
 
       // Build personalized context from onboarding data
