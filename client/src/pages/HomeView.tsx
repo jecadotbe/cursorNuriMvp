@@ -21,7 +21,13 @@ const handleImageError = (imageName: string, error: any) => {
 
 export default function HomeView() {
   const { user } = useUser();
-  const { suggestion, isLoading: suggestionLoading, markAsUsed, refetch } = useSuggestion();
+  const { 
+    suggestion, 
+    suggestions, 
+    isLoading: suggestionLoading, 
+    markAsUsed, 
+    nextSuggestion 
+  } = useSuggestion();
   const [isLoading, setIsLoading] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [currentSuggestionId, setCurrentSuggestionId] = useState<number | null>(null);
@@ -161,15 +167,13 @@ export default function HomeView() {
               size="sm"
               onClick={() => {
                 setIsLoading(true);
-                refetch().finally(() => setIsLoading(false));
+                nextSuggestion();
+                setIsLoading(false);
               }}
-              disabled={isLoading || suggestionLoading}
+              disabled={isLoading || suggestionLoading || !suggestions?.length}
               className="flex items-center gap-2"
             >
-              {isLoading ? (
-                <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
-              ) : null}
-              Toon andere suggestie
+              <span>Toon andere suggestie ({suggestions?.length || 0})</span>
             </Button>
           </div>
         )}

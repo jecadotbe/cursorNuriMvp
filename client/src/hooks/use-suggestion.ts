@@ -1,9 +1,9 @@
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { PromptSuggestion } from "@db/schema";
 import { useToast } from "./use-toast";
+import { useState } from "react";
 
-async function fetchSuggestion(): Promise<PromptSuggestion> {
+async function fetchSuggestions(): Promise<PromptSuggestion[]> {
   const response = await fetch('/api/suggestions', {
     credentials: 'include',
   });
@@ -18,29 +18,41 @@ async function fetchSuggestion(): Promise<PromptSuggestion> {
 export function useSuggestion() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   const {
-    data: suggestion,
+    data: suggestions,
     isLoading,
     error,
     refetch: refetchQuery
   } = useQuery({
-    queryKey: ['suggestion'],
-    queryFn: fetchSuggestion,
+    queryKey: ['suggestions'],
+    queryFn: fetchSuggestions,
     staleTime: 5 * 60 * 1000, // Keep fresh for 5 minutes
-    cacheTime: 30 * 60 * 1000, // Cache for 30 minutes
+    gcTime: 30 * 60 * 1000,   // Cache for 30 minutes
     refetchOnMount: true
   });
+
+  // Get the current suggestion
+  const suggestion = suggestions?.[currentIndex];
+
+  const nextSuggestion = () => {
+    if (suggestions?.length) {
+      setCurrentIndex((prev) => (prev + 1) % suggestions.length);
+    }
+  };
 
   const refetch = async () => {
     try {
       await refetchQuery();
+      // Reset to first suggestion after refetch
+      setCurrentIndex(0);
     } catch (error) {
-      console.error('Failed to refetch suggestion:', error);
+      console.error('Failed to refetch suggestions:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to load new suggestion",
+        description: "Failed to load new suggestions",
       });
     }
   };
@@ -56,10 +68,10 @@ export function useSuggestion() {
         throw new Error(`${response.status}: ${await response.text()}`);
       }
 
-      // Prefetch a new suggestion after marking one as used
+      // Prefetch new suggestions after marking one as used
       queryClient.prefetchQuery({
-        queryKey: ['suggestion'],
-        queryFn: fetchSuggestion,
+        queryKey: ['suggestions'],
+        queryFn: fetchSuggestions,
       });
     } catch (error) {
       console.error('Failed to mark suggestion as used:', error);
@@ -73,9 +85,11 @@ export function useSuggestion() {
 
   return {
     suggestion,
+    suggestions,
     isLoading,
     error,
     refetch,
     markAsUsed,
+    nextSuggestion,
   };
 }
