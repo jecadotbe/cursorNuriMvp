@@ -854,7 +854,7 @@ export default function VillageView() {
                     <Label htmlFor="content">Memory Details</Label>
                     <Textarea
                       id="content"
-                      valuenewMemory.content}
+                      value={newMemory.content}
                       onChange={(e) => setNewMemory({ ...newMemory, content: e.target.value })}
                       placeholder="What happened? How did it make you feel?"
                       className="min-h-[150px]" required
