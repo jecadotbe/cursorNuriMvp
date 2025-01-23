@@ -197,9 +197,9 @@ export default function OnboardingPage() {
     }}>
       <div className="w-full max-w-2xl space-y-6">
         <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold tracking-tighter">Welcome to Nuri</h1>
-          <p className="text-muted-foreground">
-            Let's get to know you better to provide personalized support
+          <h1 className="text-3xl font-baskerville">Welkom bij Nuri</h1>
+          <p>
+             Geweldig dat je voor ons kiest. Laten we je beter leren kennen om gepersonaliseerde ondersteuning te bieden
           </p>
         </div>
 
