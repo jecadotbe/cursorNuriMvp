@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUser } from "@/hooks/use-user";
 import { useSuggestion } from "@/hooks/use-suggestion";
-import { MessageSquare, ChevronRight, Clock } from "lucide-react";
+import { MessageSquare, Users, Clock, ChevronRight } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
@@ -20,16 +20,13 @@ const handleImageError = (imageName: string, error: any) => {
 
 export default function HomeView() {
   const { user } = useUser();
-  const { suggestions = [], isLoading, markAsUsed } = useSuggestion();
+  const { suggestion, isLoading, markAsUsed } = useSuggestion();
   const [showFeedback, setShowFeedback] = useState(false);
   const [currentSuggestionId, setCurrentSuggestionId] = useState<number | null>(null);
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
-  console.log('HomeView - suggestions:', suggestions); // Debug log
-  console.log('HomeView - isLoading:', isLoading); // Debug log
-
-  const handlePromptClick = async (suggestion: any) => {
+  const handlePromptClick = async () => {
     if (!suggestion) return;
 
     try {
@@ -114,54 +111,41 @@ export default function HomeView() {
         </div>
       </div>
 
-      {/* Chat Suggestions */}
+      {/* Chat Prompt */}
       <div className="px-5 py-6">
         {isLoading ? (
-          // Loading state - show three skeleton cards
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="bg-white animate-pulse">
-                <CardContent className="p-4">
-                  <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : Array.isArray(suggestions) && suggestions.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {suggestions.map((suggestion, index) => (
-              <div key={suggestion.id ?? index} onClick={() => handlePromptClick(suggestion)}>
-                <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer animate-border h-full">
-                  <CardContent className="p-4">
-                    <div className="flex flex-col h-full">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                        <div className="text-orange-500 font-semibold text-sm tracking-wide uppercase">
-                          {index === 0 ? "Aanbevolen gesprek" : "Op basis van onze gesprekken"}
-                        </div>
-                      </div>
-                      <p className="text-lg flex-grow">{suggestion.text}</p>
-                      {suggestion.context === "existing" && suggestion.relatedChatTitle && (
-                        <div className="mt-4 text-sm text-gray-500 flex items-center gap-2">
-                          <MessageSquare className="w-4 h-4" />
-                          <span>Vervolg op: {suggestion.relatedChatTitle}</span>
-                        </div>
-                      )}
-                      <div className="mt-4 flex justify-end">
-                        <ChevronRight className="w-6 h-6 text-gray-400" />
+          <Card className="bg-white animate-pulse mb-4">
+            <CardContent className="p-4">
+              <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            </CardContent>
+          </Card>
+        ) : suggestion ? (
+          <div onClick={handlePromptClick}>
+            <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer mb-4 animate-border">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                      <div className="text-orange-500 font-semibold text-sm tracking-wide uppercase">
+                        Op basis van onze gesprekken
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
-            ))}
+                    <p className="text-lg pr-8">{suggestion.text}</p>
+                    {suggestion.context === "existing" && suggestion.relatedChatTitle && (
+                      <div className="mt-2 text-sm text-gray-500 flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4" />
+                        <span>Vervolg op: {suggestion.relatedChatTitle}</span>
+                      </div>
+                    )}
+                  </div>
+                  <ChevronRight className="w-6 h-6 text-gray-400 flex-shrink-0" />
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        ) : (
-          <div className="text-center text-gray-500">
-            Geen suggesties beschikbaar op dit moment
-          </div>
-        )}
+        ) : null}
       </div>
 
       {/* Village Section */}
