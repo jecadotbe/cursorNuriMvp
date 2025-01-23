@@ -56,7 +56,7 @@ export function useSuggestion() {
         throw new Error(`${response.status}: ${await response.text()}`);
       }
 
-      // Prefetch a new suggestion immediately after marking one as used
+      // Prefetch a new suggestion after marking one as used
       queryClient.prefetchQuery({
         queryKey: ['suggestion'],
         queryFn: fetchSuggestion,
