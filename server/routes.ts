@@ -254,7 +254,7 @@ Experience Level: ${experienceLevel}
 Stress Level: ${stressLevel}
 ${finalData.stressAssessment?.primaryConcerns ? `Primary Concerns: ${finalData.stressAssessment.primaryConcerns.join(", ")}` : ""}
 
-${childProfiles.length > 0 
+${childProfiles.length > 0
   ? `Children:
 ${childProfiles
     .map((child: any) =>
@@ -456,7 +456,23 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
     const now = new Date();
 
     try {
-      // Always generate a new suggestion
+      // First get existing valid suggestions
+      const existingSuggestions = await db.query.promptSuggestions.findMany({
+        where: and(
+          eq(promptSuggestions.userId, user.id),
+          isNull(promptSuggestions.usedAt),
+          gte(promptSuggestions.expiresAt, now)
+        ),
+        orderBy: desc(promptSuggestions.createdAt),
+        limit: 3
+      });
+
+      // If we already have 3 valid suggestions, return them
+      if (existingSuggestions.length >= 3) {
+        return res.json(existingSuggestions); // Return all existing suggestions
+      }
+
+      // Otherwise generate a new suggestion
       const recentChats = await db.query.chats.findMany({
         where: eq(chats.userId, user.id),
         orderBy: desc(chats.updatedAt),
@@ -467,10 +483,6 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
       const profile = await db.query.parentProfiles.findFirst({
         where: eq(parentProfiles.userId, user.id),
       });
-
-      const chatContext = recentChats
-        .map(chat => chat.content)
-        .join("\n\n");
 
       // Get relevant memories for context
       const relevantMemories = await memoryService.getRelevantMemories(
@@ -486,9 +498,7 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
       // Build personalized context from onboarding data
       let personalizedContext = "";
       if (profile?.onboardingData) {
-        const childProfiles = Array.isArray(
-          profile.onboardingData.childProfiles,
-        )
+        const childProfiles = Array.isArray(profile.onboardingData.childProfiles)
           ? profile.onboardingData.childProfiles
           : [];
         personalizedContext = `
@@ -496,16 +506,14 @@ Parent's Profile:
 - Experience Level: ${profile.onboardingData.basicInfo?.experienceLevel || "Not specified"}
 - Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel || "Not specified"}
 - Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ") || "None specified"}
-${
-          childProfiles.length > 0
+${childProfiles.length > 0
             ? childProfiles
                 .map(
                   (child: any) =>
                     `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
                 )
                 .join("\n")
-            : "No children profiles specified"
-        }
+            : "No children profiles specified"}
 
 Goals:
 ${profile.onboardingData.goals?.shortTerm?.length ? `- Short term goals: ${profile.onboardingData.goals.shortTerm.join(", ")}` : ""}
@@ -517,10 +525,10 @@ ${profile.onboardingData.goals?.longTerm?.length ? `- Long term goals: ${profile
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 300,
         system: `${NURI_SYSTEM_PROMPT}
-        
+
 ${personalizedContext ? `Consider this parent's profile and context when generating suggestions:\n${personalizedContext}\n` : ""}
 ${memoryContext ? `Previous conversations for context:\n${memoryContext}` : ""}
-        
+
 Analyze the available context and provide a relevant suggestion. For new users or those with limited chat history, focus on their onboarding information to provide personalized suggestions.`,
         messages: [
           {
@@ -559,16 +567,13 @@ Analyze the available context and provide a relevant suggestion. For new users o
       }
 
       // If the prompt references an existing chat, validate and include the chat details
-      if (
-        parsedResponse.prompt.context === "existing" &&
-        recentChats.length > 0
-      ) {
+      if (parsedResponse.prompt.context === "existing" && recentChats.length > 0) {
         const mostRelevantChat = recentChats[0];
         parsedResponse.prompt.relatedChatId = mostRelevantChat.id;
         parsedResponse.prompt.relatedChatTitle = mostRelevantChat.title;
       }
 
-      // Store the new suggestion with feedback consideration
+      // Store the new suggestion
       const [suggestion] = await db
         .insert(promptSuggestions)
         .values({
