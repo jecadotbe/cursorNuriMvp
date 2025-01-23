@@ -79,9 +79,10 @@ export class MemoryService {
 
   async getRelevantMemories(userId: number, currentContext: string): Promise<Memory[]> {
     try {
-      console.log('Getting relevant memories for context:', currentContext.substring(0, 100) + '...');
+      if (!currentContext?.trim()) {
+        return [];
+      }
 
-      // Search for memories using mem0ai search API with relevance scoring
       const memories = await client.search(currentContext, {
         user_id: userId.toString(),
         metadata: {
@@ -90,32 +91,34 @@ export class MemoryService {
           category: 'chat_history'
         },
         options: {
-          limit: 5, // Limit number of returned memories
-          minRelevance: this.RELEVANCE_THRESHOLD // Only return highly relevant memories
+          limit: 5,
+          minRelevance: this.RELEVANCE_THRESHOLD
         }
       });
 
-      console.log('Found memories:', memories.length);
-      console.log('Memory relevance scores:', memories.map(m => ({
-        id: m.id,
-        relevance: m.relevance,
-        content: typeof m.content === 'string' ? m.content.substring(0, 50) + '...' : 'No content'
-      })));
+      if (!Array.isArray(memories) || memories.length === 0) {
+        return [];
+      }
 
-      // Filter and sort memories by relevance
-      return memories
-        .filter(memory => memory.relevance >= this.RELEVANCE_THRESHOLD)
+      const validMemories = memories
+        .filter(memory => 
+          memory?.relevance >= this.RELEVANCE_THRESHOLD && 
+          (memory?.content || memory?.memory)
+        )
         .map(memory => ({
           id: memory.id,
           content: Array.isArray(memory.content) ? 
-            memory.content[0].content : 
+            memory.content[0]?.content : 
             (memory.memory || memory.content),
           metadata: memory.metadata,
           createdAt: new Date(memory.created_at || new Date()),
           relevance: memory.relevance
         }))
+        .filter(memory => memory.content) // Remove entries with empty content
         .sort((a, b) => (b.relevance || 0) - (a.relevance || 0))
-        .slice(0, 3); // Only use top 3 most relevant memories
+        .slice(0, 3);
+
+      return validMemories;
     } catch (error) {
       console.error('Error getting relevant memories:', error);
       return [];
