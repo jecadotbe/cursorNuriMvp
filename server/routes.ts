@@ -468,28 +468,16 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
         where: eq(parentProfiles.userId, user.id),
       });
 
-      // Skip memory lookups for standard suggestions
-      let memoryContext = "";
-      if (profile?.onboardingData) {
-        const cachedKey = `suggestion_memory_${user.id}`;
-        const cached = await memoryService.getCachedMemories(cachedKey);
-        
-        if (cached) {
-          memoryContext = cached;
-        } else {
-          const relevantMemories = await memoryService.getRelevantMemories(
-            user.id,
-            "general parenting advice and long-term goals",
-            3
-          );
-          memoryContext = relevantMemories
-            .map((m) => `Previous conversation: ${m.content}`)
-            .join("\n\n");
-          
-          // Cache for 5 minutes
-          await memoryService.cacheMemories(cachedKey, memoryContext, 300);
-        }
-      }
+      // Get recent chat history directly from database
+      const recentChats = await db.query.chats.findMany({
+        where: eq(chats.userId, user.id),
+        orderBy: [desc(chats.createdAt)],
+        limit: 3
+      });
+      
+      const chatContext = recentChats
+        .map(chat => chat.content)
+        .join("\n\n");
 
       // Build personalized context from onboarding data
       let personalizedContext = "";
