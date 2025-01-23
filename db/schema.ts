@@ -132,17 +132,28 @@ export const villageMemberMemories = pgTable("village_member_memories", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Define relations using the imported relations function
-export const villageMembersRelations = relations(villageMembers, ({ many }) => ({
-  memories: many(villageMemberMemories),
-}));
+// New table for child profiles
+export const childProfiles = pgTable("child_profiles", {
+  id: serial("id").primaryKey(),
+  parentProfileId: integer("parent_profile_id").references(() => parentProfiles.id).notNull(),
+  name: text("name").notNull(),
+  age: integer("age").notNull(),
+  specialNeeds: text("special_needs").array(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
 
-export const villageMemberMemoriesRelations = relations(villageMemberMemories, ({ one }) => ({
-  member: one(villageMembers, {
-    fields: [villageMemberMemories.villageMemberId],
-    references: [villageMembers.id],
-  }),
-}));
+// New table for parenting goals from onboarding
+export const onboardingGoals = pgTable("onboarding_goals", {
+  id: serial("id").primaryKey(),
+  parentProfileId: integer("parent_profile_id").references(() => parentProfiles.id).notNull(),
+  shortTerm: text("short_term").array(),
+  longTerm: text("long_term").array(),
+  supportAreas: text("support_areas").array(),
+  communicationPreference: text("communication_preference").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
 
 export const villageMemberInteractions = pgTable("village_member_interactions", {
   id: serial("id").primaryKey(),
@@ -208,6 +219,41 @@ export const suggestionFeedback = pgTable("suggestion_feedback", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Define relations using the imported relations function
+export const villageMembersRelations = relations(villageMembers, ({ many }) => ({
+  memories: many(villageMemberMemories),
+}));
+
+export const villageMemberMemoriesRelations = relations(villageMemberMemories, ({ one }) => ({
+  member: one(villageMembers, {
+    fields: [villageMemberMemories.villageMemberId],
+    references: [villageMembers.id],
+  }),
+}));
+
+// Update parent profiles relations
+export const parentProfilesRelations = relations(parentProfiles, ({ many }) => ({
+  childProfiles: many(childProfiles),
+  onboardingGoals: many(onboardingGoals),
+}));
+
+// Add relations for child profiles
+export const childProfilesRelations = relations(childProfiles, ({ one }) => ({
+  parentProfile: one(parentProfiles, {
+    fields: [childProfiles.parentProfileId],
+    references: [parentProfiles.id],
+  }),
+}));
+
+// Add relations for onboarding goals
+export const onboardingGoalsRelations = relations(onboardingGoals, ({ one }) => ({
+  parentProfile: one(parentProfiles, {
+    fields: [onboardingGoals.parentProfileId],
+    references: [parentProfiles.id],
+  }),
+}));
+
+
 // Schema types
 export const insertParentProfileSchema = createInsertSchema(parentProfiles);
 export const selectParentProfileSchema = createSelectSchema(parentProfiles);
@@ -233,6 +279,10 @@ export const insertVillageMemberMemorySchema = createInsertSchema(villageMemberM
 export const selectVillageMemberMemorySchema = createSelectSchema(villageMemberMemories);
 export const insertVillageMemberInteractionSchema = createInsertSchema(villageMemberInteractions);
 export const selectVillageMemberInteractionSchema = createSelectSchema(villageMemberInteractions);
+export const insertChildProfileSchema = createInsertSchema(childProfiles);
+export const selectChildProfileSchema = createSelectSchema(childProfiles);
+export const insertOnboardingGoalSchema = createInsertSchema(onboardingGoals);
+export const selectOnboardingGoalSchema = createSelectSchema(onboardingGoals);
 
 // Types
 export type ParentProfile = typeof parentProfiles.$inferSelect;
@@ -259,3 +309,7 @@ export type VillageMemberMemory = typeof villageMemberMemories.$inferSelect;
 export type InsertVillageMemberMemory = typeof villageMemberMemories.$inferInsert;
 export type VillageMemberInteraction = typeof villageMemberInteractions.$inferSelect;
 export type InsertVillageMemberInteraction = typeof villageMemberInteractions.$inferInsert;
+export type ChildProfile = typeof childProfiles.$inferSelect;
+export type InsertChildProfile = typeof childProfiles.$inferInsert;
+export type OnboardingGoal = typeof onboardingGoals.$inferSelect;
+export type InsertOnboardingGoal = typeof onboardingGoals.$inferInsert;

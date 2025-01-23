@@ -62,70 +62,125 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.post("/api/onboarding/progress", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ message: "Not authenticated" });
+app.post("/api/onboarding/progress", async (req, res) => {
+  if (!req.isAuthenticated() || !req.user) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+
+  const user = req.user as User;
+  const { step, data } = req.body;
+
+  try {
+    // Store intermediate progress in mem0
+    try {
+      const stepContent = `
+Onboarding Step ${step} Progress:
+${data.basicInfo ? `
+Basic Information:
+Name: ${data.basicInfo.name}
+Email: ${data.basicInfo.email}
+Experience Level: ${data.basicInfo.experienceLevel}
+` : ''}
+${data.stressAssessment ? `
+Stress Assessment:
+Stress Level: ${data.stressAssessment.stressLevel}
+Primary Concerns: ${data.stressAssessment.primaryConcerns?.join(", ") || "None"}
+Support Network: ${data.stressAssessment.supportNetwork?.join(", ") || "None"}
+` : ''}
+${data.childProfiles ? `
+Child Profiles:
+${data.childProfiles.map((child: any) => 
+  `- ${child.name} (Age: ${child.age})
+   ${child.specialNeeds?.length ? `Special needs: ${child.specialNeeds.join(", ")}` : "No special needs"}`
+).join("\n")}
+` : ''}
+${data.goals ? `
+Goals:
+Short Term: ${data.goals.shortTerm?.join(", ") || "None"}
+Long Term: ${data.goals.longTerm?.join(", ") || "None"}
+Support Areas: ${data.goals.supportAreas?.join(", ") || "None"}
+Communication Preference: ${data.goals.communicationPreference || "Not specified"}
+` : ''}`;
+
+      await memoryService.createMemory(user.id, stepContent, {
+        type: "onboarding_progress",
+        category: "user_onboarding",
+        step: step,
+        isComplete: false,
+        source: "onboarding_form",
+        timestamp: new Date().toISOString(),
+        metadata: {
+          stepData: data,
+          progressPercentage: (step / 4) * 100,
+        }
+      });
+
+      console.log("Successfully stored onboarding progress in memory");
+    } catch (memoryError) {
+      console.error("Failed to store onboarding progress in memory:", memoryError);
+      // Continue with database storage even if memory storage fails
     }
 
-    const user = req.user as User;
-    const { step, data } = req.body;
+    // Extract fields from onboarding data
+    const name = data.basicInfo?.name || "";
+    const email = data.basicInfo?.email || "";
+    const stressLevel = data.stressAssessment?.stressLevel || "moderate";
+    const experienceLevel = data.basicInfo?.experienceLevel || "first_time";
 
-    try {
-      // Extract fields from onboarding data
-      const name = data.basicInfo?.name || "";
-      const email = data.basicInfo?.email || "";
-      const stressLevel = data.stressAssessment?.stressLevel || "moderate"; // Default value
-      const experienceLevel = data.basicInfo?.experienceLevel || "first_time"; // Default value
-
-      // Only save to parent_profiles if we have the required data
-      if (step >= 2 && data.basicInfo?.name && data.basicInfo?.email) {
-        const [profile] = await db
-          .insert(parentProfiles)
-          .values({
-            userId: user.id,
+    // Only save to parent_profiles if we have the required data
+    if (step >= 2 && data.basicInfo?.name && data.basicInfo?.email) {
+      const [profile] = await db
+        .insert(parentProfiles)
+        .values({
+          userId: user.id,
+          name,
+          email,
+          stressLevel: stressLevel as any,
+          experienceLevel: experienceLevel as any,
+          currentOnboardingStep: step,
+          onboardingData: data,
+          completedOnboarding: false,
+          // Store arrays properly
+          primaryConcerns: data.stressAssessment?.primaryConcerns || [],
+          supportNetwork: data.stressAssessment?.supportNetwork || [],
+        })
+        .onConflictDoUpdate({
+          target: parentProfiles.userId,
+          set: {
             name,
             email,
-            stressLevel: stressLevel as any,
-            experienceLevel: experienceLevel as any,
+            stressLevel: (data.stressAssessment?.stressLevel as any) || undefined,
+            experienceLevel: (data.basicInfo?.experienceLevel as any) || undefined,
             currentOnboardingStep: step,
             onboardingData: data,
-            completedOnboarding: false,
-          })
-          .onConflictDoUpdate({
-            target: parentProfiles.userId,
-            set: {
-              name,
-              email,
-              stressLevel: (data.stressAssessment?.stressLevel as any) || undefined,
-              experienceLevel: (data.basicInfo?.experienceLevel as any) || undefined,
-              currentOnboardingStep: step,
-              onboardingData: data,
-              updatedAt: new Date(),
-            },
-          })
-          .returning();
+            primaryConcerns: data.stressAssessment?.primaryConcerns || undefined,
+            supportNetwork: data.stressAssessment?.supportNetwork || undefined,
+            updatedAt: new Date(),
+          },
+        })
+        .returning();
 
-        return res.json({
-          currentOnboardingStep: profile.currentOnboardingStep,
-          completedOnboarding: profile.completedOnboarding,
-          onboardingData: profile.onboardingData,
-        });
-      }
-
-      // For early steps, just return the current progress without saving to database
-      res.json({
-        currentOnboardingStep: step,
-        completedOnboarding: false,
-        onboardingData: data,
-      });
-    } catch (error) {
-      console.error("Failed to save onboarding progress:", error);
-      res.status(500).json({
-        message: "Failed to save onboarding progress",
-        error: error instanceof Error ? error.message : "Unknown error",
+      return res.json({
+        currentOnboardingStep: profile.currentOnboardingStep,
+        completedOnboarding: profile.completedOnboarding,
+        onboardingData: profile.onboardingData,
       });
     }
-  });
+
+    // For early steps, just return the current progress without saving to database
+    res.json({
+      currentOnboardingStep: step,
+      completedOnboarding: false,
+      onboardingData: data,
+    });
+  } catch (error) {
+    console.error("Failed to save onboarding progress:", error);
+    res.status(500).json({
+      message: "Failed to save onboarding progress",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
 
   app.post("/api/onboarding/complete", async (req, res) => {
     console.log("[DEBUG] Starting onboarding completion");
@@ -867,7 +922,7 @@ ${mergedRAG || "No relevant content available"}
         significantMemories.length,
       );
 
-      const response = await anthropic.messages.create({
+            const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 300,
         system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the conversation and provide a relevant follow-up prompt. If the topic relates to an existing conversation, reference it. Consider this historical context:\n${memoryContext}`,
