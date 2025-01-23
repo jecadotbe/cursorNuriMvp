@@ -208,7 +208,8 @@ app.post("/api/onboarding/complete", async (req, res) => {
     const finalData = req.body;
     console.log("[DEBUG] Onboarding completion data:", {
       userId: user.id,
-      dataFields: Object.keys(finalData)
+      dataFields: Object.keys(finalData),
+      childProfiles: finalData.childProfiles
     });
 
     try {
@@ -238,6 +239,11 @@ app.post("/api/onboarding/complete", async (req, res) => {
         });
       }
 
+      // Ensure childProfiles is always an array
+      const childProfiles = Array.isArray(finalData.childProfiles) 
+        ? finalData.childProfiles 
+        : [];
+
       // Store onboarding data in mem0
       try {
         const onboardingContent = `
@@ -248,29 +254,28 @@ Experience Level: ${experienceLevel}
 Stress Level: ${stressLevel}
 ${finalData.stressAssessment?.primaryConcerns ? `Primary Concerns: ${finalData.stressAssessment.primaryConcerns.join(", ")}` : ""}
 
-${
-          finalData.childProfiles && Array.isArray(finalData.childProfiles)
-            ? `Children:
-${finalData.childProfiles
-            .map(
-              (child: any) =>
-                `- ${child.name} (Age: ${child.age})${child.specialNeeds?.length ? ` Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
-            )
-            .join("\n")}`
-            : ""
-        }
+${childProfiles.length > 0 
+  ? `Children:
+${childProfiles
+    .map((child: any) =>
+      `- ${child.name} (Age: ${child.age})${
+        Array.isArray(child.specialNeeds) && child.specialNeeds.length 
+          ? ` Special needs: ${child.specialNeeds.join(", ")}` 
+          : ""
+      }`
+    )
+    .join("\n")}`
+  : "No children profiles specified"}
 
-${
-          finalData.goals
-            ? `
+${finalData.goals
+  ? `
 Goals:
 ${finalData.goals.shortTerm?.length ? `Short term: ${finalData.goals.shortTerm.join(", ")}` : ""}
 ${finalData.goals.longTerm?.length ? `Long term: ${finalData.goals.longTerm.join(", ")}` : ""}
 ${finalData.goals.supportAreas?.length ? `Support areas: ${finalData.goals.supportAreas.join(", ")}` : ""}
 Communication preference: ${finalData.goals.communicationPreference || "Not specified"}
 `
-            : ""
-        }`;
+  : ""}`;
 
         await memoryService.createMemory(user.id, onboardingContent, {
           type: "onboarding_profile",
@@ -295,7 +300,10 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
           email,
           stressLevel: stressLevel as any,
           experienceLevel: experienceLevel as any,
-          onboardingData: finalData,
+          onboardingData: {
+            ...finalData,
+            childProfiles // Ensure we're using the validated childProfiles array
+          },
           completedOnboarding: true,
           currentOnboardingStep: 4, // Final step
         })
@@ -306,35 +314,16 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
             email,
             stressLevel: stressLevel as any,
             experienceLevel: experienceLevel as any,
-            onboardingData: finalData,
+            onboardingData: {
+              ...finalData,
+              childProfiles // Ensure we're using the validated childProfiles array
+            },
             completedOnboarding: true,
             currentOnboardingStep: 4,
             updatedAt: new Date(),
           },
         })
         .returning();
-
-      // Create village members from support network
-      console.log("[DEBUG] Creating village members from support network:", supportNetwork);
-
-      const spacing = (2 * Math.PI) / (supportNetwork.length || 1);
-
-      for (let i = 0; i < supportNetwork.length; i++) {
-        const memberName = supportNetwork[i];
-        const angle = i * spacing; // Evenly space members around circle 2
-
-        await db.insert(villageMembers).values({
-          userId: user.id,
-          name: memberName,
-          type: "individual",
-          circle: 2, // Place support network in circle 2 by default
-          category: "informeel", // Default category for support network
-          contactFrequency: "M", // Default to medium contact frequency
-          positionAngle: angle.toString(), // Store the angle for position
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-      }
 
       res.json({
         message: "Onboarding completed successfully",
