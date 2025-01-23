@@ -196,7 +196,14 @@ export default function OnboardingPage() {
       background: `linear-gradient(135deg, #F8DD9F 0%, #F2F0E5 50%, #F2F0E5 100%)`
     }}>
       <div className="w-full max-w-2xl space-y-6">
-        <div className="space-y-2 text-center">
+        <div className="space-y-4 text-center">
+          <div className="flex justify-center">
+            <img 
+              src="/images/nuri_chat.png" 
+              alt="Nuri Logo" 
+              className="w-24 h-24 object-contain"
+            />
+          </div>
           <h1 className="text-3xl font-baskerville">Welkom bij Nuri</h1>
           <p>
              Geweldig dat je voor ons kiest. Laten we je beter leren kennen om gepersonaliseerde ondersteuning te bieden
