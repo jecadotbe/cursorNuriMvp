@@ -51,8 +51,6 @@ import { useVillageMemories } from "@/hooks/use-village-memories";
 import { VillageMemberMemories } from "@/components/VillageMemberMemories";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InsightsPanel from "@/components/InsightsPanel";
-import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer"; // Add Drawer imports
-
 
 const CATEGORY_COLORS = {
   informeel: "#3C9439", // Green
@@ -681,7 +679,7 @@ export default function VillageView() {
         </div>
       </div>
 
-
+     
 
 
       <Dialog open={isOpen} onOpenChange={(open) => {
@@ -740,7 +738,7 @@ export default function VillageView() {
               <Select
                 value={newMember.category || "informeel"}
                 onValueChange={(value: "informeel" | "formeel" | "inspiratie") =>
-                  setNewMember({ ...newMemory, category: value })
+                  setNewMember({ ...newMember, category: value })
                 }
               >
                 <SelectTrigger>
@@ -816,11 +814,8 @@ export default function VillageView() {
         </AlertDialogContent>
       </AlertDialog>
       {/* Memories Dialog */}
-      <Drawer open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
-        <DrawerTrigger asChild>
-          <button>Open Drawer</button> {/* Placeholder - replace with actual trigger */}
-        </DrawerTrigger>
-        <DrawerContent className="fixed inset-x-0 bottom-0 w-screen max-w-full h-[80vh] p-6 pt-4 border-t rounded-t-xl rounded-b-none !m-0 translate-x-0 translate-y-0 left-0 top-auto duration-300 data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom">
+      <Dialog open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
+        <DialogContent className="fixed inset-x-0 bottom-0 w-screen max-w-full h-[80vh] p-6 pt-4 border-t rounded-t-xl rounded-b-none !m-0 translate-x-0 translate-y-0 left-0 top-auto duration-300 data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom">
           <DialogHeader className="space-y-2">
             <DialogTitle className="text-xl">Memories with {selectedMember?.name}</DialogTitle>
           </DialogHeader>
@@ -907,10 +902,10 @@ export default function VillageView() {
               </TabsContent>
             </Tabs>
           </div>
-        </DrawerContent>
-      </Drawer>
+        </DialogContent>
+      </Dialog>
 
-
+      
       <div className="hidden">
         <MinimapView
           members={members}
