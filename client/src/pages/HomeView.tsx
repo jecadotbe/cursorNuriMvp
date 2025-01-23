@@ -152,7 +152,10 @@ export default function HomeView() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => refetch()}
+              onClick={() => {
+                setIsLoading(true);
+                refetch().finally(() => setIsLoading(false));
+              }}
               disabled={isLoading}
               className="flex items-center gap-2"
             >

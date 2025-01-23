@@ -22,13 +22,26 @@ export function useSuggestion() {
     data: suggestion,
     isLoading,
     error,
-    refetch
+    refetch: refetchQuery
   } = useQuery({
     queryKey: ['suggestion'],
     queryFn: fetchSuggestion,
     gcTime: 0, // Don't cache invalidated data
-    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    staleTime: 0, // Always refetch when requested
   });
+
+  const refetch = async () => {
+    try {
+      await refetchQuery();
+    } catch (error) {
+      console.error('Failed to refetch suggestion:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load new suggestion",
+      });
+    }
+  };
 
   const markAsUsed = async (suggestionId: number) => {
     try {
