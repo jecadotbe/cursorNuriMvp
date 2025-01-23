@@ -202,6 +202,7 @@ Communication Preference: ${data.goals.communicationPreference || "Not specified
       const email = finalData.basicInfo?.email;
       const stressLevel = finalData.stressAssessment?.stressLevel;
       const experienceLevel = finalData.basicInfo?.experienceLevel;
+      const supportNetwork = finalData.stressAssessment?.supportNetwork || [];
 
       // Validate required fields
       if (!name || !email || !stressLevel || !experienceLevel) {
@@ -255,7 +256,7 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
 `
             : ""
         }`;
-        // console.log("Saving onboarding content to mem0:\n", onboardingContent);
+
         await memoryService.createMemory(user.id, onboardingContent, {
           type: "onboarding_profile",
           category: "user_profile",
@@ -297,6 +298,28 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
           },
         })
         .returning();
+
+      // Create village members from support network
+      console.log("[DEBUG] Creating village members from support network:", supportNetwork);
+
+      const spacing = (2 * Math.PI) / (supportNetwork.length || 1);
+
+      for (let i = 0; i < supportNetwork.length; i++) {
+        const memberName = supportNetwork[i];
+        const angle = i * spacing; // Evenly space members around circle 2
+
+        await db.insert(villageMembers).values({
+          userId: user.id,
+          name: memberName,
+          type: "individual",
+          circle: 2, // Place support network in circle 2 by default
+          category: "informeel", // Default category for support network
+          contactFrequency: "M", // Default to medium contact frequency
+          positionAngle: angle.toString(), // Store the angle for position
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
 
       res.json({
         message: "Onboarding completed successfully",
@@ -505,10 +528,10 @@ ${profile.onboardingData.goals?.longTerm?.length ? `- Long term goals: ${profile
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 300,
         system: `${NURI_SYSTEM_PROMPT}
-
+        
 ${personalizedContext ? `Consider this parent's profile and context when generating suggestions:\n${personalizedContext}\n` : ""}
 ${memoryContext ? `Previous conversations for context:\n${memoryContext}` : ""}
-
+        
 Analyze the available context and provide a relevant suggestion. For new users or those with limited chat history, focus on their onboarding information to provide personalized suggestions.`,
         messages: [
           {
