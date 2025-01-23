@@ -456,24 +456,12 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
     const now = new Date();
 
     try {
-      // Try to find an unused, non-expired suggestion
-      const suggestions = await db.query.promptSuggestions.findMany({
-        where: and(
-          eq(promptSuggestions.userId, user.id),
-          isNull(promptSuggestions.usedAt),
-          gte(promptSuggestions.expiresAt, now),
-        ),
-        orderBy: [
-          desc(promptSuggestions.relevance),
-          desc(promptSuggestions.createdAt),
-        ],
-        limit: 3,
+      // Always generate a new suggestion
+      const recentChats = await db.query.chats.findMany({
+        where: eq(chats.userId, user.id),
+        orderBy: desc(chats.updatedAt),
+        limit: 5,
       });
-
-      // If we have suggestions, return them
-      if (suggestions.length > 0) {
-        return res.json(suggestions[0]);
-      }
 
       // Get user's profile data for personalized suggestions
       const profile = await db.query.parentProfiles.findFirst({
