@@ -21,17 +21,25 @@ async function fetchSuggestions(): Promise<PromptSuggestion[]> {
   }
 
   const data = await response.json();
-  console.log('Fetched suggestions data:', data); // Debug log
+  console.log('Raw suggestions data:', data); // Debug log
 
-  // Ensure we return an empty array if data is null/undefined
+  // Normalize the response to always be an array
+  let suggestions: PromptSuggestion[];
+
   if (!data) {
     console.warn('No data received from suggestions API');
-    return [];
+    suggestions = [];
+  } else if (Array.isArray(data)) {
+    suggestions = data;
+  } else if (typeof data === 'object' && data !== null) {
+    // Single suggestion object
+    suggestions = [data];
+  } else {
+    console.warn('Invalid data format received from suggestions API:', data);
+    suggestions = [];
   }
 
-  // If data is not an array, wrap it in an array
-  const suggestions = Array.isArray(data) ? data : [data];
-  console.log('Processed suggestions:', suggestions); // Debug log
+  console.log('Normalized suggestions:', suggestions); // Debug log
   return suggestions;
 }
 
@@ -42,15 +50,14 @@ export function useSuggestion() {
   const queryOptions: UseQueryOptions<PromptSuggestion[], Error> = {
     queryKey: ['suggestions'],
     queryFn: fetchSuggestions,
-    enabled: true, // Always enabled to fetch suggestions
-    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    enabled: true,
+    staleTime: 5 * 60 * 1000,
     retry: false,
-    // Initialize with empty array to prevent undefined
-    initialData: [],
+    initialData: [] as PromptSuggestion[],
   };
 
   const {
-    data: suggestions = [], // Provide empty array as fallback
+    data: suggestions = [],
     isLoading,
     error,
     refetch
