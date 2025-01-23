@@ -20,7 +20,7 @@ const handleImageError = (imageName: string, error: any) => {
 
 export default function HomeView() {
   const { user } = useUser();
-  const { suggestions, isLoading, markAsUsed } = useSuggestion();
+  const { suggestions = [], isLoading, markAsUsed } = useSuggestion();
   const [showFeedback, setShowFeedback] = useState(false);
   const [currentSuggestionId, setCurrentSuggestionId] = useState<number | null>(null);
   const { toast } = useToast();
@@ -128,10 +128,10 @@ export default function HomeView() {
               </Card>
             ))}
           </div>
-        ) : suggestions && suggestions.length > 0 ? (
+        ) : Array.isArray(suggestions) && suggestions.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {suggestions.map((suggestion, index) => (
-              <div key={index} onClick={() => handlePromptClick(suggestion)}>
+              <div key={suggestion.id ?? index} onClick={() => handlePromptClick(suggestion)}>
                 <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer animate-border h-full">
                   <CardContent className="p-4">
                     <div className="flex flex-col h-full">
@@ -159,7 +159,7 @@ export default function HomeView() {
           </div>
         ) : (
           <div className="text-center text-gray-500">
-            No suggestions available at the moment
+            Geen suggesties beschikbaar op dit moment
           </div>
         )}
       </div>

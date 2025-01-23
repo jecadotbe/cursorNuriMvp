@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { PromptSuggestion } from "@db/schema";
 import { useToast } from "./use-toast";
+import type { UseQueryOptions } from "@tanstack/react-query";
 
 async function fetchSuggestions(): Promise<PromptSuggestion[]> {
   const response = await fetch('/api/suggestions?limit=3', {
@@ -20,26 +21,30 @@ export function useSuggestion() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const {
-    data: suggestions = [],
-    isLoading,
-    error,
-    refetch
-  } = useQuery({
+  const queryOptions: UseQueryOptions<PromptSuggestion[], Error> = {
     queryKey: ['suggestions'],
     queryFn: fetchSuggestions,
     enabled: true, // Always enabled to fetch suggestions
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
     retry: false,
-    onError: (error) => {
-      console.error('Failed to fetch suggestions:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load suggestions",
-      });
-    },
-  });
+  };
+
+  const {
+    data: suggestions = [],
+    isLoading,
+    error,
+    refetch
+  } = useQuery(queryOptions);
+
+  // Handle errors outside the query options
+  if (error) {
+    console.error('Failed to fetch suggestions:', error);
+    toast({
+      variant: "destructive",
+      title: "Error",
+      description: "Failed to load suggestions",
+    });
+  }
 
   const markAsUsed = async (suggestionId: number) => {
     try {
@@ -67,7 +72,7 @@ export function useSuggestion() {
   console.log('Current suggestions:', suggestions); // Debug log
 
   return {
-    suggestions,
+    suggestions: suggestions as PromptSuggestion[],
     isLoading,
     error,
     refetch,
