@@ -22,96 +22,89 @@ const childSchema = z.object({
   specialNeeds: z.array(z.string()),
 });
 
-const formSchema = z.object({
-  children: z.array(childSchema).min(1, "Please add at least one child"),
-});
+type Child = z.infer<typeof childSchema>;
 
 type ChildProfileStepProps = {
-  onComplete: (data: z.infer<typeof formSchema>) => void;
+  onComplete: (children: Child[]) => void;
+  initialData?: Child[];
 };
 
-export default function ChildProfileStep({ onComplete }: ChildProfileStepProps) {
+export default function ChildProfileStep({ onComplete, initialData = [] }: ChildProfileStepProps) {
   const [newSpecialNeed, setNewSpecialNeed] = useState("");
   const [activeChildIndex, setActiveChildIndex] = useState(0);
+  const [children, setChildren] = useState<Child[]>(initialData);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      children: [
-        {
-          name: "",
-          age: 0,
-          specialNeeds: [],
-        },
-      ],
+  const form = useForm<Child>({
+    resolver: zodResolver(childSchema),
+    defaultValues: children[activeChildIndex] || {
+      name: "",
+      age: 0,
+      specialNeeds: [],
     },
   });
 
   const addChild = () => {
-    const currentChildren = form.getValues("children");
-    form.setValue("children", [
-      ...currentChildren,
-      {
-        name: "",
-        age: 0,
-        specialNeeds: [],
-      },
-    ]);
-    setActiveChildIndex(currentChildren.length);
+    setChildren([...children, { name: "", age: 0, specialNeeds: [] }]);
+    setActiveChildIndex(children.length);
+    form.reset({ name: "", age: 0, specialNeeds: [] });
   };
 
   const removeChild = (index: number) => {
-    const currentChildren = form.getValues("children");
-    if (currentChildren.length > 1) {
-      form.setValue(
-        "children",
-        currentChildren.filter((_, i) => i !== index)
-      );
+    if (children.length > 1) {
+      const newChildren = children.filter((_, i) => i !== index);
+      setChildren(newChildren);
       setActiveChildIndex(Math.max(0, activeChildIndex - 1));
+      form.reset(newChildren[Math.max(0, activeChildIndex - 1)]);
     }
   };
 
-  const addSpecialNeed = (index: number) => {
+  const addSpecialNeed = () => {
     if (newSpecialNeed.trim()) {
-      const currentChildren = form.getValues("children");
-      const updatedChildren = [...currentChildren];
-      updatedChildren[index] = {
-        ...updatedChildren[index],
-        specialNeeds: [...(updatedChildren[index].specialNeeds || []), newSpecialNeed.trim()],
-      };
-      form.setValue("children", updatedChildren);
+      const updatedChildren = [...children];
+      const currentChild = updatedChildren[activeChildIndex] || { name: "", age: 0, specialNeeds: [] };
+      currentChild.specialNeeds = [...(currentChild.specialNeeds || []), newSpecialNeed.trim()];
+      updatedChildren[activeChildIndex] = currentChild;
+      setChildren(updatedChildren);
       setNewSpecialNeed("");
     }
   };
 
-  const removeSpecialNeed = (childIndex: number, needIndex: number) => {
-    const currentChildren = form.getValues("children");
-    const updatedChildren = [...currentChildren];
-    updatedChildren[childIndex] = {
-      ...updatedChildren[childIndex],
-      specialNeeds: updatedChildren[childIndex].specialNeeds.filter(
-        (_, i) => i !== needIndex
-      ),
-    };
-    form.setValue("children", updatedChildren);
+  const removeSpecialNeed = (needIndex: number) => {
+    const updatedChildren = [...children];
+    const currentChild = updatedChildren[activeChildIndex];
+    if (currentChild) {
+      currentChild.specialNeeds = currentChild.specialNeeds.filter((_, i) => i !== needIndex);
+      updatedChildren[activeChildIndex] = currentChild;
+      setChildren(updatedChildren);
+    }
   };
 
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
-    onComplete(data);
+  const onSubmit = (data: Child) => {
+    const updatedChildren = [...children];
+    updatedChildren[activeChildIndex] = data;
+    setChildren(updatedChildren);
+
+    // Validate that we have at least one child with required fields
+    if (updatedChildren.some(child => child.name && child.age >= 0)) {
+      onComplete(updatedChildren);
+    }
   };
 
   return (
     <div className="space-y-6 bg-transparent">
-      <div className="flex gap-2 mb-4">
-        {form.watch("children").map((_, index) => (
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {children.map((child, index) => (
           <Button
             key={index}
             variant={activeChildIndex === index ? "default" : "outline"}
-            onClick={() => setActiveChildIndex(index)}
+            onClick={() => {
+              setActiveChildIndex(index);
+              form.reset(children[index]);
+            }}
             className="flex items-center gap-2"
           >
-            Child {index + 1}
-            {form.watch("children").length > 1 && (
+            {child.name || `Kind ${index + 1}`}
+            {children.length > 1 && (
               <X
                 className="h-4 w-4 hover:text-destructive"
                 onClick={(e) => {
@@ -128,7 +121,7 @@ export default function ChildProfileStep({ onComplete }: ChildProfileStepProps) 
           className="flex items-center gap-2"
         >
           <Plus className="h-4 w-4" />
-          Add Child
+          Kind toevoegen
         </Button>
       </div>
 
@@ -138,12 +131,12 @@ export default function ChildProfileStep({ onComplete }: ChildProfileStepProps) 
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
                 control={form.control}
-                name={`children.${activeChildIndex}.name`}
+                name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Child's Name</FormLabel>
+                    <FormLabel>Naam van het kind</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Enter child's name" />
+                      <Input {...field} placeholder="Vul de naam in" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -152,10 +145,10 @@ export default function ChildProfileStep({ onComplete }: ChildProfileStepProps) 
 
               <FormField
                 control={form.control}
-                name={`children.${activeChildIndex}.age`}
+                name="age"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Age</FormLabel>
+                    <FormLabel>Leeftijd</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -170,54 +163,45 @@ export default function ChildProfileStep({ onComplete }: ChildProfileStepProps) 
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name={`children.${activeChildIndex}.specialNeeds`}
-                render={() => (
-                  <FormItem>
-                    <FormLabel>Special Needs or Considerations</FormLabel>
-                    <div className="space-y-2">
-                      <div className="flex gap-2">
-                        <Input
-                          value={newSpecialNeed}
-                          onChange={(e) => setNewSpecialNeed(e.target.value)}
-                          placeholder="Add special needs or considerations"
-                          onKeyPress={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              addSpecialNeed(activeChildIndex);
-                            }
-                          }}
-                        />
-                        <Button
-                          type="button"
-                          onClick={() => addSpecialNeed(activeChildIndex)}
-                        >
-                          Add
-                        </Button>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {form.watch(`children.${activeChildIndex}.specialNeeds`)?.map((need, index) => (
-                          <Badge key={index} variant="secondary">
-                            {need}
-                            <button
-                              type="button"
-                              onClick={() => removeSpecialNeed(activeChildIndex, index)}
-                              className="ml-2"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-2">
+                <FormLabel>Speciale behoeften of overwegingen</FormLabel>
+                <div className="flex gap-2">
+                  <Input
+                    value={newSpecialNeed}
+                    onChange={(e) => setNewSpecialNeed(e.target.value)}
+                    placeholder="Voeg speciale behoeften toe"
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addSpecialNeed();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    onClick={addSpecialNeed}
+                  >
+                    Toevoegen
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {children[activeChildIndex]?.specialNeeds.map((need, index) => (
+                    <Badge key={index} variant="secondary">
+                      {need}
+                      <button
+                        type="button"
+                        onClick={() => removeSpecialNeed(index)}
+                        className="ml-2"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
 
               <Button type="submit" className="w-full">
-                Continue
+                Doorgaan
               </Button>
             </form>
           </Form>
