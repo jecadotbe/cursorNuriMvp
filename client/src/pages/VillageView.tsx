@@ -4,11 +4,11 @@ import { useUser } from "@/hooks/use-user";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, User, Users, ArrowUpCircle, ArrowDownCircle, ArrowLeftCircle, ArrowRightCircle, Lightbulb, BookMarked, Star, Clock } from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  //Dialog,
+  //DialogContent,
+  //DialogHeader,
+  //DialogTitle,
+  //DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +51,8 @@ import { useVillageMemories } from "@/hooks/use-village-memories";
 import { VillageMemberMemories } from "@/components/VillageMemberMemories";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InsightsPanel from "@/components/InsightsPanel";
+import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer"; // Add Drawer imports
+
 
 const CATEGORY_COLORS = {
   informeel: "#3C9439", // Green
@@ -679,7 +681,7 @@ export default function VillageView() {
         </div>
       </div>
 
-     
+
 
 
       <Dialog open={isOpen} onOpenChange={(open) => {
@@ -738,7 +740,7 @@ export default function VillageView() {
               <Select
                 value={newMember.category || "informeel"}
                 onValueChange={(value: "informeel" | "formeel" | "inspiratie") =>
-                  setNewMember({ ...newMember, category: value })
+                  setNewMember({ ...newMemory, category: value })
                 }
               >
                 <SelectTrigger>
@@ -814,8 +816,11 @@ export default function VillageView() {
         </AlertDialogContent>
       </AlertDialog>
       {/* Memories Dialog */}
-      <Dialog open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
-        <DialogContent className="fixed inset-x-0 bottom-0 w-screen max-w-full h-[80vh] p-6 pt-4 border-t rounded-t-xl rounded-b-none !m-0 translate-x-0 translate-y-0 left-0 top-auto duration-300 data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom">
+      <Drawer open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
+        <DrawerTrigger asChild>
+          <button>Open Drawer</button> {/* Placeholder - replace with actual trigger */}
+        </DrawerTrigger>
+        <DrawerContent className="fixed inset-x-0 bottom-0 w-screen max-w-full h-[80vh] p-6 pt-4 border-t rounded-t-xl rounded-b-none !m-0 translate-x-0 translate-y-0 left-0 top-auto duration-300 data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom">
           <DialogHeader className="space-y-2">
             <DialogTitle className="text-xl">Memories with {selectedMember?.name}</DialogTitle>
           </DialogHeader>
@@ -849,7 +854,7 @@ export default function VillageView() {
                     <Label htmlFor="content">Memory Details</Label>
                     <Textarea
                       id="content"
-                      value={newMemory.content}
+                      valuenewMemory.content}
                       onChange={(e) => setNewMemory({ ...newMemory, content: e.target.value })}
                       placeholder="What happened? How did it make you feel?"
                       className="min-h-[150px]" required
@@ -902,10 +907,10 @@ export default function VillageView() {
               </TabsContent>
             </Tabs>
           </div>
-        </DialogContent>
-      </Dialog>
+        </DrawerContent>
+      </Drawer>
 
-      
+
       <div className="hidden">
         <MinimapView
           members={members}
