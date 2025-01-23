@@ -18,6 +18,7 @@ type OnboardingData = {
   stressAssessment: {
     stressLevel: "low" | "moderate" | "high" | "very_high";
     primaryConcerns: string[];
+    supportNetwork: string[];
   };
 };
 

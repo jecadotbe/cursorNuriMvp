@@ -27,6 +27,7 @@ const formSchema = z.object({
     required_error: "Please select your current stress level",
   }),
   primaryConcerns: z.array(z.string()).min(1, "Please add at least one concern"),
+  supportNetwork: z.array(z.string()).min(1, "Please add at least one support person or group"),
 });
 
 type StressAssessmentStepProps = {
@@ -36,12 +37,14 @@ type StressAssessmentStepProps = {
 
 export default function StressAssessmentStep({ onComplete, initialData }: StressAssessmentStepProps) {
   const [newConcern, setNewConcern] = useState("");
+  const [newSupport, setNewSupport] = useState("");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData || {
       stressLevel: undefined,
       primaryConcerns: [],
+      supportNetwork: [],
     },
   });
 
@@ -65,7 +68,21 @@ export default function StressAssessmentStep({ onComplete, initialData }: Stress
     );
   };
 
-  
+  const addSupport = () => {
+    if (newSupport.trim()) {
+      const currentSupport = form.getValues("supportNetwork");
+      form.setValue("supportNetwork", [...currentSupport, newSupport.trim()]);
+      setNewSupport("");
+    }
+  };
+
+  const removeSupport = (index: number) => {
+    const currentSupport = form.getValues("supportNetwork");
+    form.setValue(
+      "supportNetwork",
+      currentSupport.filter((_, i) => i !== index)
+    );
+  };
 
   return (
     <Form {...form}>
