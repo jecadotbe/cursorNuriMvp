@@ -11,7 +11,9 @@ async function fetchSuggestions(): Promise<PromptSuggestion[]> {
     throw new Error(`${response.status}: ${await response.text()}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  console.log('Fetched suggestions:', data); // Debug log
+  return data;
 }
 
 export function useSuggestion() {
@@ -26,8 +28,17 @@ export function useSuggestion() {
   } = useQuery({
     queryKey: ['suggestions'],
     queryFn: fetchSuggestions,
-    gcTime: 0, // Don't cache invalidated data
+    enabled: true, // Always enabled to fetch suggestions
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    retry: false,
+    onError: (error) => {
+      console.error('Failed to fetch suggestions:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load suggestions",
+      });
+    },
   });
 
   const markAsUsed = async (suggestionId: number) => {
@@ -52,6 +63,8 @@ export function useSuggestion() {
       });
     }
   };
+
+  console.log('Current suggestions:', suggestions); // Debug log
 
   return {
     suggestions,

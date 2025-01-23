@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUser } from "@/hooks/use-user";
 import { useSuggestion } from "@/hooks/use-suggestion";
@@ -25,6 +25,9 @@ export default function HomeView() {
   const [currentSuggestionId, setCurrentSuggestionId] = useState<number | null>(null);
   const { toast } = useToast();
   const [, navigate] = useLocation();
+
+  console.log('HomeView - suggestions:', suggestions); // Debug log
+  console.log('HomeView - isLoading:', isLoading); // Debug log
 
   const handlePromptClick = async (suggestion: any) => {
     if (!suggestion) return;
@@ -125,7 +128,7 @@ export default function HomeView() {
               </Card>
             ))}
           </div>
-        ) : suggestions.length > 0 ? (
+        ) : suggestions && suggestions.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {suggestions.map((suggestion, index) => (
               <div key={index} onClick={() => handlePromptClick(suggestion)}>
@@ -154,7 +157,11 @@ export default function HomeView() {
               </div>
             ))}
           </div>
-        ) : null}
+        ) : (
+          <div className="text-center text-gray-500">
+            No suggestions available at the moment
+          </div>
+        )}
       </div>
 
       {/* Village Section */}
