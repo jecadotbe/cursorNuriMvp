@@ -21,7 +21,7 @@ export type OnboardingData = {
     primaryConcerns: string[];
     supportNetwork: string[];
   };
-  childProfiles?: Array<{
+  childProfiles: Array<{
     name: string;
     age: number;
     specialNeeds: string[];
@@ -41,19 +41,14 @@ type OnboardingProgressResponse = {
 };
 
 const handleApiResponse = async (response: Response) => {
-  const responseText = await response.text(); // Read the response text only once
-
+  const responseText = await response.text();
   try {
-    // Try to parse the text as JSON
     const data = JSON.parse(responseText);
-
     if (!response.ok) {
       throw new Error(data.message || `HTTP error! status: ${response.status}`);
     }
-
     return data;
   } catch (parseError) {
-    // If JSON parsing failed, use the original response text
     if (!response.ok) {
       throw new Error(responseText || `HTTP error! status: ${response.status}`);
     }
@@ -63,7 +58,9 @@ const handleApiResponse = async (response: Response) => {
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
-  const [onboardingData, setOnboardingData] = useState<OnboardingData>({});
+  const [onboardingData, setOnboardingData] = useState<OnboardingData>({
+    childProfiles: [] // Initialize with empty array
+  });
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -80,7 +77,17 @@ export default function OnboardingPage() {
             'Accept': 'application/json'
           }
         });
-        return handleApiResponse(response);
+        const data = await handleApiResponse(response);
+        // Ensure childProfiles is always an array
+        return {
+          ...data,
+          onboardingData: {
+            ...data.onboardingData,
+            childProfiles: Array.isArray(data.onboardingData?.childProfiles) 
+              ? data.onboardingData.childProfiles 
+              : []
+          }
+        };
       } catch (error) {
         console.error('Failed to fetch progress:', error);
         toast({
@@ -91,7 +98,7 @@ export default function OnboardingPage() {
         return {
           currentOnboardingStep: 1,
           completedOnboarding: false,
-          onboardingData: {}
+          onboardingData: { childProfiles: [] }
         };
       }
     }
@@ -104,7 +111,7 @@ export default function OnboardingPage() {
         return;
       }
       setStep(savedProgress.currentOnboardingStep || 1);
-      setOnboardingData(savedProgress.onboardingData || {});
+      setOnboardingData(savedProgress.onboardingData);
     }
   }, [savedProgress, setLocation]);
 
@@ -162,7 +169,13 @@ export default function OnboardingPage() {
   });
 
   const handleStepComplete = async (stepData: Partial<OnboardingData>) => {
-    const updatedData = { ...onboardingData, ...stepData };
+    const updatedData = { 
+      ...onboardingData,
+      ...stepData,
+      childProfiles: Array.isArray(stepData.childProfiles) 
+        ? stepData.childProfiles 
+        : onboardingData.childProfiles
+    };
     setOnboardingData(updatedData);
 
     try {
@@ -177,7 +190,6 @@ export default function OnboardingPage() {
         await completeOnboardingMutation.mutateAsync(updatedData);
       }
     } catch (error) {
-      // Error is already handled by the mutations
       console.error("Step completion error:", error);
     }
   };
@@ -206,7 +218,7 @@ export default function OnboardingPage() {
           </div>
           <h1 className="text-3xl font-baskerville">Welkom bij Nuri</h1>
           <p>
-             Geweldig dat je voor ons kiest. Laten we je beter leren kennen om gepersonaliseerde ondersteuning te bieden
+            Geweldig dat je voor ons kiest. Laten we je beter leren kennen om gepersonaliseerde ondersteuning te bieden
           </p>
         </div>
 
@@ -228,7 +240,7 @@ export default function OnboardingPage() {
             )}
             {step === 3 && (
               <ChildProfileStep
-                onComplete={(data) => handleStepComplete({ childProfiles: data })}
+                onComplete={(profiles) => handleStepComplete({ childProfiles: profiles })}
                 initialData={onboardingData.childProfiles}
               />
             )}

@@ -73,6 +73,16 @@ app.post("/api/onboarding/progress", async (req, res) => {
   try {
     // Store intermediate progress in mem0
     try {
+      const childProfilesString = Array.isArray(data.childProfiles)
+        ? data.childProfiles
+            .map(
+              (child: any) =>
+                `- ${child.name} (Age: ${child.age})
+                 ${child.specialNeeds?.length ? `Special needs: ${child.specialNeeds.join(", ")}` : "No special needs"}`
+            )
+            .join("\n")
+        : "No children profiles added";
+
       const stepContent = `
 Onboarding Step ${step} Progress:
 ${data.basicInfo ? `
@@ -89,10 +99,7 @@ Support Network: ${data.stressAssessment.supportNetwork?.join(", ") || "None"}
 ` : ''}
 ${data.childProfiles ? `
 Child Profiles:
-${data.childProfiles.map((child: any) => 
-  `- ${child.name} (Age: ${child.age})
-   ${child.specialNeeds?.length ? `Special needs: ${child.specialNeeds.join(", ")}` : "No special needs"}`
-).join("\n")}
+${childProfilesString}
 ` : ''}
 ${data.goals ? `
 Goals:
@@ -138,9 +145,11 @@ Communication Preference: ${data.goals.communicationPreference || "Not specified
           stressLevel: stressLevel as any,
           experienceLevel: experienceLevel as any,
           currentOnboardingStep: step,
-          onboardingData: data,
+          onboardingData: {
+            ...data,
+            childProfiles: Array.isArray(data.childProfiles) ? data.childProfiles : []
+          },
           completedOnboarding: false,
-          // Store arrays properly
           primaryConcerns: data.stressAssessment?.primaryConcerns || [],
           supportNetwork: data.stressAssessment?.supportNetwork || [],
         })
@@ -152,7 +161,10 @@ Communication Preference: ${data.goals.communicationPreference || "Not specified
             stressLevel: (data.stressAssessment?.stressLevel as any) || undefined,
             experienceLevel: (data.basicInfo?.experienceLevel as any) || undefined,
             currentOnboardingStep: step,
-            onboardingData: data,
+            onboardingData: {
+              ...data,
+              childProfiles: Array.isArray(data.childProfiles) ? data.childProfiles : []
+            },
             primaryConcerns: data.stressAssessment?.primaryConcerns || undefined,
             supportNetwork: data.stressAssessment?.supportNetwork || undefined,
             updatedAt: new Date(),
@@ -171,7 +183,10 @@ Communication Preference: ${data.goals.communicationPreference || "Not specified
     res.json({
       currentOnboardingStep: step,
       completedOnboarding: false,
-      onboardingData: data,
+      onboardingData: {
+        ...data,
+        childProfiles: Array.isArray(data.childProfiles) ? data.childProfiles : []
+      },
     });
   } catch (error) {
     console.error("Failed to save onboarding progress:", error);
@@ -182,7 +197,7 @@ Communication Preference: ${data.goals.communicationPreference || "Not specified
   }
 });
 
-  app.post("/api/onboarding/complete", async (req, res) => {
+app.post("/api/onboarding/complete", async (req, res) => {
     console.log("[DEBUG] Starting onboarding completion");
     if (!req.isAuthenticated() || !req.user) {
       console.log("[DEBUG] User not authenticated");
@@ -903,7 +918,7 @@ ${mergedRAG || "No relevant content available"}
   });
 
   app.post("/api/analyze-context", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
+    if (!req.isAuthenticated || !req.user) {
       return res.status(401).send("Not authenticated");
     }
 
