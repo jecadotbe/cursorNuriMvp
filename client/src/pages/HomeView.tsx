@@ -146,6 +146,22 @@ export default function HomeView() {
             </Card>
           </div>
         ) : null}
+        {suggestion && (
+          <div className="flex justify-end mt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isLoading}
+              className="flex items-center gap-2"
+            >
+              {isLoading ? (
+                <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+              ) : null}
+              Toon andere suggestie
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Village Section */}
