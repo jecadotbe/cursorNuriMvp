@@ -135,7 +135,7 @@ export default function HomeView() {
             </CardContent>
           </Card>
         ) : suggestion ? (
-          <div onClick={handlePromptClick}>
+          <div onClick={handlePromptClick} className="transition-opacity duration-300 ease-in-out opacity-0 animate-fade-in">
             <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer mb-4 animate-border">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
