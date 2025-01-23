@@ -468,13 +468,6 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
         where: eq(parentProfiles.userId, user.id),
       });
 
-      // Get recent chats for context
-      const recentChats = await db.query.chats.findMany({
-        where: eq(chats.userId, user.id),
-        orderBy: desc(chats.updatedAt),
-        limit: 5,
-      });
-
       // Get relevant memories for context, but prioritize older ones
       const relevantMemories = await memoryService.getRelevantMemories(
         user.id,
