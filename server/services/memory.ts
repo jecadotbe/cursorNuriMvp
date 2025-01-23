@@ -19,9 +19,25 @@ export interface Memory {
 
 export class MemoryService {
   private static instance: MemoryService;
-  private readonly RELEVANCE_THRESHOLD = 0.6; // Only include memories with relevance score above this
+  private readonly RELEVANCE_THRESHOLD = 0.6;
+  private memoryCache: Map<string, {value: string, expires: number}> = new Map();
 
   private constructor() {}
+
+  async getCachedMemories(key: string): Promise<string | null> {
+    const cached = this.memoryCache.get(key);
+    if (cached && cached.expires > Date.now()) {
+      return cached.value;
+    }
+    return null;
+  }
+
+  async cacheMemories(key: string, value: string, ttlSeconds: number): Promise<void> {
+    this.memoryCache.set(key, {
+      value,
+      expires: Date.now() + (ttlSeconds * 1000)
+    });
+  }
 
   public static getInstance(): MemoryService {
     if (!MemoryService.instance) {
@@ -83,6 +99,13 @@ export class MemoryService {
         return [];
       }
 
+      const cacheKey = `relevantMemories:${userId}:${currentContext}`;
+      const cachedMemories = await this.getCachedMemories(cacheKey);
+      if (cachedMemories) {
+        console.log('Retrieved relevant memories from cache');
+        return JSON.parse(cachedMemories);
+      }
+
       const memories = await client.search(currentContext, {
         user_id: userId.toString(),
         metadata: {
@@ -117,6 +140,8 @@ export class MemoryService {
         .filter(memory => memory.content) // Remove entries with empty content
         .sort((a, b) => (b.relevance || 0) - (a.relevance || 0))
         .slice(0, 3);
+
+      await this.cacheMemories(cacheKey, JSON.stringify(validMemories), 60); // Cache for 60 seconds
 
       return validMemories;
     } catch (error) {
