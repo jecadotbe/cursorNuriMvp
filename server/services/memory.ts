@@ -99,7 +99,7 @@ export class MemoryService {
       console.log('Memory relevance scores:', memories.map(m => ({
         id: m.id,
         relevance: m.relevance,
-        content: m.content.substring(0, 50) + '...'
+        content: typeof m.content === 'string' ? m.content.substring(0, 50) + '...' : 'No content'
       })));
 
       // Filter and sort memories by relevance
