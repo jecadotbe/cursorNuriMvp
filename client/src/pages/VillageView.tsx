@@ -714,21 +714,22 @@ const CLICK_THRESHOLD = 200; // milliseconds
                   }}
                   onStop={(e, data) => {
                     if (Date.now() - dragStartTime > CLICK_THRESHOLD) {
-                    const distance = Math.sqrt(data.x * data.x + data.y * data.y);
-                    let newCircle = Math.round(distance / 80);
-                    newCircle = Math.max(1, Math.min(5, newCircle));
+                      const distance = Math.sqrt(data.x * data.x + data.y * data.y);
+                      let newCircle = Math.round(distance / 80);
+                      newCircle = Math.max(1, Math.min(5, newCircle));
 
-                    const snapped = snapToCircle(data.x, data.y, newCircle);
+                      const snapped = snapToCircle(data.x, data.y, newCircle);
 
-                    const currentAngle = parseFloat(member.positionAngle?.toString() || "0");
-                    if (newCircle !== member.circle || Math.abs(snapped.angle - currentAngle) > 0.01) {
-                      updateMember({
-                        ...member,
-                        circle: newCircle,
-                        positionAngle: snapped.angle.toString()
-                      });
-                    }}
-                  }
+                      const currentAngle = parseFloat(member.positionAngle?.toString() || "0");
+                      if (newCircle !== member.circle || Math.abs(snapped.angle - currentAngle) > 0.01) {
+                        updateMember({
+                          ...member,
+                          circle: newCircle,
+                          positionAngle: snapped.angle.toString()
+                        });
+                      }
+                    }
+                  }}
                   bounds="parent"
                 >
                   <div
