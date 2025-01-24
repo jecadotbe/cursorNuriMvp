@@ -44,6 +44,7 @@ import { useVillageMemories } from "@/hooks/use-village-memories";
 import { VillageMemberMemories } from "@/components/VillageMemberMemories";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InsightsPanel from "@/components/InsightsPanel";
+import { MemberActionMenu } from "@/components/MemberActionMenu";
 
 const CATEGORY_COLORS = {
   informeel: "#3C9439", // Green
