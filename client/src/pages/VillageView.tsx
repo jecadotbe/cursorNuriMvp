@@ -883,11 +883,14 @@ export default function VillageView() {
       </AlertDialog>
       {/* Memories Dialog */}
       <Sheet open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
-        <SheetContent className="fixed inset-x-0 bottom-0 w-screen max-w-full h-[80vh] p-6 pt-4 border-t rounded-t-xl rounded-b-none !m-0 translate-x-0 translate-y-0 left-0 top-auto duration-300 data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom">
-          <SheetHeader className="space-y-2">
-            <SheetTitle className="text-xl">Memories with {selectedMember?.name}</SheetTitle>
+        <SheetContent side="bottom" className="h-[90vh]">
+          <SheetHeader>
+            <SheetTitle>Herinneringen met {selectedMember?.name}</SheetTitle>
+            <span className="text-sm text-muted-foreground">
+              Bekijk of voeg herinneringen toe
+            </span>
           </SheetHeader>
-          <div className="flex flex-col h-full gap-4 mt-4 overflow-hidden">
+          <div className="flex flex-col h-[calc(90vh-120px)] gap-4 mt-4 overflow-hidden">
             <Tabs defaultValue="view">
               <TabsList>
                 <TabsTrigger value="view">View Memories</TabsTrigger>
