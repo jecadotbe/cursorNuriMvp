@@ -47,11 +47,11 @@ function Router() {
       <div className={`flex-1 ${showNavigation ? 'pb-16' : ''}`}>
         <Switch>
           <Route path="/onboarding" component={OnboardingPage} />
-          <Route path="/" component={AuthPage} />
           <Route path="/reset-password" component={ResetPasswordPage} />
           <Route path="/chat" component={ChatHistoryView} />
           <Route path="/chat/:id" component={ChatView} />
           <Route path="/chat/history" component={ChatHistoryView} />
+          <Route path="/" component={AuthPage} />
           <Route path="/village" component={VillageView} />
           <Route path="/learn" component={LearnView} />
           <Route path="/learn/:id" component={LearnDetailView} />

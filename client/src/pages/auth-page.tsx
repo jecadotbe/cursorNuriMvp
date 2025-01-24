@@ -92,7 +92,7 @@ export default function AuthPage() {
               variant="link" 
               className="text-sm text-gray-500 hover:text-gray-700"
               onClick={() => {
-                setLocation("/reset-password");
+                setLocation("/reset-password", { replace: true });
               }}
             >
               Forgot your password?
