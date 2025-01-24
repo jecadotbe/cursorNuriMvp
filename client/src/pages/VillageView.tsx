@@ -478,6 +478,14 @@ export default function VillageView() {
     members.map(member => ({...member, actionsOpen: false}))
   );
 
+  // Update membersWithState when members change
+  useEffect(() => {
+    setMembersWithState(members.map(member => ({
+      ...member,
+      actionsOpen: membersWithState.find(m => m.id === member.id)?.actionsOpen || false
+    })));
+  }, [members]);
+
   const toggleMemberActions = (memberId: number) => {
     setMembersWithState(prev => 
       prev.map(m => ({
@@ -672,10 +680,11 @@ export default function VillageView() {
               </Avatar>
             </div>
 
-            {membersWithState.map((member) => {
+            {members.map((member) => {
               const pos = getMemberPosition(member);
               const categoryColor = member.category ? CATEGORY_COLORS[member.category] : "#6b7280";
               const nodeRef = getMemberRef(member.id);
+              const memberState = membersWithState.find(m => m.id === member.id) || {...member, actionsOpen: false};
 
               return (
                 <Draggable
@@ -727,7 +736,7 @@ export default function VillageView() {
                       }}
                     >
                       <span className="text-sm font-medium text-gray-800">{member.name}</span>
-                      <div className={`items-center space-x-1 ${member.actionsOpen ? 'flex' : 'hidden md:group-hover:flex'}`}>
+                      <div className={`items-center space-x-1 ${memberState.actionsOpen ? 'flex' : 'hidden md:group-hover:flex'}`}>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
