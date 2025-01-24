@@ -727,8 +727,8 @@ const CLICK_THRESHOLD = 200; // milliseconds
                         circle: newCircle,
                         positionAngle: snapped.angle.toString()
                       });
-                    }
-                  }}
+                    }}
+                  }
                   bounds="parent"
                 >
                   <div
