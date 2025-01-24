@@ -308,9 +308,9 @@ export default function HomeView() {
 
 const learningVideos = [
   {
-    title: "Wat is Aware Parenting?",
-    duration: "10 min",
-    image: "/images/alexander-dummer-ncyGJJ0TSLM-unsplash (1).jpg",
+    title: "Spel & Spel?",
+    duration: "5 min",
+    image: "/images/ben-hagemann-sOW4e4EbPSk-unsplash.jpg",
   },
   {
     title: "Niet straffen en belonen; hoe dan?",
@@ -321,7 +321,7 @@ const learningVideos = [
 
 const OneCard = [
   {
-    title: "Wat is Aware Parenting?",
+    title: "Van start met Nuri: in 10 minuten",
     duration: "10 min",
     image: "/images/alexander-dummer-ncyGJJ0TSLM-unsplash (1).jpg",
   },
