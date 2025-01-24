@@ -83,6 +83,7 @@ interface Insight {
   suggestedAction?: string;
   priority: number;
   status: string;
+  dismissed: boolean;
 }
 
 export default function VillageView() {
@@ -126,19 +127,21 @@ export default function VillageView() {
     {
       id: 1,
       type: "connection_strength",
-      title: "Strong Connection Alert",
-      description: "Your relationship with Andy has been consistently strong over the past month.",
+      title: "Sterke Verbinding Gedetecteerd",
+      description: "Je relatie met Andy is de afgelopen maand consistent sterk geweest.",
       priority: 4,
-      status: "active"
+      status: "active",
+      dismissed: false
     },
     {
       id: 2,
       type: "network_gap",
-      title: "Support Network Gap",
-      description: "You might benefit from adding more professional contacts to your village.",
-      suggestedAction: "Consider reaching out to mentors or colleagues",
+      title: "Verbetering Steunnetwerk",
+      description: "Je zou kunnen profiteren van meer professionele contacten in je village.",
+      suggestedAction: "Overweeg contact op te nemen met mentoren of collega's",
       priority: 3,
-      status: "active"
+      status: "active",
+      dismissed: false
     }
   ]);
 
@@ -462,6 +465,22 @@ export default function VillageView() {
     }
   };
 
+  const dismissInsight = (id: number) => {
+    setInsights(prev =>
+      prev.map(insight =>
+        insight.id === id ? { ...insight, dismissed: true } : insight
+      )
+    );
+  };
+
+  const handleInsightAction = (id: number) => {
+    const insight = insights.find(i => i.id === id);
+    if (insight?.type === "network_gap") {
+      setIsOpen(true); // Open add member dialog
+    }
+    dismissInsight(id);
+  };
+
   return (
     <div className="flex flex-col h-screen relative animate-gradient" style={{
       backgroundSize: "400% 400%",
@@ -509,28 +528,38 @@ export default function VillageView() {
       <Dialog open={isSuggestionsOpen} onOpenChange={setIsSuggestionsOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Village Suggestions</DialogTitle>
+            <DialogTitle>Dorpsuggesties</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {insights.map((insight) => (
-              <Card key={insight.id}>
-                <CardContent className="pt-6">
-                  <div className="flex items-start gap-4">
-                    <div className="flex-1">
-                      <h3 className="font-semibold mb-1">{insight.title}</h3>
-                      <p className="text-sm text-gray-600">{insight.description}</p>
-                      {insight.suggestedAction && (
-                        <p className="text-sm text-gray-600 mt-2 italic">
-                          Suggestion: {insight.suggestedAction}
-                        </p>
-                      )}
+              !insight.dismissed && (
+                <Card key={insight.id}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-start gap-4">
+                      <div className="flex-1">
+                        <h3 className="font-semibold mb-1">{insight.title}</h3>
+                        <p className="text-sm text-gray-600">{insight.description}</p>
+                        {insight.suggestedAction && (
+                          <p className="text-sm text-gray-600 mt-2 italic">
+                            Suggestie: {insight.suggestedAction}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Badge variant={insight.priority > 3 ? "default" : "secondary"}>
+                          Prioriteit {insight.priority}
+                        </Badge>
+                        <Button variant="ghost" onClick={() => handleInsightAction(insight.id)}>
+                          {insight.type === "network_gap" ? "Voeg toe" : "OK"}
+                        </Button>
+                        <Button variant="ghost" onClick={() => dismissInsight(insight.id)}>
+                          Verwijder
+                        </Button>
+                      </div>
                     </div>
-                    <Badge variant={insight.priority > 3 ? "default" : "secondary"}>
-                      Priority {insight.priority}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )
             ))}
           </div>
         </DialogContent>
@@ -716,7 +745,7 @@ export default function VillageView() {
         </div>
       </div>
 
-     
+
 
 
       <Dialog open={isOpen} onOpenChange={(open) => {
@@ -844,7 +873,7 @@ export default function VillageView() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600">
+            <AlertDialogAction>
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -942,7 +971,7 @@ export default function VillageView() {
         </DialogContent>
       </Dialog>
 
-      
+
       <div className="hidden">
         <MinimapView
           members={members}
