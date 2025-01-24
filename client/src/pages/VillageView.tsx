@@ -1,4 +1,4 @@
-import { useState, useRef, createRef } from "react";
+import { useState, useRef, createRef, useEffect } from "react";
 import { useVillage } from "@/hooks/use-village";
 import { useUser } from "@/hooks/use-user";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
