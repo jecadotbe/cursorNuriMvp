@@ -22,11 +22,13 @@ export function MemberActionMenu({
 
   return (
     <div 
-      className="fixed z-50"
+      className="fixed z-50 animate-in fade-in slide-in-from-top-1 duration-200"
       style={{
         left: position.x,
-        top: position.y
+        top: position.y,
+        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
       }}
+      onClick={(e) => e.stopPropagation()}
     >
       <div className="bg-white rounded-lg shadow-lg p-2 min-w-[150px]">
         <button

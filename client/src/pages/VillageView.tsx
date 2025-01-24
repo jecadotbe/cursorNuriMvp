@@ -718,31 +718,36 @@ export default function VillageView() {
                     className="absolute member-pill group flex items-center"
                     style={{ transform: "translate(-50%, -50%)" }}
                   >
-                    <div
-                      className={`mr-2 rounded-full cursor-move`}
-                      style={{
-                        backgroundColor: categoryColor,
-                        width: member.contactFrequency === 'S' ? '0.5rem' :
-                          member.contactFrequency === 'M' ? '0.875rem' :
-                          member.contactFrequency === 'L' ? '1.25rem' :
-                          member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem',
-                        height: member.contactFrequency === 'S' ? '0.5rem' :
-                          member.contactFrequency === 'M' ? '0.875rem' :
-                          member.contactFrequency === 'L' ? '1.25rem' :
-                          member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem'
-                      }}
-                    />
-                    <div 
-                      className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB] cursor-pointer"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        setSelectedMember(member);
-                        setMenuPosition({ x: rect.right + 10, y: rect.top });
-                        setIsMenuOpen(true);
-                      }}
-                    >
+                    <div className="flex items-center cursor-move">
+                      <div
+                        className={`mr-2 rounded-full`}
+                        style={{
+                          backgroundColor: categoryColor,
+                          width: member.contactFrequency === 'S' ? '0.5rem' :
+                            member.contactFrequency === 'M' ? '0.875rem' :
+                            member.contactFrequency === 'L' ? '1.25rem' :
+                            member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem',
+                          height: member.contactFrequency === 'S' ? '0.5rem' :
+                            member.contactFrequency === 'M' ? '0.875rem' :
+                            member.contactFrequency === 'L' ? '1.25rem' :
+                            member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem'
+                        }}
+                      />
+                      <div 
+                        className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB] cursor-pointer"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setSelectedMember(member);
+                          // Calculate position relative to the viewport
+                          const viewportX = window.innerWidth;
+                          const menuWidth = 150; // Approximate width of menu
+                          const x = rect.right + menuWidth > viewportX ? rect.left - menuWidth : rect.right;
+                          setMenuPosition({ x, y: rect.top });
+                          setIsMenuOpen(true);
+                        }}
+                      >
                       <span className="text-sm font-medium text-gray-800">{member.name}</span>
                     </div>
                     <MemberActionMenu
