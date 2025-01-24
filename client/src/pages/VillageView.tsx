@@ -712,11 +712,11 @@ export default function VillageView() {
                 >
                   <div
                     ref={nodeRef}
-                    className="absolute cursor-move member-pill group flex items-center"
+                    className="absolute member-pill group flex items-center"
                     style={{ transform: "translate(-50%, -50%)" }}
                   >
                     <div
-                      className={`mr-2 rounded-full`}
+                      className={`mr-2 rounded-full cursor-move`}
                       style={{
                         backgroundColor: categoryColor,
                         width: member.contactFrequency === 'S' ? '0.5rem' :
@@ -864,8 +864,7 @@ export default function VillageView() {
                   setNewMember({ ...newMember, contactFrequency: value })
                 }
               >
-                <SelectTrigger>
-                  <SelectValue />
+                <SelectTrigger                <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="S">Small</SelectItem>
