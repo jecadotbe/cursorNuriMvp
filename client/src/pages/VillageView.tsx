@@ -89,6 +89,8 @@ export default function VillageView() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
+const [dragStartTime, setDragStartTime] = useState<number>(0);
+const CLICK_THRESHOLD = 200; // milliseconds
   const [isOpen, setIsOpen] = useState(false);
   const memberRefs = useRef(new Map());
 
@@ -706,7 +708,12 @@ export default function VillageView() {
                   nodeRef={nodeRef}
                   defaultPosition={pos}
                   disabled={window.innerWidth <= 768}
+                  onStart={() => {
+                    setDragStartTime(Date.now());
+                    setIsDragging(true);
+                  }}
                   onStop={(e, data) => {
+                    if (Date.now() - dragStartTime > CLICK_THRESHOLD) {
                     const distance = Math.sqrt(data.x * data.x + data.y * data.y);
                     let newCircle = Math.round(distance / 80);
                     newCircle = Math.max(1, Math.min(5, newCircle));
@@ -759,30 +766,32 @@ export default function VillageView() {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          setSelectedMember(member);
                           
-                          // Improved menu positioning logic
-                          const viewportWidth = window.innerWidth;
-                          const viewportHeight = window.innerHeight;
-                          const menuWidth = 150;
-                          const menuHeight = 160; // Approximate menu height
-                          
-                          let x = rect.right;
-                          let y = rect.top;
-                          
-                          // Adjust horizontal position
-                          if (x + menuWidth > viewportWidth) {
-                            x = rect.left - menuWidth;
+                          if (!isDragging || Date.now() - dragStartTime <= CLICK_THRESHOLD) {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const viewportWidth = window.innerWidth;
+                            const viewportHeight = window.innerHeight;
+                            const menuWidth = 150;
+                            const menuHeight = 160;
+                            
+                            let x = rect.right + 8;
+                            let y = rect.top;
+                            
+                            if (x + menuWidth > viewportWidth) {
+                              x = rect.left - menuWidth - 8;
+                            }
+                            
+                            if (y + menuHeight > viewportHeight) {
+                              y = rect.bottom - menuHeight;
+                            }
+                            
+                            x = Math.max(8, Math.min(x, viewportWidth - menuWidth - 8));
+                            y = Math.max(8, Math.min(y, viewportHeight - menuHeight - 8));
+                            
+                            setSelectedMember(member);
+                            setMenuPosition({ x, y });
+                            setIsMenuOpen(true);
                           }
-                          
-                          // Adjust vertical position
-                          if (y + menuHeight > viewportHeight) {
-                            y = viewportHeight - menuHeight - 10;
-                          }
-                          
-                          setMenuPosition({ x, y });
-                          setIsMenuOpen(true);
                         }}
                       >
                       <span className="text-sm font-medium text-gray-800">{member.name}</span>
