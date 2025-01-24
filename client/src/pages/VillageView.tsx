@@ -864,7 +864,8 @@ export default function VillageView() {
                   setNewMember({ ...newMember, contactFrequency: value })
                 }
               >
-                <SelectTrigger                <SelectValue />
+                <SelectTrigger>
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="S">Small</SelectItem>
