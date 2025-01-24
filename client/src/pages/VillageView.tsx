@@ -762,6 +762,7 @@ export default function VillageView() {
                       onDelete={() => setMemberToDelete(member)}
                     />
                   </div>
+                  </div>
                 </Draggable>
               );
             })}
