@@ -8,6 +8,7 @@ import { promisify } from "util";
 import { users } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
+import nodemailer from "nodemailer";
 
 const scryptAsync = promisify(scrypt);
 const crypto = {
@@ -33,6 +34,9 @@ export interface User {
   id: number;
   username: string;
   password: string;
+  email: string;
+  resetToken?: string;
+  resetTokenExpiresAt?: Date;
 }
 
 declare global {
@@ -66,6 +70,17 @@ export function setupAuth(app: Express) {
   app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());
+
+  // Initialize nodemailer transporter
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    port: parseInt(process.env.SMTP_PORT || "587"),
+    secure: process.env.SMTP_SECURE === "true",
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
 
   passport.use(
     new LocalStrategy(async (username, password, done) => {
@@ -107,10 +122,95 @@ export function setupAuth(app: Express) {
     }
   });
 
+  // Password reset request endpoint
+  app.post("/api/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).send("Email is required");
+      }
+
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
+
+      if (!user) {
+        // Don't reveal if user exists
+        return res.status(200).send("If an account exists, a reset email will be sent");
+      }
+
+      // Generate reset token
+      const resetToken = randomBytes(32).toString("hex");
+      const resetTokenExpiresAt = new Date(Date.now() + 3600000); // 1 hour
+
+      // Update user with reset token
+      await db
+        .update(users)
+        .set({
+          resetToken,
+          resetTokenExpiresAt,
+        })
+        .where(eq(users.id, user.id));
+
+      // Send reset email
+      const resetUrl = `${process.env.APP_URL}/reset-password?token=${resetToken}`;
+      await transporter.sendMail({
+        from: process.env.SMTP_FROM || "noreply@example.com",
+        to: user.email,
+        subject: "Password Reset Request",
+        text: `Please click the following link to reset your password: ${resetUrl}`,
+        html: `<p>Please click <a href="${resetUrl}">here</a> to reset your password.</p>`,
+      });
+
+      res.status(200).send("If an account exists, a reset email will be sent");
+    } catch (error) {
+      console.error("Password reset error:", error);
+      res.status(500).send("Error processing password reset");
+    }
+  });
+
+  // Reset password endpoint
+  app.post("/api/reset-password", async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+      if (!token || !newPassword) {
+        return res.status(400).send("Token and new password are required");
+      }
+
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.resetToken, token))
+        .limit(1);
+
+      if (!user || !user.resetTokenExpiresAt || user.resetTokenExpiresAt < new Date()) {
+        return res.status(400).send("Invalid or expired reset token");
+      }
+
+      // Hash new password and update user
+      const hashedPassword = await crypto.hash(newPassword);
+      await db
+        .update(users)
+        .set({
+          password: hashedPassword,
+          resetToken: null,
+          resetTokenExpiresAt: null,
+        })
+        .where(eq(users.id, user.id));
+
+      res.status(200).send("Password successfully reset");
+    } catch (error) {
+      console.error("Reset password error:", error);
+      res.status(500).send("Error resetting password");
+    }
+  });
+
   app.post("/api/register", async (req, res, next) => {
     try {
-      if (!req.body.username || !req.body.password) {
-        return res.status(400).send("Username and password are required");
+      if (!req.body.username || !req.body.password || !req.body.email) {
+        return res.status(400).send("Username, password, and email are required");
       }
 
       const [existingUser] = await db
@@ -123,12 +223,23 @@ export function setupAuth(app: Express) {
         return res.status(400).send("Username already exists");
       }
 
+      const [emailUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, req.body.email))
+        .limit(1);
+
+      if (emailUser) {
+        return res.status(400).send("Email already registered");
+      }
+
       const hashedPassword = await crypto.hash(req.body.password);
       const [newUser] = await db
         .insert(users)
         .values({
           username: req.body.username,
           password: hashedPassword,
+          email: req.body.email,
         })
         .returning();
 
@@ -138,7 +249,7 @@ export function setupAuth(app: Express) {
         }
         return res.json({
           message: "Registration successful",
-          user: { id: newUser.id, username: newUser.username },
+          user: { id: newUser.id, username: newUser.username, email: newUser.email },
         });
       });
     } catch (error) {
@@ -167,7 +278,7 @@ export function setupAuth(app: Express) {
 
         return res.json({
           message: "Login successful",
-          user: { id: user.id, username: user.username },
+          user: { id: user.id, username: user.username, email: user.email },
         });
       });
     })(req, res, next);

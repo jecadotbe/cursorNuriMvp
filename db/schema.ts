@@ -35,7 +35,10 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").unique().notNull(),
   password: text("password").notNull(),
+  email: text("email").unique().notNull(),
   profilePicture: text("profile_picture"),
+  resetToken: text("reset_token"),
+  resetTokenExpiresAt: timestamp("reset_token_expires_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -263,7 +266,11 @@ export const insertParentingChallengeSchema = createInsertSchema(parentingChalle
 export const selectParentingChallengeSchema = createSelectSchema(parentingChallenges);
 export const insertParentingGoalSchema = createInsertSchema(parentingGoals);
 export const selectParentingGoalSchema = createSelectSchema(parentingGoals);
-export const insertUserSchema = createInsertSchema(users);
+export const insertUserSchema = createInsertSchema(users, {
+  email: z.string().email("Invalid email format"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  username: z.string().min(3, "Username must be at least 3 characters"),
+});
 export const selectUserSchema = createSelectSchema(users);
 export const insertVillageMemberSchema = createInsertSchema(villageMembers);
 export const selectVillageMemberSchema = createSelectSchema(villageMembers);
