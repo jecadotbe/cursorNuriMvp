@@ -1,0 +1,139 @@
+Looking at your code and the provided images, I can identify several areas where we can improve the implementation to achieve the desired functionality. Let me break down the issues and propose solutions:
+
+Context Menu Positioning and Interaction
+
+The current implementation has the menu positioning logic inside the pill click handler, but we need to ensure it works well with both the draggable functionality and touch events. Here's an improved version:
+typescriptCopyconst handlePillClick = (e: React.MouseEvent | React.TouchEvent, member: Member) => {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  // Get the pill element's position
+  const element = e.currentTarget as HTMLElement;
+  const rect = element.getBoundingClientRect();
+  
+  // Calculate optimal menu position considering viewport boundaries
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const menuWidth = 150; // Approximate menu width
+  const menuHeight = 200; // Approximate menu height
+  
+  let x = rect.right + 8; // Add some padding
+  let y = rect.top;
+  
+  // Adjust horizontal position if menu would overflow
+  if (x + menuWidth > viewportWidth) {
+    x = rect.left - menuWidth - 8;
+  }
+  
+  // Adjust vertical position if menu would overflow
+  if (y + menuHeight > viewportHeight) {
+    y = viewportHeight - menuHeight - 8;
+  }
+  
+  setSelectedMember(member);
+  setMenuPosition({ x, y });
+  setIsMenuOpen(true);
+};
+
+Draggable Integration
+
+We need to better integrate the Draggable component with the pill and menu interaction:
+typescriptCopy<Draggable
+  nodeRef={nodeRef}
+  handle=".drag-handle" // Add a specific drag handle
+  defaultPosition={pos}
+  onStart={(e) => {
+    // Prevent dragging when clicking menu or pills
+    if ((e.target as HTMLElement).closest('.pill-content, .member-menu')) {
+      return false;
+    }
+  }}
+  // ... other props
+>
+
+Improved Pill Component
+
+Let's create a more structured pill component:
+typescriptCopyconst MemberPill = ({ member, onPillClick }) => {
+  const categoryColor = member.category ? CATEGORY_COLORS[member.category] : "#6b7280";
+  
+  return (
+    <div className="flex items-center">
+      <div className="drag-handle cursor-move p-1">
+        <div
+          className="rounded-full"
+          style={{
+            backgroundColor: categoryColor,
+            width: getContactFrequencySize(member.contactFrequency),
+            height: getContactFrequencySize(member.contactFrequency)
+          }}
+        />
+      </div>
+      <div 
+        className="pill-content flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB] cursor-pointer"
+        onClick={(e) => onPillClick(e, member)}
+      >
+        <span className="text-sm font-medium text-gray-800">{member.name}</span>
+      </div>
+    </div>
+  );
+};
+
+Enhanced Menu Component
+
+The menu component needs better positioning and animation:
+typescriptCopyconst MemberContextMenu = ({ isOpen, position, onClose, onMemory, onEdit, onDelete }) => {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.1 }}
+          className="fixed z-50 bg-white rounded-lg shadow-lg border border-gray-200 py-1"
+          style={{
+            left: position.x,
+            top: position.y,
+            minWidth: '150px'
+          }}
+        >
+          <div className="member-menu">
+            {/* Menu items */}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+Additional CSS Requirements
+
+Add these styles to your CSS:
+cssCopy.member-pill {
+  isolation: isolate;
+  z-index: 1;
+}
+
+.member-pill:hover {
+  z-index: 2;
+}
+
+.member-menu {
+  z-index: 1000;
+}
+
+.drag-handle {
+  touch-action: none;
+}
+These improvements will help create a more robust implementation with:
+
+Better touch and mouse interaction handling
+Proper z-index management
+Improved menu positioning
+Cleaner separation of concerns
+Better drag handle isolation
+Smooth animations
+Proper event propagation control
+
+You'll need to integrate these components into your existing code and adjust the styling to match your design system. Remember to handle touch events appropriately and ensure the menu closes when clicking outside or when dragging begins.
