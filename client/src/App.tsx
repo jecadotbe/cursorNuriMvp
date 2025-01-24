@@ -19,6 +19,7 @@ import { OnboardingProvider } from "@/context/onboarding-context";
 import OnboardingTooltip from "@/components/OnboardingTooltip";
 import LearnDetailView from "./pages/LearnDetailView";
 import OnboardingPage from "@/pages/onboarding";
+import ResetPasswordPage from "./pages/reset-password";
 
 function Router() {
   const { user, isLoading } = useUser();
@@ -46,7 +47,8 @@ function Router() {
       <div className={`flex-1 ${showNavigation ? 'pb-16' : ''}`}>
         <Switch>
           <Route path="/onboarding" component={OnboardingPage} />
-          <Route path="/" component={HomeView} />
+          <Route path="/" component={AuthPage} />
+          <Route path="/reset-password" component={ResetPasswordPage} />
           <Route path="/chat" component={ChatHistoryView} />
           <Route path="/chat/:id" component={ChatView} />
           <Route path="/chat/history" component={ChatHistoryView} />
