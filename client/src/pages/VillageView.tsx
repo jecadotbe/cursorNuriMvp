@@ -691,6 +691,7 @@ export default function VillageView() {
                   key={member.id}
                   nodeRef={nodeRef}
                   defaultPosition={pos}
+                  disabled={window.innerWidth <= 768}
                   onStop={(e, data) => {
                     const distance = Math.sqrt(data.x * data.x + data.y * data.y);
                     let newCircle = Math.round(distance / 80);
@@ -731,6 +732,14 @@ export default function VillageView() {
                     <div 
                       className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB]"
                       onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (window.innerWidth <= 768) {
+                          toggleMemberActions(member.id);
+                        }
+                      }}
+                      onTouchEnd={(e) => {
+                        e.preventDefault();
                         e.stopPropagation();
                         toggleMemberActions(member.id);
                       }}
