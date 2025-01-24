@@ -474,6 +474,8 @@ export default function VillageView() {
     dismissInsight(id);
   };
 
+  const enhancedMembers = members.map(member => ({...member, actionsOpen: false})); //Added enhancedMembers state to manage open/close action state
+
   return (
     <div className="flex flex-col h-screen relative animate-gradient" style={{
       backgroundSize: "400% 400%",
@@ -659,7 +661,7 @@ export default function VillageView() {
               </Avatar>
             </div>
 
-            {members.map((member) => {
+            {enhancedMembers.map((member) => { // The only change made here
               const pos = getMemberPosition(member);
               const categoryColor = member.category ? CATEGORY_COLORS[member.category] : "#6b7280";
               const nodeRef = getMemberRef(member.id);
@@ -708,7 +710,7 @@ export default function VillageView() {
                     />
                     <div className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB]">
                       <span className="text-sm font-medium text-gray-800">{member.name}</span>
-                      <div className="hidden group-hover:flex items-center space-x-1">
+                      <div className={`hidden group-hover:flex items-center space-x-1 ${member.actionsOpen ? 'flex' : 'hidden'}`}> {/*Added conditional rendering for mobile*/}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
