@@ -215,7 +215,7 @@ export function setupAuth(app: Express) {
         .update(users)
         .set({
           resetToken,
-          resetTokenExpires: expires,
+          resetTokenExpires: expires as Date,
         })
         .where(eq(users.id, user.id));
 
