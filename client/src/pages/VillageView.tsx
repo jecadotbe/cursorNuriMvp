@@ -175,13 +175,18 @@ export default function VillageView() {
   const getMemberPosition = (member: typeof members[0]) => {
     const radius = getCircleRadius(member.circle - 1);
     let angle: number;
+    
     if (typeof member.positionAngle === 'string') {
       angle = parseFloat(member.positionAngle);
     } else if (typeof member.positionAngle === 'number') {
       angle = member.positionAngle;
     } else {
-      angle = 2 * Math.PI * Math.random(); // Fallback for members without stored position
+      // Assign a stable position based on ID instead of random
+      angle = (member.id % 12) * (Math.PI / 6);
     }
+
+    // Ensure angle is normalized between 0 and 2π
+    angle = ((angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
 
     return {
       x: Math.cos(angle) * radius,
@@ -197,6 +202,8 @@ export default function VillageView() {
   const lastTouchPos = useRef<{ x: number; y: number } | null>(null);
 
   const handleTouch = (e: React.TouchEvent) => {
+    e.preventDefault(); // Prevent default touch behaviors
+    
     if (e.touches.length === 2) {
       const touch1 = e.touches[0];
       const touch2 = e.touches[1];
@@ -213,7 +220,11 @@ export default function VillageView() {
       const delta = dist - lastTouchDistance.current;
       lastTouchDistance.current = dist;
 
-      setScale(prevScale => Math.min(Math.max(prevScale + delta * 0.01, 0.3), 3));
+      // Smoother scaling with reduced sensitivity
+      setScale(prevScale => {
+        const newScale = prevScale + delta * 0.005;
+        return Math.min(Math.max(newScale, 0.3), 3);
+      });
     } else if (e.touches.length === 1) {
       const touch = e.touches[0];
       if (!lastTouchPos.current) {
@@ -740,11 +751,27 @@ export default function VillageView() {
                           e.stopPropagation();
                           const rect = e.currentTarget.getBoundingClientRect();
                           setSelectedMember(member);
-                          // Calculate position relative to the viewport
-                          const viewportX = window.innerWidth;
-                          const menuWidth = 150; // Approximate width of menu
-                          const x = rect.right + menuWidth > viewportX ? rect.left - menuWidth : rect.right;
-                          setMenuPosition({ x, y: rect.top });
+                          
+                          // Improved menu positioning logic
+                          const viewportWidth = window.innerWidth;
+                          const viewportHeight = window.innerHeight;
+                          const menuWidth = 150;
+                          const menuHeight = 160; // Approximate menu height
+                          
+                          let x = rect.right;
+                          let y = rect.top;
+                          
+                          // Adjust horizontal position
+                          if (x + menuWidth > viewportWidth) {
+                            x = rect.left - menuWidth;
+                          }
+                          
+                          // Adjust vertical position
+                          if (y + menuHeight > viewportHeight) {
+                            y = viewportHeight - menuHeight - 10;
+                          }
+                          
+                          setMenuPosition({ x, y });
                           setIsMenuOpen(true);
                         }}
                       >
