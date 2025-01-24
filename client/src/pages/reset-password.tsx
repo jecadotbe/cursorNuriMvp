@@ -27,12 +27,10 @@ export default function ResetPasswordPage() {
       });
       
       if (response.ok) {
-        const data = await response.json();
         setStep("reset");
-        setResetToken(data.resetToken); // Auto-fill token for testing
         toast({
-          title: "Reset token generated",
-          description: "Token (for testing only): " + data.resetToken
+          title: "Reset token sent",
+          description: "Please check your email for the reset token"
         });
       }
     } catch (error) {
