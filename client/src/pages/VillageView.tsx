@@ -474,7 +474,18 @@ export default function VillageView() {
     dismissInsight(id);
   };
 
-  const enhancedMembers = members.map(member => ({...member, actionsOpen: false})); //Added enhancedMembers state to manage open/close action state
+  const [membersWithState, setMembersWithState] = useState(
+    members.map(member => ({...member, actionsOpen: false}))
+  );
+
+  const toggleMemberActions = (memberId: number) => {
+    setMembersWithState(prev => 
+      prev.map(m => ({
+        ...m, 
+        actionsOpen: m.id === memberId ? !m.actionsOpen : false
+      }))
+    );
+  };
 
   return (
     <div className="flex flex-col h-screen relative animate-gradient" style={{
@@ -661,7 +672,7 @@ export default function VillageView() {
               </Avatar>
             </div>
 
-            {enhancedMembers.map((member) => { // The only change made here
+            {membersWithState.map((member) => {
               const pos = getMemberPosition(member);
               const categoryColor = member.category ? CATEGORY_COLORS[member.category] : "#6b7280";
               const nodeRef = getMemberRef(member.id);
@@ -708,9 +719,15 @@ export default function VillageView() {
                           member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem'
                       }}
                     />
-                    <div className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB]">
+                    <div 
+                      className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB]"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleMemberActions(member.id);
+                      }}
+                    >
                       <span className="text-sm font-medium text-gray-800">{member.name}</span>
-                      <div className={`hidden group-hover:flex items-center space-x-1 ${member.actionsOpen ? 'flex' : 'hidden'}`}> {/*Added conditional rendering for mobile*/}
+                      <div className={`items-center space-x-1 ${member.actionsOpen ? 'flex' : 'hidden md:group-hover:flex'}`}>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
