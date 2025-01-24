@@ -518,11 +518,11 @@ export default function VillageView() {
       </div>
 
       {/* Village suggestions dialog */}
-      <Dialog open={isSuggestionsOpen} onOpenChange={setIsSuggestionsOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Dorpsuggesties</DialogTitle>
-          </DialogHeader>
+      <Sheet open={isSuggestionsOpen} onOpenChange={setIsSuggestionsOpen}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>Dorpsuggesties</SheetTitle>
+          </SheetHeader>
           <div className="space-y-4">
             {insights.filter(i => !i.dismissed).length === 0 ? (
               <div className="text-center py-8 px-4">
@@ -564,8 +564,8 @@ export default function VillageView() {
             ))
             )}
           </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
       <div
         className="flex-1 relative overflow-hidden"
