@@ -531,8 +531,16 @@ export default function VillageView() {
             <DialogTitle>Dorpsuggesties</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {insights.map((insight) => (
-              !insight.dismissed && (
+            {insights.filter(i => !i.dismissed).length === 0 ? (
+              <div className="text-center py-8 px-4">
+                <Lightbulb className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">
+                  Helemaal klaar voor vandaag. Als er nieuwe suggesties zijn kan je die hier altijd vinden!
+                </p>
+              </div>
+            ) : (
+              insights.map((insight) => (
+                !insight.dismissed && (
                 <Card key={insight.id}>
                   <CardContent className="pt-6">
                     <div className="flex items-start gap-4">
@@ -560,7 +568,8 @@ export default function VillageView() {
                   </CardContent>
                 </Card>
               )
-            ))}
+            ))
+            )}
           </div>
         </DialogContent>
       </Dialog>
