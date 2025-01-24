@@ -497,7 +497,44 @@ export default function VillageView() {
         >
           <RotateCcw className="w-5 h-5 text-gray-700" />
         </button>
+        <button
+          onClick={() => setIsSuggestionsOpen(true)}
+          className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow hover:bg-gray-50"
+        >
+          <Lightbulb className="w-5 h-5 text-gray-700" />
+        </button>
       </div>
+
+      {/* Village suggestions dialog */}
+      <Dialog open={isSuggestionsOpen} onOpenChange={setIsSuggestionsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Village Suggestions</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {insights.map((insight) => (
+              <Card key={insight.id}>
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-4">
+                    <div className="flex-1">
+                      <h3 className="font-semibold mb-1">{insight.title}</h3>
+                      <p className="text-sm text-gray-600">{insight.description}</p>
+                      {insight.suggestedAction && (
+                        <p className="text-sm text-gray-600 mt-2 italic">
+                          Suggestion: {insight.suggestedAction}
+                        </p>
+                      )}
+                    </div>
+                    <Badge variant={insight.priority > 3 ? "default" : "secondary"}>
+                      Priority {insight.priority}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div
         className="flex-1 relative overflow-hidden"
