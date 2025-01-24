@@ -519,7 +519,7 @@ export default function VillageView() {
 
       {/* Village suggestions dialog */}
       <Sheet open={isSuggestionsOpen} onOpenChange={setIsSuggestionsOpen}>
-        <SheetContent>
+        <SheetContent side="bottom" className="h-[90vh]">
           <SheetHeader>
             <SheetTitle>Dorpsuggesties</SheetTitle>
           </SheetHeader>
