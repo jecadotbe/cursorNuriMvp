@@ -4,12 +4,13 @@ import { useUser } from "@/hooks/use-user";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, User, Users, ArrowUpCircle, ArrowDownCircle, ArrowLeftCircle, ArrowRightCircle, Lightbulb, BookMarked, Star, Clock } from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -35,14 +36,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import MinimapView from "@/components/MinimapView";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -757,7 +750,7 @@ export default function VillageView() {
 
 
 
-      <Dialog open={isOpen} onOpenChange={(open) => {
+      <Sheet open={isOpen} onOpenChange={(open) => {
         setIsOpen(open);
         if (!open) {
           setMemberToEdit(null);
@@ -770,15 +763,15 @@ export default function VillageView() {
           });
         }
       }}>
-        <DialogTrigger asChild>
+        <SheetTrigger asChild>
           <button className="fixed bottom-20 right-4 w-12 h-12 bg-[#2F4644] rounded-full flex items-center justify-center shadow-lg hover:bg-[#3a5452]">
             <Plus className="w-6 h-6 text-white" />
           </button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{memberToEdit ? 'Edit Village Member' : 'Add Village Member'}</DialogTitle>
-          </DialogHeader>
+        </SheetTrigger>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>{memberToEdit ? 'Edit Village Member' : 'Add Village Member'}</SheetTitle>
+          </SheetHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
@@ -869,8 +862,8 @@ export default function VillageView() {
               {memberToEdit ? 'Update Member' : 'Add Member'}
             </Button>
           </form>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
       <AlertDialog open={!!memberToDelete} onOpenChange={(open) => !open && setMemberToDelete(null)}>
         <AlertDialogContent>
@@ -889,11 +882,11 @@ export default function VillageView() {
         </AlertDialogContent>
       </AlertDialog>
       {/* Memories Dialog */}
-      <Dialog open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
-        <DialogContent className="fixed inset-x-0 bottom-0 w-screen max-w-full h-[80vh] p-6 pt-4 border-t rounded-t-xl rounded-b-none !m-0 translate-x-0 translate-y-0 left-0 top-auto duration-300 data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom">
-          <DialogHeader className="space-y-2">
-            <DialogTitle className="text-xl">Memories with {selectedMember?.name}</DialogTitle>
-          </DialogHeader>
+      <Sheet open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
+        <SheetContent className="fixed inset-x-0 bottom-0 w-screen max-w-full h-[80vh] p-6 pt-4 border-t rounded-t-xl rounded-b-none !m-0 translate-x-0 translate-y-0 left-0 top-auto duration-300 data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom">
+          <SheetHeader className="space-y-2">
+            <SheetTitle className="text-xl">Memories with {selectedMember?.name}</SheetTitle>
+          </SheetHeader>
           <div className="flex flex-col h-full gap-4 mt-4 overflow-hidden">
             <Tabs defaultValue="view">
               <TabsList>
@@ -977,8 +970,8 @@ export default function VillageView() {
               </TabsContent>
             </Tabs>
           </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
 
       <div className="hidden">
