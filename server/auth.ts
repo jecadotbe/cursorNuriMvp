@@ -188,4 +188,86 @@ export function setupAuth(app: Express) {
     }
     res.status(401).send("Not logged in");
   });
+
+  // Password reset request endpoint
+  app.post("/api/request-reset", async (req, res) => {
+    const { username } = req.body;
+    if (!username) {
+      return res.status(400).json({ message: "Username is required" });
+    }
+
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, username))
+        .limit(1);
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Generate reset token
+      const resetToken = randomBytes(32).toString('hex');
+      const expires = new Date(Date.now() + 3600000); // 1 hour
+
+      await db
+        .update(users)
+        .set({
+          resetToken,
+          resetTokenExpires: expires,
+        })
+        .where(eq(users.id, user.id));
+
+      // In a real app, you would send this via email
+      // For this MVP, we'll return it directly
+      res.json({ 
+        message: "Reset token generated", 
+        resetToken,
+        userId: user.id 
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to process reset request" });
+    }
+  });
+
+  // Reset password endpoint
+  app.post("/api/reset-password", async (req, res) => {
+    const { userId, resetToken, newPassword } = req.body;
+
+    if (!userId || !resetToken || !newPassword) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (!user || 
+          !user.resetToken || 
+          user.resetToken !== resetToken ||
+          !user.resetTokenExpires ||
+          user.resetTokenExpires < new Date()) {
+        return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+
+      const hashedPassword = await crypto.hash(newPassword);
+
+      await db
+        .update(users)
+        .set({
+          password: hashedPassword,
+          resetToken: null,
+          resetTokenExpires: null,
+        })
+        .where(eq(users.id, user.id));
+
+      res.json({ message: "Password updated successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to reset password" });
+    }
+  });
 }
