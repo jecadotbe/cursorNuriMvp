@@ -700,115 +700,76 @@ const CLICK_THRESHOLD = 200; // milliseconds
               const pos = getMemberPosition(member);
               const categoryColor = member.category ? CATEGORY_COLORS[member.category] : "#6b7280";
               const nodeRef = getMemberRef(member.id);
-              const memberState = membersWithState.find(m => m.id === member.id) || {...member, actionsOpen: false};
+              
+              const handleDragStop = (_e: any, data: { x: number; y: number }) => {
+                const distance = Math.sqrt(data.x * data.x + data.y * data.y);
+                const newCircle = Math.max(1, Math.min(5, Math.round(distance / 80)));
+                const snapped = snapToCircle(data.x, data.y, newCircle);
+                
+                updateMember({
+                  ...member,
+                  circle: newCircle,
+                  positionAngle: snapped.angle.toString()
+                });
+              };
+
+              const handleClick = (e: React.MouseEvent) => {
+                e.stopPropagation();
+                const rect = e.currentTarget.getBoundingClientRect();
+                const menuPosition = {
+                  x: Math.min(rect.right + 8, window.innerWidth - 158),
+                  y: Math.min(rect.top, window.innerHeight - 168)
+                };
+                
+                setSelectedMember(member);
+                setMenuPosition(menuPosition);
+                setIsMenuOpen(true);
+              };
 
               return (
                 <Draggable
                   key={member.id}
                   nodeRef={nodeRef}
                   defaultPosition={pos}
-                  disabled={window.innerWidth <= 768}
-                  onStart={() => {
-                    setDragStartTime(Date.now());
-                    setIsDragging(true);
-                  }}
-                  onStop={(e, data) => {
-                    if (Date.now() - dragStartTime > CLICK_THRESHOLD) {
-                      const distance = Math.sqrt(data.x * data.x + data.y * data.y);
-                      let newCircle = Math.round(distance / 80);
-                      newCircle = Math.max(1, Math.min(5, newCircle));
-
-                      const snapped = snapToCircle(data.x, data.y, newCircle);
-
-                      const currentAngle = parseFloat(member.positionAngle?.toString() || "0");
-                      if (newCircle !== member.circle || Math.abs(snapped.angle - currentAngle) > 0.01) {
-                        updateMember({
-                          ...member,
-                          circle: newCircle,
-                          positionAngle: snapped.angle.toString()
-                        });
-                      }
-                    }
-                  }}
+                  onStop={handleDragStop}
                   bounds="parent"
                 >
                   <div
                     ref={nodeRef}
-                    className="absolute member-pill group flex items-center"
-                    style={{ transform: "translate(-50%, -50%)" }}
+                    className="absolute member-pill flex items-center transform -translate-x-1/2 -translate-y-1/2"
                   >
-                    <div className="flex items-center">
+                    <button 
+                      className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-gray-200 hover:bg-gray-50"
+                      onClick={handleClick}
+                    >
                       <div
-                        className="drag-handle cursor-move p-1"
-                        onMouseDown={(e) => {
-                          if (isMenuOpen) {
-                            setIsMenuOpen(false);
-                            setSelectedMember(null);
-                          }
+                        className="rounded-full"
+                        style={{
+                          backgroundColor: categoryColor,
+                          width: member.contactFrequency === 'S' ? '0.5rem' :
+                            member.contactFrequency === 'M' ? '0.875rem' :
+                            member.contactFrequency === 'L' ? '1.25rem' : '1.75rem',
+                          height: member.contactFrequency === 'S' ? '0.5rem' :
+                            member.contactFrequency === 'M' ? '0.875rem' :
+                            member.contactFrequency === 'L' ? '1.25rem' : '1.75rem'
                         }}
-                      >
-                        <div
-                          className="rounded-full"
-                          style={{
-                            backgroundColor: categoryColor,
-                            width: member.contactFrequency === 'S' ? '0.5rem' :
-                              member.contactFrequency === 'M' ? '0.875rem' :
-                              member.contactFrequency === 'L' ? '1.25rem' :
-                              member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem',
-                            height: member.contactFrequency === 'S' ? '0.5rem' :
-                              member.contactFrequency === 'M' ? '0.875rem' :
-                              member.contactFrequency === 'L' ? '1.25rem' :
-                              member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem'
-                          }}
-                        />
-                      </div>
-                      <div 
-                        className="pill-content flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB] cursor-pointer"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          
-                          if (!isDragging || Date.now() - dragStartTime <= CLICK_THRESHOLD) {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            const viewportWidth = window.innerWidth;
-                            const viewportHeight = window.innerHeight;
-                            const menuWidth = 150;
-                            const menuHeight = 160;
-                            
-                            let x = rect.right + 8;
-                            let y = rect.top;
-                            
-                            if (x + menuWidth > viewportWidth) {
-                              x = rect.left - menuWidth - 8;
-                            }
-                            
-                            if (y + menuHeight > viewportHeight) {
-                              y = rect.bottom - menuHeight;
-                            }
-                            
-                            x = Math.max(8, Math.min(x, viewportWidth - menuWidth - 8));
-                            y = Math.max(8, Math.min(y, viewportHeight - menuHeight - 8));
-                            
-                            setSelectedMember(member);
-                            setMenuPosition({ x, y });
-                            setIsMenuOpen(true);
-                          }
-                        }}
-                      >
+                      />
                       <span className="text-sm font-medium text-gray-800">{member.name}</span>
-                    </div>
-                    <MemberActionMenu
-                      isOpen={isMenuOpen && selectedMember?.id === member.id}
-                      onClose={() => {
-                        setIsMenuOpen(false);
-                        setSelectedMember(null);
-                      }}
-                      position={menuPosition}
-                      onMemory={() => setIsMemoryDialogOpen(true)}
-                      onEdit={() => handleEdit(member)}
-                      onDelete={() => setMemberToDelete(member)}
-                    />
-                  </div>
+                    </button>
+                    
+                    {isMenuOpen && selectedMember?.id === member.id && (
+                      <MemberActionMenu
+                        isOpen={true}
+                        onClose={() => {
+                          setIsMenuOpen(false);
+                          setSelectedMember(null);
+                        }}
+                        position={menuPosition}
+                        onMemory={() => setIsMemoryDialogOpen(true)}
+                        onEdit={() => handleEdit(member)}
+                        onDelete={() => setMemberToDelete(member)}
+                      />
+                    )}
                   </div>
                 </Draggable>
               );
