@@ -85,6 +85,8 @@ export default function VillageView() {
   const { toast } = useToast();
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const memberRefs = useRef(new Map());
@@ -730,52 +732,29 @@ export default function VillageView() {
                       }}
                     />
                     <div 
-                      className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB]"
+                      className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB] cursor-pointer"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        if (window.innerWidth <= 768) {
-                          toggleMemberActions(member.id);
-                        }
-                      }}
-                      onTouchEnd={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        toggleMemberActions(member.id);
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setSelectedMember(member);
+                        setMenuPosition({ x: rect.right + 10, y: rect.top });
+                        setIsMenuOpen(true);
                       }}
                     >
                       <span className="text-sm font-medium text-gray-800">{member.name}</span>
-                      <div className={`items-center space-x-1 ${memberState.actionsOpen ? 'flex' : 'hidden md:group-hover:flex'}`}>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedMember(member);
-                            setIsMemoryDialogOpen(true);
-                          }}
-                          className="p-1 hover:bg-gray-100 rounded-full"
-                        >
-                          <BookMarked className="w-3 h-3 text-purple-500" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEdit(member);
-                          }}
-                          className="p-1 hover:bg-gray-100 rounded-full"
-                        >
-                          <Edit2 className="w-3 h-3 text-gray-500" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setMemberToDelete(member);
-                          }}
-                          className="p-1 hover:bg-gray-100 rounded-full"
-                        >
-                          <Trash2 className="w-3 h-3 text-red-500" />
-                        </button>
-                      </div>
                     </div>
+                    <MemberActionMenu
+                      isOpen={isMenuOpen && selectedMember?.id === member.id}
+                      onClose={() => {
+                        setIsMenuOpen(false);
+                        setSelectedMember(null);
+                      }}
+                      position={menuPosition}
+                      onMemory={() => setIsMemoryDialogOpen(true)}
+                      onEdit={() => handleEdit(member)}
+                      onDelete={() => setMemberToDelete(member)}
+                    />
                   </div>
                 </Draggable>
               );
