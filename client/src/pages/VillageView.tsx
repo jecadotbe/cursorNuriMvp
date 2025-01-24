@@ -901,6 +901,8 @@ export default function VillageView() {
                   <VillageMemberMemories
                     memberId={selectedMember.id}
                     memberName={selectedMember.name}
+                    open={isMemoryDialogOpen}
+                    onOpenChange={setIsMemoryDialogOpen}
                   />
                 )}
               </TabsContent>
