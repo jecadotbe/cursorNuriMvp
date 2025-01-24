@@ -1,31 +1,56 @@
-
 import { BookMarked, Edit2, Trash2 } from "lucide-react";
+import { useEffect, useState } from 'react';
 
 interface MemberActionMenuProps {
   isOpen: boolean;
   onClose: () => void;
+  position: { x: number; y: number };
   onMemory: () => void;
   onEdit: () => void;
   onDelete: () => void;
-  position: { x: number; y: number };
 }
 
-export function MemberActionMenu({ 
-  isOpen, 
-  onClose, 
-  onMemory, 
-  onEdit, 
-  onDelete,
-  position 
-}: MemberActionMenuProps) {
+export function MemberActionMenu({ isOpen, onClose, position, onMemory, onEdit, onDelete }: MemberActionMenuProps) {
+  const [menuPosition, setMenuPosition] = useState(position);
+
+  useEffect(() => {
+    if (isOpen) {
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const menuWidth = 150;
+      const menuHeight = 200;
+
+      let x = position.x;
+      let y = position.y;
+
+      if (x + menuWidth > viewportWidth) {
+        x = Math.max(0, viewportWidth - menuWidth - 8);
+      }
+
+      if (y + menuHeight > viewportHeight) {
+        y = Math.max(0, viewportHeight - menuHeight - 8);
+      }
+
+      setMenuPosition({ x, y });
+
+      const handleClickOutside = (e: MouseEvent) => {
+        if (!(e.target as Element).closest('.member-menu')) {
+          onClose();
+        }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen, onClose, position]);
+
   if (!isOpen) return null;
 
   return (
-    <div 
-      className="fixed z-50 animate-in fade-in slide-in-from-top-1 duration-200"
+    <div
+      className="fixed z-50 animate-in fade-in slide-in-from-top-1 duration-200 member-menu"
       style={{
-        left: position.x,
-        top: position.y,
+        left: menuPosition.x,
+        top: menuPosition.y,
         filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
       }}
       onClick={(e) => e.stopPropagation()}

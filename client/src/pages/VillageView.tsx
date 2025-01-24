@@ -729,23 +729,33 @@ export default function VillageView() {
                     className="absolute member-pill group flex items-center"
                     style={{ transform: "translate(-50%, -50%)" }}
                   >
-                    <div className="flex items-center cursor-move">
+                    <div className="flex items-center">
                       <div
-                        className={`mr-2 rounded-full`}
-                        style={{
-                          backgroundColor: categoryColor,
-                          width: member.contactFrequency === 'S' ? '0.5rem' :
-                            member.contactFrequency === 'M' ? '0.875rem' :
-                            member.contactFrequency === 'L' ? '1.25rem' :
-                            member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem',
-                          height: member.contactFrequency === 'S' ? '0.5rem' :
-                            member.contactFrequency === 'M' ? '0.875rem' :
-                            member.contactFrequency === 'L' ? '1.25rem' :
-                            member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem'
+                        className="drag-handle cursor-move p-1"
+                        onMouseDown={(e) => {
+                          if (isMenuOpen) {
+                            setIsMenuOpen(false);
+                            setSelectedMember(null);
+                          }
                         }}
-                      />
+                      >
+                        <div
+                          className="rounded-full"
+                          style={{
+                            backgroundColor: categoryColor,
+                            width: member.contactFrequency === 'S' ? '0.5rem' :
+                              member.contactFrequency === 'M' ? '0.875rem' :
+                              member.contactFrequency === 'L' ? '1.25rem' :
+                              member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem',
+                            height: member.contactFrequency === 'S' ? '0.5rem' :
+                              member.contactFrequency === 'M' ? '0.875rem' :
+                              member.contactFrequency === 'L' ? '1.25rem' :
+                              member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem'
+                          }}
+                        />
+                      </div>
                       <div 
-                        className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB] cursor-pointer"
+                        className="pill-content flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB] cursor-pointer"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();

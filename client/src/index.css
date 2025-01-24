@@ -84,3 +84,28 @@
   }
   
 }
+
+.member-pill {
+  isolation: isolate;
+  z-index: 1;
+}
+
+.member-pill:hover {
+  z-index: 2;
+}
+
+.member-menu {
+  z-index: 1000;
+}
+
+.drag-handle {
+  touch-action: none;
+}
+
+.pill-content {
+  transition: transform 0.2s ease;
+}
+
+.pill-content:hover {
+  transform: scale(1.05);
+}
