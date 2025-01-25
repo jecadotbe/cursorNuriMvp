@@ -56,7 +56,8 @@ export function useVillageMemories(memberId: number) {
         method: "DELETE",
         credentials: "include",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          'Cache-Control': 'no-cache'
         }
       });
 
@@ -67,8 +68,17 @@ export function useVillageMemories(memberId: number) {
 
       return memoryId;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/village/members/${memberId}/memories`] });
+    onSuccess: (deletedMemoryId) => {
+      // Immediately update cache by removing the deleted memory
+      queryClient.setQueryData<Memory[]>(
+        [`/api/village/members/${memberId}/memories`],
+        (old) => old?.filter(memory => memory.id !== deletedMemoryId) || []
+      );
+      // Force refetch to ensure sync
+      queryClient.invalidateQueries({
+        queryKey: [`/api/village/members/${memberId}/memories`],
+        refetchType: 'all'
+      });
       toast({
         title: "Success",
         description: "Memory deleted successfully",
