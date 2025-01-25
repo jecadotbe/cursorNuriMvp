@@ -926,8 +926,7 @@ ${mergedRAG || "No relevant content available"}
         .filter((m) => m.relevance && m.relevance >= 0.6)
         .slice(0, 3);
 
-      const memoryContext = significantMemories
-        .map(
+      const memoryContext = significantMemories        .map(
           (m) =>
             `Previous relevant conversation (relevance: ${m.relevance?.toFixed(2)}): ${m.content}`,
         )
@@ -1343,8 +1342,8 @@ Conversation: ${JSON.stringify(messages)}`,
 
       res.json(updated);
     } catch (error) {
-      console.error("Error implementing insight:", error);
-      res.status(500).json({ message: "Failed to implement insight" });
+      console.error("Failed to update insight:", error);
+      res.status(500).json({ message: "Failed to update insight" });
     }
   });
 
@@ -1632,6 +1631,37 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
     }
   });
 
+  // Memory actions endpoint
+  app.get('/api/memories/actions', authMiddleware, async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    try {
+      const userId = req.user.id;
+
+      // Get recent memories to analyze patterns
+      const recentMemories = await memoryService.getRelevantMemories(
+        userId,
+        '', // Empty context to get recent memories
+      );
+
+      // Generate actionable suggestions based on memory patterns
+      const actions = recentMemories
+        .slice(0, 3)
+        .map(memory => ({
+          text: `Verder praten over ${memory.content.slice(0, 30)}...`,
+          context: memory.content,
+        }))
+        .filter(action => action.text.length > 20); // Filter out too short suggestions
+
+      res.json(actions);
+    } catch (error) {
+      console.error('Error getting memory actions:', error);
+      res.status(500).json({ error: 'Failed to get actions' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
@@ -1679,35 +1709,3 @@ async function getVillageContext(userId: number): Promise<string | null> {
     return null;
   }
 }
-// Add after other imports
-import { memoryService } from './services/memory';
-
-// Add this route handler with other routes
-app.get('/api/memories/actions', authMiddleware, async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    // Get recent memories to analyze patterns
-    const recentMemories = await memoryService.getRelevantMemories(
-      userId,
-      '', // Empty context to get recent memories
-    );
-
-    // Generate actionable suggestions based on memory patterns
-    const actions = recentMemories
-      .slice(0, 3)
-      .map(memory => ({
-        text: `Verder praten over ${memory.content.slice(0, 30)}...`,
-        context: memory.content,
-      }))
-      .filter(action => action.text.length > 20); // Filter out too short suggestions
-
-    res.json(actions);
-  } catch (error) {
-    console.error('Error getting memory actions:', error);
-    res.status(500).json({ error: 'Failed to get actions' });
-  }
-});
