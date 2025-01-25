@@ -1424,6 +1424,45 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
   });
 
   // Village member memories endpoints
+  app.delete("/api/village/members/:memberId/memories/:memoryId", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const user = req.user as User;
+    const memberId = parseInt(req.params.memberId);
+    const memoryId = parseInt(req.params.memoryId);
+
+    try {
+      // First verify that the memory belongs to this user and member
+      const memory = await db.query.villageMemberMemories.findFirst({
+        where: and(
+          eq(villageMemberMemories.id, memoryId),
+          eq(villageMemberMemories.villageMemberId, memberId),
+          eq(villageMemberMemories.userId, user.id)
+        ),
+      });
+
+      if (!memory) {
+        return res.status(404).json({ message: "Memory not found" });
+      }
+
+      // Delete the memory
+      await db
+        .delete(villageMemberMemories)
+        .where(and(
+          eq(villageMemberMemories.id, memoryId),
+          eq(villageMemberMemories.villageMemberId, memberId),
+          eq(villageMemberMemories.userId, user.id)
+        ));
+
+      res.status(200).json({ message: "Memory deleted successfully" });
+    } catch (error) {
+      console.error("Failed to delete memory:", error);
+      res.status(500).json({ message: "Failed to delete memory" });
+    }
+  });
+
   app.get("/api/village/members/:memberId/memories", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");

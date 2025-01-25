@@ -71,15 +71,22 @@ export function useVillageMemories(memberId: number) {
       return memoryId;
     },
     onSuccess: (deletedMemoryId) => {
-      // Immediately update cache by removing the deleted memory
+      // Optimistically update the cache
       queryClient.setQueryData<Memory[]>(
         [`/api/village/members/${memberId}/memories`],
         (old) => old?.filter(memory => memory.id !== deletedMemoryId) || []
       );
-      // Force refetch to ensure sync
+      
+      // Invalidate and refetch in background
       queryClient.invalidateQueries({
         queryKey: [`/api/village/members/${memberId}/memories`],
-        refetchType: 'all'
+        exact: true
+      });
+      
+      // Also invalidate any parent queries that might include this data
+      queryClient.invalidateQueries({
+        queryKey: [`/api/village/members/${memberId}`],
+        exact: false
       });
       toast({
         title: "Success",
