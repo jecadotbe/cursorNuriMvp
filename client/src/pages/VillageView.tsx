@@ -597,35 +597,28 @@ export default function VillageView() {
   };
 
   const handleDragStop = (_e: any, data: any, member: VillageMember) => {
-    // Calculate position relative to center
-    const centerX = data.x;
-    const centerY = data.y;
-
-    // Calculate distance from center for circle determination
-    const distance = Math.sqrt(centerX * centerX + centerY * centerY);
+    const distance = Math.sqrt(data.x * data.x + data.y * data.y);
     let newCircle = Math.round(distance / 80);
     newCircle = Math.max(1, Math.min(5, newCircle));
 
-    // Calculate angle in radians
-    const angle = Math.atan2(centerY, centerX);
-    const normalizedAngle = (angle + 2 * Math.PI) % (2 * Math.PI);
+    const snapped = snapToCircle(data.x, data.y, newCircle);
+    const currentAngle = parseFloat(member.positionAngle?.toString() || "0");
 
     console.log('Drag Stop Position:', {
       memberId: member.id,
       memberName: member.name,
-      dragPosition: { x: centerX, y: centerY },
-      distance,newCircle,
-      newAngle: normalizedAngle,
-      currentAngle: parseFloat(member.positionAngle?.toString() || "0")
+      dragPosition: { x: data.x, y: data.y },
+      snappedPosition: { x: snapped.x, y: snapped.y },
+      newCircle,
+      newAngle: snapped.angle,
+      currentAngle
     });
 
-    // Only update if position actually changed
-    if (newCircle !== member.circle ||
-        Math.abs(normalizedAngle - parseFloat(member.positionAngle?.toString() || "0")) > 0.01) {
+    if (newCircle !== member.circle || Math.abs(snapped.angle - currentAngle) > 0.01) {
       updateMember({
         ...member,
         circle: newCircle,
-        positionAngle: normalizedAngle.toString()
+        positionAngle: snapped.angle.toString()
       });
     }
   };
@@ -807,26 +800,6 @@ export default function VillageView() {
               />
             ))}
 
-            <div
-              className="absolute w-24 h-24 rounded-full flex items-center justify-center"
-              style={{
-                left: "50%",
-                top: "50%",
-                transform: "translate(-50%, -50%)",
-                boxShadow: "0 0 30px rgba(254, 176, 25, 0.4)"
-              }}
-            >
-              <Avatar className="w-full h-full border-2 border-[#629785]">
-                {user?.profilePicture ? (
-                  <AvatarImage src={user.profilePicture} alt="Profile" className="object-cover" />
-                ) : (
-                  <AvatarFallback className="bg-[#F4F1E4] text-[#629785]">
-                    <Users className="w-12 h-12" />
-                  </AvatarFallback>
-                )}
-              </Avatar>
-            </div>
-
             {members.map((member) => {
               const pos = getMemberPosition(member);
               const nodeRef = getMemberRef(member.id);
@@ -836,45 +809,16 @@ export default function VillageView() {
                   <Draggable
                     key={member.id}
                     nodeRef={nodeRef}
-                    position={{ x: pos.x, y: pos.y }}
-                    onStop={(e, data) => {
-                      // Calculate position relative to center
-                      const centerX = data.x;
-                      const centerY = data.y;
-
-                      // Calculate distance from center for circle determination
-                      const distance = Math.sqrt(centerX * centerX + centerY * centerY);
-                      let newCircle = Math.round(distance / 80);
-                      newCircle = Math.max(1, Math.min(5, newCircle));
-
-                      // Calculate angle in radians
-                      const angle = Math.atan2(centerY, centerX);
-                      const normalizedAngle = (angle + 2 * Math.PI) % (2 * Math.PI);
-
-                      console.log('Drag Stop Position:', {
-                        memberId: member.id,
-                        memberName: member.name,
-                        dragPosition: { x: centerX, y:y },
-                        distance,newCircle,
-                        newAngle: normalizedAngle,
-                        currentAngle: parseFloat(member.positionAngle?.toString() || "0")
-                      });
-
-                      // Only update if position actually changed
-                      if (newCircle !== member.circle ||
-                          Math.abs(normalizedAngle - parseFloat(member.positionAngle?.toString() || "0")) > 0.01) {
-                        updateMember({
-                          ...member,
-                          circle: newCircle,
-                          positionAngle: normalizedAngle.toString()
-                        });
-                      }
-                    }}
+                    position={pos}
+                    onStop={(e, data) => handleDragStop(e, data, member)}
+                    bounds="parent"
                   >
                     <div
                       ref={nodeRef}
                       className="absolute"
                       style={{
+                        left: "50%",
+                        top: "50%",
                         transform: "translate(-50%, -50%)"
                       }}
                     >
@@ -894,7 +838,6 @@ export default function VillageView() {
                 );
               }
 
-              // Regular view remains unchanged
               return (
                 <div
                   key={member.id}
@@ -902,7 +845,7 @@ export default function VillageView() {
                   style={{
                     left: "50%",
                     top: "50%",
-                    transform: `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px))`,
+                    transform: `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px))`
                   }}
                 >
                   <MemberContent
@@ -919,9 +862,28 @@ export default function VillageView() {
                 </div>
               );
             })}
-
+            <div
+              className="absolute w-24 h-24 rounded-full flex items-center justify-center"
+              style={{
+                left: "50%",
+                top: "50%",
+                transform: "translate(-50%, -50%)",
+                boxShadow: "0 0 30px rgba(254, 176, 25, 0.4)"
+              }}
+            >
+              <Avatar className="w-full h-full border-2 border-[#629785]">
+                {user?.profilePicture ? (
+                  <AvatarImage src={user.profilePicture} alt="Profile" className="object-cover" />
+                ) : (
+                  <AvatarFallback className="bg-[#F4F1E4] text-[#629785]">
+                    <Users className="w-12 h-12" />
+                  </AvatarFallback>
+                )}
+              </Avatar>
+            </div>
           </div>
         </div>
+
       </div>
 
 
