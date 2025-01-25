@@ -234,27 +234,7 @@ export default function VillageView() {
     tags: [] as string[],
     date: format(new Date(), "yyyy-MM-dd")
   });
-  const [insights, setInsights] = useState<Insight[]>([
-    {
-      id: 1,
-      type: "connection_strength",
-      title: "Sterke Verbinding Gedetecteerd",
-      description: "Je relatie met Andy is de afgelopen maand consistent sterk geweest.",
-      priority: 4,
-      status: "active",
-      dismissed: false
-    },
-    {
-      id: 2,
-      type: "network_gap",
-      title: "Verbetering Steunnetwerk",
-      description: "Je zou kunnen profiteren van meer professionele contacten in je village.",
-      suggestedAction: "Overweeg contact op te nemen met mentoren of collega's",
-      priority: 3,
-      status: "active",
-      dismissed: false
-    }
-  ]);
+  const { suggestion, suggestions, isLoading, markAsUsed } = useSuggestion();
 
   const { addMemory } = useVillageMemories(selectedMember?.id || 0);
 
@@ -622,12 +602,17 @@ export default function VillageView() {
     }
   };
 
-  const dismissInsight = (id: number) => {
-    setInsights(prev =>
-      prev.map(insight =>
-        insight.id === id ? { ...insight, dismissed: true } : insight
-      )
-    );
+  const dismissInsight = async (id: number) => {
+    try {
+      await markAsUsed(id);
+    } catch (error) {
+      console.error('Failed to dismiss insight:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to dismiss suggestion"
+      });
+    }
   };
 
   const handleInsightAction = (id: number) => {
@@ -722,7 +707,7 @@ export default function VillageView() {
             <SheetTitle>Dorpsuggesties</SheetTitle>
           </SheetHeader>
           <div className="space-y-4">
-            {insights.filter(i => !i.dismissed).length === 0 ? (
+            {!suggestions || suggestions.filter(s => !s.dismissed).length === 0 ? (
               <div className="text-center py-8 px-4">
                 <Lightbulb className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600">
@@ -730,7 +715,7 @@ export default function VillageView() {
                 </p>
               </div>
             ) : (
-              insights.map((insight) => (
+              suggestions.map((insight) => (
                 !insight.dismissed && (
                   <Card key={insight.id}>
                     <CardContent className="pt-6">
