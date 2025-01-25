@@ -1,4 +1,6 @@
 import { Link, useLocation } from "wouter";
+import { motion, AnimatePresence } from "framer-motion";
+import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useChatHistory } from "@/hooks/use-chat-history";
@@ -30,6 +32,7 @@ const formatMessagePreview = (content: string) => {
 };
 
 export default function ChatHistoryView() {
+  const queryClient = useQueryClient();
   const { chats = [], isLoading } = useChatHistory();
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -136,7 +139,14 @@ export default function ChatHistoryView() {
             }
 
             acc.push(
-              <Card key={chat.id} className="hover:shadow-md transition-all bg-white rounded-2xl shadow-sm border-0">
+              <motion.div
+                key={chat.id}
+                layout
+                initial={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Card className="hover:shadow-md transition-all bg-white rounded-2xl shadow-sm border-0">
                 <CardContent className="p-5">
                   <div className="flex flex-col">
                     <div className="flex items-center justify-between">
@@ -195,12 +205,29 @@ export default function ChatHistoryView() {
                         {format(chatDate, "d MMM yyyy")}
                       </div>
                       <button
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.preventDefault();
                           if (confirm("Are you sure you want to delete this conversation? This action cannot be undone.")) {
-                            fetch(`/api/chats/${chat.id}`, {
-                              method: 'DELETE'
-                            }).then(() => window.location.reload());
+                            try {
+                              await fetch(`/api/chats/${chat.id}`, {
+                                method: 'DELETE'
+                              });
+                              
+                              // Update local cache
+                              const newChats = chats.filter(c => c.id !== chat.id);
+                              queryClient.setQueryData(['chats'], newChats);
+                              
+                              toast({
+                                title: "Success",
+                                description: "Conversation deleted successfully"
+                              });
+                            } catch (error) {
+                              toast({
+                                variant: "destructive",
+                                title: "Error",
+                                description: "Failed to delete conversation"
+                              });
+                            }
                           }
                         }}
                         className="text-red-500 hover:text-red-700"
@@ -211,6 +238,7 @@ export default function ChatHistoryView() {
                   </div>
                 </CardContent>
               </Card>
+              </motion.div>
             );
             return acc;
           }, [] as JSX.Element[])
