@@ -72,23 +72,33 @@ export function VillageMemberMemories({ memberId, memberName }: VillageMemberMem
         <TabsContent value="add" className="flex-1 mt-4">
           <ScrollArea className="h-[calc(100vh-300px)]">
             <div className="space-y-4 pr-4">
-              <form className="space-y-4">
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                addMemory({
+                  title: formData.get('title') as string,
+                  content: formData.get('content') as string,
+                  date: formData.get('date') as string,
+                  emotionalImpact: parseInt(formData.get('impact') as string),
+                  tags: formData.get('tags')?.toString().split(',').map(tag => tag.trim()) || []
+                });
+              }} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="title">Title</Label>
-                  <Input id="title" placeholder="Enter memory title" />
+                  <Input name="title" id="title" placeholder="Enter memory title" required />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="content">Content</Label>
-                  <Textarea id="content" placeholder="What happened?" className="min-h-[150px]" />
+                  <Textarea name="content" id="content" placeholder="What happened?" className="min-h-[150px]" required />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="date">Date</Label>
-                    <Input id="date" type="date" />
+                    <Input name="date" id="date" type="date" required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="impact">Emotional Impact</Label>
-                    <Select>
+                    <Select name="impact" defaultValue="3">
                       <SelectTrigger>
                         <SelectValue placeholder="Select impact" />
                       </SelectTrigger>
@@ -104,7 +114,7 @@ export function VillageMemberMemories({ memberId, memberName }: VillageMemberMem
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="tags">Tags</Label>
-                  <Input id="tags" placeholder="Enter tags (comma-separated)" />
+                  <Input name="tags" id="tags" placeholder="Enter tags (comma-separated)" />
                 </div>
                 <Button type="submit" className="w-full">Save Memory</Button>
               </form>
