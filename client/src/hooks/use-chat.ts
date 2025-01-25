@@ -162,3 +162,15 @@ export function useChat() {
     refreshContextualPrompt: generateContextualPrompt
   };
 }
+import { useVillageMemories } from './use-village-memories';
+
+// Add memory context to chat messages
+const getMemoryContext = async (memberId: number) => {
+  const { memories } = useVillageMemories(memberId);
+  return memories.map(m => ({
+    content: m.content,
+    date: m.date,
+    impact: m.emotionalImpact,
+    tags: m.tags
+  }));
+};
