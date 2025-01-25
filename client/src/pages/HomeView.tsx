@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { useSuggestion } from "@/hooks/use-suggestion";
-import { MessageSquare, Users, Clock, ChevronRight } from "lucide-react";
+import { MessageSquare, Users, Clock, ChevronRight, Wind, Heart, MessageCircle } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
@@ -42,10 +42,60 @@ export default function HomeView() {
       await markAsUsed(suggestion.id);
       setCurrentSuggestionId(suggestion.id);
 
+
+const actionChips = [
+  {
+    text: "Ik wil ventileren",
+    icon: <Wind className="w-4 h-4" />,
+  },
+  {
+    text: "Ik wil het hebben over mijn village",
+    icon: <Heart className="w-4 h-4" />,
+  },
+  {
+    text: "Gewoon chatten",
+    icon: <MessageCircle className="w-4 h-4" />,
+  },
+];
+
       if (suggestion.context === "existing" && suggestion.relatedChatId) {
         // Navigate to existing chat
         navigate(`/chat/${suggestion.relatedChatId}`);
       } else {
+
+const handleChipClick = async (topic: string) => {
+  try {
+    const response = await fetch('/api/chats', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
+        messages: [{
+          role: 'assistant',
+          content: `Ik begrijp dat je ${topic.toLowerCase()}. Waar wil je het over hebben?`
+        }],
+      }),
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to create new chat');
+    }
+
+    const newChat = await response.json();
+    navigate(`/chat/${newChat.id}`);
+  } catch (error) {
+    console.error('Error creating chat:', error);
+    toast({
+      variant: "destructive",
+      title: "Error",
+      description: "Could not start the conversation. Please try again.",
+    });
+  }
+};
+
         // Create new chat with the prompt
         const response = await fetch('/api/chats', {
           method: 'POST',
@@ -177,6 +227,20 @@ export default function HomeView() {
             </Button>
           </div>
         )}
+
+        {/* Action Chips */}
+        <div className="flex flex-wrap gap-2 mt-4">
+          {actionChips.map((chip, index) => (
+            <button
+              key={index}
+              onClick={() => handleChipClick(chip.text)}
+              className="inline-flex items-center px-4 py-2 rounded-full bg-white border border-[#E5E7EB] hover:shadow-md transition-all text-sm text-gray-700"
+            >
+              {chip.icon}
+              <span className="ml-2">{chip.text}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Village Section */}
