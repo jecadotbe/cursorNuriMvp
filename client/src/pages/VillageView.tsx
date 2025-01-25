@@ -725,14 +725,14 @@ export default function VillageView() {
 
       <div
         className="flex-1 relative overflow-hidden"
-        onMouseDown={!isRearrangeMode ? handlePanStart : undefined}
-        onMouseMove={!isRearrangeMode ? handlePanMove : undefined}
-        onMouseUp={!isRearrangeMode ? handlePanEnd : undefined}
-        onMouseLeave={!isRearrangeMode ? handlePanEnd : undefined}
-        onTouchStart={!isRearrangeMode ? handleTouchStart : undefined}
-        onTouchMove={!isRearrangeMode ? handleTouchMove : undefined}
-        onTouchEnd={!isRearrangeMode ? handleTouchEnd : undefined}
-        style={{ cursor: !isRearrangeMode && isDragging ? 'grabbing' : 'grab' }}
+        onMouseDown={handlePanStart}
+        onMouseMove={handlePanMove}
+        onMouseUp={handlePanEnd}
+        onMouseLeave={handlePanEnd}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
       >
         <AnimatePresence>
           {members.map((member) => {
