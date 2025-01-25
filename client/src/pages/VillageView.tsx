@@ -122,7 +122,19 @@ const MemberContent: React.FC<MemberContentProps> = ({
     />
     <div
       className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB]"
-      onClick={() => {
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!isRearrangeMode) {
+          // Toggle submenu visibility
+          const submenu = document.querySelector(`#submenu-${member.id}`);
+          if (submenu) {
+            submenu.classList.toggle('hidden');
+          }
+        }
+      }}
+      onTouchEnd={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
         if (!isRearrangeMode) {
           // Toggle submenu visibility
           const submenu = document.querySelector(`#submenu-${member.id}`);
