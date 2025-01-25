@@ -1679,35 +1679,3 @@ async function getVillageContext(userId: number): Promise<string | null> {
     return null;
   }
 }
-// Add after other imports
-import { memoryService } from './services/memory';
-
-// Add this route handler with other routes
-app.get('/api/memories/actions', authMiddleware, async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    // Get recent memories to analyze patterns
-    const recentMemories = await memoryService.getRelevantMemories(
-      userId,
-      '', // Empty context to get recent memories
-    );
-
-    // Generate actionable suggestions based on memory patterns
-    const actions = recentMemories
-      .slice(0, 3)
-      .map(memory => ({
-        text: `Verder praten over ${memory.content.slice(0, 30)}...`,
-        context: memory.content,
-      }))
-      .filter(action => action.text.length > 20); // Filter out too short suggestions
-
-    res.json(actions);
-  } catch (error) {
-    console.error('Error getting memory actions:', error);
-    res.status(500).json({ error: 'Failed to get actions' });
-  }
-});

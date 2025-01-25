@@ -34,7 +34,7 @@ export default function HomeView() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
-  const [actionChips, setActionChips] = useState([
+  const actionChips = [
     {
       text: "Ik wil ventileren",
       icon: <Wind className="w-4 h-4" />,
@@ -47,34 +47,7 @@ export default function HomeView() {
       text: "Gewoon chatten",
       icon: <MessageCircle className="w-4 h-4" />,
     },
-  ]);
-
-  useEffect(() => {
-    const fetchContextualActions = async () => {
-      try {
-        const response = await fetch('/api/memories/actions', {
-          credentials: 'include'
-        });
-        
-        if (!response.ok) return;
-        
-        const contextualActions = await response.json();
-        
-        // Merge contextual actions with default ones
-        const dynamicChips = contextualActions.map((action: any) => ({
-          text: action.text,
-          icon: <MessageCircle className="w-4 h-4" />,
-          context: action.context
-        }));
-        
-        setActionChips(prev => [...prev, ...dynamicChips.slice(0, 2)]); // Add up to 2 contextual actions
-      } catch (error) {
-        console.error('Failed to fetch contextual actions:', error);
-      }
-    };
-
-    fetchContextualActions();
-  }, []);
+  ];
 
   const handleChipClick = async (topic: string) => {
     try {
