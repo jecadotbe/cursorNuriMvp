@@ -595,7 +595,7 @@ export default function VillageView() {
         title: "Success",
         description: "Memory saved successfully"
       });
-      setIsMemoryDialogOpen(false);
+      
       setNewMemory({
         title: "",
         content: "",
@@ -603,6 +603,15 @@ export default function VillageView() {
         tags: [],
         date: format(new Date(), "yyyy-MM-dd")
       });
+      
+      // Switch back to view tab after saving
+      const tabsList = document.querySelector('[role="tablist"]');
+      if (tabsList) {
+        const viewTab = tabsList.querySelector('[value="view"]') as HTMLButtonElement;
+        if (viewTab) {
+          viewTab.click();
+        }
+      }
     } catch (error) {
       console.error('Memory save error:', error);
       toast({
