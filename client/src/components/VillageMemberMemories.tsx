@@ -1,4 +1,3 @@
-
 import { format } from "date-fns";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useVillageMemories } from "@/hooks/use-village-memories";
@@ -11,6 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState } from 'react';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
+
 
 interface VillageMemberMemoriesProps {
   memberId: number;
@@ -18,7 +20,8 @@ interface VillageMemberMemoriesProps {
 }
 
 export function VillageMemberMemories({ memberId, memberName }: VillageMemberMemoriesProps) {
-  const { memories, isLoading } = useVillageMemories(memberId);
+  const { memories, isLoading, deleteMemory } = useVillageMemories(memberId);
+  const [memoryToDelete, setMemoryToDelete] = useState<number | null>(null);
 
   if (isLoading) {
     return <div>Loading memories...</div>;
@@ -40,6 +43,13 @@ export function VillageMemberMemories({ memberId, memberName }: VillageMemberMem
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base">{memory.title}</CardTitle>
                       <div className="flex items-center gap-1">
+                        <Button variant="ghost" onClick={() => setMemoryToDelete(memory.id)} >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 14.74a6 6 0 11-8.49 8.49" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 19.5a6 6 0 11-8.48-8.48" />
+                          </svg>
+                          Delete
+                        </Button>
                         {Array.from({ length: memory.emotionalImpact }).map((_, i) => (
                           <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                         ))}
@@ -122,6 +132,30 @@ export function VillageMemberMemories({ memberId, memberName }: VillageMemberMem
           </ScrollArea>
         </TabsContent>
       </Tabs>
+      <AlertDialog open={!!memoryToDelete} onOpenChange={(open) => !open && setMemoryToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Memory</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this memory? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={() => {
+                if (memoryToDelete) {
+                  deleteMemory(memoryToDelete);
+                  setMemoryToDelete(null);
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

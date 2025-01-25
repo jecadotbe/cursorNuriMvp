@@ -49,9 +49,37 @@ export function useVillageMemories(memberId: number) {
     },
   });
 
+  const deleteMemoryMutation = useMutation({
+    mutationFn: async (memoryId: number) => {
+      const response = await fetch(`/api/village/members/${memberId}/memories/${memoryId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete memory");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/village/members/${memberId}/memories`] });
+      toast({
+        title: "Success",
+        description: "Memory deleted successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete memory",
+      });
+    },
+  });
+
   return {
     memories: memories || [],
     isLoading,
     addMemory: addMemoryMutation.mutate,
+    deleteMemory: deleteMemoryMutation.mutate,
   };
 }
