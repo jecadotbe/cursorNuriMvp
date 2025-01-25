@@ -120,9 +120,9 @@ const MemberContent: React.FC<MemberContentProps> = ({
           member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem'
       }}
     />
-    <div className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB] max-w-[200px]">
+    <div className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB] max-w-[150px]">
       <div 
-        className="cursor-pointer"
+        className="cursor-pointer flex-1 min-w-0"
         onTouchEnd={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -161,7 +161,7 @@ const MemberContent: React.FC<MemberContentProps> = ({
           }
         }}
       >
-        <span className="text-sm font-medium text-gray-800 truncate">{member.name}</span>
+        <span className="text-sm font-medium text-gray-800 truncate block">{member.name}</span>
       </div>
       <div id={`submenu-${member.id}`} className="hidden items-center space-x-1 md:group-hover:flex">
         <button
