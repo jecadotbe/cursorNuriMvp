@@ -2,7 +2,7 @@ import { useState, useRef, createRef } from "react";
 import { useVillage } from "@/hooks/use-village";
 import { useUser } from "@/hooks/use-user";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, User, Users, ArrowUpCircle, ArrowDownCircle, ArrowLeftCircle, ArrowRightCircle, Lightbulb, BookMarked, Star, Clock } from "lucide-react";
+import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, User, Users, ArrowUpCircle, ArrowDownCircle, ArrowLeftCircle, ArrowRightCircle, Lightbulb, BookMarked, Star, Clock, Move } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -88,6 +88,7 @@ export default function VillageView() {
   const [isDragging, setIsDragging] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const memberRefs = useRef(new Map());
+  const [isRearrangeMode, setIsRearrangeMode] = useState(false);
 
   const getMemberRef = (memberId: number) => {
     if (!memberRefs.current.has(memberId)) {
@@ -484,10 +485,8 @@ export default function VillageView() {
         <Link href="/">
           <div className="flex items-center space-x-4 cursor-pointer mb-8">
             <ChevronLeft className="w-6 h-6 text-gray-800" />
-
           </div>
         </Link>
-
       </div>
 
       <div className="fixed top-24 right-4 flex flex-col space-y-2 z-10">
@@ -508,6 +507,14 @@ export default function VillageView() {
           className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow hover:bg-gray-50"
         >
           <RotateCcw className="w-5 h-5 text-gray-700" />
+        </button>
+        <button
+          onClick={() => setIsRearrangeMode(!isRearrangeMode)}
+          className={`w-10 h-10 flex items-center justify-center rounded-lg shadow hover:bg-gray-50 ${
+            isRearrangeMode ? 'bg-primary text-white' : 'bg-white'
+          }`}
+        >
+          <Move className={`w-5 h-5 ${isRearrangeMode ? 'text-white' : 'text-gray-700'}`} />
         </button>
         <button
           onClick={() => setIsSuggestionsOpen(true)}
@@ -534,34 +541,34 @@ export default function VillageView() {
             ) : (
               insights.map((insight) => (
                 !insight.dismissed && (
-                <Card key={insight.id}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-start gap-4">
-                      <div className="flex-1">
-                        <h3 className="font-semibold mb-1">{insight.title}</h3>
-                        <p className="text-sm text-gray-600">{insight.description}</p>
-                        {insight.suggestedAction && (
-                          <p className="text-sm text-gray-600 mt-2 italic">
-                            Suggestie: {insight.suggestedAction}
-                          </p>
-                        )}
+                  <Card key={insight.id}>
+                    <CardContent className="pt-6">
+                      <div className="flex items-start gap-4">
+                        <div className="flex-1">
+                          <h3 className="font-semibold mb-1">{insight.title}</h3>
+                          <p className="text-sm text-gray-600">{insight.description}</p>
+                          {insight.suggestedAction && (
+                            <p className="text-sm text-gray-600 mt-2 italic">
+                              Suggestie: {insight.suggestedAction}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <Badge variant={insight.priority > 3 ? "default" : "secondary"}>
+                            Prioriteit {insight.priority}
+                          </Badge>
+                          <Button variant="ghost" onClick={() => handleInsightAction(insight.id)}>
+                            {insight.type === "network_gap" ? "Voeg toe" : "OK"}
+                          </Button>
+                          <Button variant="ghost" onClick={() => dismissInsight(insight.id)}>
+                            Verwijder
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Badge variant={insight.priority > 3 ? "default" : "secondary"}>
-                          Prioriteit {insight.priority}
-                        </Badge>
-                        <Button variant="ghost" onClick={() => handleInsightAction(insight.id)}>
-                          {insight.type === "network_gap" ? "Voeg toe" : "OK"}
-                        </Button>
-                        <Button variant="ghost" onClick={() => dismissInsight(insight.id)}>
-                          Verwijder
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            ))
+                    </CardContent>
+                  </Card>
+                )
+              ))
             )}
           </div>
         </SheetContent>
@@ -569,14 +576,14 @@ export default function VillageView() {
 
       <div
         className="flex-1 relative overflow-hidden"
-        onMouseDown={handlePanStart}
-        onMouseMove={handlePanMove}
-        onMouseUp={handlePanEnd}
-        onMouseLeave={handlePanEnd}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+        onMouseDown={isRearrangeMode ? handlePanStart : undefined}
+        onMouseMove={isRearrangeMode ? handlePanMove : undefined}
+        onMouseUp={isRearrangeMode ? handlePanEnd : undefined}
+        onMouseLeave={isRearrangeMode ? handlePanEnd : undefined}
+        onTouchStart={isRearrangeMode ? handleTouchStart : undefined}
+        onTouchMove={isRearrangeMode ? handleTouchMove : undefined}
+        onTouchEnd={isRearrangeMode ? handleTouchEnd : undefined}
+        style={{ cursor: isRearrangeMode ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
       >
         <AnimatePresence>
           {members.map((member) => {
@@ -664,7 +671,77 @@ export default function VillageView() {
               const categoryColor = member.category ? CATEGORY_COLORS[member.category] : "#6b7280";
               const nodeRef = getMemberRef(member.id);
 
-              return (
+              const MemberContent = () => (
+                <div
+                  className="absolute member-pill group flex items-center"
+                  style={{
+                    transform: "translate(-50%, -50%)",
+                    left: pos.x,
+                    top: pos.y
+                  }}
+                >
+                  <div
+                    className={`mr-2 rounded-full`}
+                    style={{
+                      backgroundColor: categoryColor,
+                      width: member.contactFrequency === 'S' ? '0.5rem' :
+                        member.contactFrequency === 'M' ? '0.875rem' :
+                        member.contactFrequency === 'L' ? '1.25rem' :
+                        member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem',
+                      height: member.contactFrequency === 'S' ? '0.5rem' :
+                        member.contactFrequency === 'M' ? '0.875rem' :
+                        member.contactFrequency === 'L' ? '1.25rem' :
+                        member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem'
+                    }}
+                  />
+                  <div
+                    className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB]"
+                    onClick={() => {
+                      if (!isRearrangeMode) {
+                        // Toggle submenu visibility
+                        const submenu = document.querySelector(`#submenu-${member.id}`);
+                        if (submenu) {
+                          submenu.classList.toggle('hidden');
+                        }
+                      }
+                    }}
+                  >
+                    <span className="text-sm font-medium text-gray-800">{member.name}</span>
+                    <div id={`submenu-${member.id}`} className="hidden group-hover:flex items-center space-x-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedMember(member);
+                          setIsMemoryDialogOpen(true);
+                        }}
+                        className="p-1 hover:bg-gray-100 rounded-full"
+                      >
+                        <BookMarked className="w-3 h-3 text-purple-500" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(member);
+                        }}
+                        className="p-1 hover:bg-gray-100 rounded-full"
+                      >
+                        <Edit2 className="w-3 h-3 text-gray-500" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMemberToDelete(member);
+                        }}
+                        className="p-1 hover:bg-gray-100 rounded-full"
+                      >
+                        <Trash2 className="w-3 h-3 text-red-500" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+
+              return isRearrangeMode ? (
                 <Draggable
                   key={member.id}
                   nodeRef={nodeRef}
@@ -687,67 +764,17 @@ export default function VillageView() {
                   }}
                   bounds="parent"
                 >
-                  <div
-                    ref={nodeRef}
-                    className="absolute cursor-move member-pill group flex items-center"
-                    style={{ transform: "translate(-50%, -50%)" }}
-                  >
-                    <div
-                      className={`mr-2 rounded-full`}
-                      style={{
-                        backgroundColor: categoryColor,
-                        width: member.contactFrequency === 'S' ? '0.5rem' :
-                          member.contactFrequency === 'M' ? '0.875rem' :
-                          member.contactFrequency === 'L' ? '1.25rem' :
-                          member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem',
-                        height: member.contactFrequency === 'S' ? '0.5rem' :
-                          member.contactFrequency === 'M' ? '0.875rem' :
-                          member.contactFrequency === 'L' ? '1.25rem' :
-                          member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem'
-                      }}
-                    />
-                    <div className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB]">
-                      <span className="text-sm font-medium text-gray-800">{member.name}</span>
-                      <div className="hidden group-hover:flex items-center space-x-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedMember(member);
-                            setIsMemoryDialogOpen(true);
-                          }}
-                          className="p-1 hover:bg-gray-100 rounded-full"
-                        >
-                          <BookMarked className="w-3 h-3 text-purple-500" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEdit(member);
-                          }}
-                          className="p-1 hover:bg-gray-100 rounded-full"
-                        >
-                          <Edit2 className="w-3 h-3 text-gray-500" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setMemberToDelete(member);
-                          }}
-                          className="p-1 hover:bg-gray-100 rounded-full"
-                        >
-                          <Trash2 className="w-3 h-3 text-red-500" />
-                        </button>
-                      </div>
-                    </div>
+                  <div ref={nodeRef}>
+                    <MemberContent />
                   </div>
                 </Draggable>
+              ) : (
+                <MemberContent key={member.id} />
               );
             })}
           </div>
         </div>
       </div>
-
-
 
 
       <Sheet open={isOpen} onOpenChange={(open) => {
@@ -814,8 +841,7 @@ export default function VillageView() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="informeel">Informeel</SelectItem>
-                  <SelectItem value="formeel">Formeel</SelectItem>
-                  <SelectItem value="inspiratie">Inspiratie</SelectItem>
+                  <SelectItem value="formeel">Formeel</SelectItem><SelectItem value="inspiratie">Inspiratie</SelectItem>
                 </SelectContent>
               </Select>
             </div>
