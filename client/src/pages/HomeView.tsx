@@ -129,39 +129,6 @@ export default function HomeView() {
       });
     }
   };
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
-            messages: [{
-              role: 'assistant',
-              content: suggestion.text
-            }],
-          }),
-          credentials: 'include',
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to create new chat');
-        }
-
-        const newChat = await response.json();
-        navigate(`/chat/${newChat.id}`);
-      }
-
-      // Show feedback dialog after successful navigation
-      setShowFeedback(true);
-    } catch (error) {
-      console.error('Error handling prompt:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Could not process the prompt. Please try again.",
-      });
-    }
-  };
 
   const handleFeedbackClose = () => {
     setShowFeedback(false);
