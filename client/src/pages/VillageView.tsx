@@ -79,6 +79,82 @@ interface Insight {
   dismissed: boolean;
 }
 
+interface MemberContentProps {
+  member: typeof members[0];
+  position: { x: number; y: number };
+}
+
+const MemberContent: React.FC<MemberContentProps> = ({ member, position }) => (
+  <div
+    className="member-pill group flex items-center"
+    style={{
+      position: 'absolute',
+      transform: "translate(-50%, -50%)",
+      left: position.x,
+      top: position.y
+    }}
+  >
+    <div
+      className={`mr-2 rounded-full`}
+      style={{
+        backgroundColor: member.category ? CATEGORY_COLORS[member.category] : "#6b7280",
+        width: member.contactFrequency === 'S' ? '0.5rem' :
+          member.contactFrequency === 'M' ? '0.875rem' :
+          member.contactFrequency === 'L' ? '1.25rem' :
+          member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem',
+        height: member.contactFrequency === 'S' ? '0.5rem' :
+          member.contactFrequency === 'M' ? '0.875rem' :
+          member.contactFrequency === 'L' ? '1.25rem' :
+          member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem'
+      }}
+    />
+    <div
+      className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB]"
+      onClick={() => {
+        if (!isRearrangeMode) {
+          // Toggle submenu visibility
+          const submenu = document.querySelector(`#submenu-${member.id}`);
+          if (submenu) {
+            submenu.classList.toggle('hidden');
+          }
+        }
+      }}
+    >
+      <span className="text-sm font-medium text-gray-800">{member.name}</span>
+      <div id={`submenu-${member.id}`} className="hidden group-hover:flex items-center space-x-1">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedMember(member);
+            setIsMemoryDialogOpen(true);
+          }}
+          className="p-1 hover:bg-gray-100 rounded-full"
+        >
+          <BookMarked className="w-3 h-3 text-purple-500" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleEdit(member);
+          }}
+          className="p-1 hover:bg-gray-100 rounded-full"
+        >
+          <Edit2 className="w-3 h-3 text-gray-500" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setMemberToDelete(member);
+          }}
+          className="p-1 hover:bg-gray-100 rounded-full"
+        >
+          <Trash2 className="w-3 h-3 text-red-500" />
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 export default function VillageView() {
   const { members, addMember, updateMember, deleteMember } = useVillage();
   const { user } = useUser();
@@ -475,6 +551,7 @@ export default function VillageView() {
     dismissInsight(id);
   };
 
+
   return (
     <div className="flex flex-col h-screen relative animate-gradient" style={{
       backgroundSize: "400% 400%",
@@ -671,81 +748,11 @@ export default function VillageView() {
               const categoryColor = member.category ? CATEGORY_COLORS[member.category] : "#6b7280";
               const nodeRef = getMemberRef(member.id);
 
-              const MemberContent = () => (
-                <div
-                  className="absolute member-pill group flex items-center"
-                  style={{
-                    transform: "translate(-50%, -50%)",
-                    left: pos.x,
-                    top: pos.y
-                  }}
-                >
-                  <div
-                    className={`mr-2 rounded-full`}
-                    style={{
-                      backgroundColor: categoryColor,
-                      width: member.contactFrequency === 'S' ? '0.5rem' :
-                        member.contactFrequency === 'M' ? '0.875rem' :
-                        member.contactFrequency === 'L' ? '1.25rem' :
-                        member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem',
-                      height: member.contactFrequency === 'S' ? '0.5rem' :
-                        member.contactFrequency === 'M' ? '0.875rem' :
-                        member.contactFrequency === 'L' ? '1.25rem' :
-                        member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem'
-                    }}
-                  />
-                  <div
-                    className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB]"
-                    onClick={() => {
-                      if (!isRearrangeMode) {
-                        // Toggle submenu visibility
-                        const submenu = document.querySelector(`#submenu-${member.id}`);
-                        if (submenu) {
-                          submenu.classList.toggle('hidden');
-                        }
-                      }
-                    }}
-                  >
-                    <span className="text-sm font-medium text-gray-800">{member.name}</span>
-                    <div id={`submenu-${member.id}`} className="hidden group-hover:flex items-center space-x-1">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedMember(member);
-                          setIsMemoryDialogOpen(true);
-                        }}
-                        className="p-1 hover:bg-gray-100 rounded-full"
-                      >
-                        <BookMarked className="w-3 h-3 text-purple-500" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEdit(member);
-                        }}
-                        className="p-1 hover:bg-gray-100 rounded-full"
-                      >
-                        <Edit2 className="w-3 h-3 text-gray-500" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMemberToDelete(member);
-                        }}
-                        className="p-1 hover:bg-gray-100 rounded-full"
-                      >
-                        <Trash2 className="w-3 h-3 text-red-500" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-
               return isRearrangeMode ? (
                 <Draggable
                   key={member.id}
                   nodeRef={nodeRef}
-                  defaultPosition={pos}
+                  position={pos}
                   onStop={(e, data) => {
                     const distance = Math.sqrt(data.x * data.x + data.y * data.y);
                     let newCircle = Math.round(distance / 80);
@@ -765,11 +772,13 @@ export default function VillageView() {
                   bounds="parent"
                 >
                   <div ref={nodeRef}>
-                    <MemberContent />
+                    <MemberContent member={member} position={pos} />
                   </div>
                 </Draggable>
               ) : (
-                <MemberContent key={member.id} />
+                <div key={member.id}>
+                  <MemberContent member={member} position={pos} />
+                </div>
               );
             })}
           </div>
@@ -841,7 +850,8 @@ export default function VillageView() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="informeel">Informeel</SelectItem>
-                  <SelectItem value="formeel">Formeel</SelectItem><SelectItem value="inspiratie">Inspiratie</SelectItem>
+                  <SelectItem value="formeel">Formeel</SelectItem>
+                  <SelectItem value="inspiratie">Inspiratie</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1003,8 +1013,6 @@ export default function VillageView() {
           </div>
         </SheetContent>
       </Sheet>
-
-
       <div className="hidden">
         <MinimapView
           members={members}
