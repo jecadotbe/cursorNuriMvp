@@ -844,7 +844,12 @@ export default function VillageView() {
                     nodeRef={nodeRef}
                     position={pos}
                     onStop={(e, data) => handleDragStop(e, data, member)}
-                    bounds="parent"
+                    bounds={{
+                      left: -getCircleRadius(4),
+                      right: getCircleRadius(4),
+                      top: -getCircleRadius(4),
+                      bottom: getCircleRadius(4)
+                    }}
                   >
                     <div
                       ref={nodeRef}
