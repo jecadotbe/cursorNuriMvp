@@ -713,7 +713,7 @@ export default function VillageView() {
                 <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
                 <p className="mt-2 text-gray-600">Laden...</p>
               </div>
-            ) : !suggestions || suggestions.filter(s => !s.dismissed).length === 0 ? (
+            ) : !suggestions || !Array.isArray(suggestions) || suggestions.filter(s => !s.dismissed).length === 0 ? (
               <div className="text-center py-8 px-4">
                 <Lightbulb className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600">
