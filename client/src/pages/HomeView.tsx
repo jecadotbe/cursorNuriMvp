@@ -94,9 +94,9 @@ export default function HomeView() {
         // Navigate to existing chat
         navigate(`/chat/${suggestion.relatedChatId}`);
       } else {
-  try {
-    const response = await fetch('/api/chats', {
-      method: 'POST',
+        // Create new chat with the prompt
+        const response = await fetch('/api/chats', {
+          method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -116,18 +116,38 @@ export default function HomeView() {
 
     const newChat = await response.json();
     navigate(`/chat/${newChat.id}`);
-  } catch (error) {
-    console.error('Error creating chat:', error);
-    toast({
-      variant: "destructive",
-      title: "Error",
-      description: "Could not start the conversation. Please try again.",
-    });
-  }
-};
+  headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
+            messages: [{
+              role: 'assistant',
+              content: suggestion.text
+            }],
+          }),
+          credentials: 'include',
+        });
 
-        // Create new chat with the prompt
-        const response = await fetch('/api/chats', {
+        if (!response.ok) {
+          throw new Error('Failed to create new chat');
+        }
+
+        const newChat = await response.json();
+        navigate(`/chat/${newChat.id}`);
+      }
+
+      // Show feedback dialog after successful navigation
+      setShowFeedback(true);
+    } catch (error) {
+      console.error('Error handling prompt:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not process the prompt. Please try again.",
+      });
+    }
+  };
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
