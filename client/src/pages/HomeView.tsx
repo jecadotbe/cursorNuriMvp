@@ -34,6 +34,54 @@ export default function HomeView() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
+  const actionChips = [
+    {
+      text: "Ik wil ventileren",
+      icon: <Wind className="w-4 h-4" />,
+    },
+    {
+      text: "Ik wil het hebben over mijn village",
+      icon: <Heart className="w-4 h-4" />,
+    },
+    {
+      text: "Gewoon chatten",
+      icon: <MessageCircle className="w-4 h-4" />,
+    },
+  ];
+
+  const handleChipClick = async (topic: string) => {
+    try {
+      const response = await fetch('/api/chats', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
+          messages: [{
+            role: 'assistant',
+            content: `Ik begrijp dat je ${topic.toLowerCase()}. Waar wil je het over hebben?`
+          }],
+        }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create new chat');
+      }
+
+      const newChat = await response.json();
+      navigate(`/chat/${newChat.id}`);
+    } catch (error) {
+      console.error('Error creating chat:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not start the conversation. Please try again.",
+      });
+    }
+  };
+
   const handlePromptClick = async () => {
     if (!suggestion) return;
 
@@ -42,28 +90,10 @@ export default function HomeView() {
       await markAsUsed(suggestion.id);
       setCurrentSuggestionId(suggestion.id);
 
-
-const actionChips = [
-  {
-    text: "Ik wil ventileren",
-    icon: <Wind className="w-4 h-4" />,
-  },
-  {
-    text: "Ik wil het hebben over mijn village",
-    icon: <Heart className="w-4 h-4" />,
-  },
-  {
-    text: "Gewoon chatten",
-    icon: <MessageCircle className="w-4 h-4" />,
-  },
-];
-
       if (suggestion.context === "existing" && suggestion.relatedChatId) {
         // Navigate to existing chat
         navigate(`/chat/${suggestion.relatedChatId}`);
       } else {
-
-const handleChipClick = async (topic: string) => {
   try {
     const response = await fetch('/api/chats', {
       method: 'POST',
