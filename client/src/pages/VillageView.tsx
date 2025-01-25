@@ -385,7 +385,7 @@ export default function VillageView() {
         y: prev.y + deltaY
       }));
     } else {
-      console.log('Mouse Pan:', {
+      console.log('Mouse Pan:', { 
         movementX: (e as React.MouseEvent).movementX,
         movementY: (e as React.MouseEvent).movementY,
         currentPosition: position
@@ -615,15 +615,6 @@ export default function VillageView() {
     });
 
     if (newCircle !== member.circle || Math.abs(snapped.angle - currentAngle) > 0.01) {
-      console.log('Updating member position:', {
-        memberId: member.id,
-        memberName: member.name,
-        oldCircle: member.circle,
-        newCircle,
-        oldAngle: currentAngle,
-        newAngle: snapped.angle
-      });
-
       updateMember({
         ...member,
         circle: newCircle,
@@ -833,49 +824,53 @@ export default function VillageView() {
               const pos = getMemberPosition(member);
               const nodeRef = getMemberRef(member.id);
 
-              return isRearrangeMode ? (
-                <Draggable
-                  key={member.id}
-                  nodeRef={nodeRef}
-                  position={pos}
-                  onStop={(e, data) => handleDragStop(e, data, member)}
-                  bounds="parent"
-                >
-                  <div
-                    ref={nodeRef}
-                    className="absolute"
-                    style={{
-                      left: "50%",
-                      top: "50%",
-                      transform: "translate(-50%, -50%)",
-                    }}
+              if (isRearrangeMode) {
+                return (
+                  <Draggable
+                    key={member.id}
+                    nodeRef={nodeRef}
+                    position={pos}
+                    onStop={(e, data) => handleDragStop(e, data, member)}
+                    bounds="parent"
                   >
-                    <MemberContent
-                      member={member}
-                      position={{ x: 0, y: 0 }}
-                      isRearrangeMode={isRearrangeMode}
-                      onEdit={handleEdit}
-                      onSetMemory={(m) => {
-                        setSelectedMember(m);
-                        setIsMemoryDialogOpen(true);
+                    <div
+                      ref={nodeRef}
+                      className="absolute"
+                      style={{
+                        left: "50%",
+                        top: "50%",
+                        transform: "translate(-50%, -50%)",
                       }}
-                      onDelete={setMemberToDelete}
-                    />
-                  </div>
-                </Draggable>
-              ) : (
+                    >
+                      <MemberContent
+                        member={member}
+                        position={{ x: 0, y: 0 }}
+                        isRearrangeMode={isRearrangeMode}
+                        onEdit={handleEdit}
+                        onSetMemory={(m) => {
+                          setSelectedMember(m);
+                          setIsMemoryDialogOpen(true);
+                        }}
+                        onDelete={setMemberToDelete}
+                      />
+                    </div>
+                  </Draggable>
+                );
+              }
+
+              return (
                 <div
                   key={member.id}
                   className="absolute pointer-events-none"
                   style={{
-                    left: "50%",                    top: "50%",
+                    left: "50%",
+                    top: "50%",
                     transform: `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px))`,
                   }}
                 >
                   <MemberContent
                     member={member}
-                    position={pos}
-                    isRearrangeMode={isRearrangeMode}
+                    position={pos}                    isRearrangeMode={isRearrangeMode}
                     onEdit={handleEdit}
                     onSetMemory={(m) => {
                       setSelectedMember(m);
@@ -896,8 +891,7 @@ export default function VillageView() {
         if (!open) {
           setMemberToEdit(null);
           setNewMember({
-            name: "",
-            type: "individual",
+            name: "",            type: "individual",
             circle: 1,
             category: "informeel",
             contactFrequency: "M"
@@ -930,7 +924,7 @@ export default function VillageView() {
               <Select
                 value={newMember.type}
                 onValueChange={(value: "individual" | "group") =>
-                  setNewMember({ ...newMember, type: value })
+                  setNewMember({ ...newMember, type: value})
                 }
               >
                 <SelectTrigger>
@@ -1054,7 +1048,7 @@ export default function VillageView() {
                     <Input
                       id="title"
                       value={newMemory.title}
-                      onChange={(e) => setNewMemory({ ...newMemory, title: e.target.value })}
+                      onChange={(e) => setNewMemory({...newMemory, title: e.target.value })}
                       placeholder="Enter a title for this memory"
                       required
                     />
