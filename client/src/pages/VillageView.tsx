@@ -1,6 +1,7 @@
 import { useState, useRef, createRef } from "react";
 import { useVillage } from "@/hooks/use-village";
 import { useUser } from "@/hooks/use-user";
+import { useSuggestion } from "@/hooks/use-suggestion";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, User, Users, ArrowUpCircle, ArrowDownCircle, ArrowLeftCircle, ArrowRightCircle, Lightbulb, BookMarked, Star, Clock, Move } from "lucide-react";
 import {
