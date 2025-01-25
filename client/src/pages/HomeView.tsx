@@ -215,19 +215,18 @@ export default function HomeView() {
         ) : null}
         {suggestion && (
           <div className="flex justify-center mt-2">
-            <Button
-              variant="outline"
-              size="sm"
+            <button
               onClick={() => {
                 setIsLoading(true);
                 nextSuggestion();
                 setIsLoading(false);
               }}
               disabled={isLoading || suggestionLoading || !suggestions?.length}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span>Toon andere suggestie ({suggestions?.length || 0})</span>
-            </Button>
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         )}
 
