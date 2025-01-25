@@ -97,26 +97,7 @@ export default function HomeView() {
         // Create new chat with the prompt
         const response = await fetch('/api/chats', {
           method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
-        messages: [{
-          role: 'assistant',
-          content: `Ik begrijp dat je ${topic.toLowerCase()}. Waar wil je het over hebben?`
-        }],
-      }),
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to create new chat');
-    }
-
-    const newChat = await response.json();
-    navigate(`/chat/${newChat.id}`);
-  headers: {
+          headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
