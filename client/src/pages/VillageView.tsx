@@ -83,9 +83,19 @@ interface MemberContentProps {
   member: typeof members[0];
   position: { x: number; y: number };
   isRearrangeMode: boolean;
+  onEdit: (member: typeof members[0]) => void;
+  onSetMemory: (member: typeof members[0]) => void;
+  onDelete: (member: typeof members[0]) => void;
 }
 
-const MemberContent: React.FC<MemberContentProps> = ({ member, position, isRearrangeMode }) => (
+const MemberContent: React.FC<MemberContentProps> = ({
+  member,
+  position,
+  isRearrangeMode,
+  onEdit,
+  onSetMemory,
+  onDelete
+}) => (
   <div
     className="member-pill group flex items-center"
     style={{
@@ -126,8 +136,7 @@ const MemberContent: React.FC<MemberContentProps> = ({ member, position, isRearr
         <button
           onClick={(e) => {
             e.stopPropagation();
-            setSelectedMember(member);
-            setIsMemoryDialogOpen(true);
+            onSetMemory(member);
           }}
           className="p-1 hover:bg-gray-100 rounded-full"
         >
@@ -136,7 +145,7 @@ const MemberContent: React.FC<MemberContentProps> = ({ member, position, isRearr
         <button
           onClick={(e) => {
             e.stopPropagation();
-            handleEdit(member);
+            onEdit(member);
           }}
           className="p-1 hover:bg-gray-100 rounded-full"
         >
@@ -145,7 +154,7 @@ const MemberContent: React.FC<MemberContentProps> = ({ member, position, isRearr
         <button
           onClick={(e) => {
             e.stopPropagation();
-            setMemberToDelete(member);
+            onDelete(member);
           }}
           className="p-1 hover:bg-gray-100 rounded-full"
         >
@@ -773,12 +782,32 @@ export default function VillageView() {
                   bounds="parent"
                 >
                   <div ref={nodeRef}>
-                    <MemberContent member={member} position={pos} isRearrangeMode={isRearrangeMode} />
+                    <MemberContent
+                      member={member}
+                      position={pos}
+                      isRearrangeMode={isRearrangeMode}
+                      onEdit={handleEdit}
+                      onSetMemory={(m) => {
+                        setSelectedMember(m);
+                        setIsMemoryDialogOpen(true);
+                      }}
+                      onDelete={setMemberToDelete}
+                    />
                   </div>
                 </Draggable>
               ) : (
                 <div key={member.id}>
-                  <MemberContent member={member} position={pos} isRearrangeMode={isRearrangeMode} />
+                  <MemberContent
+                    member={member}
+                    position={pos}
+                    isRearrangeMode={isRearrangeMode}
+                    onEdit={handleEdit}
+                    onSetMemory={(m) => {
+                      setSelectedMember(m);
+                      setIsMemoryDialogOpen(true);
+                    }}
+                    onDelete={setMemberToDelete}
+                  />
                 </div>
               );
             })}
