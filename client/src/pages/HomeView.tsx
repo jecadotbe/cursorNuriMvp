@@ -184,7 +184,7 @@ export default function HomeView() {
           </Card>
         ) : suggestion ? (
           <div onClick={handlePromptClick} className="transition-opacity duration-300 ease-in-out opacity-0 animate-fade-in">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer mb-3 animate-border"
+            <Card className="hover:shadow-md transition-shadow cursor-pointer mb-3 animate-border rounded-2xl"
               // style={{
               //   background: "linear-gradient(45deg, #F8DD9F 0%, #F2F0E5 50%)",
               // }}
