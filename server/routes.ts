@@ -936,8 +936,7 @@ ${mergedRAG || "No relevant content available"}
   app.patch("/api/chats/:chatId", async (req: Request, res: Response) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
-    }
-    const chatId = parseChatId(req.params.chatId);
+    }    const chatId = parseChatId(req.params.chatId);
     if (chatId === null) {
       return res.status(400).json({ message: "Invalid chat ID" });
     }
