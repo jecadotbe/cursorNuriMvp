@@ -289,6 +289,7 @@ export default function VillageView() {
   const lastTouchDistance = useRef<number>(0);
   const lastTouchPos = useRef<{ x: number; y: number } | null>(null);
 
+  // Update handleTouch to log zoom operations
   const handleTouch = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
       const touch1 = e.touches[0];
@@ -306,6 +307,13 @@ export default function VillageView() {
       const delta = dist - lastTouchDistance.current;
       lastTouchDistance.current = dist;
 
+      console.log('Pinch Zoom:', {
+        distance: dist,
+        delta,
+        currentScale: scale,
+        newScale: Math.min(Math.max(scale + delta * 0.01, 0.3), 3)
+      });
+
       setScale(prevScale => Math.min(Math.max(prevScale + delta * 0.01, 0.3), 3));
     } else if (e.touches.length === 1) {
       const touch = e.touches[0];
@@ -316,6 +324,12 @@ export default function VillageView() {
 
       const deltaX = touch.clientX - lastTouchPos.current.x;
       const deltaY = touch.clientY - lastTouchPos.current.y;
+
+      console.log('Single Touch Pan:', {
+        deltaX,
+        deltaY,
+        currentPosition: position
+      });
 
       lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
 
@@ -354,17 +368,29 @@ export default function VillageView() {
     setIsDragging(true);
   };
 
+  // Add logging to handlePanMove
   const handlePanMove = (e: React.MouseEvent | React.TouchEvent) => {
     if (!isDragging) return;
 
     if ('touches' in e) {
       const touch = e.touches[0];
       const prevTouch = e.touches[1] || e.touches[0];
+      const deltaX = touch.clientX - prevTouch.clientX;
+      const deltaY = touch.clientY - prevTouch.clientY;
+
+      console.log('Pan Movement:', { deltaX, deltaY, currentPosition: position });
+
       setPosition(prev => ({
-        x: prev.x + (touch.clientX - prevTouch.clientX),
-        y: prev.y + (touch.clientY - prevTouch.clientY)
+        x: prev.x + deltaX,
+        y: prev.y + deltaY
       }));
     } else {
+      console.log('Mouse Pan:', { 
+        movementX: (e as React.MouseEvent).movementX,
+        movementY: (e as React.MouseEvent).movementY,
+        currentPosition: position
+      });
+
       setPosition(prev => ({
         x: prev.x + (e as React.MouseEvent).movementX,
         y: prev.y + (e as React.MouseEvent).movementY
@@ -699,14 +725,14 @@ export default function VillageView() {
 
       <div
         className="flex-1 relative overflow-hidden"
-        onMouseDown={isRearrangeMode ? handlePanStart : undefined}
-        onMouseMove={isRearrangeMode ? handlePanMove : undefined}
-        onMouseUp={isRearrangeMode ? handlePanEnd : undefined}
-        onMouseLeave={isRearrangeMode ? handlePanEnd : undefined}
-        onTouchStart={isRearrangeMode ? handleTouchStart : undefined}
-        onTouchMove={isRearrangeMode ? handleTouchMove : undefined}
-        onTouchEnd={isRearrangeMode ? handleTouchEnd : undefined}
-        style={{ cursor: isRearrangeMode ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
+        onMouseDown={!isRearrangeMode ? handlePanStart : undefined}
+        onMouseMove={!isRearrangeMode ? handlePanMove : undefined}
+        onMouseUp={!isRearrangeMode ? handlePanEnd : undefined}
+        onMouseLeave={!isRearrangeMode ? handlePanEnd : undefined}
+        onTouchStart={!isRearrangeMode ? handleTouchStart : undefined}
+        onTouchMove={!isRearrangeMode ? handleTouchMove : undefined}
+        onTouchEnd={!isRearrangeMode ? handleTouchEnd : undefined}
+        style={{ cursor: !isRearrangeMode && isDragging ? 'grabbing' : 'grab' }}
       >
         <AnimatePresence>
           {members.map((member) => {
@@ -796,7 +822,6 @@ export default function VillageView() {
 
             {members.map((member) => {
               const pos = getMemberPosition(member);
-              const categoryColor = member.category ? CATEGORY_COLORS[member.category] : "#6b7280";
               const nodeRef = getMemberRef(member.id);
 
               if (isRearrangeMode) {
@@ -836,7 +861,7 @@ export default function VillageView() {
               return (
                 <div
                   key={member.id}
-                  className="absolute"
+                  className="absolute pointer-events-none"
                   style={{
                     left: "50%",
                     top: "50%",
@@ -845,8 +870,7 @@ export default function VillageView() {
                 >
                   <MemberContent
                     member={member}
-                    position={{ x: 0, y: 0 }}
-                    isRearrangeMode={isRearrangeMode}
+                    position={pos}                    isRearrangeMode={isRearrangeMode}
                     onEdit={handleEdit}
                     onSetMemory={(m) => {
                       setSelectedMember(m);
