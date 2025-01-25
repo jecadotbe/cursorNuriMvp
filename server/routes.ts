@@ -473,19 +473,26 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
         return res.json(existingSuggestions);
       }
 
-      // Get all required context data first
+      // Prepare queries before using them in Promise.all
+      const villageMembersQuery = db.query.villageMembers.findMany({
+        where: eq(villageMembers.userId, user.id),
+      });
+
+      const recentChatsQuery = db.query.chats.findMany({
+        where: eq(chats.userId, user.id),
+        orderBy: desc(chats.updatedAt),
+        limit: 5,
+      });
+
+      const profileQuery = db.query.parentProfiles.findFirst({
+        where: eq(parentProfiles.userId, user.id),
+      });
+
+      // Get all required context data
       const [recentChats, profile, villageMembers] = await Promise.all([
-        db.query.chats.findMany({
-          where: eq(chats.userId, user.id),
-          orderBy: desc(chats.updatedAt),
-          limit: 5,
-        }),
-        db.query.parentProfiles.findFirst({
-          where: eq(parentProfiles.userId, user.id),
-        }),
-        db.query.villageMembers.findMany({
-          where: eq(villageMembers.userId, user.id),
-        })
+        recentChatsQuery,
+        profileQuery,
+        villageMembersQuery
       ]);
 
       // Generate dynamic suggestions using our generator
