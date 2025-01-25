@@ -385,7 +385,7 @@ export default function VillageView() {
         y: prev.y + deltaY
       }));
     } else {
-      console.log('Mouse Pan:', { 
+      console.log('Mouse Pan:', {
         movementX: (e as React.MouseEvent).movementX,
         movementY: (e as React.MouseEvent).movementY,
         currentPosition: position
@@ -597,28 +597,35 @@ export default function VillageView() {
   };
 
   const handleDragStop = (_e: any, data: any, member: VillageMember) => {
-    const distance = Math.sqrt(data.x * data.x + data.y * data.y);
+    // Calculate position relative to center
+    const centerX = data.x;
+    const centerY = data.y;
+
+    // Calculate distance from center for circle determination
+    const distance = Math.sqrt(centerX * centerX + centerY * centerY);
     let newCircle = Math.round(distance / 80);
     newCircle = Math.max(1, Math.min(5, newCircle));
 
-    const snapped = snapToCircle(data.x, data.y, newCircle);
-    const currentAngle = parseFloat(member.positionAngle?.toString() || "0");
+    // Calculate angle in radians
+    const angle = Math.atan2(centerY, centerX);
+    const normalizedAngle = (angle + 2 * Math.PI) % (2 * Math.PI);
 
     console.log('Drag Stop Position:', {
       memberId: member.id,
       memberName: member.name,
-      dragPosition: { x: data.x, y: data.y },
-      snappedPosition: { x: snapped.x, y: snapped.y },
-      newCircle,
-      newAngle: snapped.angle,
-      currentAngle
+      dragPosition: { x: centerX, y: centerY },
+      distance,newCircle,
+      newAngle: normalizedAngle,
+      currentAngle: parseFloat(member.positionAngle?.toString() || "0")
     });
 
-    if (newCircle !== member.circle || Math.abs(snapped.angle - currentAngle) > 0.01) {
+    // Only update if position actually changed
+    if (newCircle !== member.circle ||
+        Math.abs(normalizedAngle - parseFloat(member.positionAngle?.toString() || "0")) > 0.01) {
       updateMember({
         ...member,
         circle: newCircle,
-        positionAngle: snapped.angle.toString()
+        positionAngle: normalizedAngle.toString()
       });
     }
   };
@@ -829,17 +836,46 @@ export default function VillageView() {
                   <Draggable
                     key={member.id}
                     nodeRef={nodeRef}
-                    position={pos}
-                    onStop={(e, data) => handleDragStop(e, data, member)}
-                    bounds="parent"
+                    position={{ x: pos.x, y: pos.y }}
+                    onStop={(e, data) => {
+                      // Calculate position relative to center
+                      const centerX = data.x;
+                      const centerY = data.y;
+
+                      // Calculate distance from center for circle determination
+                      const distance = Math.sqrt(centerX * centerX + centerY * centerY);
+                      let newCircle = Math.round(distance / 80);
+                      newCircle = Math.max(1, Math.min(5, newCircle));
+
+                      // Calculate angle in radians
+                      const angle = Math.atan2(centerY, centerX);
+                      const normalizedAngle = (angle + 2 * Math.PI) % (2 * Math.PI);
+
+                      console.log('Drag Stop Position:', {
+                        memberId: member.id,
+                        memberName: member.name,
+                        dragPosition: { x: centerX, y:y },
+                        distance,newCircle,
+                        newAngle: normalizedAngle,
+                        currentAngle: parseFloat(member.positionAngle?.toString() || "0")
+                      });
+
+                      // Only update if position actually changed
+                      if (newCircle !== member.circle ||
+                          Math.abs(normalizedAngle - parseFloat(member.positionAngle?.toString() || "0")) > 0.01) {
+                        updateMember({
+                          ...member,
+                          circle: newCircle,
+                          positionAngle: normalizedAngle.toString()
+                        });
+                      }
+                    }}
                   >
                     <div
                       ref={nodeRef}
                       className="absolute"
                       style={{
-                        left: "50%",
-                        top: "50%",
-                        transform: "translate(-50%, -50%)",
+                        transform: "translate(-50%, -50%)"
                       }}
                     >
                       <MemberContent
@@ -858,6 +894,7 @@ export default function VillageView() {
                 );
               }
 
+              // Regular view remains unchanged
               return (
                 <div
                   key={member.id}
@@ -870,7 +907,8 @@ export default function VillageView() {
                 >
                   <MemberContent
                     member={member}
-                    position={pos}                    isRearrangeMode={isRearrangeMode}
+                    position={pos}
+                    isRearrangeMode={isRearrangeMode}
                     onEdit={handleEdit}
                     onSetMemory={(m) => {
                       setSelectedMember(m);
@@ -881,6 +919,7 @@ export default function VillageView() {
                 </div>
               );
             })}
+
           </div>
         </div>
       </div>
@@ -891,7 +930,8 @@ export default function VillageView() {
         if (!open) {
           setMemberToEdit(null);
           setNewMember({
-            name: "",            type: "individual",
+            name: "",
+            type: "individual",
             circle: 1,
             category: "informeel",
             contactFrequency: "M"
@@ -924,7 +964,7 @@ export default function VillageView() {
               <Select
                 value={newMember.type}
                 onValueChange={(value: "individual" | "group") =>
-                  setNewMember({ ...newMember, type: value})
+                  setNewMember({ ...newMember, type: value })
                 }
               >
                 <SelectTrigger>
@@ -1048,7 +1088,7 @@ export default function VillageView() {
                     <Input
                       id="title"
                       value={newMemory.title}
-                      onChange={(e) => setNewMemory({...newMemory, title: e.target.value })}
+                      onChange={(e) => setNewMemory({ ...newMemory, title: e.target.value })}
                       placeholder="Enter a title for this memory"
                       required
                     />
