@@ -122,6 +122,25 @@ const MemberContent: React.FC<MemberContentProps> = ({
     />
     <div
       className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB]"
+      onTouchEnd={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isRearrangeMode) {
+          const submenu = document.querySelector(`#submenu-${member.id}`);
+          if (submenu) {
+            // Close all other menus first
+            document.querySelectorAll('[id^="submenu-"]').forEach(menu => {
+              if (menu.id !== `submenu-${member.id}`) {
+                menu.classList.add('hidden');
+                menu.classList.remove('flex');
+              }
+            });
+            // Toggle current menu
+            submenu.classList.toggle('hidden');
+            submenu.classList.toggle('flex');
+          }
+        }
+      }}
       onClick={(e) => {
         e.stopPropagation();
         if (!isRearrangeMode) {
@@ -351,11 +370,14 @@ export default function VillageView() {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.target instanceof Element && e.target.closest('.member-pill')) {
+      e.stopPropagation();
       return;
     }
-    setIsDragging(true);
-    lastTouchDistance.current = 0;
-    lastTouchPos.current = null;
+    if (e.touches.length === 1) {
+      setIsDragging(true);
+      lastTouchDistance.current = 0;
+      lastTouchPos.current = null;
+    }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -849,11 +871,13 @@ export default function VillageView() {
               return (
                 <div
                   key={member.id}
-                  className="absolute pointer-events-none"
+                  className="absolute"
                   style={{
                     transform: `translate(${pos.x}px, ${pos.y}px) translate(-50%, -50%)`,
                     left: "50%",
-                    top: "50%"
+                    top: "50%",
+                    touchAction: "none",
+                    zIndex: 20
                   }}
                 >
                   <MemberContent
