@@ -720,7 +720,7 @@ export default function VillageView() {
                   Helemaal klaar voor vandaag. Als er nieuwe suggesties zijn kan je die hier altijd vinden!
                 </p>
               </div>
-            )) : (
+            ) : (
               suggestions.map((insight) => (
                 !insight.dismissed && (
                   <Card key={insight.id}>
