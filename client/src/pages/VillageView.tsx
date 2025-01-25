@@ -1,4 +1,4 @@
-import { useState, useRef, createRef, useEffect } from "react";
+import { useState, useRef, createRef } from "react";
 import { useVillage } from "@/hooks/use-village";
 import { useUser } from "@/hooks/use-user";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -44,7 +44,6 @@ import { useVillageMemories } from "@/hooks/use-village-memories";
 import { VillageMemberMemories } from "@/components/VillageMemberMemories";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InsightsPanel from "@/components/InsightsPanel";
-import { MemberActionMenu } from "@/components/MemberActionMenu";
 
 const CATEGORY_COLORS = {
   informeel: "#3C9439", // Green
@@ -86,11 +85,7 @@ export default function VillageView() {
   const { toast } = useToast();
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-const [dragStartTime, setDragStartTime] = useState<number>(0);
-const CLICK_THRESHOLD = 200; // milliseconds
   const [isOpen, setIsOpen] = useState(false);
   const memberRefs = useRef(new Map());
 
@@ -177,18 +172,13 @@ const CLICK_THRESHOLD = 200; // milliseconds
   const getMemberPosition = (member: typeof members[0]) => {
     const radius = getCircleRadius(member.circle - 1);
     let angle: number;
-    
     if (typeof member.positionAngle === 'string') {
       angle = parseFloat(member.positionAngle);
     } else if (typeof member.positionAngle === 'number') {
       angle = member.positionAngle;
     } else {
-      // Assign a stable position based on ID instead of random
-      angle = (member.id % 12) * (Math.PI / 6);
+      angle = 2 * Math.PI * Math.random(); // Fallback for members without stored position
     }
-
-    // Ensure angle is normalized between 0 and 2π
-    angle = ((angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
 
     return {
       x: Math.cos(angle) * radius,
@@ -204,8 +194,6 @@ const CLICK_THRESHOLD = 200; // milliseconds
   const lastTouchPos = useRef<{ x: number; y: number } | null>(null);
 
   const handleTouch = (e: React.TouchEvent) => {
-    e.preventDefault(); // Prevent default touch behaviors
-    
     if (e.touches.length === 2) {
       const touch1 = e.touches[0];
       const touch2 = e.touches[1];
@@ -222,11 +210,7 @@ const CLICK_THRESHOLD = 200; // milliseconds
       const delta = dist - lastTouchDistance.current;
       lastTouchDistance.current = dist;
 
-      // Smoother scaling with reduced sensitivity
-      setScale(prevScale => {
-        const newScale = prevScale + delta * 0.005;
-        return Math.min(Math.max(newScale, 0.3), 3);
-      });
+      setScale(prevScale => Math.min(Math.max(prevScale + delta * 0.01, 0.3), 3));
     } else if (e.touches.length === 1) {
       const touch = e.touches[0];
       if (!lastTouchPos.current) {
@@ -490,27 +474,6 @@ const CLICK_THRESHOLD = 200; // milliseconds
     dismissInsight(id);
   };
 
-  const [membersWithState, setMembersWithState] = useState(
-    members.map(member => ({...member, actionsOpen: false}))
-  );
-
-  // Update membersWithState when members change
-  useEffect(() => {
-    setMembersWithState(members.map(member => ({
-      ...member,
-      actionsOpen: membersWithState.find(m => m.id === member.id)?.actionsOpen || false
-    })));
-  }, [members]);
-
-  const toggleMemberActions = (memberId: number) => {
-    setMembersWithState(prev => 
-      prev.map(m => ({
-        ...m, 
-        actionsOpen: m.id === memberId ? !m.actionsOpen : false
-      }))
-    );
-  };
-
   return (
     <div className="flex flex-col h-screen relative animate-gradient" style={{
       backgroundSize: "400% 400%",
@@ -700,76 +663,82 @@ const CLICK_THRESHOLD = 200; // milliseconds
               const pos = getMemberPosition(member);
               const categoryColor = member.category ? CATEGORY_COLORS[member.category] : "#6b7280";
               const nodeRef = getMemberRef(member.id);
-              
-              const handleDragStop = (_e: any, data: { x: number; y: number }) => {
-                const distance = Math.sqrt(data.x * data.x + data.y * data.y);
-                const newCircle = Math.max(1, Math.min(5, Math.round(distance / 80)));
-                const snapped = snapToCircle(data.x, data.y, newCircle);
-                
-                updateMember({
-                  ...member,
-                  circle: newCircle,
-                  positionAngle: snapped.angle.toString()
-                });
-              };
-
-              const handleClick = (e: React.MouseEvent) => {
-                e.stopPropagation();
-                const rect = e.currentTarget.getBoundingClientRect();
-                const menuPosition = {
-                  x: Math.min(rect.right + 8, window.innerWidth - 158),
-                  y: Math.min(rect.top, window.innerHeight - 168)
-                };
-                
-                setSelectedMember(member);
-                setMenuPosition(menuPosition);
-                setIsMenuOpen(true);
-              };
 
               return (
                 <Draggable
                   key={member.id}
                   nodeRef={nodeRef}
                   defaultPosition={pos}
-                  onStop={handleDragStop}
+                  onStop={(e, data) => {
+                    const distance = Math.sqrt(data.x * data.x + data.y * data.y);
+                    let newCircle = Math.round(distance / 80);
+                    newCircle = Math.max(1, Math.min(5, newCircle));
+
+                    const snapped = snapToCircle(data.x, data.y, newCircle);
+
+                    const currentAngle = parseFloat(member.positionAngle?.toString() || "0");
+                    if (newCircle !== member.circle || Math.abs(snapped.angle - currentAngle) > 0.01) {
+                      updateMember({
+                        ...member,
+                        circle: newCircle,
+                        positionAngle: snapped.angle.toString()
+                      });
+                    }
+                  }}
                   bounds="parent"
                 >
                   <div
                     ref={nodeRef}
-                    className="absolute member-pill flex items-center transform -translate-x-1/2 -translate-y-1/2"
+                    className="absolute cursor-move member-pill group flex items-center"
+                    style={{ transform: "translate(-50%, -50%)" }}
                   >
-                    <button 
-                      className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-gray-200 hover:bg-gray-50"
-                      onClick={handleClick}
-                    >
-                      <div
-                        className="rounded-full"
-                        style={{
-                          backgroundColor: categoryColor,
-                          width: member.contactFrequency === 'S' ? '0.5rem' :
-                            member.contactFrequency === 'M' ? '0.875rem' :
-                            member.contactFrequency === 'L' ? '1.25rem' : '1.75rem',
-                          height: member.contactFrequency === 'S' ? '0.5rem' :
-                            member.contactFrequency === 'M' ? '0.875rem' :
-                            member.contactFrequency === 'L' ? '1.25rem' : '1.75rem'
-                        }}
-                      />
+                    <div
+                      className={`mr-2 rounded-full`}
+                      style={{
+                        backgroundColor: categoryColor,
+                        width: member.contactFrequency === 'S' ? '0.5rem' :
+                          member.contactFrequency === 'M' ? '0.875rem' :
+                          member.contactFrequency === 'L' ? '1.25rem' :
+                          member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem',
+                        height: member.contactFrequency === 'S' ? '0.5rem' :
+                          member.contactFrequency === 'M' ? '0.875rem' :
+                          member.contactFrequency === 'L' ? '1.25rem' :
+                          member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem'
+                      }}
+                    />
+                    <div className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB]">
                       <span className="text-sm font-medium text-gray-800">{member.name}</span>
-                    </button>
-                    
-                    {isMenuOpen && selectedMember?.id === member.id && (
-                      <MemberActionMenu
-                        isOpen={true}
-                        onClose={() => {
-                          setIsMenuOpen(false);
-                          setSelectedMember(null);
-                        }}
-                        position={menuPosition}
-                        onMemory={() => setIsMemoryDialogOpen(true)}
-                        onEdit={() => handleEdit(member)}
-                        onDelete={() => setMemberToDelete(member)}
-                      />
-                    )}
+                      <div className="hidden group-hover:flex items-center space-x-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedMember(member);
+                            setIsMemoryDialogOpen(true);
+                          }}
+                          className="p-1 hover:bg-gray-100 rounded-full"
+                        >
+                          <BookMarked className="w-3 h-3 text-purple-500" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(member);
+                          }}
+                          className="p-1 hover:bg-gray-100 rounded-full"
+                        >
+                          <Edit2 className="w-3 h-3 text-gray-500" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMemberToDelete(member);
+                          }}
+                          className="p-1 hover:bg-gray-100 rounded-full"
+                        >
+                          <Trash2 className="w-3 h-3 text-red-500" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </Draggable>
               );
@@ -906,7 +875,7 @@ const CLICK_THRESHOLD = 200; // milliseconds
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>
+            <AlertDialogAction>
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

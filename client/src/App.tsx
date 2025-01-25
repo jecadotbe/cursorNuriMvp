@@ -19,7 +19,6 @@ import { OnboardingProvider } from "@/context/onboarding-context";
 import OnboardingTooltip from "@/components/OnboardingTooltip";
 import LearnDetailView from "./pages/LearnDetailView";
 import OnboardingPage from "@/pages/onboarding";
-import ResetPasswordPage from "./pages/reset-password";
 
 function Router() {
   const { user, isLoading } = useUser();
@@ -39,12 +38,7 @@ function Router() {
   }
 
   if (!user) {
-    return (
-      <Switch>
-        <Route path="/reset-password" component={ResetPasswordPage} />
-        <Route component={AuthPage} />
-      </Switch>
-    );
+    return <AuthPage />;
   }
 
   return (
@@ -52,10 +46,10 @@ function Router() {
       <div className={`flex-1 ${showNavigation ? 'pb-16' : ''}`}>
         <Switch>
           <Route path="/onboarding" component={OnboardingPage} />
+          <Route path="/" component={HomeView} />
           <Route path="/chat" component={ChatHistoryView} />
           <Route path="/chat/:id" component={ChatView} />
           <Route path="/chat/history" component={ChatHistoryView} />
-          <Route path="/" component={HomeView} />
           <Route path="/village" component={VillageView} />
           <Route path="/learn" component={LearnView} />
           <Route path="/learn/:id" component={LearnDetailView} />

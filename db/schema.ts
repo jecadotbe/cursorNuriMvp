@@ -36,8 +36,6 @@ export const users = pgTable("users", {
   username: text("username").unique().notNull(),
   password: text("password").notNull(),
   profilePicture: text("profile_picture"),
-  resetToken: text("reset_token"),
-  resetTokenExpires: timestamp("reset_token_expires_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
