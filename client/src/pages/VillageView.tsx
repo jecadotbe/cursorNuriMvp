@@ -795,10 +795,18 @@ export default function VillageView() {
                   </div>
                 </Draggable>
               ) : (
-                <div key={member.id}>
+                <div
+                  key={member.id}
+                  className="absolute"
+                  style={{
+                    transform: `translate(${pos.x}px, ${pos.y}px)`,
+                    left: "50%",
+                    top: "50%",
+                  }}
+                >
                   <MemberContent
                     member={member}
-                    position={pos}
+                    position={{ x: 0, y: 0 }} // Since we're using CSS transform, position is 0,0
                     isRearrangeMode={isRearrangeMode}
                     onEdit={handleEdit}
                     onSetMemory={(m) => {
