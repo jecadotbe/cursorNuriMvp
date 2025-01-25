@@ -22,6 +22,7 @@ import type { User } from "./auth";
 import { memoryService } from "./services/memory";
 import { villageRouter } from "./routes/village";
 import { searchBooks } from "./rag";
+import type { Request, Response } from 'express';
 
 export function registerRoutes(app: Express): Server {
   // Add file upload middleware
@@ -469,126 +470,57 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
 
       // If we already have 3 valid suggestions, return them
       if (existingSuggestions.length >= 3) {
-        return res.json(existingSuggestions); // Return all existing suggestions
+        return res.json(existingSuggestions);
       }
 
-      // Otherwise generate a new suggestion
+      // Get context data for generating new suggestions
       const recentChats = await db.query.chats.findMany({
         where: eq(chats.userId, user.id),
         orderBy: desc(chats.updatedAt),
         limit: 5,
       });
 
-      // Get user's profile data for personalized suggestions
       const profile = await db.query.parentProfiles.findFirst({
         where: eq(parentProfiles.userId, user.id),
       });
 
-      // Get relevant memories for context
-      const relevantMemories = await memoryService.getRelevantMemories(
-        user.id,
-        req.body.messages?.length ? req.body.messages[req.body.messages.length - 1].content : "",
-      );
-
-      const memoryContext = relevantMemories
-        .filter(m => m.relevance && m.relevance >= 0.6)
-        .map(m => m.content)
-        .join("\n\n");
-
-      // Build personalized context from onboarding data
-      let personalizedContext = "";
-      if (profile?.onboardingData) {
-        const childProfiles = Array.isArray(profile.onboardingData.childProfiles)
-          ? profile.onboardingData.childProfiles
-          : [];
-        personalizedContext = `
-Parent's Profile:
-- Experience Level: ${profile.onboardingData.basicInfo?.experienceLevel || "Not specified"}
-- Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel || "Not specified"}
-- Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ") || "None specified"}
-${childProfiles.length > 0
-            ? childProfiles
-                .map(
-                  (child: any) =>
-                    `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
-                )
-                .join("\n")
-            : "No children profiles specified"}
-
-Goals:
-${profile.onboardingData.goals?.shortTerm?.length ? `- Short term goals: ${profile.onboardingData.goals.shortTerm.join(", ")}` : ""}
-${profile.onboardingData.goals?.longTerm?.length ? `- Long term goals: ${profile.onboardingData.goals.longTerm.join(", ")}` : ""}
-`;
-      }
-
-      const response = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
-        max_tokens: 300,
-        system: `${NURI_SYSTEM_PROMPT}
-
-${personalizedContext ? `Consider this parent's profile and context when generating suggestions:\n${personalizedContext}\n` : ""}
-${memoryContext ? `Previous conversations for context:\n${memoryContext}` : ""}
-
-Analyze the available context and provide a relevant suggestion. For new users or those with limited chat history, focus on their onboarding information to provide personalized suggestions.`,
-        messages: [
-          {
-            role: "user",
-            content: `Based on the parent's profile and any conversation history, generate a follow-up prompt that focuses on their specific needs and goals. Format the response exactly like this:
-          {
-            "prompt": {
-              "text": "follow-up question or suggestion",
-              "type": "action" | "follow_up",
-              "relevance": 1.0,
-              "context": "new" | "existing",
-              "relatedChatId": null | number,
-              "relatedChatTitle": null | string
-            }
-          }`,
-          },
-        ],
+      const villageMembers = await db.query.villageMembers.findMany({
+        where: eq(villageMembers.userId, user.id),
       });
 
-      const responseText =
-        response.content[0].type === "text" ? response.content[0].text : "";
-      let parsedResponse;
+      // Generate dynamic suggestions using our new generator
+      const suggestions = await generateDynamicSuggestions({
+        userId: user.id,
+        members: villageMembers,
+        recentChats,
+        communicationPreference: profile?.onboardingData?.goals?.communicationPreference,
+        memoryService,
+        timeOfDay: new Date().toLocaleTimeString(),
+        previousSuggestions: existingSuggestions
+      });
 
-      try {
-        parsedResponse = JSON.parse(responseText);
-      } catch (parseError) {
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-          throw new Error("Could not extract valid JSON from response");
-        }
-        parsedResponse = JSON.parse(jsonMatch[0]);
-      }
-
-      if (!parsedResponse?.prompt?.text) {
-        throw new Error("Response missing required prompt structure");
-      }
-
-      // If the prompt references an existing chat, validate and include the chat details
-      if (parsedResponse.prompt.context === "existing" && recentChats.length > 0) {
-        const mostRelevantChat = recentChats[0];
-        parsedResponse.prompt.relatedChatId = mostRelevantChat.id;
-        parsedResponse.prompt.relatedChatTitle = mostRelevantChat.title;
-      }
-
-      // Store the new suggestion
-      const [suggestion] = await db
-        .insert(promptSuggestions)
-        .values({
-          userId: user.id,
-          text: parsedResponse.prompt.text,
-          type: parsedResponse.prompt.type,
-          context: parsedResponse.prompt.context,
-          relevance: Math.floor(parsedResponse.prompt.relevance * 10),
-          relatedChatId: parsedResponse.prompt.relatedChatId || null,
-          relatedChatTitle: parsedResponse.prompt.relatedChatTitle || null,
-          expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000), // Expire in 24 hours
+      // Store the new suggestions
+      const newSuggestions = await Promise.all(
+        suggestions.map(async (suggestion) => {
+          const [stored] = await db
+            .insert(promptSuggestions)
+            .values({
+              userId: user.id,
+              text: suggestion.text,
+              type: suggestion.type,
+              context: suggestion.context || null,
+              relevance: 10, // Default high relevance for dynamic suggestions
+              expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000), // Expire in 24 hours
+            })
+            .returning();
+          return stored;
         })
-        .returning();
+      );
 
-      res.json(suggestion);
+      // Combine existing and new suggestions, limited to 3 total
+      const allSuggestions = [...existingSuggestions, ...newSuggestions].slice(0, 3);
+      res.json(allSuggestions);
+
     } catch (error) {
       console.error("Suggestion generation error:", error);
       res.status(500).json({
@@ -1001,7 +933,7 @@ ${mergedRAG || "No relevant content available"}
     }
   });
 
-  app.patch("/api/chats/:chatId", async (req, res) => {
+  app.patch("/api/chats/:chatId", async (req: Request, res: Response) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
     }
@@ -1025,11 +957,10 @@ ${mergedRAG || "No relevant content available"}
     }
 
     await db.update(chats).set({ title }).where(eq(chats.id, chatId));
-
     res.json({ message: "Chat updated successfully" });
   });
 
-  app.get("/api/chats", async (req, res) => {
+  app.get("/api/chats", async (req: Request, res: Response) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
     }
@@ -1043,7 +974,7 @@ ${mergedRAG || "No relevant content available"}
     res.json(userChats);
   });
 
-  app.get("/api/chats/latest", async (req, res) => {
+  app.get("/api/chats/latest", async (req: Request, res: Response) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
     }
@@ -1057,7 +988,7 @@ ${mergedRAG || "No relevant content available"}
     res.json(latestChat || null);
   });
 
-  app.post("/api/chats", async (req, res) => {
+  app.post("/api/chats", async (req: Request, res: Response) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
     }
