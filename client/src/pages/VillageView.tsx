@@ -265,10 +265,21 @@ export default function VillageView() {
       ? member.positionAngle
       : Math.random() * 2 * Math.PI;
 
-    return {
+    const position = {
       x: Math.cos(angle) * radius,
       y: Math.sin(angle) * radius,
     };
+
+    console.log('Member Position Calculation:', {
+      memberId: member.id,
+      memberName: member.name,
+      angle,
+      radius,
+      position,
+      originalAngle: member.positionAngle
+    });
+
+    return position;
   };
 
   const calculateAngleFromPosition = (x: number, y: number) => {
@@ -559,6 +570,33 @@ export default function VillageView() {
     dismissInsight(id);
   };
 
+  const handleDragStop = (_e: any, data: any, member: VillageMember) => {
+    const distance = Math.sqrt(data.x * data.x + data.y * data.y);
+    let newCircle = Math.round(distance / 80);
+    newCircle = Math.max(1, Math.min(5, newCircle));
+
+    const snapped = snapToCircle(data.x, data.y, newCircle);
+    const currentAngle = parseFloat(member.positionAngle?.toString() || "0");
+
+    console.log('Drag Stop Position:', {
+      memberId: member.id,
+      memberName: member.name,
+      dragPosition: { x: data.x, y: data.y },
+      snappedPosition: { x: snapped.x, y: snapped.y },
+      newCircle,
+      newAngle: snapped.angle,
+      currentAngle
+    });
+
+    if (newCircle !== member.circle || Math.abs(snapped.angle - currentAngle) > 0.01) {
+      updateMember({
+        ...member,
+        circle: newCircle,
+        positionAngle: snapped.angle.toString()
+      });
+    }
+  };
+
 
   return (
     <div className="flex flex-col h-screen relative animate-gradient" style={{
@@ -738,7 +776,12 @@ export default function VillageView() {
 
             <div
               className="absolute w-24 h-24 rounded-full flex items-center justify-center"
-              style={{ boxShadow: "0 0 30px rgba(254, 176, 25, 0.4)" }}
+              style={{
+                left: "50%",
+                top: "50%",
+                transform: "translate(-50%, -50%)",
+                boxShadow: "0 0 30px rgba(254, 176, 25, 0.4)"
+              }}
             >
               <Avatar className="w-full h-full border-2 border-[#629785]">
                 {user?.profilePicture ? (
@@ -756,57 +799,53 @@ export default function VillageView() {
               const categoryColor = member.category ? CATEGORY_COLORS[member.category] : "#6b7280";
               const nodeRef = getMemberRef(member.id);
 
-              return isRearrangeMode ? (
-                <Draggable
-                  key={member.id}
-                  nodeRef={nodeRef}
-                  position={pos}
-                  onStop={(_e, data) => {
-                    const distance = Math.sqrt(data.x * data.x + data.y * data.y);
-                    let newCircle = Math.round(distance / 80);
-                    newCircle = Math.max(1, Math.min(5, newCircle));
-
-                    const snapped = snapToCircle(data.x, data.y, newCircle);
-
-                    // Only update if position has changed significantly
-                    const currentAngle = parseFloat(member.positionAngle?.toString() || "0");
-                    if (newCircle !== member.circle || Math.abs(snapped.angle - currentAngle) > 0.01) {
-                      updateMember({
-                        ...member,
-                        circle: newCircle,
-                        positionAngle: snapped.angle.toString()
-                      });
-                    }
-                  }}
-                  bounds="parent"
-                >
-                  <div ref={nodeRef}>
-                    <MemberContent
-                      member={member}
-                      position={pos}
-                      isRearrangeMode={isRearrangeMode}
-                      onEdit={handleEdit}
-                      onSetMemory={(m) => {
-                        setSelectedMember(m);
-                        setIsMemoryDialogOpen(true);
+              if (isRearrangeMode) {
+                return (
+                  <Draggable
+                    key={member.id}
+                    nodeRef={nodeRef}
+                    position={pos}
+                    onStop={(e, data) => handleDragStop(e, data, member)}
+                    bounds="parent"
+                  >
+                    <div
+                      ref={nodeRef}
+                      className="absolute"
+                      style={{
+                        left: "50%",
+                        top: "50%",
+                        transform: "translate(-50%, -50%)",
                       }}
-                      onDelete={setMemberToDelete}
-                    />
-                  </div>
-                </Draggable>
-              ) : (
+                    >
+                      <MemberContent
+                        member={member}
+                        position={{ x: 0, y: 0 }}
+                        isRearrangeMode={isRearrangeMode}
+                        onEdit={handleEdit}
+                        onSetMemory={(m) => {
+                          setSelectedMember(m);
+                          setIsMemoryDialogOpen(true);
+                        }}
+                        onDelete={setMemberToDelete}
+                      />
+                    </div>
+                  </Draggable>
+                );
+              }
+
+              return (
                 <div
                   key={member.id}
                   className="absolute"
                   style={{
-                    transform: `translate(${pos.x}px, ${pos.y}px)`,
                     left: "50%",
                     top: "50%",
+                    transform: `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px))`,
                   }}
                 >
                   <MemberContent
                     member={member}
-                    position={{ x: 0, y: 0 }} // Since we're using CSS transform, position is 0,0
+                    position={{ x: 0, y: 0 }}
                     isRearrangeMode={isRearrangeMode}
                     onEdit={handleEdit}
                     onSetMemory={(m) => {
@@ -828,8 +867,7 @@ export default function VillageView() {
         if (!open) {
           setMemberToEdit(null);
           setNewMember({
-            name: "",
-            type: "individual",
+            name: "",            type: "individual",
             circle: 1,
             category: "informeel",
             contactFrequency: "M"
