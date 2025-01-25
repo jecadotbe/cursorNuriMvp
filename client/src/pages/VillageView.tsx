@@ -125,27 +125,24 @@ const MemberContent: React.FC<MemberContentProps> = ({
       onClick={(e) => {
         e.stopPropagation();
         if (!isRearrangeMode) {
-          // Toggle submenu visibility
           const submenu = document.querySelector(`#submenu-${member.id}`);
           if (submenu) {
+            // Close all other menus first
+            document.querySelectorAll('[id^="submenu-"]').forEach(menu => {
+              if (menu.id !== `submenu-${member.id}`) {
+                menu.classList.add('hidden');
+                menu.classList.remove('flex');
+              }
+            });
+            // Toggle current menu
             submenu.classList.toggle('hidden');
-          }
-        }
-      }}
-      onTouchEnd={(e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        if (!isRearrangeMode) {
-          // Toggle submenu visibility
-          const submenu = document.querySelector(`#submenu-${member.id}`);
-          if (submenu) {
-            submenu.classList.toggle('hidden');
+            submenu.classList.toggle('flex');
           }
         }
       }}
     >
       <span className="text-sm font-medium text-gray-800">{member.name}</span>
-      <div id={`submenu-${member.id}`} className="hidden group-hover:flex items-center space-x-1">
+      <div id={`submenu-${member.id}`} className="hidden items-center space-x-1 md:group-hover:flex">
         <button
           onClick={(e) => {
             e.stopPropagation();
