@@ -817,8 +817,6 @@ export default function VillageView() {
                       ref={nodeRef}
                       className="absolute"
                       style={{
-                        left: "50%",
-                        top: "50%",
                         transform: "translate(-50%, -50%)"
                       }}
                     >
@@ -838,19 +836,20 @@ export default function VillageView() {
                 );
               }
 
+              // Regular view - adjusted to match edit mode's coordinate system
               return (
                 <div
                   key={member.id}
                   className="absolute pointer-events-none"
                   style={{
+                    transform: `translate(${pos.x}px, ${pos.y}px) translate(-50%, -50%)`,
                     left: "50%",
-                    top: "50%",
-                    transform: `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px))`
+                    top: "50%"
                   }}
                 >
                   <MemberContent
                     member={member}
-                    position={pos}
+                    position={{ x: 0, y: 0 }}
                     isRearrangeMode={isRearrangeMode}
                     onEdit={handleEdit}
                     onSetMemory={(m) => {
@@ -865,8 +864,7 @@ export default function VillageView() {
             <div
               className="absolute w-24 h-24 rounded-full flex items-center justify-center"
               style={{
-                left: "50%",
-                top: "50%",
+                left: "50%",                top: "50%",
                 transform: "translate(-50%, -50%)",
                 boxShadow: "0 0 30px rgba(254, 176, 25, 0.4)"
               }}
