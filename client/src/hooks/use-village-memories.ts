@@ -51,14 +51,21 @@ export function useVillageMemories(memberId: number) {
 
   const deleteMemoryMutation = useMutation({
     mutationFn: async (memoryId: number) => {
+      console.log('Deleting memory:', memoryId, 'for member:', memberId);
       const response = await fetch(`/api/village/members/${memberId}/memories/${memoryId}`, {
         method: "DELETE",
         credentials: "include",
+        headers: {
+          "Content-Type": "application/json"
+        }
       });
 
       if (!response.ok) {
-        throw new Error("Failed to delete memory");
+        const error = await response.text();
+        throw new Error(`Failed to delete memory: ${error}`);
       }
+
+      return memoryId;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/village/members/${memberId}/memories`] });

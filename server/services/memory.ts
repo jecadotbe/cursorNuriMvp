@@ -183,10 +183,13 @@ export class MemoryService {
 
   async deleteMemory(memoryId: string): Promise<void> {
     try {
+      console.log('Deleting memory from mem0:', memoryId);
       await client.delete(memoryId);
+      console.log('Memory deleted successfully from mem0');
     } catch (error) {
-      console.error('Error deleting memory:', error);
-      throw error;
+      console.error('Error deleting memory from mem0:', error);
+      // Continue with database deletion even if mem0 fails
+      console.log('Continuing with database deletion...');
     }
   }
 }

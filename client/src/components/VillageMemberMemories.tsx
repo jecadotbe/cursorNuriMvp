@@ -20,13 +20,14 @@ interface VillageMemberMemoriesProps {
 }
 
 export function VillageMemberMemories({ memberId, memberName }: VillageMemberMemoriesProps) {
-  const { memories, isLoading, deleteMemory: deleteMemoryMutation } = useVillageMemories(memberId);
+  const { memories, isLoading, deleteMemory } = useVillageMemories(memberId);
   const [memoryToDelete, setMemoryToDelete] = useState<number | null>(null);
 
   const handleDeleteMemory = async (memoryId: number) => {
     try {
-      await deleteMemoryMutation(memoryId);
+      await deleteMemory(memoryId);
       setMemoryToDelete(null);
+      console.log('Memory deleted:', memoryId);
     } catch (error) {
       console.error('Failed to delete memory:', error);
     }
