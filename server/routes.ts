@@ -473,22 +473,22 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
         return res.json(existingSuggestions);
       }
 
-      // Get context data for generating new suggestions
-      const recentChats = await db.query.chats.findMany({
-        where: eq(chats.userId, user.id),
-        orderBy: desc(chats.updatedAt),
-        limit: 5,
-      });
+      // Get all required context data first
+      const [recentChats, profile, villageMembers] = await Promise.all([
+        db.query.chats.findMany({
+          where: eq(chats.userId, user.id),
+          orderBy: desc(chats.updatedAt),
+          limit: 5,
+        }),
+        db.query.parentProfiles.findFirst({
+          where: eq(parentProfiles.userId, user.id),
+        }),
+        db.query.villageMembers.findMany({
+          where: eq(villageMembers.userId, user.id),
+        })
+      ]);
 
-      const profile = await db.query.parentProfiles.findFirst({
-        where: eq(parentProfiles.userId, user.id),
-      });
-
-      const villageMembers = await db.query.villageMembers.findMany({
-        where: eq(villageMembers.userId, user.id),
-      });
-
-      // Generate dynamic suggestions using our new generator
+      // Generate dynamic suggestions using our generator
       const suggestions = await generateDynamicSuggestions({
         userId: user.id,
         members: villageMembers,
