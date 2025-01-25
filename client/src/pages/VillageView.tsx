@@ -44,6 +44,7 @@ import { useVillageMemories } from "@/hooks/use-village-memories";
 import { VillageMemberMemories } from "@/components/VillageMemberMemories";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InsightsPanel from "@/components/InsightsPanel";
+import type { VillageMember } from "@db/schema";
 
 const CATEGORY_COLORS = {
   informeel: "#3C9439", // Green
@@ -80,12 +81,12 @@ interface Insight {
 }
 
 interface MemberContentProps {
-  member: typeof members[0];
+  member: VillageMember;
   position: { x: number; y: number };
   isRearrangeMode: boolean;
-  onEdit: (member: typeof members[0]) => void;
-  onSetMemory: (member: typeof members[0]) => void;
-  onDelete: (member: typeof members[0]) => void;
+  onEdit: (member: VillageMember) => void;
+  onSetMemory: (member: VillageMember) => void;
+  onDelete: (member: VillageMember) => void;
 }
 
 const MemberContent: React.FC<MemberContentProps> = ({
@@ -190,10 +191,10 @@ export default function VillageView() {
     category: "informeel",
     contactFrequency: "M"
   });
-  const [memberToEdit, setMemberToEdit] = useState<typeof members[0] | null>(null);
-  const [memberToDelete, setMemberToDelete] = useState<typeof members[0] | null>(null);
+  const [memberToEdit, setMemberToEdit] = useState<VillageMember | null>(null);
+  const [memberToDelete, setMemberToDelete] = useState<VillageMember | null>(null);
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<typeof members[0] | null>(null);
+  const [selectedMember, setSelectedMember] = useState<VillageMember | null>(null);
   const [isMemoryDialogOpen, setIsMemoryDialogOpen] = useState(false);
   const [isInsightsPanelOpen, setIsInsightsPanelOpen] = useState(false);
   const [newMemory, setNewMemory] = useState<Omit<Memory, 'id'>>({
@@ -256,16 +257,13 @@ export default function VillageView() {
     };
   };
 
-  const getMemberPosition = (member: typeof members[0]) => {
+  const getMemberPosition = (member: VillageMember) => {
     const radius = getCircleRadius(member.circle - 1);
-    let angle: number;
-    if (typeof member.positionAngle === 'string') {
-      angle = parseFloat(member.positionAngle);
-    } else if (typeof member.positionAngle === 'number') {
-      angle = member.positionAngle;
-    } else {
-      angle = 2 * Math.PI * Math.random(); // Fallback for members without stored position
-    }
+    const angle = typeof member.positionAngle === 'string'
+      ? parseFloat(member.positionAngle)
+      : typeof member.positionAngle === 'number'
+      ? member.positionAngle
+      : Math.random() * 2 * Math.PI;
 
     return {
       x: Math.cos(angle) * radius,
@@ -415,7 +413,7 @@ export default function VillageView() {
     }
   };
 
-  const handleEdit = (member: typeof members[0]) => {
+  const handleEdit = (member: VillageMember) => {
     setMemberToEdit(member);
     setNewMember({
       name: member.name,
@@ -763,13 +761,14 @@ export default function VillageView() {
                   key={member.id}
                   nodeRef={nodeRef}
                   position={pos}
-                  onStop={(e, data) => {
+                  onStop={(_e, data) => {
                     const distance = Math.sqrt(data.x * data.x + data.y * data.y);
                     let newCircle = Math.round(distance / 80);
                     newCircle = Math.max(1, Math.min(5, newCircle));
 
                     const snapped = snapToCircle(data.x, data.y, newCircle);
 
+                    // Only update if position has changed significantly
                     const currentAngle = parseFloat(member.positionAngle?.toString() || "0");
                     if (newCircle !== member.circle || Math.abs(snapped.angle - currentAngle) > 0.01) {
                       updateMember({
@@ -855,7 +854,7 @@ export default function VillageView() {
               <Select
                 value={newMember.type}
                 onValueChange={(value: "individual" | "group") =>
-                  setNewMember({ ...newMember, type: value })
+                  setNewMember({ ...newMember, type: value})
                 }
               >
                 <SelectTrigger>

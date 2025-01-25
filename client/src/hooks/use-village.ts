@@ -19,6 +19,12 @@ async function fetchVillageMembers(): Promise<VillageMember[]> {
 }
 
 async function createVillageMember(member: Omit<InsertVillageMember, 'userId'>): Promise<VillageMember> {
+  // Initialize with a random angle if not provided
+  const memberWithAngle = {
+    ...member,
+    positionAngle: member.positionAngle || (Math.random() * 2 * Math.PI).toString()
+  };
+
   const response = await fetch('/api/village', {
     method: 'POST',
     headers: {
@@ -26,7 +32,7 @@ async function createVillageMember(member: Omit<InsertVillageMember, 'userId'>):
       'Accept': 'application/json',
     },
     credentials: 'include',
-    body: JSON.stringify(member),
+    body: JSON.stringify(memberWithAngle),
   });
 
   if (!response.ok) {
@@ -43,6 +49,12 @@ async function createVillageMember(member: Omit<InsertVillageMember, 'userId'>):
 }
 
 async function updateVillageMember(member: Partial<VillageMember> & { id: number }): Promise<VillageMember> {
+  // Ensure positionAngle is always stored as a string
+  const memberToUpdate = {
+    ...member,
+    positionAngle: member.positionAngle?.toString()
+  };
+
   const response = await fetch(`/api/village/${member.id}`, {
     method: 'PUT',
     headers: {
@@ -50,7 +62,7 @@ async function updateVillageMember(member: Partial<VillageMember> & { id: number
       'Accept': 'application/json',
     },
     credentials: 'include',
-    body: JSON.stringify(member),
+    body: JSON.stringify(memberToUpdate),
   });
 
   if (!response.ok) {
@@ -116,7 +128,10 @@ export function useVillage() {
     mutationFn: updateVillageMember,
     onSuccess: (updatedMember) => {
       queryClient.setQueryData<VillageMember[]>(['village'], (old = []) => 
-        old.map(member => member.id === updatedMember.id ? updatedMember : member)
+        old.map(member => member.id === updatedMember.id ? {
+          ...updatedMember,
+          positionAngle: updatedMember.positionAngle?.toString() // Ensure consistent string format
+        } : member)
       );
       toast({
         title: "Success",
@@ -153,7 +168,10 @@ export function useVillage() {
   });
 
   return {
-    members,
+    members: members.map(member => ({
+      ...member,
+      positionAngle: member.positionAngle?.toString() // Ensure consistent string format
+    })),
     isLoading,
     error,
     addMember: createMutation.mutateAsync,
