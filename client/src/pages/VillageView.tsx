@@ -82,9 +82,10 @@ interface Insight {
 interface MemberContentProps {
   member: typeof members[0];
   position: { x: number; y: number };
+  isRearrangeMode: boolean;
 }
 
-const MemberContent: React.FC<MemberContentProps> = ({ member, position }) => (
+const MemberContent: React.FC<MemberContentProps> = ({ member, position, isRearrangeMode }) => (
   <div
     className="member-pill group flex items-center"
     style={{
@@ -772,12 +773,12 @@ export default function VillageView() {
                   bounds="parent"
                 >
                   <div ref={nodeRef}>
-                    <MemberContent member={member} position={pos} />
+                    <MemberContent member={member} position={pos} isRearrangeMode={isRearrangeMode} />
                   </div>
                 </Draggable>
               ) : (
                 <div key={member.id}>
-                  <MemberContent member={member} position={pos} />
+                  <MemberContent member={member} position={pos} isRearrangeMode={isRearrangeMode} />
                 </div>
               );
             })}
@@ -911,7 +912,7 @@ export default function VillageView() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete}>
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
