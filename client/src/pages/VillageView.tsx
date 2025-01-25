@@ -120,47 +120,49 @@ const MemberContent: React.FC<MemberContentProps> = ({
           member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem'
       }}
     />
-    <div
-      className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB]"
-      onTouchEnd={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (!isRearrangeMode) {
-          const submenu = document.querySelector(`#submenu-${member.id}`);
-          if (submenu) {
-            // Close all other menus first
-            document.querySelectorAll('[id^="submenu-"]').forEach(menu => {
-              if (menu.id !== `submenu-${member.id}`) {
-                menu.classList.add('hidden');
-                menu.classList.remove('flex');
-              }
-            });
-            // Toggle current menu
-            submenu.classList.toggle('hidden');
-            submenu.classList.toggle('flex');
+    <div className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB]">
+      <div 
+        className="cursor-pointer"
+        onTouchEnd={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!isRearrangeMode) {
+            const submenu = document.querySelector(`#submenu-${member.id}`);
+            if (submenu) {
+              // Close all other menus first
+              document.querySelectorAll('[id^="submenu-"]').forEach(menu => {
+                if (menu.id !== `submenu-${member.id}`) {
+                  menu.classList.add('hidden');
+                  menu.classList.remove('flex');
+                }
+              });
+              // Toggle current menu
+              submenu.classList.toggle('hidden');
+              submenu.classList.toggle('flex');
+            }
           }
-        }
-      }}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (!isRearrangeMode) {
-          const submenu = document.querySelector(`#submenu-${member.id}`);
-          if (submenu) {
-            // Close all other menus first
-            document.querySelectorAll('[id^="submenu-"]').forEach(menu => {
-              if (menu.id !== `submenu-${member.id}`) {
-                menu.classList.add('hidden');
-                menu.classList.remove('flex');
-              }
-            });
-            // Toggle current menu
-            submenu.classList.toggle('hidden');
-            submenu.classList.toggle('flex');
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!isRearrangeMode) {
+            const submenu = document.querySelector(`#submenu-${member.id}`);
+            if (submenu) {
+              // Close all other menus first
+              document.querySelectorAll('[id^="submenu-"]').forEach(menu => {
+                if (menu.id !== `submenu-${member.id}`) {
+                  menu.classList.add('hidden');
+                  menu.classList.remove('flex');
+                }
+              });
+              // Toggle current menu
+              submenu.classList.toggle('hidden');
+              submenu.classList.toggle('flex');
+            }
           }
-        }
-      }}
-    >
-      <span className="text-sm font-medium text-gray-800">{member.name}</span>
+        }}
+      >
+        <span className="text-sm font-medium text-gray-800">{member.name}</span>
+      </div>
       <div id={`submenu-${member.id}`} className="hidden items-center space-x-1 md:group-hover:flex">
         <button
           onClick={(e) => {
@@ -886,9 +888,9 @@ export default function VillageView() {
                     isRearrangeMode={isRearrangeMode}
                     onEdit={handleEdit}
                     onSetMemory={(m) => {
-                      setSelectedMember(m);
-                      setIsMemoryDialogOpen(true);
-                    }}
+                          setSelectedMember(m);
+                          setIsMemoryDialogOpen(true);
+                        }}
                     onDelete={setMemberToDelete}
                   />
                 </div>
