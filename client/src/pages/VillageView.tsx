@@ -106,7 +106,21 @@ const MemberContent: React.FC<MemberContentProps> = ({
       top: position.y
     }}
   >
-    <div className="flex items-center space-x-2 bg-white/90 backdrop-blur-sm rounded-full px-2.5 py-1 shadow-sm border-2 border-white/40">
+    <div
+      className={`mr-2 rounded-full`}
+      style={{
+        backgroundColor: member.category ? CATEGORY_COLORS[member.category] : "#6b7280",
+        width: member.contactFrequency === 'S' ? '0.5rem' :
+          member.contactFrequency === 'M' ? '0.875rem' :
+          member.contactFrequency === 'L' ? '1.25rem' :
+          member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem',
+        height: member.contactFrequency === 'S' ? '0.5rem' :
+          member.contactFrequency === 'M' ? '0.875rem' :
+          member.contactFrequency === 'L' ? '1.25rem' :
+          member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem'
+      }}
+    />
+    <div className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB]">
       <div 
         className="cursor-pointer"
         onTouchEnd={(e) => {
