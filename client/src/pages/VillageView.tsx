@@ -617,7 +617,7 @@ export default function VillageView() {
   };
 
   const handleInsightAction = (id: number) => {
-    const insight = insights.find(i => i.id === id);
+    const insight = suggestions?.find(s => s.id === id);
     if (insight?.type === "network_gap") {
       setIsOpen(true); // Open add member dialog
     }
@@ -708,14 +708,19 @@ export default function VillageView() {
             <SheetTitle>Dorpsuggesties</SheetTitle>
           </SheetHeader>
           <div className="space-y-4">
-            {!suggestions || suggestions.filter(s => !s.dismissed).length === 0 ? (
+            {isLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+                <p className="mt-2 text-gray-600">Laden...</p>
+              </div>
+            ) : !suggestions || suggestions.filter(s => !s.dismissed).length === 0 ? (
               <div className="text-center py-8 px-4">
                 <Lightbulb className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600">
                   Helemaal klaar voor vandaag. Als er nieuwe suggesties zijn kan je die hier altijd vinden!
                 </p>
               </div>
-            ) : (
+            )) : (
               suggestions.map((insight) => (
                 !insight.dismissed && (
                   <Card key={insight.id}>
