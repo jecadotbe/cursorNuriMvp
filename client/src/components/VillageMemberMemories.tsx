@@ -20,8 +20,17 @@ interface VillageMemberMemoriesProps {
 }
 
 export function VillageMemberMemories({ memberId, memberName }: VillageMemberMemoriesProps) {
-  const { memories, isLoading, deleteMemory } = useVillageMemories(memberId);
+  const { memories, isLoading, deleteMemory: deleteMemoryMutation } = useVillageMemories(memberId);
   const [memoryToDelete, setMemoryToDelete] = useState<number | null>(null);
+
+  const handleDeleteMemory = async (memoryId: number) => {
+    try {
+      await deleteMemoryMutation(memoryId);
+      setMemoryToDelete(null);
+    } catch (error) {
+      console.error('Failed to delete memory:', error);
+    }
+  };
 
   if (isLoading) {
     return <div>Loading memories...</div>;
@@ -146,8 +155,7 @@ export function VillageMemberMemories({ memberId, memberName }: VillageMemberMem
               className="bg-destructive hover:bg-destructive/90"
               onClick={() => {
                 if (memoryToDelete) {
-                  deleteMemory(memoryToDelete);
-                  setMemoryToDelete(null);
+                  handleDeleteMemory(memoryToDelete);
                 }
               }}
             >
