@@ -185,61 +185,38 @@ export default function HomeView() {
             </CardContent>
           </Card>
         ) : suggestion ? (
-          <motion.div 
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             className="relative w-full overflow-visible"
             style={{ touchAction: "none" }}
           >
-            <ul className="relative w-full">
-              {suggestions?.map((suggestion, index) => {
-                const isTop = index === currentIndex;
-                const offset = 4; // Smaller offset for stacked cards
-                const scaleFactor = 0.02; // Subtle scale reduction for depth
-
-                return (
-                  <motion.div
-                    key={suggestion.id}
-                    className="absolute w-full"
-                    animate={{
-                      top: (index - currentIndex) * offset,
-                      scale: 1 - Math.abs(index - currentIndex) * scaleFactor,
-                      zIndex: suggestions.length - Math.abs(index - currentIndex)
-                    }}
-                    drag={isTop ? "y" : false}
-                    dragConstraints={{
-                      top: 0,
-                      bottom: 0
-                    }}
-                    onDragEnd={(_, info) => {
-                      if (Math.abs(info.offset.y) > 100) {
-                        nextSuggestion();
-                      }
-                    }}
-                  >
-                    <Card 
-                      className={`bg-white transition-shadow ${isTop ? 'hover:shadow-md' : ''} ${
-                        !isTop ? 'opacity-40' : ''
-                      }`}
-                      onClick={isTop ? handlePromptClick : undefined}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                              <div className="text-orange-500 font-semibold text-sm tracking-wide uppercase">
-                                Op basis van onze gesprekken
-                              </div>
-                            </div>
-                            <p className="text-lg pr-8">{suggestion.text}</p>
-                          </div>
-                          <ChevronRight className="w-6 h-6 text-gray-400 flex-shrink-0" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                );
-              })}
-            </ul>
+            {/* Previous card preview */}
+            {currentIndex > 0 && (
+              <div 
+                className="absolute top-0 left-[-8px] w-full h-full -z-10 opacity-20 scale-95 pointer-events-none"
+                style={{ transform: 'translateX(-98%)' }}
+              >
+                <Card className="bg-white h-full">
+                  <CardContent className="p-4">
+                    <div className="blur-sm">{suggestions?.[currentIndex - 1]?.text}</div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+            {/* Next card preview */}
+            {suggestions && currentIndex < suggestions.length - 1 && (
+              <div 
+                className="absolute top-0 right-[-8px] w-full h-full -z-10 opacity-20 scale-95 pointer-events-none"
+                style={{ transform: 'translateX(98%)' }}
+              >
+                <Card className="bg-white h-full">
+                  <CardContent className="p-4">
+                    <div className="blur-sm">{suggestions?.[currentIndex + 1]?.text}</div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
             <motion.div
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
