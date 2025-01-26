@@ -23,11 +23,12 @@ const handleImageError = (imageName: string, error: any) => {
 export default function HomeView() {
   const { user } = useUser();
   const { 
-    suggestion, 
-    suggestions, 
-    isLoading: suggestionLoading, 
-    markAsUsed, 
-    nextSuggestion 
+    suggestion,
+    suggestions,
+    isLoading: suggestionLoading,
+    markAsUsed,
+    nextSuggestion,
+    currentIndex
   } = useSuggestion();
   const [isLoading, setIsLoading] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
