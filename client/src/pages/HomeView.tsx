@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
@@ -183,35 +184,57 @@ export default function HomeView() {
             </CardContent>
           </Card>
         ) : suggestion ? (
-          <div onClick={handlePromptClick} className="transition-opacity duration-300 ease-in-out opacity-0 animate-fade-in">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer mb-3 animate-border rounded-2xl"
-              // style={{
-              //   background: "linear-gradient(45deg, #F8DD9F 0%, #F2F0E5 50%)",
-              // }}
-              
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="relative w-full"
+            style={{ touchAction: "none" }}
+          >
+            <motion.div
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.7}
+              onDragEnd={(e, { offset, velocity }) => {
+                const swipe = offset.x;
+                if (Math.abs(swipe) > 100) {
+                  nextSuggestion();
+                }
+              }}
+              whileDrag={{
+                scale: 1.02,
+                cursor: "grabbing"
+              }}
+              style={{
+                cursor: "grab"
+              }}
+            >
+              <Card 
+                className="hover:shadow-md transition-shadow mb-3 animate-border rounded-2xl bg-white"
+                onClick={handlePromptClick}
               >
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                      <div className="text-orange-500 font-semibold text-sm tracking-wide uppercase">
-                        Op basis van onze gesprekken
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                        <div className="text-orange-500 font-semibold text-sm tracking-wide uppercase">
+                          Op basis van onze gesprekken
+                        </div>
                       </div>
+                      <p className="text-lg pr-8">{suggestion.text}</p>
+                      {suggestion.context === "existing" && suggestion.relatedChatTitle && (
+                        <div className="mt-2 text-sm text-gray-500 flex items-center gap-2">
+                          <MessageSquare className="w-4 h-4" />
+                          <span>Vervolg op: {suggestion.relatedChatTitle}</span>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-lg pr-8">{suggestion.text}</p>
-                    {suggestion.context === "existing" && suggestion.relatedChatTitle && (
-                      <div className="mt-2 text-sm text-gray-500 flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4" />
-                        <span>Vervolg op: {suggestion.relatedChatTitle}</span>
-                      </div>
-                    )}
+                    <ChevronRight className="w-6 h-6 text-gray-400 flex-shrink-0" />
                   </div>
-                  <ChevronRight className="w-6 h-6 text-gray-400 flex-shrink-0" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </motion.div>
         ) : null}
         {suggestion && (
           <div className="flex justify-center mt-2">
