@@ -42,10 +42,27 @@ export function SuggestionChips({ suggestions, onSelect, isExpanded, onToggle }:
               {suggestions.map((suggestion, index) => (
                 <Card
                   key={index}
-                  className="p-3 cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => onSelect(suggestion)}
+                  className="p-3 hover:shadow-md transition-shadow"
                 >
-                  <p className="text-sm text-gray-800">{suggestion}</p>
+                  <div className="flex justify-between items-start gap-2">
+                    <p 
+                      className="text-sm text-gray-800 cursor-pointer" 
+                      onClick={() => onSelect(suggestion)}
+                    >
+                      {suggestion}
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDismiss(suggestion.id, false);
+                      }}
+                      className="h-6 w-6"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </Card>
               ))}
             </div>

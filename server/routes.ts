@@ -395,6 +395,61 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
   app.use("/api/village", villageRouter);
 
   // Submit feedback for a suggestion
+  app.post("/api/suggestions/:id/dismiss", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const user = req.user as User;
+    const suggestionId = parseInt(req.params.id);
+    const { needsNew } = req.body;
+
+    try {
+      // Mark suggestion as dismissed
+      await db
+        .update(promptSuggestions)
+        .set({ dismissed: true })
+        .where(eq(promptSuggestions.id, suggestionId));
+
+      if (needsNew) {
+        // Generate new suggestions using diverse algorithm
+        const members = await db.query.villageMembers.findMany({
+          where: eq(villageMembers.userId, user.id),
+        });
+
+        const recentChats = await db.query.chats.findMany({
+          where: eq(chats.userId, user.id),
+          orderBy: desc(chats.updatedAt),
+          limit: 5,
+        });
+
+        const newSuggestions = await generateVillageSuggestions(
+          user.id,
+          members,
+          recentChats,
+          memoryService
+        );
+
+        // Save new suggestions
+        const savedSuggestions = await db
+          .insert(promptSuggestions)
+          .values(newSuggestions.map(s => ({
+            userId: user.id,
+            ...s,
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          })))
+          .returning();
+
+        return res.json(savedSuggestions);
+      }
+
+      res.sendStatus(200);
+    } catch (error) {
+      console.error("Error dismissing suggestion:", error);
+      res.status(500).json({ message: "Failed to dismiss suggestion" });
+    }
+  });
+
   app.post("/api/suggestions/:id/feedback", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");

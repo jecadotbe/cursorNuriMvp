@@ -83,6 +83,40 @@ export function useSuggestion() {
     }
   };
 
+  const dismissSuggestion = async (suggestionId: number, needsNew: boolean = false) => {
+    try {
+      const response = await fetch(`/api/suggestions/${suggestionId}/dismiss`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ needsNew }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`${response.status}: ${await response.text()}`);
+      }
+
+      if (needsNew) {
+        // Wait for new suggestions and update the view
+        await refetch();
+      } else {
+        // Just remove the suggestion locally
+        queryClient.setQueryData(['suggestions'], (old: any) => 
+          old?.filter((s: any) => s.id !== suggestionId)
+        );
+      }
+    } catch (error) {
+      console.error('Failed to dismiss suggestion:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to dismiss suggestion",
+      });
+    }
+  };
+
   return {
     suggestion,
     suggestions,
@@ -91,5 +125,6 @@ export function useSuggestion() {
     refetch,
     markAsUsed,
     nextSuggestion,
+    dismissSuggestion,
   };
 }
