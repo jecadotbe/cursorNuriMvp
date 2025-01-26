@@ -187,9 +187,35 @@ export default function HomeView() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="relative w-full"
+            className="relative w-full overflow-visible"
             style={{ touchAction: "none" }}
           >
+            {/* Previous card preview */}
+            {currentIndex > 0 && (
+              <div 
+                className="absolute top-0 left-[-8px] w-full h-full -z-10 opacity-20 scale-95 pointer-events-none"
+                style={{ transform: 'translateX(-98%)' }}
+              >
+                <Card className="bg-white h-full">
+                  <CardContent className="p-4">
+                    <div className="blur-sm">{suggestions?.[currentIndex - 1]?.text}</div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+            {/* Next card preview */}
+            {suggestions && currentIndex < suggestions.length - 1 && (
+              <div 
+                className="absolute top-0 right-[-8px] w-full h-full -z-10 opacity-20 scale-95 pointer-events-none"
+                style={{ transform: 'translateX(98%)' }}
+              >
+                <Card className="bg-white h-full">
+                  <CardContent className="p-4">
+                    <div className="blur-sm">{suggestions?.[currentIndex + 1]?.text}</div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
             <motion.div
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
@@ -207,7 +233,23 @@ export default function HomeView() {
               style={{
                 cursor: "grab"
               }}
+              whileHover={{ scale: 1.02 }}
+              animate={{
+                x: 0,
+                transition: { type: "spring", stiffness: 300, damping: 30 }
+              }}
             >
+            {/* Swipe indicators */}
+            <div className="absolute inset-x-0 bottom-[-24px] flex justify-center gap-1">
+              {suggestions?.map((_, idx) => (
+                <div
+                  key={idx}
+                  className={`w-1.5 h-1.5 rounded-full transition-all ${
+                    idx === currentIndex ? 'bg-orange-500 scale-125' : 'bg-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
               <Card 
                 className="hover:shadow-md transition-shadow mb-3 animate-border rounded-2xl bg-white"
                 onClick={handlePromptClick}
