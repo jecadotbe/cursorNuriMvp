@@ -204,42 +204,39 @@ export default function HomeView() {
                 </Card>
               </div>
             )}
-            {/* Next card preview */}
-            {suggestions && currentIndex < suggestions.length - 1 && (
-              <div 
-                className="absolute top-0 right-[-8px] w-full h-full -z-10 opacity-20 scale-95 pointer-events-none"
-                style={{ transform: 'translateX(98%)' }}
-              >
-                <Card className="bg-white h-full">
-                  <CardContent className="p-4">
-                    <div className="blur-sm">{suggestions?.[currentIndex + 1]?.text}</div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-            <motion.div
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.7}
-              onDragEnd={(e, { offset, velocity }) => {
-                const swipe = offset.x;
-                if (Math.abs(swipe) > 100) {
-                  nextSuggestion();
-                }
-              }}
-              whileDrag={{
-                scale: 1.02,
-                cursor: "grabbing"
-              }}
-              style={{
-                cursor: "grab"
-              }}
-              whileHover={{ scale: 1.02 }}
-              animate={{
-                x: 0,
-                transition: { type: "spring", stiffness: 300, damping: 30 }
-              }}
-            >
+            <div className="relative w-full h-[300px] flex items-center justify-center">
+              {suggestions?.map((suggestion, index) => {
+                const canDrag = index === currentIndex;
+                const offset = 10;
+                const scaleFactor = 0.06;
+
+                return (
+                  <motion.div
+                    key={suggestion.id}
+                    className="absolute w-full"
+                    animate={{
+                      top: index * -offset,
+                      scale: 1 - index * scaleFactor,
+                      zIndex: suggestions.length - index
+                    }}
+                    drag={canDrag ? "y" : false}
+                    dragConstraints={{
+                      top: 0,
+                      bottom: 0
+                    }}
+                    onDragEnd={(e, { offset }) => {
+                      if (Math.abs(offset.y) > 100) {
+                        nextSuggestion();
+                      }
+                    }}
+                    whileDrag={{
+                      cursor: "grabbing",
+                      scale: 1.02
+                    }}
+                    style={{
+                      cursor: canDrag ? "grab" : "auto"
+                    }}
+                  >
             {/* Swipe indicators */}
             <div className="absolute inset-x-0 bottom-[-24px] flex justify-center gap-1">
               {suggestions?.map((_, idx) => (
@@ -252,31 +249,34 @@ export default function HomeView() {
               ))}
             </div>
               <Card 
-                className="hover:shadow-md transition-shadow mb-3 animate-border rounded-2xl bg-white"
-                onClick={handlePromptClick}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                        <div className="text-orange-500 font-semibold text-sm tracking-wide uppercase">
-                          Op basis van onze gesprekken
+                      className="hover:shadow-md transition-shadow bg-white"
+                      onClick={() => canDrag && handlePromptClick()}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                              <div className="text-orange-500 font-semibold text-sm tracking-wide uppercase">
+                                Op basis van onze gesprekken
+                              </div>
+                            </div>
+                            <p className="text-lg pr-8">{suggestion.text}</p>
+                            {suggestion.context === "existing" && suggestion.relatedChatTitle && (
+                              <div className="mt-2 text-sm text-gray-500 flex items-center gap-2">
+                                <MessageSquare className="w-4 h-4" />
+                                <span>Vervolg op: {suggestion.relatedChatTitle}</span>
+                              </div>
+                            )}
+                          </div>
+                          <ChevronRight className="w-6 h-6 text-gray-400 flex-shrink-0" />
                         </div>
-                      </div>
-                      <p className="text-lg pr-8">{suggestion.text}</p>
-                      {suggestion.context === "existing" && suggestion.relatedChatTitle && (
-                        <div className="mt-2 text-sm text-gray-500 flex items-center gap-2">
-                          <MessageSquare className="w-4 h-4" />
-                          <span>Vervolg op: {suggestion.relatedChatTitle}</span>
-                        </div>
-                      )}
-                    </div>
-                    <ChevronRight className="w-6 h-6 text-gray-400 flex-shrink-0" />
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
+            </div>
           </motion.div>
         ) : null}
         
