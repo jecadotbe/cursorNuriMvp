@@ -6,7 +6,7 @@ export function PWAPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event) => {
+    const handleBeforeInstallPrompt = (e: any) => {
       // Prevent Chrome 67 and earlier from automatically showing the prompt
       e.preventDefault();
       // Stash the event so it can be triggered later
@@ -15,6 +15,12 @@ export function PWAPrompt() {
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // Check if app is already installed
+    const isAppInstalled = window.matchMedia('(display-mode: standalone)').matches;
+    if (isAppInstalled) {
+      setShowPrompt(false);
+    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -27,29 +33,33 @@ export function PWAPrompt() {
     // Show the install prompt
     deferredPrompt.prompt();
 
-    // Wait for the user to respond to the prompt
-    const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === 'accepted') {
-      console.log('User accepted the install prompt');
-    } else {
-      console.log('User dismissed the install prompt');
+    try {
+      // Wait for the user to respond to the prompt
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`User ${outcome} the installation prompt`);
+
+      if (outcome === 'accepted') {
+        setShowPrompt(false);
+      }
+    } catch (error) {
+      console.error('Error during PWA installation:', error);
     }
 
     // Clear the saved prompt since it can't be used again
     setDeferredPrompt(null);
-    setShowPrompt(false);
   };
 
   if (!showPrompt) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 bg-background border rounded-lg shadow-lg p-4 flex items-center justify-between">
+    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-background border rounded-lg shadow-lg p-4 flex items-center justify-between z-50">
       <div>
         <h3 className="font-semibold">Install Nuri App</h3>
         <p className="text-sm text-muted-foreground">Get quick access to Nuri on your device</p>
       </div>
-      <Button onClick={handleInstallClick}>Install</Button>
+      <Button onClick={handleInstallClick} variant="default">
+        Install
+      </Button>
     </div>
   );
 }
