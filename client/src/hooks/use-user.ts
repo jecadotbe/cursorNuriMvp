@@ -91,10 +91,12 @@ export function useUser() {
     mutationFn: () => handleRequest('/api/logout', 'POST'),
     onSuccess: (result) => {
       if (result.ok) {
-        // Clear all queries from the cache on logout
+        // Clear all queries from the cache first
         queryClient.clear();
-        // Force user query to null
+        // Force set user query to null to trigger re-render
         queryClient.setQueryData(['user'], null);
+        // Reset all query defaults
+        queryClient.resetQueries();
         toast({
           title: "Success",
           description: result.message,
