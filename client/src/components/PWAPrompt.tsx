@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 export function PWAPrompt() {
   const [showPrompt, setShowPrompt] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
       // Prevent Chrome 67 and earlier from automatically showing the prompt
       e.preventDefault();
-      console.log('PWA: beforeinstallprompt event fired'); // Debug log
+      console.log('PWA: beforeinstallprompt event fired');
 
       // Stash the event so it can be triggered later
       setDeferredPrompt(e);
@@ -20,7 +22,7 @@ export function PWAPrompt() {
 
     // Check if app is already installed
     const isAppInstalled = window.matchMedia('(display-mode: standalone)').matches;
-    console.log('PWA: Is app installed?', isAppInstalled); // Debug log
+    console.log('PWA: Is app installed?', isAppInstalled);
 
     if (isAppInstalled) {
       setShowPrompt(false);
@@ -33,24 +35,39 @@ export function PWAPrompt() {
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) {
-      console.log('PWA: No deferred prompt available'); // Debug log
+      console.log('PWA: No deferred prompt available');
+      toast({
+        title: "Installation not available",
+        description: "Please use your browser's menu to install this app, or try accessing it on a mobile device.",
+        duration: 5000
+      });
       return;
     }
 
-    console.log('PWA: Triggering install prompt'); // Debug log
-    // Show the install prompt
-    deferredPrompt.prompt();
-
     try {
-      // Wait for the user to respond to the prompt
-      const { outcome } = await deferredPrompt.userChoice;
-      console.log(`PWA: User ${outcome} the installation prompt`); // Debug log
+      console.log('PWA: Triggering install prompt');
+      // Show the install prompt
+      const promptResult = await deferredPrompt.prompt();
+      console.log('PWA: Prompt result:', promptResult);
 
-      if (outcome === 'accepted') {
+      // Wait for the user to respond to the prompt
+      const choiceResult = await deferredPrompt.userChoice;
+      console.log('PWA: User choice:', choiceResult);
+
+      if (choiceResult.outcome === 'accepted') {
+        console.log('PWA: User accepted the installation prompt');
         setShowPrompt(false);
+      } else {
+        console.log('PWA: User dismissed the installation prompt');
       }
     } catch (error) {
       console.error('PWA: Error during installation:', error);
+      toast({
+        title: "Installation failed",
+        description: "There was an error installing the app. Please try using your browser's install option instead.",
+        variant: "destructive",
+        duration: 5000
+      });
     }
 
     // Clear the saved prompt since it can't be used again
