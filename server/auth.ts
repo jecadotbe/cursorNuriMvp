@@ -33,6 +33,7 @@ export type User = {
   id: number;
   username: string;
   password: string;
+  email: string; // Added email field
 };
 
 declare global {
@@ -124,11 +125,15 @@ export function setupAuth(app: Express) {
       }
 
       const hashedPassword = await crypto.hash(req.body.password);
+      // Use username + @temp.com as default email if not provided
+      const email = req.body.email || `${req.body.username}@temp.com`;
+
       const [newUser] = await db
         .insert(users)
         .values({
           username: req.body.username,
           password: hashedPassword,
+          email: email,
         })
         .returning();
 
