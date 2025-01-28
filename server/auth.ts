@@ -46,7 +46,7 @@ declare global {
 export function setupAuth(app: Express) {
   const MemoryStore = createMemoryStore(session);
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || randomBytes(32).toString('hex'),
+    secret: randomBytes(32).toString('hex'), // Generate new secret on each restart
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -57,6 +57,7 @@ export function setupAuth(app: Express) {
     },
     store: new MemoryStore({
       checkPeriod: 86400000, // prune expired entries every 24h
+      stale: false, // Don't serve stale sessions
     }),
   };
 
@@ -181,7 +182,12 @@ export function setupAuth(app: Express) {
       if (err) {
         return res.status(500).send("Logout failed");
       }
-      res.json({ message: "Logout successful" });
+      req.session.destroy((err) => {
+        if (err) {
+          return res.status(500).send("Session destruction failed");
+        }
+        res.json({ message: "Logout successful" });
+      });
     });
   });
 
