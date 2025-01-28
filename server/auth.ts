@@ -33,7 +33,7 @@ export type User = {
   id: number;
   username: string;
   password: string;
-  email: string; // Added email field
+  email: string;
 };
 
 declare global {
