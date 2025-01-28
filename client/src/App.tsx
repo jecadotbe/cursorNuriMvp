@@ -61,7 +61,6 @@ function Router() {
       </div>
       {showNavigation && <Navigation />}
       <OnboardingTooltip />
-      <PWAPrompt />
     </div>
   );
 }
@@ -71,6 +70,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <OnboardingProvider>
         <Router />
+        <PWAPrompt />
         <Toaster />
       </OnboardingProvider>
     </QueryClientProvider>

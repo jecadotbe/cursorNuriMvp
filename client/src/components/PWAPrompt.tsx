@@ -9,6 +9,8 @@ export function PWAPrompt() {
     const handleBeforeInstallPrompt = (e: any) => {
       // Prevent Chrome 67 and earlier from automatically showing the prompt
       e.preventDefault();
+      console.log('PWA: beforeinstallprompt event fired'); // Debug log
+
       // Stash the event so it can be triggered later
       setDeferredPrompt(e);
       setShowPrompt(true);
@@ -18,6 +20,8 @@ export function PWAPrompt() {
 
     // Check if app is already installed
     const isAppInstalled = window.matchMedia('(display-mode: standalone)').matches;
+    console.log('PWA: Is app installed?', isAppInstalled); // Debug log
+
     if (isAppInstalled) {
       setShowPrompt(false);
     }
@@ -28,21 +32,25 @@ export function PWAPrompt() {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
+    if (!deferredPrompt) {
+      console.log('PWA: No deferred prompt available'); // Debug log
+      return;
+    }
 
+    console.log('PWA: Triggering install prompt'); // Debug log
     // Show the install prompt
     deferredPrompt.prompt();
 
     try {
       // Wait for the user to respond to the prompt
       const { outcome } = await deferredPrompt.userChoice;
-      console.log(`User ${outcome} the installation prompt`);
+      console.log(`PWA: User ${outcome} the installation prompt`); // Debug log
 
       if (outcome === 'accepted') {
         setShowPrompt(false);
       }
     } catch (error) {
-      console.error('Error during PWA installation:', error);
+      console.error('PWA: Error during installation:', error);
     }
 
     // Clear the saved prompt since it can't be used again
