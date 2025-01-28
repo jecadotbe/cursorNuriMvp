@@ -90,7 +90,8 @@ export function useUser() {
     mutationFn: () => handleRequest('/api/logout', 'POST'),
     onSuccess: (result) => {
       if (result.ok) {
-        queryClient.invalidateQueries({ queryKey: ['user'] });
+        // Clear all queries from the cache on logout
+        queryClient.clear();
         toast({
           title: "Success",
           description: result.message,
