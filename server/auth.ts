@@ -28,14 +28,6 @@ const crypto = {
   },
 };
 
-// Define the User type that matches our database schema
-export type User = {
-  id: number;
-  username: string;
-  password: string;
-  email: string;
-};
-
 declare global {
   namespace Express {
     // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -44,7 +36,17 @@ declare global {
 }
 
 export function setupAuth(app: Express) {
+  // Create a new MemoryStore instance for each server start
   const MemoryStore = createMemoryStore(session);
+  const sessionStore = new MemoryStore({
+    checkPeriod: 86400000, // prune expired entries every 24h
+    stale: false, // Don't serve stale sessions
+    noDisposeOnSet: false, // Dispose old sessions when new ones are set
+  });
+
+  // Clear all existing sessions on server start
+  sessionStore.clear();
+
   const sessionSettings: session.SessionOptions = {
     secret: randomBytes(32).toString('hex'), // Generate new secret on each restart
     resave: false,
@@ -55,10 +57,9 @@ export function setupAuth(app: Express) {
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       sameSite: 'lax'
     },
-    store: new MemoryStore({
-      checkPeriod: 86400000, // prune expired entries every 24h
-      stale: false, // Don't serve stale sessions
-    }),
+    store: sessionStore,
+    rolling: true, // Refresh session with each request
+    unset: 'destroy' // Remove session from store when unset
   };
 
   if (app.get("env") === "production") {
@@ -68,6 +69,11 @@ export function setupAuth(app: Express) {
   app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());
+
+  // Clear all sessions periodically (every hour)
+  setInterval(() => {
+    sessionStore.clear();
+  }, 3600000);
 
   passport.use(
     new LocalStrategy(async (username, password, done) => {
@@ -164,29 +170,48 @@ export function setupAuth(app: Express) {
         return res.status(400).send(info.message ?? "Login failed");
       }
 
-      req.logIn(user, (err) => {
+      // Regenerate session before login to prevent session fixation
+      req.session.regenerate((err) => {
         if (err) {
           return next(err);
         }
 
-        return res.json({
-          message: "Login successful",
-          user: { id: user.id, username: user.username },
+        req.logIn(user, (err) => {
+          if (err) {
+            return next(err);
+          }
+
+          return res.json({
+            message: "Login successful",
+            user: { id: user.id, username: user.username },
+          });
         });
       });
     })(req, res, next);
   });
 
   app.post("/api/logout", (req, res) => {
+    // Get the session ID before logout
+    const sessionId = req.sessionID;
+
     req.logout((err) => {
       if (err) {
         return res.status(500).send("Logout failed");
       }
+
+      // Destroy the current session
       req.session.destroy((err) => {
         if (err) {
           return res.status(500).send("Session destruction failed");
         }
-        res.json({ message: "Logout successful" });
+
+        // Explicitly remove the session from store
+        sessionStore.destroy(sessionId, (err) => {
+          if (err) {
+            console.error("Error destroying session in store:", err);
+          }
+          res.json({ message: "Logout successful" });
+        });
       });
     });
   });
@@ -195,6 +220,6 @@ export function setupAuth(app: Express) {
     if (req.isAuthenticated()) {
       return res.json(req.user);
     }
-    res.status(401).send("Not logged in");
+    res.status(401).send("Not authenticated");
   });
 }
