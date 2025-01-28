@@ -28,17 +28,17 @@ const crypto = {
   },
 };
 
-// Define a proper User interface that matches the database schema
-export interface User {
+// Define the User type that matches our database schema
+export type User = {
   id: number;
   username: string;
   password: string;
-}
+};
 
 declare global {
   namespace Express {
-    // Use the properly defined User interface
-    interface User extends User {}
+    // eslint-disable-next-line @typescript-eslint/no-empty-interface
+    interface User extends Omit<User, "password"> {}
   }
 }
 

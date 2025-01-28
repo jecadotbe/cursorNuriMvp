@@ -63,7 +63,8 @@ export function useUser() {
     queryKey: ['user'],
     queryFn: fetchUser,
     staleTime: Infinity,
-    retry: false
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
   const loginMutation = useMutation<RequestResult, Error, InsertUser>({
@@ -92,6 +93,8 @@ export function useUser() {
       if (result.ok) {
         // Clear all queries from the cache on logout
         queryClient.clear();
+        // Force user query to null
+        queryClient.setQueryData(['user'], null);
         toast({
           title: "Success",
           description: result.message,
