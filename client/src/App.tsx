@@ -20,6 +20,7 @@ import { OnboardingProvider } from "@/context/onboarding-context";
 import OnboardingTooltip from "@/components/OnboardingTooltip";
 import LearnDetailView from "./pages/LearnDetailView";
 import OnboardingPage from "@/pages/onboarding";
+import InstallPWAPage from "@/pages/InstallPWAPage";
 
 function Router() {
   const { user, isLoading } = useUser();
@@ -28,7 +29,16 @@ function Router() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location]);
-  const showNavigation = !location.startsWith('/learn/') && !location.startsWith('/onboarding');
+
+  // Don't show navigation on learn detail pages, onboarding, and install-pwa page
+  const showNavigation = !location.startsWith('/learn/') && 
+                        !location.startsWith('/onboarding') &&
+                        !location.startsWith('/install-pwa');
+
+  // Allow access to install-pwa page without authentication
+  if (location === '/install-pwa') {
+    return <InstallPWAPage />;
+  }
 
   if (isLoading) {
     return (
@@ -46,6 +56,7 @@ function Router() {
     <div className="flex flex-col min-h-screen">
       <div className={`flex-1 ${showNavigation ? 'pb-16' : ''}`}>
         <Switch>
+          <Route path="/install-pwa" component={InstallPWAPage} />
           <Route path="/onboarding" component={OnboardingPage} />
           <Route path="/" component={HomeView} />
           <Route path="/chat" component={ChatHistoryView} />
