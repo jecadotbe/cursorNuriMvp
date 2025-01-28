@@ -13,13 +13,17 @@ const urlsToCache = [
   '/icons/icon-512x512.png'
 ];
 
+// Install event
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(urlsToCache))
   );
+  // Activate worker immediately
+  self.skipWaiting();
 });
 
+// Fetch event
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request)
@@ -43,6 +47,7 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
+// Activate event
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -53,6 +58,17 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
+    }).then(() => {
+      // Take control of all pages immediately
+      clients.claim();
     })
   );
+});
+
+// Add PWA install prompt handling
+self.addEventListener('beforeinstallprompt', (event) => {
+  // Prevent Chrome 67 and earlier from automatically showing the prompt
+  event.preventDefault();
+  // Stash the event so it can be triggered later
+  self.deferredPrompt = event;
 });

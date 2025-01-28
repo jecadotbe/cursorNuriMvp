@@ -3,6 +3,7 @@ import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { PWAPrompt } from "@/components/PWAPrompt";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import { useUser } from "@/hooks/use-user";
@@ -60,6 +61,7 @@ function Router() {
       </div>
       {showNavigation && <Navigation />}
       <OnboardingTooltip />
+      <PWAPrompt />
     </div>
   );
 }
