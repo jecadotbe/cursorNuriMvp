@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { useSuggestion } from "@/hooks/use-suggestion";
-import { MessageSquare, Users, Clock, ChevronRight, Wind, Heart, MessageCircle, X } from "lucide-react";
+import { MessageSquare, Users, Clock, ChevronRight, Wind, Heart, MessageCircle, X, RefreshCw } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 const WelcomeView = () => {
@@ -290,7 +290,7 @@ export default function HomeView() {
           </div>
         ) : null}
         {suggestion && (
-          <div className="flex justify-center mt-2">
+          <div className="flex justify-center gap-4 mt-2">
             <button
               onClick={() => {
                 setIsLoading(true);
@@ -302,6 +302,18 @@ export default function HomeView() {
             >
               <span>Toon andere suggestie ({suggestions?.length || 0})</span>
               <ChevronRight className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => {
+                setIsLoading(true);
+                refetch();
+                setIsLoading(false);
+              }}
+              disabled={isLoading || suggestionLoading}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span>Genereer nieuwe suggesties</span>
+              <RefreshCw className="w-4 h-4" />
             </button>
           </div>
         )}
