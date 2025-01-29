@@ -310,16 +310,20 @@ export default function HomeView() {
               onClick={async () => {
                 setIsLoading(true);
                 try {
-                  const response = await fetch('/api/suggestions', {
-                    method: 'GET',
+                  const response = await fetch('/api/suggestions/generate', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json'
+                    },
                     credentials: 'include',
+                    body: JSON.stringify({})
                   });
                   if (!response.ok) {
-                    throw new Error('Failed to fetch suggestions');
+                    throw new Error('Failed to generate suggestions');
                   }
                   await refetch();
                 } catch (error) {
-                  console.error('Error fetching suggestions:', error);
+                  console.error('Error generating suggestions:', error);
                 } finally {
                   setIsLoading(false);
                 }
