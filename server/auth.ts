@@ -48,14 +48,16 @@ export function setupAuth(app: Express) {
     secret: process.env.SESSION_SECRET || randomBytes(32).toString('hex'),
     resave: false,
     saveUninitialized: false,
+    rolling: true,
     cookie: {
       secure: app.get("env") === "production",
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      maxAge: 2 * 60 * 60 * 1000, // 2 hours
       sameSite: 'lax'
     },
     store: new MemoryStore({
-      checkPeriod: 86400000, // prune expired entries every 24h
+      checkPeriod: 7200000, // prune expired entries every 2h
+      stale: false // Don't serve stale sessions
     }),
   };
 
