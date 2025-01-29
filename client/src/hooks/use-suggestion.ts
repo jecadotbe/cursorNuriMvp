@@ -24,6 +24,7 @@ export function useSuggestion() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const {
     data: suggestions,
@@ -79,11 +80,13 @@ export function useSuggestion() {
     }
   };
 
-  const refetch = async () => {
+  const refetch = async (silent = false) => {
     try {
+      if (!silent) {
+        setIsRefreshing(true);
+      }
       console.log('Refetching suggestions...');
       await refetchQuery();
-      // Reset to first suggestion after refetch
       setCurrentIndex(0);
     } catch (error) {
       console.error('Failed to refetch suggestions:', error);

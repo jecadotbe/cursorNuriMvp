@@ -462,6 +462,38 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
 
     const user = req.user as User;
     const now = new Date();
+    const forceRefresh = req.query.refresh === 'true';
+
+    // Check for new content since last suggestion generation
+    const lastMemory = await db.query.villageMemberMemories.findFirst({
+      where: eq(villageMemberMemories.userId, user.id),
+      orderBy: desc(villageMemberMemories.createdAt),
+    });
+
+    const lastSuggestion = await db.query.promptSuggestions.findFirst({
+      where: eq(promptSuggestions.userId, user.id),
+      orderBy: desc(promptSuggestions.createdAt),
+    });
+
+    const hasNewContent = lastMemory && lastSuggestion && 
+      lastMemory.createdAt > lastSuggestion.createdAt;
+
+    if (!forceRefresh && !hasNewContent) {
+      // Return existing valid suggestions if no new content
+      const existingSuggestions = await db.query.promptSuggestions.findMany({
+        where: and(
+          eq(promptSuggestions.userId, user.id),
+          isNull(promptSuggestions.usedAt),
+          gte(promptSuggestions.expiresAt, now)
+        ),
+        orderBy: desc(promptSuggestions.createdAt),
+        limit: 3
+      });
+
+      if (existingSuggestions.length >= 3) {
+        return res.json(existingSuggestions);
+      }
+    }
 
     try {
       // Get existing valid suggestions first

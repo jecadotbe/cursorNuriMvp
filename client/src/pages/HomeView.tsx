@@ -55,6 +55,7 @@ import { SuggestionFeedback } from "@/components/SuggestionFeedback";
 
 export default function HomeView() {
   const { user } = useUser();
+  useBackgroundRefresh();
 
   if (!user) {
     return <WelcomeView />;
@@ -227,7 +228,7 @@ export default function HomeView() {
 
       {/* Chat Prompt */}
       <div className="px-5 py-6">
-        {(isLoading || suggestionLoading) ? (
+        {(isLoading || suggestionLoading || suggestion?.isRefreshing) ? (
           <Card className="bg-white mb-4">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
