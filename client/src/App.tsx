@@ -3,7 +3,6 @@ import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
-import { PWAPrompt } from "@/components/PWAPrompt";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import { useUser } from "@/hooks/use-user";
@@ -20,7 +19,6 @@ import { OnboardingProvider } from "@/context/onboarding-context";
 import OnboardingTooltip from "@/components/OnboardingTooltip";
 import LearnDetailView from "./pages/LearnDetailView";
 import OnboardingPage from "@/pages/onboarding";
-import InstallPWAPage from "@/pages/InstallPWAPage";
 
 function Router() {
   const { user, isLoading } = useUser();
@@ -29,16 +27,7 @@ function Router() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location]);
-
-  // Don't show navigation on learn detail pages, onboarding, and install-pwa page
-  const showNavigation = !location.startsWith('/learn/') && 
-                        !location.startsWith('/onboarding') &&
-                        !location.startsWith('/install-pwa');
-
-  // Allow access to install-pwa page without authentication
-  if (location === '/install-pwa') {
-    return <InstallPWAPage />;
-  }
+  const showNavigation = !location.startsWith('/learn/') && !location.startsWith('/onboarding');
 
   if (isLoading) {
     return (
@@ -56,7 +45,6 @@ function Router() {
     <div className="flex flex-col min-h-screen">
       <div className={`flex-1 ${showNavigation ? 'pb-16' : ''}`}>
         <Switch>
-          <Route path="/install-pwa" component={InstallPWAPage} />
           <Route path="/onboarding" component={OnboardingPage} />
           <Route path="/" component={HomeView} />
           <Route path="/chat" component={ChatHistoryView} />
@@ -81,7 +69,6 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <OnboardingProvider>
         <Router />
-        <PWAPrompt />
         <Toaster />
       </OnboardingProvider>
     </QueryClientProvider>

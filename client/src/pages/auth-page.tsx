@@ -10,7 +10,6 @@ import { useLocation } from "wouter";
 export default function AuthPage() {
   const { login, register } = useUser();
   const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [, setLocation] = useLocation();
@@ -21,7 +20,7 @@ export default function AuthPage() {
       if (action === "login") {
         await login({ username, password });
       } else {
-        await register({ username, password, email });
+        await register({ username, password });
         // After successful registration, redirect to onboarding
         setLocation("/onboarding");
       }
@@ -63,18 +62,6 @@ export default function AuthPage() {
                       required
                     />
                   </div>
-                  {tab === "register" && (
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                      />
-                    </div>
-                  )}
                   <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
                     <Input
