@@ -310,17 +310,28 @@ export default function HomeView() {
               onClick={async () => {
                 setIsLoading(true);
                 try {
+                  // First dismiss current suggestions
+                  for (const suggestion of suggestions || []) {
+                    await fetch(`/api/suggestions/${suggestion.id}/dismiss`, {
+                      method: 'POST',
+                      credentials: 'include'
+                    });
+                  }
+                  
+                  // Then generate new ones
                   const response = await fetch('/api/suggestions/generate', {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json'
                     },
-                    credentials: 'include',
-                    body: JSON.stringify({})
+                    credentials: 'include'
                   });
+                  
                   if (!response.ok) {
                     throw new Error('Failed to generate suggestions');
                   }
+                  
+                  // Force a fresh fetch of suggestions
                   await refetch();
                 } catch (error) {
                   console.error('Error generating suggestions:', error);
