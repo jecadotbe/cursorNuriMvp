@@ -305,10 +305,22 @@ export default function HomeView() {
               <ChevronRight className="w-4 h-4" />
             </button>
             <button
-              onClick={() => {
+              onClick={async () => {
                 setIsLoading(true);
-                refetch();
-                setIsLoading(false);
+                try {
+                  const response = await fetch('/api/suggestions', {
+                    method: 'GET',
+                    credentials: 'include',
+                  });
+                  if (!response.ok) {
+                    throw new Error('Failed to fetch suggestions');
+                  }
+                  await refetch();
+                } catch (error) {
+                  console.error('Error fetching suggestions:', error);
+                } finally {
+                  setIsLoading(false);
+                }
               }}
               disabled={isLoading || suggestionLoading}
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"

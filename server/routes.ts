@@ -614,6 +614,18 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
       }
 
       // Store the new suggestion with category
+      // Generate suggestion with dynamic title based on content
+      const titleResponse = await anthropic.messages.create({
+        model: "claude-3-5-sonnet-20241022",
+        max_tokens: 50,
+        messages: [{
+          role: "user",
+          content: `Generate a short, descriptive title (max 5 words) for this suggestion: "${parsedResponse.prompt.text}"`
+        }]
+      });
+      
+      const generatedTitle = titleResponse.content[0].type === "text" ? titleResponse.content[0].text.trim() : "New Suggestion";
+
       const [suggestion] = await db
         .insert(promptSuggestions)
         .values({
@@ -622,6 +634,7 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
           type: parsedResponse.prompt.type,
           category: parsedResponse.prompt.category,
           context: parsedResponse.prompt.context,
+          title: generatedTitle,
           relevance: Math.floor(parsedResponse.prompt.relevance * 10),
           relatedChatId: parsedResponse.prompt.relatedChatId || null,
           relatedChatTitle: parsedResponse.prompt.relatedChatTitle || null,
