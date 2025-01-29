@@ -40,7 +40,7 @@ const WelcomeView = () => {
       <p className="text-xl text-center max-w-md mb-8">
         Je persoonlijke gids voor bewust opvoeden en ontwikkeling
       </p>
-      <Link href="/auth">
+      <Link href="/auth" className="inline-block">
         <Button className="px-8 py-6 text-lg bg-[#2F4644] hover:bg-[#1a2726] text-white rounded-full">
           Start met Nuri
         </Button>
