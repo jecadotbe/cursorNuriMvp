@@ -21,23 +21,10 @@ import LearnDetailView from "./pages/LearnDetailView";
 import OnboardingPage from "@/pages/onboarding";
 
 function Router() {
-  const { user, isLoading, logout } = useUser();
+  const { user, isLoading } = useUser();
   const [location, setLocation] = useLocation();
 
-  // Clear any existing auth state on component mount
-  useEffect(() => {
-    const clearExistingSession = async () => {
-      try {
-        await logout();
-        queryClient.clear(); // Clear all cached queries
-        queryClient.invalidateQueries({ queryKey: ['user'] });
-      } catch (error) {
-        console.error('Error clearing session:', error);
-      }
-    };
-    clearExistingSession();
-  }, []);
-
+  // Only scroll to top when location changes
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location]);
@@ -52,8 +39,8 @@ function Router() {
     );
   }
 
-  // Redirect to home for the welcome page if not authenticated
-  if (!user && location !== '/') {
+  // Redirect to home for unauthenticated users trying to access protected routes
+  if (!user && location !== '/' && location !== '/login' && location !== '/register') {
     setLocation('/');
     return null;
   }

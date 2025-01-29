@@ -32,9 +32,9 @@ export interface User {
   id: number;
   username: string;
   password: string;
-  profilePicture?: string | null;
-  createdAt?: Date;
-  updatedAt?: Date;
+  profilePicture: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 declare global {
@@ -42,9 +42,9 @@ declare global {
     interface User {
       id: number;
       username: string;
-      profilePicture?: string | null;
-      createdAt?: Date;
-      updatedAt?: Date;
+      profilePicture: string | null;
+      createdAt: Date;
+      updatedAt: Date;
     }
   }
 }
@@ -52,7 +52,7 @@ declare global {
 export function setupAuth(app: Express) {
   const MemoryStore = createMemoryStore(session);
 
-  // Add cache control middleware
+  // Add security headers
   app.use((req, res, next) => {
     res.set({
       'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
@@ -127,11 +127,16 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/logout", (req, res) => {
-    // Clear session data
-    req.session.destroy((err) => {
+    // Only attempt logout if user is actually authenticated
+    if (!req.isAuthenticated()) {
+      return res.status(400).json({ message: "Not logged in" });
+    }
+
+    req.logout((err) => {
       if (err) {
-        return res.status(500).send("Logout failed");
+        return res.status(500).json({ message: "Logout failed" });
       }
+
       // Clear session cookie
       res.clearCookie('connect.sid', {
         path: '/',
@@ -139,6 +144,7 @@ export function setupAuth(app: Express) {
         secure: app.get("env") === "production",
         sameSite: 'lax'
       });
+
       res.json({ message: "Logout successful" });
     });
   });
@@ -146,7 +152,7 @@ export function setupAuth(app: Express) {
   app.post("/api/register", async (req, res, next) => {
     try {
       if (!req.body.username || !req.body.password) {
-        return res.status(400).send("Username and password are required");
+        return res.status(400).json({ message: "Username and password are required" });
       }
 
       const [existingUser] = await db
@@ -156,7 +162,7 @@ export function setupAuth(app: Express) {
         .limit(1);
 
       if (existingUser) {
-        return res.status(400).send("Username already exists");
+        return res.status(400).json({ message: "Username already exists" });
       }
 
       const hashedPassword = await crypto.hash(req.body.password);
@@ -184,7 +190,7 @@ export function setupAuth(app: Express) {
 
   app.post("/api/login", (req, res, next) => {
     if (!req.body.username || !req.body.password) {
-      return res.status(400).send("Username and password are required");
+      return res.status(400).json({ message: "Username and password are required" });
     }
 
     passport.authenticate("local", (err: any, user: User | false, info: IVerifyOptions) => {
@@ -193,7 +199,7 @@ export function setupAuth(app: Express) {
       }
 
       if (!user) {
-        return res.status(400).send(info.message ?? "Login failed");
+        return res.status(400).json({ message: info.message ?? "Login failed" });
       }
 
       req.logIn(user, (err) => {
@@ -213,6 +219,6 @@ export function setupAuth(app: Express) {
     if (req.isAuthenticated()) {
       return res.json(req.user);
     }
-    res.status(401).send("Not logged in");
+    res.status(401).json({ message: "Not logged in" });
   });
 }
