@@ -12,14 +12,16 @@ export async function generateVillageSuggestions(
   const suggestions = [];
 
   // Get context from recent chats
-  const chatContext = recentChats
+  // Get last 5 chat messages for immediate context
+  const recentMessages = recentChats
+    .slice(0, 2) // Last 2 chats
     .map(chat => chat.messages)
     .flat()
-    .filter(msg => 
-      msg.content.toLowerCase().includes('support') ||
-      msg.content.toLowerCase().includes('help') ||
-      msg.content.toLowerCase().includes('relationship')
-    );
+    .slice(-5); // Last 5 messages
+
+  const chatContext = recentMessages
+    .map(msg => msg.content)
+    .join(' ');
 
   // Get relevant memories
   const memories = await memoryService.getRelevantMemories(
