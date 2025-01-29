@@ -33,12 +33,15 @@ export interface User {
   id: number;
   username: string;
   password: string;
+  profilePicture?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 declare global {
   namespace Express {
-    // Use the properly defined User interface
-    interface User extends User {}
+    // Extend Express.User with our User interface
+    interface User extends Omit<User, 'password'> {}
   }
 }
 

@@ -1,8 +1,7 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import { db } from "@db";
 import { villageMembers, type User } from "@db/schema";
 import { eq, and } from "drizzle-orm";
-import type { Request, Response } from "express";
 
 // Create and export the router
 export const villageRouter = Router();
@@ -19,7 +18,7 @@ villageRouter.get("/", async (req: AuthenticatedRequest, res: Response) => {
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    
+
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
