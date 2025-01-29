@@ -23,6 +23,14 @@ import { memoryService } from "./services/memory";
 import { villageRouter } from "./routes/village";
 import { searchBooks } from "./rag";
 
+const SUGGESTION_CATEGORIES = {
+  LEARNING: "learning",
+  VILLAGE: "village",
+  CHILD_DEVELOPMENT: "child_development",
+  STRESS: "stress",
+  PERSONAL_GROWTH: "personal_growth"
+} as const;
+
 export function registerRoutes(app: Express): Server {
   // Add file upload middleware
   app.use(
@@ -456,7 +464,7 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
     const now = new Date();
 
     try {
-      // First get existing valid suggestions
+      // Get existing valid suggestions first
       const existingSuggestions = await db.query.promptSuggestions.findMany({
         where: and(
           eq(promptSuggestions.userId, user.id),
@@ -467,24 +475,23 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
         limit: 3
       });
 
-      // If we already have 3 valid suggestions, return them
       if (existingSuggestions.length >= 3) {
-        return res.json(existingSuggestions); // Return all existing suggestions
+        return res.json(existingSuggestions);
       }
 
-      // Otherwise generate a new suggestion
+      // Get user's profile and context
+      const profile = await db.query.parentProfiles.findFirst({
+        where: eq(parentProfiles.userId, user.id),
+      });
+
+      // Get recent conversations
       const recentChats = await db.query.chats.findMany({
         where: eq(chats.userId, user.id),
         orderBy: desc(chats.updatedAt),
         limit: 5,
       });
 
-      // Get user's profile data for personalized suggestions
-      const profile = await db.query.parentProfiles.findFirst({
-        where: eq(parentProfiles.userId, user.id),
-      });
-
-      // Get relevant memories for context
+      // Get relevant memories
       const relevantMemories = await memoryService.getRelevantMemories(
         user.id,
         req.body.messages?.length ? req.body.messages[req.body.messages.length - 1].content : "",
@@ -495,7 +502,44 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
         .map(m => m.content)
         .join("\n\n");
 
-      // Build personalized context from onboarding data
+      // Determine suggestion priorities based on user context
+      let suggestionPriorities = [];
+
+      if (profile?.onboardingData) {
+        const { stressAssessment, goals } = profile.onboardingData;
+
+        // High stress → prioritize stress management
+        if (stressAssessment?.stressLevel === "high" || stressAssessment?.stressLevel === "very_high") {
+          suggestionPriorities.push(SUGGESTION_CATEGORIES.STRESS);
+        }
+
+        // Small/no support network → prioritize village building
+        if (!stressAssessment?.supportNetwork?.length || stressAssessment.supportNetwork.includes("niemand")) {
+          suggestionPriorities.push(SUGGESTION_CATEGORIES.VILLAGE);
+        }
+
+        // First-time parent → prioritize learning
+        if (profile.experienceLevel === "first_time") {
+          suggestionPriorities.push(SUGGESTION_CATEGORIES.LEARNING);
+        }
+
+        // Has specific goals → prioritize personal growth
+        if (goals?.shortTerm?.length || goals?.longTerm?.length) {
+          suggestionPriorities.push(SUGGESTION_CATEGORIES.PERSONAL_GROWTH);
+        }
+
+        // Has children → prioritize child development
+        if (Array.isArray(profile.onboardingData.childProfiles) && profile.onboardingData.childProfiles.length > 0) {
+          suggestionPriorities.push(SUGGESTION_CATEGORIES.CHILD_DEVELOPMENT);
+        }
+      }
+
+      // If no priorities set, use default mix
+      if (suggestionPriorities.length === 0) {
+        suggestionPriorities = Object.values(SUGGESTION_CATEGORIES);
+      }
+
+      // Build personalized context
       let personalizedContext = "";
       if (profile?.onboardingData) {
         const childProfiles = Array.isArray(profile.onboardingData.childProfiles)
@@ -526,18 +570,21 @@ ${profile.onboardingData.goals?.longTerm?.length ? `- Long term goals: ${profile
         max_tokens: 300,
         system: `${NURI_SYSTEM_PROMPT}
 
-${personalizedContext ? `Consider this parent's profile and context when generating suggestions:\n${personalizedContext}\n` : ""}
+Generate suggestions based on these priorities: ${suggestionPriorities.join(", ")}
+
+${personalizedContext ? `Consider this parent's profile and context:\n${personalizedContext}\n` : ""}
 ${memoryContext ? `Previous conversations for context:\n${memoryContext}` : ""}
 
-Analyze the available context and provide a relevant suggestion. For new users or those with limited chat history, focus on their onboarding information to provide personalized suggestions.`,
+Generate varied suggestions focusing on the user's priorities. For new users or those with limited chat history, focus on their onboarding information to provide personalized suggestions.`,
         messages: [
           {
             role: "user",
-            content: `Based on the parent's profile and any conversation history, generate a follow-up prompt that focuses on their specific needs and goals. Format the response exactly like this:
+            content: `Based on the parent's profile and conversation history, generate a follow-up prompt that aligns with their priorities and needs. Format the response exactly like this:
           {
             "prompt": {
               "text": "follow-up question or suggestion",
               "type": "action" | "follow_up",
+              "category": "${Object.values(SUGGESTION_CATEGORIES).join('" | "')}", 
               "relevance": 1.0,
               "context": "new" | "existing",
               "relatedChatId": null | number,
@@ -548,8 +595,8 @@ Analyze the available context and provide a relevant suggestion. For new users o
         ],
       });
 
-      const responseText =
-        response.content[0].type === "text" ? response.content[0].text : "";
+      // Rest of the function remains the same
+      const responseText = response.content[0].type === "text" ? response.content[0].text : "";
       let parsedResponse;
 
       try {
@@ -566,20 +613,14 @@ Analyze the available context and provide a relevant suggestion. For new users o
         throw new Error("Response missing required prompt structure");
       }
 
-      // If the prompt references an existing chat, validate and include the chat details
-      if (parsedResponse.prompt.context === "existing" && recentChats.length > 0) {
-        const mostRelevantChat = recentChats[0];
-        parsedResponse.prompt.relatedChatId = mostRelevantChat.id;
-        parsedResponse.prompt.relatedChatTitle = mostRelevantChat.title;
-      }
-
-      // Store the new suggestion
+      // Store the new suggestion with category
       const [suggestion] = await db
         .insert(promptSuggestions)
         .values({
           userId: user.id,
           text: parsedResponse.prompt.text,
           type: parsedResponse.prompt.type,
+          category: parsedResponse.prompt.category,
           context: parsedResponse.prompt.context,
           relevance: Math.floor(parsedResponse.prompt.relevance * 10),
           relatedChatId: parsedResponse.prompt.relatedChatId || null,
@@ -878,7 +919,7 @@ ${mergedRAG || "No relevant content available"}
       return res.status(401).send("Not authenticated");
     }
 
-    const chatId = parseChatId(req.params.chatId);
+    const chatId = parseChatId(req.paramschatId);
     if (chatId === null) {
       return res.status(400).json({ message: "Invalid chat ID" });
     }

@@ -60,12 +60,12 @@ export default function HomeView() {
     return <WelcomeView />;
   }
 
-  const { 
-    suggestion, 
-    suggestions, 
-    isLoading: suggestionLoading, 
-    markAsUsed, 
-    nextSuggestion 
+  const {
+    suggestion,
+    suggestions,
+    isLoading: suggestionLoading,
+    markAsUsed,
+    nextSuggestion
   } = useSuggestion();
   const [isLoading, setIsLoading] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -232,14 +232,33 @@ export default function HomeView() {
           </Card>
         ) : suggestion ? (
           <div onClick={handlePromptClick} className="transition-opacity duration-300 ease-in-out opacity-0 animate-fade-in">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer mb-3 animate-border rounded-2xl" >
+            <Card className="hover:shadow-md transition-shadow cursor-pointer mb-3 animate-border rounded-2xl">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                      <div className="text-orange-500 font-semibold text-sm tracking-wide uppercase">
-                        Op basis van onze gesprekken
+                      <div className="w-2 h-2 rounded-full" style={{
+                        backgroundColor: suggestion.category === 'stress' ? '#EF4444' :
+                          suggestion.category === 'learning' ? '#3B82F6' :
+                          suggestion.category === 'village' ? '#10B981' :
+                          suggestion.category === 'child_development' ? '#8B5CF6' :
+                          suggestion.category === 'personal_growth' ? '#F59E0B' :
+                          '#6B7280'
+                      }}></div>
+                      <div className="text-sm font-semibold tracking-wide uppercase" style={{
+                        color: suggestion.category === 'stress' ? '#EF4444' :
+                          suggestion.category === 'learning' ? '#3B82F6' :
+                          suggestion.category === 'village' ? '#10B981' :
+                          suggestion.category === 'child_development' ? '#8B5CF6' :
+                          suggestion.category === 'personal_growth' ? '#F59E0B' :
+                          '#6B7280'
+                      }}>
+                        {suggestion.category === 'stress' ? 'Stress Management' :
+                          suggestion.category === 'learning' ? 'Leren & Ontwikkeling' :
+                          suggestion.category === 'village' ? 'Je Village' :
+                          suggestion.category === 'child_development' ? 'Kind Ontwikkeling' :
+                          suggestion.category === 'personal_growth' ? 'Persoonlijke Groei' :
+                          'Op basis van onze gesprekken'}
                       </div>
                     </div>
                     <p className="text-lg pr-8">{suggestion.text}</p>
