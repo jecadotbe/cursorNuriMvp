@@ -77,7 +77,7 @@ export function useUser() {
     staleTime: 0, // Always fetch fresh data
     gcTime: 0, // Don't cache the result
     refetchOnWindowFocus: true, // Refetch when window gains focus
-    initialData: null // Start with null user by default
+    initialData: null, // Start with null user by default
   });
 
   const loginMutation = useMutation<RequestResult, Error, InsertUser>({

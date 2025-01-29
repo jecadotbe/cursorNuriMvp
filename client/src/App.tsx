@@ -21,7 +21,7 @@ import LearnDetailView from "./pages/LearnDetailView";
 import OnboardingPage from "@/pages/onboarding";
 
 function Router() {
-  const { user, isLoading } = useUser();
+  const { user, isLoading, error } = useUser();
   const [location] = useLocation();
 
   useEffect(() => {
@@ -35,7 +35,8 @@ function Router() {
 
   const showNavigation = !location.startsWith('/learn/') && !location.startsWith('/onboarding');
 
-  if (isLoading) {
+  // Only show loading state for the first load
+  if (isLoading && !error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-border" />
@@ -43,7 +44,8 @@ function Router() {
     );
   }
 
-  if (!user) {
+  // If we have an error or no user, show auth page
+  if (error || !user) {
     return <AuthPage />;
   }
 
