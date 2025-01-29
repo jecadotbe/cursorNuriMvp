@@ -28,7 +28,6 @@ const crypto = {
   },
 };
 
-// Use the database schema type directly
 declare global {
   namespace Express {
     interface User extends typeof users.$inferSelect { }
@@ -37,8 +36,12 @@ declare global {
 
 export function setupAuth(app: Express) {
   const MemoryStore = createMemoryStore(session);
+
+  // Generate a new session secret on each server start
+  const sessionSecret = randomBytes(32).toString('hex');
+
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || randomBytes(32).toString('hex'),
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -49,7 +52,9 @@ export function setupAuth(app: Express) {
     },
     store: new MemoryStore({
       checkPeriod: 86400000, // prune expired entries every 24h
+      stale: false // Don't serve stale sessions
     }),
+    name: 'nuri.session', // Custom session cookie name
   };
 
   if (app.get("env") === "production") {
@@ -59,6 +64,10 @@ export function setupAuth(app: Express) {
   app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());
+
+  // Clear all sessions on server start
+  const store = sessionSettings.store as ReturnType<typeof createMemoryStore>;
+  store.clear();
 
   passport.use(
     new LocalStrategy(async (username, password, done) => {
@@ -173,10 +182,16 @@ export function setupAuth(app: Express) {
           return next(err);
         }
 
-        return res.json({
-          message: "Login successful",
-          user: { id: user.id, username: user.username },
-        });
+        // Set a fresh session cookie
+        if (req.session) {
+          req.session.regenerate((err) => {
+            if (err) return next(err);
+            return res.json({
+              message: "Login successful",
+              user: { id: user.id, username: user.username },
+            });
+          });
+        }
       });
     })(req, res, next);
   });
@@ -186,16 +201,30 @@ export function setupAuth(app: Express) {
       return res.status(200).json({ message: "No active session" });
     }
 
+    const sessionStore = req.sessionStore;
+    const sessionID = req.sessionID;
+
     req.logout((err) => {
       if (err) {
         return res.status(500).send("Logout failed");
       }
-      req.session.destroy((err) => {
+
+      // Destroy the session in the store
+      sessionStore.destroy(sessionID, (err) => {
         if (err) {
           return res.status(500).send("Session destruction failed");
         }
-        res.clearCookie('connect.sid');
-        res.json({ message: "Logout successful" });
+
+        // Regenerate the session
+        req.session.regenerate((err) => {
+          if (err) {
+            return res.status(500).send("Session regeneration failed");
+          }
+
+          // Clear the cookie
+          res.clearCookie('nuri.session');
+          res.json({ message: "Logout successful" });
+        });
       });
     });
   });
