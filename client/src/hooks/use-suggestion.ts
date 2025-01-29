@@ -55,11 +55,15 @@ export function useSuggestion() {
         method: 'POST',
         credentials: 'include',
       });
-      // Refetch suggestions after dismissal
-      const newSuggestions = await refetch();
-      if (newSuggestions.length > 0) {
-        setCurrentIndex(0); // Reset to first suggestion
+      
+      // Get the next suggestion ready before removing the current one
+      if (suggestions && suggestions.length > 1) {
+        const nextIndex = (currentIndex + 1) % suggestions.length;
+        setCurrentIndex(nextIndex);
       }
+      
+      // Refetch in the background
+      refetchQuery();
     } catch (error) {
       console.error('Failed to dismiss suggestion:', error);
     }
