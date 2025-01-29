@@ -65,6 +65,10 @@ export function useUser() {
       await queryClient.invalidateQueries({ queryKey: ['user'] });
       const response = await fetch('/api/user', { credentials: 'include' });
       if (!response.ok) {
+        if (response.status === 401) {
+          // Clear the cache when session is invalid
+          queryClient.setQueryData(['user'], null);
+        }
         throw new Error('Session check failed');
       }
     } catch (error) {
@@ -75,8 +79,15 @@ export function useUser() {
   const { data: user, error, isLoading } = useQuery<User | null, Error>({
     queryKey: ['user'],
     queryFn: fetchUser,
-    staleTime: Infinity,
-    retry: false
+    retry: false,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    onError: (error) => {
+      // Clear cache on any auth errors
+      if (error.message.includes('401')) {
+        queryClient.setQueryData(['user'], null);
+      }
+    }
   });
 
   useEffect(() => {
@@ -107,6 +118,8 @@ export function useUser() {
     mutationFn: () => handleRequest('/api/logout', 'POST'),
     onSuccess: (result) => {
       if (result.ok) {
+        // Immediately clear the user data from cache
+        queryClient.setQueryData(['user'], null);
         queryClient.invalidateQueries({ queryKey: ['user'] });
         toast({
           title: "Success",

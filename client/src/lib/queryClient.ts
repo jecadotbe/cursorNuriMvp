@@ -17,6 +17,11 @@ export const queryClient = new QueryClient({
           if (res.status === 529) {
             throw new Error("Server overloaded");
           }
+          if (res.status === 401) {
+            // Force clear cache on auth errors
+            queryClient.setQueryData(['user'], null);
+            throw new Error("Not authenticated");
+          }
           if (res.status >= 500) {
             throw new Error(`${res.status}: ${res.statusText}`);
           }
@@ -27,9 +32,13 @@ export const queryClient = new QueryClient({
         return res.json();
       },
       refetchInterval: false,
-      refetchOnWindowFocus: false,
-      staleTime: Infinity,
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
       retry: (failureCount, error) => {
+        // Don't retry auth failures
+        if (error instanceof Error && error.message.includes('401')) {
+          return false;
+        }
         // Retry up to 3 times for server errors (500s) and overloaded states (529)
         if (error instanceof Error && 
             (error.message.startsWith("500") || 
