@@ -5,6 +5,12 @@ const getBackoffDelay = (attempt: number, baseDelay = 1000) => {
   return Math.min(baseDelay * Math.pow(2, attempt), 30000); // Max delay of 30 seconds
 };
 
+// Helper to add cache buster
+const addCacheBuster = (url: string) => {
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}_=${Date.now()}`;
+};
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -14,10 +20,13 @@ export const queryClient = new QueryClient({
           cacheEntries: queryClient.getQueryCache().findAll()
         });
 
-        const res = await fetch(queryKey[0] as string, {
+        // Add cache buster to URL if it's a string
+        const url = typeof queryKey[0] === 'string' ? addCacheBuster(queryKey[0]) : queryKey[0];
+
+        const res = await fetch(url, {
           credentials: "include",
           headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
             'Pragma': 'no-cache',
             'Expires': '0'
           }
@@ -55,6 +64,8 @@ export const queryClient = new QueryClient({
         });
         return data;
       },
+      staleTime: 0, // Always treat data as stale
+      cacheTime: 0, // Don't cache at all
       refetchInterval: false,
       refetchOnMount: true,
       refetchOnWindowFocus: true,

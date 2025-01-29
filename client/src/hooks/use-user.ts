@@ -13,6 +13,11 @@ const clearBrowserStorage = () => {
     window.localStorage.clear();
     // Clear all sessionStorage
     window.sessionStorage.clear();
+    // Clear all cookies
+    document.cookie.split(";").forEach(function(c) { 
+      document.cookie = c.replace(/^ +/, "")
+        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+    });
     console.log('[Auth Debug] Browser storage cleared');
   } catch (error) {
     console.error('[Auth Debug] Error clearing browser storage:', error);
@@ -34,12 +39,12 @@ async function handleRequest(
 ): Promise<RequestResult> {
   console.log(`[Auth Debug] Making ${method} request to ${url}`, { body });
   try {
-    const response = await fetch(url, {
+    const response = await fetch(`${url}?_=${Date.now()}`, {
       method,
       headers: {
         ...(body ? { "Content-Type": "application/json" } : {}),
         // Add cache-busting headers
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
         'Pragma': 'no-cache',
         'Expires': '0'
       },
@@ -70,10 +75,10 @@ async function handleRequest(
 
 async function fetchUser(): Promise<User | null> {
   console.log('[Auth Debug] Fetching user data');
-  const response = await fetch('/api/user', {
+  const response = await fetch(`/api/user?_=${Date.now()}`, {
     credentials: 'include',
     headers: {
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
       'Pragma': 'no-cache',
       'Expires': '0'
     }
@@ -119,10 +124,10 @@ export function useUser() {
     console.log('[Auth Debug] Checking session');
     try {
       await queryClient.invalidateQueries({ queryKey: ['user'] });
-      const response = await fetch('/api/user', { 
+      const response = await fetch(`/api/user?_=${Date.now()}`, { 
         credentials: 'include',
         headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
           'Pragma': 'no-cache',
           'Expires': '0'
         }
@@ -146,14 +151,12 @@ export function useUser() {
   const { data: user, error, isLoading } = useQuery<User | null, Error>({
     queryKey: ['user'],
     queryFn: fetchUser,
+    staleTime: 0,
+    cacheTime: 0,
     retry: false,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    onError: () => {
-      console.log('[Auth Debug] Query error, clearing auth data');
-      clearAuthData();
-    }
   });
 
   useEffect(() => {
