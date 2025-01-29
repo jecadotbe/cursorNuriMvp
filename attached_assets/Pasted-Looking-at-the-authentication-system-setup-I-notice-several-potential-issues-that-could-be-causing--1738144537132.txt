@@ -1,0 +1,123 @@
+Looking at the authentication system setup, I notice several potential issues that could be causing the observed behavior. Let me walk through the key problems and suggest solutions.
+The first major issue appears to be with session persistence. The current setup creates a new MemoryStore instance and generates a new session secret on every server startup. This means all existing sessions are invalidated whenever the server restarts, forcing users to log in again. This explains why user 'jeroen101' keeps getting 401 responses despite existing in the database.
+Here's how we can fix the session persistence issue:
+typescriptCopy// server/auth.ts
+import { Store } from 'express-session'
+import { randomBytes } from 'crypto'
+
+// Generate a stable session secret that persists across restarts
+const SESSION_SECRET = process.env.SESSION_SECRET || randomBytes(32).toString('hex')
+
+// Use a persistent session store instead of MemoryStore
+const sessionStore = new PostgresStore({
+  // Configure with your database connection
+  conString: process.env.DATABASE_URL,
+  tableName: 'sessions',
+  // Periodic cleanup of expired sessions
+  pruneSessionInterval: 24 * 60 * 60
+})
+
+const sessionConfig = {
+  secret: SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  store: sessionStore,
+  name: 'nuri.sid',
+  cookie: {
+    secure: process.env.NODE_ENV === "production",
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000,
+    sameSite: 'lax'
+  }
+}
+The second issue involves the frontend's handling of authentication state. The current React Query configuration might be causing an infinite loading state when dealing with 401 responses. Let's improve the error handling and state management:
+typescriptCopy// client/src/hooks/use-user.ts
+import { useQuery } from '@tanstack/react-query'
+
+export function useUser() {
+  return useQuery({
+    queryKey: ['user'],
+    queryFn: async () => {
+      const response = await fetch('/api/user', {
+        credentials: 'include'
+      })
+      
+      if (response.status === 401) {
+        // Explicitly return null for unauthorized state
+        return null
+      }
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch user')
+      }
+      
+      return response.json()
+    },
+    // Prevent retries on 401, but allow retries for other errors
+    retry: (failureCount, error) => 
+      !error?.response?.status === 401 && failureCount < 3,
+    // Reduce stale time to make auth state more responsive
+    staleTime: 2 * 60 * 1000,
+    // Add proper error and success callbacks
+    onError: (error) => {
+      console.error('Error fetching user:', error)
+    },
+    onSuccess: (data) => {
+      if (!data) {
+        // Handle unauthorized state
+        queryClient.setQueryData(['user'], null)
+      }
+    }
+  })
+}
+To handle the authentication state transitions more gracefully in the app:
+typescriptCopy// client/src/App.tsx
+import { useUser } from './hooks/use-user'
+
+function App() {
+  const { data: user, isLoading, isError } = useUser()
+  
+  if (isLoading) {
+    return <LoadingSpinner />
+  }
+  
+  // Handle both unauthorized and error states explicitly
+  if (!user || isError) {
+    return <LoginPage />
+  }
+  
+  return <AuthenticatedApp user={user} />
+}
+To prevent the race condition between session clearing and auth state management, we should modify the server's session handling:
+typescriptCopy// server/index.ts
+app.post('/api/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('Session destruction failed:', err)
+      return res.status(500).json({ error: 'Logout failed' })
+    }
+    
+    // Clear session cookie
+    res.clearCookie('nuri.sid')
+    res.status(200).json({ message: 'Logged out successfully' })
+  })
+})
+These changes address the core issues by:
+
+Making sessions persistent across server restarts
+Properly handling authentication state transitions in the frontend
+Preventing race conditions in session management
+Adding proper error handling and logging
+
+You might also want to add some logging to help debug future issues:
+typescriptCopy// server/auth.ts
+passport.deserializeUser(async (id: number, done) => {
+  try {
+    const user = await db.user.findUnique({ where: { id } })
+    console.log('Deserialized user:', user ? user.id : null)
+    done(null, user)
+  } catch (error) {
+    console.error('User deserialization failed:', error)
+    done(error)
+  }
+})
