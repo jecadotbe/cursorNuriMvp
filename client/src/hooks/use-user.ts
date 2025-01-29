@@ -24,10 +24,6 @@ async function handleRequest(
     });
 
     if (!response.ok) {
-      if (response.status >= 500) {
-        return { ok: false, message: response.statusText };
-      }
-
       const message = await response.text();
       return { ok: false, message };
     }
@@ -40,19 +36,23 @@ async function handleRequest(
 }
 
 async function fetchUser(): Promise<User | null> {
-  const response = await fetch('/api/user', {
-    credentials: 'include'
-  });
+  try {
+    const response = await fetch('/api/user', {
+      credentials: 'include'
+    });
 
-  if (!response.ok) {
-    if (response.status === 401) {
-      return null;
+    if (!response.ok) {
+      if (response.status === 401) {
+        return null;
+      }
+      throw new Error(`${response.status}: ${await response.text()}`);
     }
 
-    throw new Error(`${response.status}: ${await response.text()}`);
+    return response.json();
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    return null;
   }
-
-  return response.json();
 }
 
 export function useUser() {
@@ -62,8 +62,10 @@ export function useUser() {
   const { data: user, error, isLoading } = useQuery<User | null, Error>({
     queryKey: ['user'],
     queryFn: fetchUser,
-    staleTime: Infinity,
-    retry: false
+    retry: false,
+    staleTime: 0, // Always fetch fresh data
+    cacheTime: 0, // Don't cache the result
+    refetchOnWindowFocus: true, // Refetch when window gains focus
   });
 
   const loginMutation = useMutation<RequestResult, Error, InsertUser>({
@@ -73,6 +75,12 @@ export function useUser() {
         queryClient.invalidateQueries({ queryKey: ['user'] });
         toast({
           title: "Success",
+          description: result.message,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
           description: result.message,
         });
       }
@@ -89,13 +97,20 @@ export function useUser() {
   const logoutMutation = useMutation<RequestResult, Error>({
     mutationFn: () => handleRequest('/api/logout', 'POST'),
     onSuccess: (result) => {
+      // Always clear user data regardless of result
+      queryClient.setQueryData(['user'], null);
+      queryClient.invalidateQueries({ queryKey: ['user'] });
+
       if (result.ok) {
-        queryClient.invalidateQueries({ queryKey: ['user'] });
         toast({
           title: "Success",
           description: result.message,
         });
       }
+    },
+    onSettled: () => {
+      // Force a hard refresh to clear any cached state
+      window.location.href = '/';
     },
     onError: (error) => {
       toast({
@@ -113,6 +128,12 @@ export function useUser() {
         queryClient.invalidateQueries({ queryKey: ['user'] });
         toast({
           title: "Success",
+          description: result.message,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
           description: result.message,
         });
       }
