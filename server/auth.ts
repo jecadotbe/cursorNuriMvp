@@ -46,20 +46,21 @@ export function setupAuth(app: Express) {
   const MemoryStore = createMemoryStore(session);
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || randomBytes(32).toString('hex'),
-    resave: true,
+    resave: false,
     saveUninitialized: false,
-    rolling: true,
+    rolling: false,
     unset: 'destroy',
     cookie: {
       secure: app.get("env") === "production",
       httpOnly: true,
       maxAge: 1 * 60 * 60 * 1000, // 1 hour
-      sameSite: 'strict'
+      sameSite: 'lax'
     },
     store: new MemoryStore({
-      checkPeriod: 3600000, // prune expired entries every 1h
-      stale: false,
-      noPromise: true
+      checkPeriod: 3600000,
+      stale: true,
+      noPromise: true,
+      clear: true
     }),
   };
 
@@ -182,7 +183,13 @@ export function setupAuth(app: Express) {
       if (err) {
         return res.status(500).send("Logout failed");
       }
-      res.json({ message: "Logout successful" });
+      req.session.destroy((err) => {
+        if (err) {
+          return res.status(500).send("Session destruction failed");
+        }
+        res.clearCookie('connect.sid');
+        res.json({ message: "Logout successful" });
+      });
     });
   });
 
