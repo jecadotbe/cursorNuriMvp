@@ -227,7 +227,7 @@ export default function HomeView() {
 
       {/* Chat Prompt */}
       <div className="px-5 py-6">
-        {(isLoading || suggestionLoading || showSkeleton) && !suggestion ? (
+        {(isLoading || suggestionLoading) ? (
           <Card className="bg-white mb-4">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
