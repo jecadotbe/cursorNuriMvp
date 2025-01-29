@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { useSuggestion } from "@/hooks/use-suggestion";
-import { MessageSquare, Users, Clock, ChevronRight, Wind, Heart, MessageCircle } from "lucide-react";
+import { MessageSquare, Users, Clock, ChevronRight, Wind, Heart, MessageCircle, X } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 const WelcomeView = () => {
