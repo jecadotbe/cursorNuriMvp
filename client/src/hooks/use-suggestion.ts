@@ -56,13 +56,19 @@ export function useSuggestion() {
         credentials: 'include',
       });
       
-      // Get the next suggestion ready before removing the current one
-      if (suggestions && suggestions.length > 1) {
-        const nextIndex = (currentIndex + 1) % suggestions.length;
-        setCurrentIndex(nextIndex);
+      // Update local state to remove the dismissed suggestion
+      if (suggestions) {
+        const updatedSuggestions = suggestions.filter(s => s.id !== suggestionId);
+        queryClient.setQueryData(['suggestions'], updatedSuggestions);
+        
+        if (updatedSuggestions.length > 0) {
+          // Adjust currentIndex if needed
+          const newIndex = Math.min(currentIndex, updatedSuggestions.length - 1);
+          setCurrentIndex(newIndex);
+        }
       }
       
-      // Refetch in the background
+      // Refetch to get new suggestions
       refetchQuery();
     } catch (error) {
       console.error('Failed to dismiss suggestion:', error);
