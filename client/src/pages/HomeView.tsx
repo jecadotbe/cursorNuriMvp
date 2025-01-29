@@ -5,22 +5,61 @@ import { useUser } from "@/hooks/use-user";
 import { useSuggestion } from "@/hooks/use-suggestion";
 import { MessageSquare, Users, Clock, ChevronRight, Wind, Heart, MessageCircle } from "lucide-react";
 import { Link, useLocation } from "wouter";
+
+const WelcomeView = () => {
+  const greetings = [
+    "Welkom bij Nuri",
+    "Hallo! Nuri staat voor je klaar",
+    "Goed dat je er bent",
+    "Samen groeien met Nuri",
+    "Ontdek Nuri vandaag"
+  ];
+
+  const [greeting, setGreeting] = useState("");
+
+  useEffect(() => {
+    const randomIndex = Math.floor(Math.random() * greetings.length);
+    setGreeting(greetings[randomIndex]);
+  }, []);
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-[#F8DD9F] to-[#F2F0E5] p-4">
+      <div className="w-24 h-32 mb-8">
+        <img
+          src="/images/nuri_logo.png"
+          alt="Nuri Logo"
+          className="w-full object-contain"
+          onError={(e) => {
+            e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='200' viewBox='0 0 150 200'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui' font-size='16' fill='%23666'%3ENuri%3C/text%3E%3C/svg%3E";
+          }}
+        />
+      </div>
+      <h1 className="text-4xl font-baskerville text-center mb-6">
+        {greeting}
+      </h1>
+      <p className="text-xl text-center max-w-md mb-8">
+        Je persoonlijke gids voor bewust opvoeden en ontwikkeling
+      </p>
+      <Link href="/auth">
+        <Button className="px-8 py-6 text-lg bg-[#2F4644] hover:bg-[#1a2726] text-white rounded-full">
+          Start met Nuri
+        </Button>
+      </Link>
+    </div>
+  );
+};
+
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
 import { SuggestionFeedback } from "@/components/SuggestionFeedback";
 
-// Image handling functions remain unchanged
-const handleImageLoad = (imageName: string) => {
-  console.log(`Successfully loaded image: ${imageName}`);
-};
-
-const handleImageError = (imageName: string, error: any) => {
-  console.error(`Failed to load image: ${imageName}`, error);
-  console.log('Image path attempted:', `/images/${imageName}`);
-};
-
 export default function HomeView() {
   const { user } = useUser();
+
+  if (!user) {
+    return <WelcomeView />;
+  }
+
   const { 
     suggestion, 
     suggestions, 
@@ -135,6 +174,15 @@ export default function HomeView() {
     setCurrentSuggestionId(null);
   };
 
+  const handleImageLoad = (imageName: string) => {
+    console.log(`Successfully loaded image: ${imageName}`);
+  };
+
+  const handleImageError = (imageName: string, error: any) => {
+    console.error(`Failed to load image: ${imageName}`, error);
+    console.log('Image path attempted:', `/images/${imageName}`);
+  };
+
   return (
     <div className="flex-1 bg-[#F2F0E5] overflow-y-auto">
       {/* Greeting Section with Logo */}
@@ -184,12 +232,7 @@ export default function HomeView() {
           </Card>
         ) : suggestion ? (
           <div onClick={handlePromptClick} className="transition-opacity duration-300 ease-in-out opacity-0 animate-fade-in">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer mb-3 animate-border rounded-2xl"
-              // style={{
-              //   background: "linear-gradient(45deg, #F8DD9F 0%, #F2F0E5 50%)",
-              // }}
-              
-              >
+            <Card className="hover:shadow-md transition-shadow cursor-pointer mb-3 animate-border rounded-2xl" >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
