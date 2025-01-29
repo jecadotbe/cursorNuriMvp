@@ -1,0 +1,109 @@
+I see the issue - this error occurs when React hooks are being used outside of a React component or custom hook context. Let me explain what's happening and how to fix it.
+The error suggests that useState is being imported incorrectly or the hook is being used in a way that violates React's Rules of Hooks. Let's fix the use-local-storage.ts hook:
+typescriptCopy// client/src/hooks/use-local-storage.ts
+import { useState, useEffect } from 'react'
+
+// Make sure this is declared as a function, not an arrow function
+// The "use" prefix is important for custom hooks
+export function useLocalStorage<T>(key: string, initialValue: T) {
+  // This is the correct way to use useState in a custom hook
+  const [storedValue, setStoredValue] = useState<T>(() => {
+    if (typeof window === 'undefined') {
+      return initialValue
+    }
+
+    try {
+      const item = window.localStorage.getItem(key)
+      return item ? JSON.parse(item) : initialValue
+    } catch (error) {
+      console.warn(`Error reading localStorage key "${key}":`, error)
+      return initialValue
+    }
+  })
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(key, JSON.stringify(storedValue))
+    } catch (error) {
+      console.warn(`Error setting localStorage key "${key}":`, error)
+    }
+  }, [key, storedValue])
+
+  return [storedValue, setStoredValue] as const
+}
+Now, let's look at how this hook should be used in the OnboardingProvider component:
+typescriptCopy// client/src/context/onboarding-context.tsx
+import React, { createContext, useContext } from 'react'
+import { useLocalStorage } from '../hooks/use-local-storage'
+
+interface OnboardingContextType {
+  onboardingState: string
+  setOnboardingState: (state: string) => void
+}
+
+const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined)
+
+export function OnboardingProvider({ children }: { children: React.ReactNode }) {
+  // Use the hook inside a component
+  const [onboardingState, setOnboardingState] = useLocalStorage('onboarding-state', 'initial')
+
+  return (
+    <OnboardingContext.Provider 
+      value={{ 
+        onboardingState, 
+        setOnboardingState 
+      }}
+    >
+      {children}
+    </OnboardingContext.Provider>
+  )
+}
+
+// Custom hook to use the onboarding context
+export function useOnboarding() {
+  const context = useContext(OnboardingContext)
+  if (context === undefined) {
+    throw new Error('useOnboarding must be used within an OnboardingProvider')
+  }
+  return context
+}
+To use this in your app, you need to wrap your components with the OnboardingProvider:
+typescriptCopy// client/src/App.tsx
+import { OnboardingProvider } from './context/onboarding-context'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { queryClient } from './lib/queryClient'
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <OnboardingProvider>
+        {/* Your app components */}
+      </OnboardingProvider>
+    </QueryClientProvider>
+  )
+}
+
+export default App
+The error you're seeing typically happens for one of these reasons:
+
+The hook is being called outside a React component or custom hook
+The hook is being called conditionally (inside an if statement or loop)
+React is not properly imported or available in the environment
+
+To verify everything is working, you can add some debugging logs:
+typescriptCopy// client/src/hooks/use-local-storage.ts
+export function useLocalStorage<T>(key: string, initialValue: T) {
+  console.log('useLocalStorage hook called with key:', key)
+  
+  const [storedValue, setStoredValue] = useState<T>(() => {
+    console.log('useState initializer running for key:', key)
+    // ... rest of the code
+  })
+
+  useEffect(() => {
+    console.log('useEffect running for key:', key)
+    // ... rest of the code
+  }, [key, storedValue])
+
+  return [storedValue, setStoredValue] as const
+}
