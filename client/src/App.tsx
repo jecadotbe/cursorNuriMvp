@@ -26,7 +26,7 @@ function Router() {
 
   useEffect(() => {
     // Force session check on initial load
-    checkSession();
+    checkSession().catch(console.error);
     
     if (location.includes('initialPath')) {
       const cleanPath = new URLSearchParams(location.split('?')[1]).get('initialPath') || '/';

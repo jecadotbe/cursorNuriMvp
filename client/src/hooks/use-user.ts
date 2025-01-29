@@ -60,8 +60,8 @@ export function useUser() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const checkSession = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ['user'] });
+  const checkSession = useCallback(() => {
+    return queryClient.invalidateQueries({ queryKey: ['user'] });
   }, [queryClient]);
 
   const { data: user, error, isLoading } = useQuery<User | null, Error>({
