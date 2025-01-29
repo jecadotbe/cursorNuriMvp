@@ -16,65 +16,43 @@ async function handleRequest(
   body?: InsertUser
 ): Promise<RequestResult> {
   try {
-    console.log(`[Auth] Making ${method} request to ${url}`);
     const response = await fetch(url, {
       method,
-      headers: {
-        ...(body ? { "Content-Type": "application/json" } : {}),
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      },
+      headers: body ? { "Content-Type": "application/json" } : undefined,
       body: body ? JSON.stringify(body) : undefined,
       credentials: "include",
     });
 
-    const message = await response.text();
-    const isJson = message.startsWith('{');
-    const result = isJson ? JSON.parse(message) : { message };
-
     if (!response.ok) {
-      console.log(`[Auth] Request failed: ${response.status}`, result);
-      return { ok: false, message: result.message || 'Request failed' };
+      if (response.status >= 500) {
+        return { ok: false, message: response.statusText };
+      }
+
+      const message = await response.text();
+      return { ok: false, message };
     }
 
-    console.log(`[Auth] Request succeeded:`, result);
-    return { ok: true, message: result.message };
+    const data = await response.json();
+    return { ok: true, message: data.message };
   } catch (e: any) {
-    console.error('[Auth] Request error:', e);
     return { ok: false, message: e.toString() };
   }
 }
 
 async function fetchUser(): Promise<User | null> {
-  try {
-    console.log('[Auth] Fetching user data...');
-    const response = await fetch('/api/user', {
-      credentials: 'include',
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    });
+  const response = await fetch('/api/user', {
+    credentials: 'include'
+  });
 
-    if (!response.ok) {
-      if (response.status === 401) {
-        console.log('[Auth] User not authenticated');
-        return null;
-      }
-      const error = await response.text();
-      console.error('[Auth] Error fetching user:', error);
-      throw new Error(error);
+  if (!response.ok) {
+    if (response.status === 401) {
+      return null;
     }
 
-    const userData = await response.json();
-    console.log('[Auth] User data fetched:', userData);
-    return userData;
-  } catch (error) {
-    console.error('[Auth] Error in fetchUser:', error);
-    throw error; // Let React Query handle the error
+    throw new Error(`${response.status}: ${await response.text()}`);
   }
+
+  return response.json();
 }
 
 export function useUser() {
@@ -84,33 +62,22 @@ export function useUser() {
   const { data: user, error, isLoading } = useQuery<User | null, Error>({
     queryKey: ['user'],
     queryFn: fetchUser,
-    retry: false,
-    refetchOnWindowFocus: false, // Disable auto-refetch on window focus
-    refetchOnMount: true,
-    refetchOnReconnect: true,
+    staleTime: Infinity,
+    retry: false
   });
 
   const loginMutation = useMutation<RequestResult, Error, InsertUser>({
     mutationFn: (userData) => handleRequest('/api/login', 'POST', userData),
     onSuccess: (result) => {
       if (result.ok) {
-        // Clear all queries before refetching user
-        queryClient.clear();
         queryClient.invalidateQueries({ queryKey: ['user'] });
         toast({
           title: "Success",
           description: result.message,
         });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: result.message,
-        });
       }
     },
     onError: (error) => {
-      queryClient.setQueryData(['user'], null);
       toast({
         variant: "destructive",
         title: "Error",
@@ -121,16 +88,13 @@ export function useUser() {
 
   const logoutMutation = useMutation<RequestResult, Error>({
     mutationFn: () => handleRequest('/api/logout', 'POST'),
-    onMutate: () => {
-      // Immediately set user to null
-      queryClient.setQueryData(['user'], null);
-    },
     onSuccess: (result) => {
       if (result.ok) {
-        // Clear all query cache
-        queryClient.clear();
-        // Reload the page to reset all state
-        window.location.href = '/';
+        queryClient.invalidateQueries({ queryKey: ['user'] });
+        toast({
+          title: "Success",
+          description: result.message,
+        });
       }
     },
     onError: (error) => {
@@ -146,23 +110,14 @@ export function useUser() {
     mutationFn: (userData) => handleRequest('/api/register', 'POST', userData),
     onSuccess: (result) => {
       if (result.ok) {
-        // Clear all queries before refetching user
-        queryClient.clear();
         queryClient.invalidateQueries({ queryKey: ['user'] });
         toast({
           title: "Success",
           description: result.message,
         });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: result.message,
-        });
       }
     },
     onError: (error) => {
-      queryClient.setQueryData(['user'], null);
       toast({
         variant: "destructive",
         title: "Error",
@@ -172,7 +127,7 @@ export function useUser() {
   });
 
   return {
-    user: user ?? null,
+    user,
     isLoading,
     error,
     login: loginMutation.mutateAsync,

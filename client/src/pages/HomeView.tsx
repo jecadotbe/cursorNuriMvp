@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { useSuggestion } from "@/hooks/use-suggestion";
-import { MessageSquare, Users, Clock, ChevronRight } from "lucide-react";
+import { MessageSquare, Users, Clock, ChevronRight, Wind, Heart, MessageCircle } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
@@ -33,6 +33,54 @@ export default function HomeView() {
   const [currentSuggestionId, setCurrentSuggestionId] = useState<number | null>(null);
   const { toast } = useToast();
   const [, navigate] = useLocation();
+
+  const actionChips = [
+    {
+      text: "Ik wil ventileren",
+      icon: <Wind className="w-4 h-4" />,
+    },
+    {
+      text: "Ik wil het hebben over mijn village",
+      icon: <Heart className="w-4 h-4" />,
+    },
+    {
+      text: "Gewoon chatten",
+      icon: <MessageCircle className="w-4 h-4" />,
+    },
+  ];
+
+  const handleChipClick = async (topic: string) => {
+    try {
+      const response = await fetch('/api/chats', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
+          messages: [{
+            role: 'assistant',
+            content: `Ik begrijp dat je ${topic.toLowerCase()}. Waar wil je het over hebben?`
+          }],
+        }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create new chat');
+      }
+
+      const newChat = await response.json();
+      navigate(`/chat/${newChat.id}`);
+    } catch (error) {
+      console.error('Error creating chat:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not start the conversation. Please try again.",
+      });
+    }
+  };
 
   const handlePromptClick = async () => {
     if (!suggestion) return;
@@ -136,7 +184,12 @@ export default function HomeView() {
           </Card>
         ) : suggestion ? (
           <div onClick={handlePromptClick} className="transition-opacity duration-300 ease-in-out opacity-0 animate-fade-in">
-            <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer mb-4 animate-border">
+            <Card className="hover:shadow-md transition-shadow cursor-pointer mb-3 animate-border rounded-2xl"
+              // style={{
+              //   background: "linear-gradient(45deg, #F8DD9F 0%, #F2F0E5 50%)",
+              // }}
+              
+              >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
@@ -161,22 +214,35 @@ export default function HomeView() {
           </div>
         ) : null}
         {suggestion && (
-          <div className="flex justify-end mt-2">
-            <Button
-              variant="outline"
-              size="sm"
+          <div className="flex justify-center mt-2">
+            <button
               onClick={() => {
                 setIsLoading(true);
                 nextSuggestion();
                 setIsLoading(false);
               }}
               disabled={isLoading || suggestionLoading || !suggestions?.length}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span>Toon andere suggestie ({suggestions?.length || 0})</span>
-            </Button>
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         )}
+
+        {/* Action Chips */}
+        <div className="flex flex-wrap justify-center gap-2 mt-4">
+          {actionChips.map((chip, index) => (
+            <button
+              key={index}
+              onClick={() => handleChipClick(chip.text)}
+              className="inline-flex items-center px-4 py-2 rounded-full bg-white border border-[#E5E7EB] hover:shadow-md transition-all text-sm text-gray-700"
+            >
+              {chip.icon}
+              <span className="ml-2">{chip.text}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Village Section */}

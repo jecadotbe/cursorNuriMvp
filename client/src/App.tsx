@@ -21,17 +21,15 @@ import LearnDetailView from "./pages/LearnDetailView";
 import OnboardingPage from "@/pages/onboarding";
 
 function Router() {
-  const { user, isLoading, error } = useUser();
+  const { user, isLoading } = useUser();
   const [location] = useLocation();
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location]);
-
   const showNavigation = !location.startsWith('/learn/') && !location.startsWith('/onboarding');
 
-  if (isLoading && !error) {
-    console.log('[Auth] Loading user data...');
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-border" />
@@ -39,12 +37,10 @@ function Router() {
     );
   }
 
-  if (!user || error) {
-    console.log('[Auth] No user or error, showing auth page', { error });
+  if (!user) {
     return <AuthPage />;
   }
 
-  console.log('[Auth] User authenticated, showing main app');
   return (
     <div className="flex flex-col min-h-screen">
       <div className={`flex-1 ${showNavigation ? 'pb-16' : ''}`}>

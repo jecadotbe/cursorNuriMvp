@@ -35,7 +35,6 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").unique().notNull(),
   password: text("password").notNull(),
-  email: text("email"),  // Made optional
   profilePicture: text("profile_picture"),
   createdAt: timestamp("created_at").defaultNow(),
 });

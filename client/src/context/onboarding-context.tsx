@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 
 type OnboardingStep = {
@@ -53,40 +53,20 @@ type OnboardingContextType = {
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
 
-interface OnboardingProviderProps {
-  children: ReactNode;
-}
-
-export function OnboardingProvider({ children }: OnboardingProviderProps) {
-  // Use a regular useState as fallback
-  const [isClient, setIsClient] = useState(false);
-
-  // Only run on client side
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage(
-    "onboarding-completed",
-    false
-  );
+export function OnboardingProvider({ children }: { children: React.ReactNode }) {
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage("onboarding-completed", false);
   const [isActive, setIsActive] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
-    if (isClient && !hasCompletedOnboarding) {
+    if (!hasCompletedOnboarding) {
       // Auto-start onboarding for new users after a short delay
       const timer = setTimeout(() => {
         setIsActive(true);
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [hasCompletedOnboarding, isClient]);
-
-  // Show nothing until hydration complete
-  if (!isClient) {
-    return <>{children}</>;
-  }
+  }, [hasCompletedOnboarding]);
 
   const start = () => {
     setIsActive(true);
