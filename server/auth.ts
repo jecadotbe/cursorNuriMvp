@@ -28,7 +28,6 @@ const crypto = {
   },
 };
 
-// Define a proper User interface that matches the database schema
 export interface User {
   id: number;
   username: string;
@@ -40,13 +39,30 @@ export interface User {
 
 declare global {
   namespace Express {
-    // Extend Express.User with our User interface
-    interface User extends Omit<User, 'password'> {}
+    interface User {
+      id: number;
+      username: string;
+      profilePicture?: string | null;
+      createdAt?: Date;
+      updatedAt?: Date;
+    }
   }
 }
 
 export function setupAuth(app: Express) {
   const MemoryStore = createMemoryStore(session);
+
+  // Add cache control middleware
+  app.use((req, res, next) => {
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Surrogate-Control': 'no-store'
+    });
+    next();
+  });
+
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || randomBytes(32).toString('hex'),
     resave: false,
@@ -108,6 +124,23 @@ export function setupAuth(app: Express) {
     } catch (err) {
       done(err);
     }
+  });
+
+  app.post("/api/logout", (req, res) => {
+    // Clear session data
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).send("Logout failed");
+      }
+      // Clear session cookie
+      res.clearCookie('connect.sid', {
+        path: '/',
+        httpOnly: true,
+        secure: app.get("env") === "production",
+        sameSite: 'lax'
+      });
+      res.json({ message: "Logout successful" });
+    });
   });
 
   app.post("/api/register", async (req, res, next) => {
@@ -174,15 +207,6 @@ export function setupAuth(app: Express) {
         });
       });
     })(req, res, next);
-  });
-
-  app.post("/api/logout", (req, res) => {
-    req.logout((err) => {
-      if (err) {
-        return res.status(500).send("Logout failed");
-      }
-      res.json({ message: "Logout successful" });
-    });
   });
 
   app.get("/api/user", (req, res) => {
