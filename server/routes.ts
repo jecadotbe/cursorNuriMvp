@@ -629,7 +629,7 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
         const response = await anthropic.messages.create({
           model: "claude-3-5-sonnet-20241022",
           max_tokens: 300,
-          system: `${mainPrompt}\n\nGenerate a different suggestion than previous ones.`,
+          system: `${NURI_SYSTEM_PROMPT}\n\nGenerate a different suggestion than previous ones.`,
           messages: [
             {
               role: "user",
