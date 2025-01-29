@@ -46,18 +46,20 @@ export function setupAuth(app: Express) {
   const MemoryStore = createMemoryStore(session);
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || randomBytes(32).toString('hex'),
-    resave: false,
+    resave: true,
     saveUninitialized: false,
     rolling: true,
+    unset: 'destroy',
     cookie: {
       secure: app.get("env") === "production",
       httpOnly: true,
-      maxAge: 2 * 60 * 60 * 1000, // 2 hours
-      sameSite: 'lax'
+      maxAge: 1 * 60 * 60 * 1000, // 1 hour
+      sameSite: 'strict'
     },
     store: new MemoryStore({
-      checkPeriod: 7200000, // prune expired entries every 2h
-      stale: false // Don't serve stale sessions
+      checkPeriod: 3600000, // prune expired entries every 1h
+      stale: false,
+      noPromise: true
     }),
   };
 
