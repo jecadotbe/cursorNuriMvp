@@ -268,12 +268,14 @@ export default function HomeView() {
                           suggestion.type === 'personal_growth' ? '#F59E0B' :
                           '#6B7280'
                       }}>
-                        {suggestion.type === 'stress' ? 'Stress Management' :
+                        {suggestion.title || (
+                          suggestion.type === 'stress' ? 'Stress Management' :
                           suggestion.type === 'learning' ? 'Leren & Ontwikkeling' :
                           suggestion.type === 'village' ? 'Je Village' :
                           suggestion.type === 'child_development' ? 'Kind Ontwikkeling' :
                           suggestion.type === 'personal_growth' ? 'Persoonlijke Groei' :
-                          'Op basis van onze gesprekken'}
+                          'Op basis van onze gesprekken'
+                        )}
                       </div>
                     </div>
                     <p className="text-lg pr-8">{suggestion.text}</p>
