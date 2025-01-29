@@ -462,21 +462,31 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
 
     const user = req.user as User;
     const now = new Date();
+    const forceRefresh = req.query.refresh === 'true';
 
     try {
-      // Get existing valid suggestions first
-      const existingSuggestions = await db.query.promptSuggestions.findMany({
-        where: and(
-          eq(promptSuggestions.userId, user.id),
-          isNull(promptSuggestions.usedAt),
-          gte(promptSuggestions.expiresAt, now)
-        ),
-        orderBy: desc(promptSuggestions.createdAt),
-        limit: 3
-      });
+      // Get existing valid suggestions first, unless force refresh is requested
+      if (!forceRefresh) {
+        const existingSuggestions = await db.query.promptSuggestions.findMany({
+          where: and(
+            eq(promptSuggestions.userId, user.id),
+            isNull(promptSuggestions.usedAt),
+            gte(promptSuggestions.expiresAt, now)
+          ),
+          orderBy: desc(promptSuggestions.createdAt),
+          limit: 3
+        });
 
-      if (existingSuggestions.length >= 3) {
-        return res.json(existingSuggestions);
+        if (existingSuggestions.length >= 3) {
+          return res.json(existingSuggestions);
+        }
+      } else {
+        // Clear existing unused suggestions when force refreshing
+        await db.delete(promptSuggestions)
+          .where(and(
+            eq(promptSuggestions.userId, user.id),
+            isNull(promptSuggestions.usedAt)
+          ));
       }
 
       // Get user's profile and context
