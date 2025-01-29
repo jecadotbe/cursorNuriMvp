@@ -18,7 +18,13 @@ async function handleRequest(
   try {
     const response = await fetch(url, {
       method,
-      headers: body ? { "Content-Type": "application/json" } : undefined,
+      headers: {
+        ...(body ? { "Content-Type": "application/json" } : {}),
+        // Prevent caching
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      },
       body: body ? JSON.stringify(body) : undefined,
       credentials: "include",
     });
@@ -38,7 +44,12 @@ async function handleRequest(
 async function fetchUser(): Promise<User | null> {
   try {
     const response = await fetch('/api/user', {
-      credentials: 'include'
+      credentials: 'include',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache', 
+        'Expires': '0'
+      }
     });
 
     if (!response.ok) {
@@ -64,13 +75,15 @@ export function useUser() {
     queryFn: fetchUser,
     retry: false,
     staleTime: 0, // Always fetch fresh data
-    cacheTime: 0, // Don't cache the result
+    gcTime: 0, // Don't cache the result
     refetchOnWindowFocus: true, // Refetch when window gains focus
+    initialData: null // Start with null user by default
   });
 
   const loginMutation = useMutation<RequestResult, Error, InsertUser>({
     mutationFn: (userData) => handleRequest('/api/login', 'POST', userData),
     onSuccess: (result) => {
+      queryClient.removeQueries(); // Remove all queries from cache
       if (result.ok) {
         queryClient.invalidateQueries({ queryKey: ['user'] });
         toast({
@@ -86,6 +99,7 @@ export function useUser() {
       }
     },
     onError: (error) => {
+      queryClient.setQueryData(['user'], null);
       toast({
         variant: "destructive",
         title: "Error",
@@ -96,11 +110,14 @@ export function useUser() {
 
   const logoutMutation = useMutation<RequestResult, Error>({
     mutationFn: () => handleRequest('/api/logout', 'POST'),
-    onSuccess: (result) => {
-      // Always clear user data regardless of result
+    onMutate: () => {
+      // Optimistically clear user data
+      const previousData = queryClient.getQueryData(['user']);
       queryClient.setQueryData(['user'], null);
-      queryClient.invalidateQueries({ queryKey: ['user'] });
-
+      return { previousData };
+    },
+    onSuccess: (result) => {
+      queryClient.removeQueries(); // Clear all queries
       if (result.ok) {
         toast({
           title: "Success",
@@ -108,22 +125,24 @@ export function useUser() {
         });
       }
     },
-    onSettled: () => {
-      // Force a hard refresh to clear any cached state
-      window.location.href = '/';
-    },
     onError: (error) => {
       toast({
         variant: "destructive",
         title: "Error",
         description: error.message,
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries(); // Invalidate all queries
+      // Force a hard refresh to clear any cached state
+      window.location.href = '/';
     }
   });
 
   const registerMutation = useMutation<RequestResult, Error, InsertUser>({
     mutationFn: (userData) => handleRequest('/api/register', 'POST', userData),
     onSuccess: (result) => {
+      queryClient.removeQueries(); // Remove all queries from cache
       if (result.ok) {
         queryClient.invalidateQueries({ queryKey: ['user'] });
         toast({
@@ -139,6 +158,7 @@ export function useUser() {
       }
     },
     onError: (error) => {
+      queryClient.setQueryData(['user'], null);
       toast({
         variant: "destructive",
         title: "Error",
@@ -148,7 +168,7 @@ export function useUser() {
   });
 
   return {
-    user,
+    user: user ?? null, // Ensure we always return null when no user
     isLoading,
     error,
     login: loginMutation.mutateAsync,

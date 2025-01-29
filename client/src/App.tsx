@@ -27,6 +27,12 @@ function Router() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location]);
+
+  // Clear entire cache on component mount
+  useEffect(() => {
+    queryClient.clear();
+  }, []);
+
   const showNavigation = !location.startsWith('/learn/') && !location.startsWith('/onboarding');
 
   if (isLoading) {
