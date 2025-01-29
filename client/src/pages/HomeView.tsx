@@ -65,7 +65,8 @@ export default function HomeView() {
     suggestions,
     isLoading: suggestionLoading,
     markAsUsed,
-    nextSuggestion
+    nextSuggestion,
+    dismissSuggestion
   } = useSuggestion();
   const [isLoading, setIsLoading] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
