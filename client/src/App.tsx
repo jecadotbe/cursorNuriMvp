@@ -28,15 +28,11 @@ function Router() {
     window.scrollTo(0, 0);
   }, [location]);
 
-  // Clear entire cache on component mount
-  useEffect(() => {
-    queryClient.clear();
-  }, []);
-
   const showNavigation = !location.startsWith('/learn/') && !location.startsWith('/onboarding');
 
-  // Only show loading state for the first load
+  // If loading and no error, show loading state
   if (isLoading && !error) {
+    console.log('[Auth] Loading user data...');
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-border" />
@@ -44,11 +40,13 @@ function Router() {
     );
   }
 
-  // If we have an error or no user, show auth page
-  if (error || !user) {
+  // If no user or error, show auth page
+  if (!user || error) {
+    console.log('[Auth] No user or error, showing auth page', { error });
     return <AuthPage />;
   }
 
+  console.log('[Auth] User authenticated, showing main app');
   return (
     <div className="flex flex-col min-h-screen">
       <div className={`flex-1 ${showNavigation ? 'pb-16' : ''}`}>
