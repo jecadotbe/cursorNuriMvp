@@ -58,19 +58,35 @@ interface OnboardingProviderProps {
 }
 
 export function OnboardingProvider({ children }: OnboardingProviderProps) {
-  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage("onboarding-completed", false);
+  // Use a regular useState as fallback
+  const [isClient, setIsClient] = useState(false);
+
+  // Only run on client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage(
+    "onboarding-completed",
+    false
+  );
   const [isActive, setIsActive] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
-    if (!hasCompletedOnboarding) {
+    if (isClient && !hasCompletedOnboarding) {
       // Auto-start onboarding for new users after a short delay
       const timer = setTimeout(() => {
         setIsActive(true);
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [hasCompletedOnboarding]);
+  }, [hasCompletedOnboarding, isClient]);
+
+  // Show nothing until hydration complete
+  if (!isClient) {
+    return <>{children}</>;
+  }
 
   const start = () => {
     setIsActive(true);

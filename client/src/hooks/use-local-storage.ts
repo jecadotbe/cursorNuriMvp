@@ -1,12 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
 export function useLocalStorage<T>(key: string, initialValue: T) {
-  // Initialize state with a function to avoid localStorage access during SSR
-  const [storedValue, setStoredValue] = useState<T>(() => {
-    if (typeof window === 'undefined') {
-      return initialValue;
-    }
+  if (typeof window === 'undefined') {
+    // Return a dummy state handler for SSR
+    return [initialValue, () => {}] as const;
+  }
 
+  // Ensure we're in a browser context before using hooks
+  return useLocalStorageImpl(key, initialValue);
+}
+
+// Internal implementation that only runs in browser context
+function useLocalStorageImpl<T>(key: string, initialValue: T) {
+  const [storedValue, setStoredValue] = useState<T>(() => {
     try {
       const item = window.localStorage.getItem(key);
       return item ? JSON.parse(item) : initialValue;
@@ -16,12 +22,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
     }
   });
 
-  // Sync with localStorage whenever value changes
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
     try {
       window.localStorage.setItem(key, JSON.stringify(storedValue));
     } catch (error) {
