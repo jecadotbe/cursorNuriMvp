@@ -73,7 +73,7 @@ async function fetchUser(): Promise<User | null> {
     return userData;
   } catch (error) {
     console.error('[Auth] Error in fetchUser:', error);
-    return null;
+    throw error; // Let React Query handle the error
   }
 }
 
@@ -85,9 +85,7 @@ export function useUser() {
     queryKey: ['user'],
     queryFn: fetchUser,
     retry: false,
-    staleTime: 5000, // Consider data fresh for 5 seconds
-    gcTime: 30000, // Cache for 30 seconds
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false, // Disable auto-refetch on window focus
     refetchOnMount: true,
     refetchOnReconnect: true,
   });
@@ -96,6 +94,8 @@ export function useUser() {
     mutationFn: (userData) => handleRequest('/api/login', 'POST', userData),
     onSuccess: (result) => {
       if (result.ok) {
+        // Clear all queries before refetching user
+        queryClient.clear();
         queryClient.invalidateQueries({ queryKey: ['user'] });
         toast({
           title: "Success",
@@ -122,11 +122,14 @@ export function useUser() {
   const logoutMutation = useMutation<RequestResult, Error>({
     mutationFn: () => handleRequest('/api/logout', 'POST'),
     onMutate: () => {
+      // Immediately set user to null
       queryClient.setQueryData(['user'], null);
     },
     onSuccess: (result) => {
       if (result.ok) {
+        // Clear all query cache
         queryClient.clear();
+        // Reload the page to reset all state
         window.location.href = '/';
       }
     },
@@ -143,6 +146,8 @@ export function useUser() {
     mutationFn: (userData) => handleRequest('/api/register', 'POST', userData),
     onSuccess: (result) => {
       if (result.ok) {
+        // Clear all queries before refetching user
+        queryClient.clear();
         queryClient.invalidateQueries({ queryKey: ['user'] });
         toast({
           title: "Success",
