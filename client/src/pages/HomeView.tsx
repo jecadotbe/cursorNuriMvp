@@ -53,6 +53,8 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
 import { SuggestionFeedback } from "@/components/SuggestionFeedback";
 
+import { useBackgroundRefresh } from "@/hooks/use-background-refresh";
+
 export default function HomeView() {
   const { user } = useUser();
   useBackgroundRefresh();
