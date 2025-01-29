@@ -65,11 +65,15 @@ export function useSuggestion() {
           // Adjust currentIndex if needed
           const newIndex = Math.min(currentIndex, updatedSuggestions.length - 1);
           setCurrentIndex(newIndex);
+        } else {
+          // If no suggestions left, fetch new ones
+          const newSuggestions = await refetchQuery();
+          if (newSuggestions?.data) {
+            queryClient.setQueryData(['suggestions'], Array.isArray(newSuggestions.data) ? newSuggestions.data : [newSuggestions.data]);
+            setCurrentIndex(0);
+          }
         }
       }
-      
-      // Refetch to get new suggestions
-      refetchQuery();
     } catch (error) {
       console.error('Failed to dismiss suggestion:', error);
     }
