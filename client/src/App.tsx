@@ -30,7 +30,6 @@ function Router() {
 
   const showNavigation = !location.startsWith('/learn/') && !location.startsWith('/onboarding');
 
-  // If loading and no error, show loading state
   if (isLoading && !error) {
     console.log('[Auth] Loading user data...');
     return (
@@ -40,7 +39,6 @@ function Router() {
     );
   }
 
-  // If no user or error, show auth page
   if (!user || error) {
     console.log('[Auth] No user or error, showing auth page', { error });
     return <AuthPage />;

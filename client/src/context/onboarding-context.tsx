@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 
 type OnboardingStep = {
@@ -53,7 +53,11 @@ type OnboardingContextType = {
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
 
-export function OnboardingProvider({ children }: { children: React.ReactNode }) {
+interface OnboardingProviderProps {
+  children: ReactNode;
+}
+
+export function OnboardingProvider({ children }: OnboardingProviderProps) {
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage("onboarding-completed", false);
   const [isActive, setIsActive] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
