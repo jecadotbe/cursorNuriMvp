@@ -34,9 +34,11 @@ export const contactFrequencyEnum = pgEnum("contact_frequency_enum", [
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").unique().notNull(),
+  email: text("email").notNull(),
   password: text("password").notNull(),
   profilePicture: text("profile_picture"),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const parentProfiles = pgTable("parent_profiles", {

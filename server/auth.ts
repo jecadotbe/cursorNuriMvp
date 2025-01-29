@@ -35,6 +35,7 @@ export interface User {
   profilePicture: string | null;
   createdAt: Date;
   updatedAt: Date;
+  email: string; // Added email field
 }
 
 declare global {
@@ -45,6 +46,7 @@ declare global {
       profilePicture: string | null;
       createdAt: Date;
       updatedAt: Date;
+      email: string; // Added email field
     }
   }
 }
@@ -208,8 +210,8 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
-      if (!req.body.username || !req.body.password) {
-        return res.status(400).json({ message: "Username and password are required" });
+      if (!req.body.username || !req.body.password || !req.body.email) {
+        return res.status(400).json({ message: "Username, email, and password are required" });
       }
 
       const [existingUser] = await db
@@ -227,6 +229,7 @@ export function setupAuth(app: Express) {
         .insert(users)
         .values({
           username: req.body.username,
+          email: req.body.email,
           password: hashedPassword,
           createdAt: new Date(),
           updatedAt: new Date()
@@ -242,6 +245,7 @@ export function setupAuth(app: Express) {
           user: { 
             id: newUser.id, 
             username: newUser.username,
+            email: newUser.email,
             profilePicture: newUser.profilePicture
           },
         });
