@@ -49,6 +49,18 @@ export function useSuggestion() {
     }
   };
 
+  const dismissSuggestion = async (suggestionId: number) => {
+    try {
+      await fetch(`/api/suggestions/${suggestionId}/dismiss`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      refetch();
+    } catch (error) {
+      console.error('Failed to dismiss suggestion:', error);
+    }
+  };
+
   const refetch = async () => {
     try {
       console.log('Refetching suggestions...');

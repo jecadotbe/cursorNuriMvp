@@ -639,6 +639,36 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
     }
   });
 
+  // Dismiss a suggestion
+  app.post("/api/suggestions/:id/dismiss", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const user = req.user as User;
+    const suggestionId = parseInt(req.params.id);
+
+    if (isNaN(suggestionId)) {
+      return res.status(400).json({ message: "Invalid suggestion ID" });
+    }
+
+    try {
+      await db
+        .delete(promptSuggestions)
+        .where(
+          and(
+            eq(promptSuggestions.id, suggestionId),
+            eq(promptSuggestions.userId, user.id),
+          ),
+        );
+
+      res.json({ message: "Suggestion dismissed" });
+    } catch (error) {
+      console.error("Error dismissing suggestion:", error);
+      res.status(500).json({ message: "Failed to dismiss suggestion" });
+    }
+  });
+
   // Mark a suggestion as used
   app.post("/api/suggestions/:id/use", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {

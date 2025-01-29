@@ -234,7 +234,18 @@ export default function HomeView() {
           <div onClick={handlePromptClick} className="transition-opacity duration-300 ease-in-out animate-fade-in">
             <Card className="hover:shadow-md transition-shadow cursor-pointer mb-3 animate-border rounded-2xl">
               <CardContent className="p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between relative">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (suggestion) {
+                        dismissSuggestion(suggestion.id);
+                      }
+                    }}
+                    className="absolute top-0 right-0 p-2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-2 h-2 rounded-full" style={{
