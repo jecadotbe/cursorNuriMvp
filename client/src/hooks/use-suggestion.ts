@@ -82,9 +82,6 @@ export function useSuggestion() {
   const refetch = async () => {
     try {
       console.log('Refetching suggestions...');
-      await fetch('/api/suggestions?refresh=true', {
-        credentials: 'include'
-      });
       await refetchQuery();
       // Reset to first suggestion after refetch
       setCurrentIndex(0);

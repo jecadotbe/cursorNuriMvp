@@ -462,31 +462,21 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
 
     const user = req.user as User;
     const now = new Date();
-    const forceRefresh = req.query.refresh === 'true';
 
     try {
-      // Get existing valid suggestions first, unless force refresh is requested
-      if (!forceRefresh) {
-        const existingSuggestions = await db.query.promptSuggestions.findMany({
-          where: and(
-            eq(promptSuggestions.userId, user.id),
-            isNull(promptSuggestions.usedAt),
-            gte(promptSuggestions.expiresAt, now)
-          ),
-          orderBy: desc(promptSuggestions.createdAt),
-          limit: 3
-        });
+      // Get existing valid suggestions first
+      const existingSuggestions = await db.query.promptSuggestions.findMany({
+        where: and(
+          eq(promptSuggestions.userId, user.id),
+          isNull(promptSuggestions.usedAt),
+          gte(promptSuggestions.expiresAt, now)
+        ),
+        orderBy: desc(promptSuggestions.createdAt),
+        limit: 3
+      });
 
-        if (existingSuggestions.length >= 3) {
-          return res.json(existingSuggestions);
-        }
-      } else {
-        // Clear existing unused suggestions when force refreshing
-        await db.delete(promptSuggestions)
-          .where(and(
-            eq(promptSuggestions.userId, user.id),
-            isNull(promptSuggestions.usedAt)
-          ));
+      if (existingSuggestions.length >= 3) {
+        return res.json(existingSuggestions);
       }
 
       // Get user's profile and context
@@ -623,75 +613,46 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
         throw new Error("Response missing required prompt structure");
       }
 
-      // Generate 3 suggestions with titles
-      const suggestions = [];
-      for (let i = 0; i < 3; i++) {
-        const response = await anthropic.messages.create({
+      // Store the new suggestion with category
+      // Generate suggestion with dynamic title based on content
+      let generatedTitle;
+      try {
+        const titleResponse = await anthropic.messages.create({
           model: "claude-3-5-sonnet-20241022",
-          max_tokens: 300,
-          system: `${NURI_SYSTEM_PROMPT}\n\nGenerate a different suggestion than previous ones.`,
-          messages: [
-            {
-              role: "user",
-              content: `Based on the parent's profile and conversation history, generate a follow-up prompt that aligns with their priorities and needs. Format the response exactly like previous examples.`
-            }
-          ]
+          max_tokens: 50,
+          messages: [{
+            role: "user",
+            content: `Generate a short, descriptive title (max 5 words) for this suggestion: "${parsedResponse.prompt.text}". Respond with ONLY the title, no additional text.`
+          }]
         });
-
-        const responseText = response.content[0].type === "text" ? response.content[0].text : "";
-        let parsedResponse;
-        try {
-          parsedResponse = JSON.parse(responseText);
-        } catch (parseError) {
-          const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-          if (!jsonMatch) continue;
-          parsedResponse = JSON.parse(jsonMatch[0]);
-        }
-
-        if (!parsedResponse?.prompt?.text) continue;
-
-        // Generate title for suggestion
-        let generatedTitle;
-        try {
-          const titleResponse = await anthropic.messages.create({
-            model: "claude-3-5-sonnet-20241022",
-            max_tokens: 50,
-            messages: [{
-              role: "user",
-              content: `Generate a short, descriptive title (max 5 words) for this suggestion: "${parsedResponse.prompt.text}". Respond with ONLY the title, no additional text.`
-            }]
-          });
+        
+        generatedTitle = titleResponse.content[0].type === "text" 
+          ? titleResponse.content[0].text.trim().replace(/^["'](.+)["']$/, '$1') // Remove any quotes
+          : `Suggestion ${new Date().toLocaleDateString()}`;
           
-          generatedTitle = titleResponse.content[0].type === "text" 
-            ? titleResponse.content[0].text.trim().replace(/^["'](.+)["']$/, '$1')
-            : `Suggestion ${new Date().toLocaleDateString()}`;
-            
-          console.log('Generated title:', generatedTitle);
-        } catch (titleError) {
-          console.error('Error generating title:', titleError);
-          generatedTitle = `Suggestion ${new Date().toLocaleDateString()}`;
-        }
-
-        const [suggestion] = await db
-          .insert(promptSuggestions)
-          .values({
-            userId: user.id,
-            text: parsedResponse.prompt.text,
-            type: parsedResponse.prompt.type,
-            category: parsedResponse.prompt.category,
-            context: parsedResponse.prompt.context,
-            title: generatedTitle,
-            relevance: Math.floor(parsedResponse.prompt.relevance * 10),
-            relatedChatId: parsedResponse.prompt.relatedChatId || null,
-            relatedChatTitle: parsedResponse.prompt.relatedChatTitle || null,
-            expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
-          })
-          .returning();
-
-        suggestions.push(suggestion);
+        console.log('Generated title:', generatedTitle);
+      } catch (titleError) {
+        console.error('Error generating title:', titleError);
+        generatedTitle = `Suggestion ${new Date().toLocaleDateString()}`;
       }
 
-      res.json(suggestions);
+      const [suggestion] = await db
+        .insert(promptSuggestions)
+        .values({
+          userId: user.id,
+          text: parsedResponse.prompt.text,
+          type: parsedResponse.prompt.type,
+          category: parsedResponse.prompt.category,
+          context: parsedResponse.prompt.context,
+          title: generatedTitle,
+          relevance: Math.floor(parsedResponse.prompt.relevance * 10),
+          relatedChatId: parsedResponse.prompt.relatedChatId || null,
+          relatedChatTitle: parsedResponse.prompt.relatedChatTitle || null,
+          expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000), // Expire in 24 hours
+        })
+        .returning();
+
+      res.json(suggestion);
     } catch (error) {
       console.error("Suggestion generation error:", error);
       res.status(500).json({
