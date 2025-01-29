@@ -217,7 +217,8 @@ export default function HomeView() {
 
       {/* Chat Prompt */}
       <div className="px-5 py-6">
-        {(isLoading || suggestionLoading) ? (
+        {/* Only show skeleton when initially loading suggestions */}
+        {(suggestionLoading && !suggestion) ? (
           <Card className="bg-white mb-4">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
@@ -231,7 +232,7 @@ export default function HomeView() {
             </CardContent>
           </Card>
         ) : suggestion ? (
-          <div onClick={handlePromptClick} className="transition-opacity duration-300 ease-in-out opacity-0 animate-fade-in">
+          <div onClick={handlePromptClick} className="transition-opacity duration-300 ease-in-out animate-fade-in">
             <Card className="hover:shadow-md transition-shadow cursor-pointer mb-3 animate-border rounded-2xl">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">

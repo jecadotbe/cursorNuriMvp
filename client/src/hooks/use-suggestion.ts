@@ -4,15 +4,20 @@ import { useToast } from "./use-toast";
 import { useState } from "react";
 
 async function fetchSuggestions(): Promise<PromptSuggestion[]> {
+  console.log('Fetching suggestions...');
   const response = await fetch('/api/suggestions', {
     credentials: 'include',
   });
 
   if (!response.ok) {
-    throw new Error(`${response.status}: ${await response.text()}`);
+    const errorText = await response.text();
+    console.error('Failed to fetch suggestions:', errorText);
+    throw new Error(`${response.status}: ${errorText}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  console.log('Suggestions fetched:', data);
+  return data;
 }
 
 export function useSuggestion() {
@@ -30,7 +35,10 @@ export function useSuggestion() {
     queryFn: fetchSuggestions,
     staleTime: 5 * 60 * 1000, // Keep fresh for 5 minutes
     gcTime: 30 * 60 * 1000,   // Cache for 30 minutes
-    refetchOnMount: true
+    refetchOnMount: true,
+    retry: 1, // Only retry once to prevent long loading states
+    retryDelay: 1000, // Retry after 1 second
+    initialData: [], // Provide empty array as initial data to prevent undefined
   });
 
   // Get the current suggestion
@@ -44,6 +52,7 @@ export function useSuggestion() {
 
   const refetch = async () => {
     try {
+      console.log('Refetching suggestions...');
       await refetchQuery();
       // Reset to first suggestion after refetch
       setCurrentIndex(0);
@@ -59,6 +68,7 @@ export function useSuggestion() {
 
   const markAsUsed = async (suggestionId: number) => {
     try {
+      console.log('Marking suggestion as used:', suggestionId);
       const response = await fetch(`/api/suggestions/${suggestionId}/use`, {
         method: 'POST',
         credentials: 'include',
