@@ -244,33 +244,32 @@ export default function LearnView() {
           </h2>
           <div className="space-y-4">
             {podcasts.map((podcast, index) => (
-              <div key={index} className="bg-white p-4 rounded-lg shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 mr-4">
-                      <span className="text-sm text-gray-500 mb-1 block">Episode {podcast.number}</span>
-                      <h3 className="font-medium text-lg mb-2">{podcast.title}</h3>
-                      <div className="flex items-center space-x-4">
-                        <span className="text-xs bg-gray-100 px-2 py-1 rounded">
-                          {podcast.type}
-                        </span>
-                        <a
-                          href={podcast.spotifyUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center text-sm text-green-600 hover:text-green-700 transition-colors"
-                        >
-                          <Play className="w-4 h-4 mr-1" />
-                          PLAY ON SPOTIFY
-                        </a>
-                      </div>
+              <div key={index} className="bg-white p-4 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 mr-4">
+                    <h3 className="font-medium">{podcast.title}</h3>
+                    <div className="flex items-center space-x-4 mt-2">
+                      <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                        {podcast.type}
+                      </span>
+                      <a
+                        href={podcast.spotifyUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center text-sm  hover:text-green-500 transition-colors"
+                      >
+                        <Play className="w-4 h-4 mr-1" />
+                        PLAY ON SPOTIFY
+                      </a>
                     </div>
-                    <img
-                      src={podcast.artworkUrl}
-                      alt={podcast.title}
-                      className="w-24 h-24 rounded-lg object-cover flex-shrink-0 shadow-sm"
-                    />
                   </div>
+                  <img
+                    src={podcast.artworkUrl}
+                    alt={podcast.title}
+                    className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
+                  />
                 </div>
+              </div>
             ))}
           </div>
         </div>

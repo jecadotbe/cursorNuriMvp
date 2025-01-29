@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { useSuggestion } from "@/hooks/use-suggestion";
-import { MessageSquare, Users, Clock, ChevronRight, Wind, Heart, MessageCircle } from "lucide-react";
+import { MessageSquare, Users, Clock, ChevronRight } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
@@ -23,66 +22,17 @@ const handleImageError = (imageName: string, error: any) => {
 export default function HomeView() {
   const { user } = useUser();
   const { 
-    suggestion,
-    suggestions,
-    isLoading: suggestionLoading,
-    markAsUsed,
-    nextSuggestion,
-    currentIndex
+    suggestion, 
+    suggestions, 
+    isLoading: suggestionLoading, 
+    markAsUsed, 
+    nextSuggestion 
   } = useSuggestion();
   const [isLoading, setIsLoading] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [currentSuggestionId, setCurrentSuggestionId] = useState<number | null>(null);
   const { toast } = useToast();
   const [, navigate] = useLocation();
-
-  const actionChips = [
-    {
-      text: "Ik wil ventileren",
-      icon: <Wind className="w-4 h-4" />,
-    },
-    {
-      text: "Ik wil het hebben over mijn village",
-      icon: <Heart className="w-4 h-4" />,
-    },
-    {
-      text: "Gewoon chatten",
-      icon: <MessageCircle className="w-4 h-4" />,
-    },
-  ];
-
-  const handleChipClick = async (topic: string) => {
-    try {
-      const response = await fetch('/api/chats', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
-          messages: [{
-            role: 'assistant',
-            content: `Ik begrijp dat je ${topic.toLowerCase()}. Waar wil je het over hebben?`
-          }],
-        }),
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create new chat');
-      }
-
-      const newChat = await response.json();
-      navigate(`/chat/${newChat.id}`);
-    } catch (error) {
-      console.error('Error creating chat:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Could not start the conversation. Please try again.",
-      });
-    }
-  };
 
   const handlePromptClick = async () => {
     if (!suggestion) return;
@@ -185,115 +135,48 @@ export default function HomeView() {
             </CardContent>
           </Card>
         ) : suggestion ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="relative w-full overflow-visible"
-            style={{ touchAction: "none" }}
-          >
-            {/* Previous card preview */}
-            {currentIndex > 0 && (
-              <div 
-                className="absolute top-0 left-[-8px] w-full h-full -z-10 opacity-20 scale-95 pointer-events-none"
-                style={{ transform: 'translateX(-98%)' }}
-              >
-                <Card className="bg-white h-full">
-                  <CardContent className="p-4">
-                    <div className="blur-sm">{suggestions?.[currentIndex - 1]?.text}</div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-            {/* Next card preview */}
-            {suggestions && currentIndex < suggestions.length - 1 && (
-              <div 
-                className="absolute top-0 right-[-8px] w-full h-full -z-10 opacity-20 scale-95 pointer-events-none"
-                style={{ transform: 'translateX(98%)' }}
-              >
-                <Card className="bg-white h-full">
-                  <CardContent className="p-4">
-                    <div className="blur-sm">{suggestions?.[currentIndex + 1]?.text}</div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-            <motion.div
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.7}
-              onDragEnd={(e, { offset, velocity }) => {
-                const swipe = offset.x;
-                if (Math.abs(swipe) > 100) {
-                  nextSuggestion();
-                }
-              }}
-              whileDrag={{
-                scale: 1.02,
-                cursor: "grabbing"
-              }}
-              style={{
-                cursor: "grab"
-              }}
-              whileHover={{ scale: 1.02 }}
-              animate={{
-                x: 0,
-                transition: { type: "spring", stiffness: 300, damping: 30 }
-              }}
-            >
-            {/* Swipe indicators */}
-            <div className="absolute inset-x-0 bottom-[-24px] flex justify-center gap-1">
-              {suggestions?.map((_, idx) => (
-                <div
-                  key={idx}
-                  className={`w-1.5 h-1.5 rounded-full transition-all ${
-                    idx === currentIndex ? 'bg-orange-500 scale-125' : 'bg-gray-300'
-                  }`}
-                />
-              ))}
-            </div>
-              <Card 
-                className="hover:shadow-md transition-shadow mb-3 animate-border rounded-2xl bg-white"
-                onClick={handlePromptClick}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                        <div className="text-orange-500 font-semibold text-sm tracking-wide uppercase">
-                          Op basis van onze gesprekken
-                        </div>
+          <div onClick={handlePromptClick} className="transition-opacity duration-300 ease-in-out opacity-0 animate-fade-in">
+            <Card className="bg-white hover:shadow-md transition-shadow cursor-pointer mb-4 animate-border">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                      <div className="text-orange-500 font-semibold text-sm tracking-wide uppercase">
+                        Op basis van onze gesprekken
                       </div>
-                      <p className="text-lg pr-8">{suggestion.text}</p>
-                      {suggestion.context === "existing" && suggestion.relatedChatTitle && (
-                        <div className="mt-2 text-sm text-gray-500 flex items-center gap-2">
-                          <MessageSquare className="w-4 h-4" />
-                          <span>Vervolg op: {suggestion.relatedChatTitle}</span>
-                        </div>
-                      )}
                     </div>
-                    <ChevronRight className="w-6 h-6 text-gray-400 flex-shrink-0" />
+                    <p className="text-lg pr-8">{suggestion.text}</p>
+                    {suggestion.context === "existing" && suggestion.relatedChatTitle && (
+                      <div className="mt-2 text-sm text-gray-500 flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4" />
+                        <span>Vervolg op: {suggestion.relatedChatTitle}</span>
+                      </div>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </motion.div>
+                  <ChevronRight className="w-6 h-6 text-gray-400 flex-shrink-0" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         ) : null}
-        
-
-        {/* Action Chips */}
-        <div className="flex flex-wrap gap-2 mt-8">
-          {actionChips.map((chip, index) => (
-            <button
-              key={index}
-              onClick={() => handleChipClick(chip.text)}
-              className="inline-flex items-center px-4 py-2 rounded-full bg-white border border-[#E5E7EB] hover:shadow-md transition-all text-sm text-gray-700"
+        {suggestion && (
+          <div className="flex justify-end mt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setIsLoading(true);
+                nextSuggestion();
+                setIsLoading(false);
+              }}
+              disabled={isLoading || suggestionLoading || !suggestions?.length}
+              className="flex items-center gap-2"
             >
-              {chip.icon}
-              <span className="ml-2">{chip.text}</span>
-            </button>
-          ))}
-        </div>
+              <span>Toon andere suggestie ({suggestions?.length || 0})</span>
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Village Section */}

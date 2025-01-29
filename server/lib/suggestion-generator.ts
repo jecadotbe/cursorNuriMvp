@@ -12,30 +12,6 @@ export async function generateVillageSuggestions(
   const gaps = analyzeVillageGaps(members);
   const suggestions = [];
 
-  // Always provide some default suggestions if none are generated
-  if (suggestions.length === 0) {
-    suggestions.push({
-      type: 'conversation_starter',
-      priority: 'high',
-      text: 'Vertel me eens over een recente situatie met je kind die je lastig vond.',
-      context: 'new'
-    });
-    
-    suggestions.push({
-      type: 'reflection',
-      priority: 'medium',
-      text: 'Hoe voel je je op dit moment over je ouderschap?',
-      context: 'new'
-    });
-    
-    suggestions.push({
-      type: 'network_growth',
-      priority: 'medium',
-      text: 'Met wie praat je meestal over je ouderschap?',
-      context: 'new'
-    });
-  }
-
   // Get context from recent chats
   const chatContext = recentChats
     .map(chat => chat.messages)
