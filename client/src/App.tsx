@@ -26,14 +26,17 @@ function Router() {
 
   useEffect(() => {
     // Force session check on initial load
-    checkSession();
-    
+    if (checkSession) {
+      checkSession();
+    }
+
     if (location.includes('initialPath')) {
       const cleanPath = new URLSearchParams(location.split('?')[1]).get('initialPath') || '/';
       setLocation(cleanPath);
     }
     window.scrollTo(0, 0);
-  }, []);
+  }, [checkSession]);
+
   const showNavigation = !location.startsWith('/learn/') && !location.startsWith('/onboarding');
 
   if (isLoading) {
