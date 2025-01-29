@@ -28,17 +28,10 @@ const crypto = {
   },
 };
 
-// Define a proper User interface that matches the database schema
-export interface User {
-  id: number;
-  username: string;
-  password: string;
-}
-
+// Use the database schema type directly
 declare global {
   namespace Express {
-    // Use the properly defined User interface
-    interface User extends User {}
+    interface User extends typeof users.$inferSelect { }
   }
 }
 
@@ -90,7 +83,7 @@ export function setupAuth(app: Express) {
     })
   );
 
-  passport.serializeUser((user, done) => {
+  passport.serializeUser((user: Express.User, done) => {
     done(null, user.id);
   });
 
@@ -101,6 +94,10 @@ export function setupAuth(app: Express) {
         .from(users)
         .where(eq(users.id, id))
         .limit(1);
+
+      if (!user) {
+        return done(null, false);
+      }
       done(null, user);
     } catch (err) {
       done(err);
@@ -109,26 +106,32 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
-      if (!req.body.username || !req.body.password) {
+      const { username, password } = req.body;
+
+      if (!username || !password) {
         return res.status(400).send("Username and password are required");
       }
 
+      // Check if user already exists
       const [existingUser] = await db
         .select()
         .from(users)
-        .where(eq(users.username, req.body.username))
+        .where(eq(users.username, username))
         .limit(1);
 
       if (existingUser) {
         return res.status(400).send("Username already exists");
       }
 
-      const hashedPassword = await crypto.hash(req.body.password);
+      const hashedPassword = await crypto.hash(password);
+
+      // Create new user with only required fields
       const [newUser] = await db
         .insert(users)
         .values({
-          username: req.body.username,
+          username,
           password: hashedPassword,
+          createdAt: new Date(),
         })
         .returning();
 
@@ -141,17 +144,22 @@ export function setupAuth(app: Express) {
           user: { id: newUser.id, username: newUser.username },
         });
       });
-    } catch (error) {
+    } catch (error: any) {
+      if (error.code === '23502') { // PostgreSQL not-null violation
+        return res.status(400).send("Missing required fields");
+      }
       next(error);
     }
   });
 
   app.post("/api/login", (req, res, next) => {
-    if (!req.body.username || !req.body.password) {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
       return res.status(400).send("Username and password are required");
     }
 
-    passport.authenticate("local", (err: any, user: User | false, info: IVerifyOptions) => {
+    passport.authenticate("local", (err: any, user: Express.User | false, info: IVerifyOptions) => {
       if (err) {
         return next(err);
       }
@@ -160,7 +168,7 @@ export function setupAuth(app: Express) {
         return res.status(400).send(info.message ?? "Login failed");
       }
 
-      req.logIn(user, (err) => {
+      req.login(user, (err) => {
         if (err) {
           return next(err);
         }
@@ -174,11 +182,21 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/logout", (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(200).json({ message: "No active session" });
+    }
+
     req.logout((err) => {
       if (err) {
         return res.status(500).send("Logout failed");
       }
-      res.json({ message: "Logout successful" });
+      req.session.destroy((err) => {
+        if (err) {
+          return res.status(500).send("Session destruction failed");
+        }
+        res.clearCookie('connect.sid');
+        res.json({ message: "Logout successful" });
+      });
     });
   });
 
