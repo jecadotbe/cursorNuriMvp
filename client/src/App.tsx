@@ -25,8 +25,15 @@ function Router() {
   const [location, setLocation] = useLocation();
 
   useEffect(() => {
+    console.log('[App Debug] Router mounted, current state:', {
+      user,
+      isLoading,
+      location
+    });
+
     // Force session check on initial load
     if (checkSession) {
+      console.log('[App Debug] Running initial session check');
       checkSession();
     }
 
@@ -40,6 +47,7 @@ function Router() {
   const showNavigation = !location.startsWith('/learn/') && !location.startsWith('/onboarding');
 
   if (isLoading) {
+    console.log('[App Debug] App is in loading state');
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-border" />
@@ -47,7 +55,10 @@ function Router() {
     );
   }
 
+  console.log('[App Debug] Rendering app with user state:', user);
+
   if (!user) {
+    console.log('[App Debug] No user found, showing AuthPage');
     return <AuthPage />;
   }
 
@@ -75,6 +86,7 @@ function Router() {
 }
 
 function App() {
+  console.log('[App Debug] Initial App component mount');
   return (
     <QueryClientProvider client={queryClient}>
       <OnboardingProvider>

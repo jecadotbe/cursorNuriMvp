@@ -3,6 +3,22 @@ import type { InsertUser, User } from "@db/schema";
 import { useToast } from '@/hooks/use-toast';
 import { useCallback, useEffect } from 'react';
 
+// Function to clear all browser storage
+const clearBrowserStorage = () => {
+  console.log('[Auth Debug] Clearing browser storage');
+  try {
+    // Clear React Query cache
+    window.localStorage.removeItem('reactQueryCache');
+    // Clear all localStorage
+    window.localStorage.clear();
+    // Clear all sessionStorage
+    window.sessionStorage.clear();
+    console.log('[Auth Debug] Browser storage cleared');
+  } catch (error) {
+    console.error('[Auth Debug] Error clearing browser storage:', error);
+  }
+};
+
 type RequestResult = {
   ok: true;
   message?: string;
@@ -90,6 +106,7 @@ export function useUser() {
   // Helper to clear all auth-related data
   const clearAuthData = useCallback(() => {
     console.log('[Auth Debug] Clearing all auth data');
+    clearBrowserStorage();
     queryClient.clear(); // Clear all queries
     queryClient.setQueryData(['user'], null);
     console.log('[Auth Debug] Current cache state after clear:', {
@@ -141,6 +158,8 @@ export function useUser() {
 
   useEffect(() => {
     console.log('[Auth Debug] Initial mount, current user state:', user);
+    // Clear storage on initial mount
+    clearBrowserStorage();
     checkSession();
   }, [checkSession]);
 
