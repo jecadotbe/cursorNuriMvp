@@ -139,6 +139,7 @@ export function useUser() {
     user,
     isLoading,
     error,
+    checkSession,
     login: loginMutation.mutateAsync,
     logout: logoutMutation.mutateAsync,
     register: registerMutation.mutateAsync,
