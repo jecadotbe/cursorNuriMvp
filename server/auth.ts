@@ -34,8 +34,7 @@ export interface User {
   password: string;
   profilePicture: string | null;
   createdAt: Date;
-  updatedAt: Date;
-  email: string; // Added email field
+  email: string;
 }
 
 declare global {
@@ -45,8 +44,7 @@ declare global {
       username: string;
       profilePicture: string | null;
       createdAt: Date;
-      updatedAt: Date;
-      email: string; // Added email field
+      email: string;
     }
   }
 }
@@ -72,18 +70,18 @@ export function setupAuth(app: Express) {
     secret: process.env.SESSION_SECRET || randomBytes(32).toString('hex'),
     resave: false,
     saveUninitialized: false,
-    name: 'nuri.session', // Custom session cookie name
-    rolling: true, // Reset expiration on each request
+    name: 'nuri.session',
+    rolling: true,
     cookie: {
       secure: app.get("env") === "production",
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      maxAge: 24 * 60 * 60 * 1000,
       sameSite: 'lax',
       path: '/'
     },
     store: new MemoryStore({
-      checkPeriod: 86400000, // prune expired entries every 24h
-      ttl: 24 * 60 * 60 * 1000 // Session TTL (24 hours)
+      checkPeriod: 86400000,
+      ttl: 24 * 60 * 60 * 1000
     }),
   };
 
@@ -96,7 +94,6 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Add session validation middleware
   app.use((req, res, next) => {
     if (req.path.startsWith('/api/') && !req.path.startsWith('/api/login') && !req.path.startsWith('/api/register')) {
       if (!req.session || !req.session.passport) {
@@ -149,6 +146,52 @@ export function setupAuth(app: Express) {
     }
   });
 
+  app.post("/api/register", async (req, res, next) => {
+    try {
+      if (!req.body.username || !req.body.password || !req.body.email) {
+        return res.status(400).json({ message: "Username, email, and password are required" });
+      }
+
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, req.body.username))
+        .limit(1);
+
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+
+      const hashedPassword = await crypto.hash(req.body.password);
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          username: req.body.username,
+          email: req.body.email,
+          password: hashedPassword,
+          createdAt: new Date(),
+        })
+        .returning();
+
+      req.login(newUser, (err) => {
+        if (err) {
+          return next(err);
+        }
+        return res.json({
+          message: "Registration successful",
+          user: { 
+            id: newUser.id, 
+            username: newUser.username,
+            email: newUser.email,
+            profilePicture: newUser.profilePicture
+          },
+        });
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.post("/api/login", (req, res, next) => {
     if (!req.body.username || !req.body.password) {
       return res.status(400).json({ message: "Username and password are required" });
@@ -178,6 +221,7 @@ export function setupAuth(app: Express) {
           user: { 
             id: user.id, 
             username: user.username,
+            email: user.email,
             profilePicture: user.profilePicture
           },
         });
@@ -186,7 +230,6 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/logout", (req, res) => {
-    // Only attempt logout if user is actually authenticated
     if (!req.isAuthenticated()) {
       return res.status(400).json({ message: "Not logged in" });
     }
@@ -196,7 +239,6 @@ export function setupAuth(app: Express) {
         return res.status(500).json({ message: "Logout failed" });
       }
 
-      // Clear session cookie
       res.clearCookie('nuri.session', {
         path: '/',
         httpOnly: true,
@@ -208,56 +250,8 @@ export function setupAuth(app: Express) {
     });
   });
 
-  app.post("/api/register", async (req, res, next) => {
-    try {
-      if (!req.body.username || !req.body.password || !req.body.email) {
-        return res.status(400).json({ message: "Username, email, and password are required" });
-      }
-
-      const [existingUser] = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, req.body.username))
-        .limit(1);
-
-      if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
-      }
-
-      const hashedPassword = await crypto.hash(req.body.password);
-      const [newUser] = await db
-        .insert(users)
-        .values({
-          username: req.body.username,
-          email: req.body.email,
-          password: hashedPassword,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        })
-        .returning();
-
-      req.login(newUser, (err) => {
-        if (err) {
-          return next(err);
-        }
-        return res.json({
-          message: "Registration successful",
-          user: { 
-            id: newUser.id, 
-            username: newUser.username,
-            email: newUser.email,
-            profilePicture: newUser.profilePicture
-          },
-        });
-      });
-    } catch (error) {
-      next(error);
-    }
-  });
-
   app.get("/api/user", (req, res) => {
     if (req.isAuthenticated()) {
-      // Check session validity
       if (!req.session?.passport?.user) {
         return res.status(401).json({ message: "Session expired" });
       }

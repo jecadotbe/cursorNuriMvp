@@ -38,7 +38,6 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   profilePicture: text("profile_picture"),
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const parentProfiles = pgTable("parent_profiles", {
