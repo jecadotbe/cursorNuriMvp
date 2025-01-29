@@ -2,7 +2,7 @@ import passport from "passport";
 import { IVerifyOptions, Strategy as LocalStrategy } from "passport-local";
 import { type Express } from "express";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import PgSession from "connect-pg-simple";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { users } from "@db/schema";
@@ -28,44 +28,57 @@ const crypto = {
   },
 };
 
+// Extend express User type with our schema
 declare global {
   namespace Express {
-    interface User extends typeof users.$inferSelect { }
+    interface User {
+      id: number;
+      username: string;
+      password: string;
+      createdAt: Date;
+    }
   }
 }
 
 export function setupAuth(app: Express) {
-  // Create a new MemoryStore instance for each server start
-  const store = new (createMemoryStore(session))({
-    checkPeriod: 86400000, // prune expired entries every 24h
-    stale: false, // Don't serve stale sessions
-    noDisposeOnSet: true, // Don't dispose old sessions on set
-  });
+  // Initialize PostgreSQL session store
+  const PostgresStore = PgSession(session);
 
-  // Clear all sessions immediately
-  store.clear();
+  // Use a stable session secret
+  const SESSION_SECRET = process.env.SESSION_SECRET || randomBytes(32).toString('hex');
 
-  const sessionSecret = randomBytes(32).toString('hex');
-
-  app.use(session({
-    secret: sessionSecret,
+  const sessionConfig: session.SessionOptions = {
+    secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    store: store,
-    name: 'nuri.sid', // Custom session cookie name
+    store: new PostgresStore({
+      conObject: {
+        connectionString: process.env.DATABASE_URL,
+      },
+      tableName: 'sessions',
+      createTableIfMissing: true,
+      pruneSessionInterval: 24 * 60 * 60 // Prune expired sessions every 24h
+    }),
+    name: 'nuri.sid',
     cookie: {
       secure: app.get("env") === "production",
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       sameSite: 'lax'
     }
-  }));
+  };
 
-  // Initialize passport after session middleware
+  // Enable secure cookies in production
+  if (app.get("env") === "production") {
+    app.set("trust proxy", 1);
+    sessionConfig.cookie!.secure = true;
+  }
+
+  app.use(session(sessionConfig));
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Add debugging middleware to track session and auth state
+  // Add debugging middleware
   app.use((req, res, next) => {
     console.log(`[AUTH] ${req.method} ${req.path} - authenticated: ${req.isAuthenticated()}`);
     if (req.user) {
@@ -180,16 +193,11 @@ export function setupAuth(app: Express) {
       });
     } catch (error: any) {
       console.error("[AUTH] Registration error:", error);
-      if (error.code === '23502') {
-        return res.status(400).send("Missing required fields");
-      }
       next(error);
     }
   });
 
   app.post("/api/login", (req, res, next) => {
-    console.log("[AUTH] Login attempt:", req.body.username);
-
     const { username, password } = req.body;
 
     if (!username || !password) {
@@ -236,20 +244,18 @@ export function setupAuth(app: Express) {
     const username = req.user?.username;
     console.log(`[AUTH] Logout attempt for user: ${username}`);
 
-    // Clear the session from the store
-    store.destroy(req.sessionID, (err) => {
+    req.logout((err) => {
       if (err) {
-        console.error("[AUTH] Session store destruction error:", err);
-        return res.status(500).send("Session destruction failed");
+        console.error("[AUTH] Logout error:", err);
+        return res.status(500).send("Logout failed");
       }
 
-      req.logout((err) => {
+      req.session.destroy((err) => {
         if (err) {
-          console.error("[AUTH] Logout error:", err);
-          return res.status(500).send("Logout failed");
+          console.error("[AUTH] Session destruction error:", err);
+          return res.status(500).send("Session destruction failed");
         }
 
-        // Clear session cookie
         res.clearCookie('nuri.sid');
         console.log(`[AUTH] Logout successful for user: ${username}`);
         res.json({ message: "Logout successful" });
