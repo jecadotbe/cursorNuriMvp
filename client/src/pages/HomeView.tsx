@@ -76,6 +76,12 @@ export default function HomeView() {
   const isLoadingState = suggestionLoading || isRefreshing;
   const [isLoading, setIsLoading] = useState(false);
   const [showSkeleton, setShowSkeleton] = useState(true);
+  
+  useEffect(() => {
+    if (!isLoadingState && suggestions?.length > 0) {
+      setShowSkeleton(false);
+    }
+  }, [isLoadingState, suggestions]);
 
   // Keep skeleton visible if we have at least one suggestion
   useEffect(() => {

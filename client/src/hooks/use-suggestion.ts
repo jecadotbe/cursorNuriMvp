@@ -87,8 +87,10 @@ export function useSuggestion() {
       }
       console.log('Refetching suggestions...');
       const result = await refetchQuery();
-      if (result.data && Array.isArray(result.data)) {
-        queryClient.setQueryData(['suggestions'], result.data);
+      if (result.data) {
+        const newSuggestions = Array.isArray(result.data) ? result.data : [result.data];
+        console.log('New suggestions:', newSuggestions);
+        queryClient.setQueryData(['suggestions'], newSuggestions);
         setCurrentIndex(0);
       }
     } catch (error) {
