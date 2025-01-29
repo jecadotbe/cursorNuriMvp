@@ -19,7 +19,13 @@ async function handleRequest(
   try {
     const response = await fetch(url, {
       method,
-      headers: body ? { "Content-Type": "application/json" } : undefined,
+      headers: {
+        ...(body ? { "Content-Type": "application/json" } : {}),
+        // Add cache-busting headers
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      },
       body: body ? JSON.stringify(body) : undefined,
       credentials: "include",
     });
@@ -42,7 +48,12 @@ async function handleRequest(
 
 async function fetchUser(): Promise<User | null> {
   const response = await fetch('/api/user', {
-    credentials: 'include'
+    credentials: 'include',
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    }
   });
 
   if (!response.ok) {
@@ -60,21 +71,33 @@ export function useUser() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Helper to clear all auth-related data
+  const clearAuthData = useCallback(() => {
+    queryClient.clear(); // Clear all queries
+    queryClient.setQueryData(['user'], null);
+  }, [queryClient]);
+
   const checkSession = useCallback(async () => {
     try {
       await queryClient.invalidateQueries({ queryKey: ['user'] });
-      const response = await fetch('/api/user', { credentials: 'include' });
-      if (!response.ok) {
-        if (response.status === 401) {
-          // Clear the cache when session is invalid
-          queryClient.setQueryData(['user'], null);
+      const response = await fetch('/api/user', { 
+        credentials: 'include',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         }
+      });
+
+      if (!response.ok) {
+        clearAuthData();
         throw new Error('Session check failed');
       }
     } catch (error) {
+      clearAuthData();
       console.error('Session check error:', error);
     }
-  }, [queryClient]);
+  }, [queryClient, clearAuthData]);
 
   const { data: user, error, isLoading } = useQuery<User | null, Error>({
     queryKey: ['user'],
@@ -82,11 +105,9 @@ export function useUser() {
     retry: false,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
-    onError: (error) => {
-      // Clear cache on any auth errors
-      if (error.message.includes('401')) {
-        queryClient.setQueryData(['user'], null);
-      }
+    refetchOnReconnect: true,
+    onError: () => {
+      clearAuthData();
     }
   });
 
@@ -106,6 +127,7 @@ export function useUser() {
       }
     },
     onError: (error) => {
+      clearAuthData();
       toast({
         variant: "destructive",
         title: "Error",
@@ -118,9 +140,7 @@ export function useUser() {
     mutationFn: () => handleRequest('/api/logout', 'POST'),
     onSuccess: (result) => {
       if (result.ok) {
-        // Immediately clear the user data from cache
-        queryClient.setQueryData(['user'], null);
-        queryClient.invalidateQueries({ queryKey: ['user'] });
+        clearAuthData();
         toast({
           title: "Success",
           description: result.message,
@@ -128,6 +148,7 @@ export function useUser() {
       }
     },
     onError: (error) => {
+      clearAuthData();
       toast({
         variant: "destructive",
         title: "Error",
@@ -148,6 +169,7 @@ export function useUser() {
       }
     },
     onError: (error) => {
+      clearAuthData();
       toast({
         variant: "destructive",
         title: "Error",

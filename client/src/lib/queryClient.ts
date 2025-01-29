@@ -11,6 +11,11 @@ export const queryClient = new QueryClient({
       queryFn: async ({ queryKey }) => {
         const res = await fetch(queryKey[0] as string, {
           credentials: "include",
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
         });
 
         if (!res.ok) {
@@ -20,6 +25,7 @@ export const queryClient = new QueryClient({
           if (res.status === 401) {
             // Force clear cache on auth errors
             queryClient.setQueryData(['user'], null);
+            queryClient.clear();
             throw new Error("Not authenticated");
           }
           if (res.status >= 500) {
@@ -34,6 +40,7 @@ export const queryClient = new QueryClient({
       refetchInterval: false,
       refetchOnMount: true,
       refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
       retry: (failureCount, error) => {
         // Don't retry auth failures
         if (error instanceof Error && error.message.includes('401')) {
