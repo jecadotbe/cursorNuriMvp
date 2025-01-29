@@ -241,6 +241,8 @@ export default function HomeView() {
                       e.stopPropagation();
                       if (suggestion) {
                         dismissSuggestion(suggestion.id);
+                        // Move to next suggestion if available
+                        nextSuggestion();
                       }
                     }}
                     className="absolute top-0 right-0 p-2 text-gray-400 hover:text-gray-600"
