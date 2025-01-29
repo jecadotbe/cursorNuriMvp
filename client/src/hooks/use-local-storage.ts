@@ -1,8 +1,8 @@
-import * as React from "react";
+import { useState, useEffect } from "react";
 
 export function useLocalStorage<T>(key: string, initialValue: T) {
   // Initialize state with a function to avoid localStorage access during SSR
-  const [storedValue, setStoredValue] = React.useState<T>(() => {
+  const [storedValue, setStoredValue] = useState<T>(() => {
     if (typeof window === 'undefined') {
       return initialValue;
     }
@@ -17,7 +17,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
   });
 
   // Sync with localStorage whenever value changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (typeof window === 'undefined') {
       return;
     }
