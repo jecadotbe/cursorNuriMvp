@@ -21,12 +21,27 @@ import LearnDetailView from "./pages/LearnDetailView";
 import OnboardingPage from "@/pages/onboarding";
 
 function Router() {
-  const { user, isLoading } = useUser();
-  const [location] = useLocation();
+  const { user, isLoading, logout } = useUser();
+  const [location, setLocation] = useLocation();
+
+  // Clear any existing auth state on component mount
+  useEffect(() => {
+    const clearExistingSession = async () => {
+      try {
+        await logout();
+        queryClient.clear(); // Clear all cached queries
+        queryClient.invalidateQueries({ queryKey: ['user'] });
+      } catch (error) {
+        console.error('Error clearing session:', error);
+      }
+    };
+    clearExistingSession();
+  }, []);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location]);
+
   const showNavigation = !location.startsWith('/learn/') && !location.startsWith('/onboarding');
 
   if (isLoading) {
@@ -37,8 +52,15 @@ function Router() {
     );
   }
 
+  // Redirect to home for the welcome page if not authenticated
+  if (!user && location !== '/') {
+    setLocation('/');
+    return null;
+  }
+
+  // Show HomeView (which includes WelcomeView for unauthenticated users)
   if (!user) {
-    return <AuthPage />;
+    return <HomeView />;
   }
 
   return (

@@ -18,7 +18,13 @@ async function handleRequest(
   try {
     const response = await fetch(url, {
       method,
-      headers: body ? { "Content-Type": "application/json" } : undefined,
+      headers: {
+        ...(body ? { "Content-Type": "application/json" } : {}),
+        // Add cache control headers
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      },
       body: body ? JSON.stringify(body) : undefined,
       credentials: "include",
     });
@@ -41,14 +47,18 @@ async function handleRequest(
 
 async function fetchUser(): Promise<User | null> {
   const response = await fetch('/api/user', {
-    credentials: 'include'
+    credentials: 'include',
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    }
   });
 
   if (!response.ok) {
     if (response.status === 401) {
       return null;
     }
-
     throw new Error(`${response.status}: ${await response.text()}`);
   }
 
@@ -62,7 +72,8 @@ export function useUser() {
   const { data: user, error, isLoading } = useQuery<User | null, Error>({
     queryKey: ['user'],
     queryFn: fetchUser,
-    staleTime: Infinity,
+    staleTime: 0, // Always refetch
+    cacheTime: 0, // Don't cache
     retry: false
   });
 
@@ -90,6 +101,7 @@ export function useUser() {
     mutationFn: () => handleRequest('/api/logout', 'POST'),
     onSuccess: (result) => {
       if (result.ok) {
+        queryClient.clear(); // Clear all queries
         queryClient.invalidateQueries({ queryKey: ['user'] });
         toast({
           title: "Success",
