@@ -112,5 +112,6 @@ export function useSuggestion() {
     refetch,
     markAsUsed,
     nextSuggestion,
+    dismissSuggestion,
   };
 }
