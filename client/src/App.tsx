@@ -22,9 +22,14 @@ import OnboardingPage from "@/pages/onboarding";
 
 function Router() {
   const { user, isLoading } = useUser();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
 
   useEffect(() => {
+    // Clean up URL if it contains initialPath params
+    if (location.includes('initialPath')) {
+      const cleanPath = new URLSearchParams(location.split('?')[1]).get('initialPath') || '/';
+      setLocation(cleanPath);
+    }
     window.scrollTo(0, 0);
   }, [location]);
   const showNavigation = !location.startsWith('/learn/') && !location.startsWith('/onboarding');
