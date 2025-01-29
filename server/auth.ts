@@ -55,6 +55,9 @@ export function setupAuth(app: Express) {
   // Add security headers
   app.use((req, res, next) => {
     res.set({
+      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+      'X-Frame-Options': 'SAMEORIGIN',
+      'X-Content-Type-Options': 'nosniff',
       'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
       'Pragma': 'no-cache',
       'Expires': '0',
@@ -67,24 +70,42 @@ export function setupAuth(app: Express) {
     secret: process.env.SESSION_SECRET || randomBytes(32).toString('hex'),
     resave: false,
     saveUninitialized: false,
+    name: 'nuri.session', // Custom session cookie name
+    rolling: true, // Reset expiration on each request
     cookie: {
       secure: app.get("env") === "production",
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: 'lax'
+      sameSite: 'lax',
+      path: '/'
     },
     store: new MemoryStore({
       checkPeriod: 86400000, // prune expired entries every 24h
+      ttl: 24 * 60 * 60 * 1000 // Session TTL (24 hours)
     }),
   };
 
   if (app.get("env") === "production") {
     app.set("trust proxy", 1);
+    sessionSettings.cookie!.secure = true;
   }
 
   app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());
+
+  // Add session validation middleware
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api/') && !req.path.startsWith('/api/login') && !req.path.startsWith('/api/register')) {
+      if (!req.session || !req.session.passport) {
+        if (req.xhr || req.path.startsWith('/api/')) {
+          return res.status(401).json({ message: "Session expired" });
+        }
+        return res.redirect('/');
+      }
+    }
+    next();
+  });
 
   passport.use(
     new LocalStrategy(async (username, password, done) => {
@@ -126,6 +147,42 @@ export function setupAuth(app: Express) {
     }
   });
 
+  app.post("/api/login", (req, res, next) => {
+    if (!req.body.username || !req.body.password) {
+      return res.status(400).json({ message: "Username and password are required" });
+    }
+
+    passport.authenticate("local", (err: any, user: User | false, info: IVerifyOptions) => {
+      if (err) {
+        return next(err);
+      }
+
+      if (!user) {
+        return res.status(400).json({ message: info.message ?? "Login failed" });
+      }
+
+      // Handle remember me functionality
+      if (req.body.rememberMe) {
+        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+      }
+
+      req.logIn(user, (err) => {
+        if (err) {
+          return next(err);
+        }
+
+        return res.json({
+          message: "Login successful",
+          user: { 
+            id: user.id, 
+            username: user.username,
+            profilePicture: user.profilePicture
+          },
+        });
+      });
+    })(req, res, next);
+  });
+
   app.post("/api/logout", (req, res) => {
     // Only attempt logout if user is actually authenticated
     if (!req.isAuthenticated()) {
@@ -138,7 +195,7 @@ export function setupAuth(app: Express) {
       }
 
       // Clear session cookie
-      res.clearCookie('connect.sid', {
+      res.clearCookie('nuri.session', {
         path: '/',
         httpOnly: true,
         secure: app.get("env") === "production",
@@ -171,6 +228,8 @@ export function setupAuth(app: Express) {
         .values({
           username: req.body.username,
           password: hashedPassword,
+          createdAt: new Date(),
+          updatedAt: new Date()
         })
         .returning();
 
@@ -180,7 +239,11 @@ export function setupAuth(app: Express) {
         }
         return res.json({
           message: "Registration successful",
-          user: { id: newUser.id, username: newUser.username },
+          user: { 
+            id: newUser.id, 
+            username: newUser.username,
+            profilePicture: newUser.profilePicture
+          },
         });
       });
     } catch (error) {
@@ -188,35 +251,12 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", (req, res, next) => {
-    if (!req.body.username || !req.body.password) {
-      return res.status(400).json({ message: "Username and password are required" });
-    }
-
-    passport.authenticate("local", (err: any, user: User | false, info: IVerifyOptions) => {
-      if (err) {
-        return next(err);
-      }
-
-      if (!user) {
-        return res.status(400).json({ message: info.message ?? "Login failed" });
-      }
-
-      req.logIn(user, (err) => {
-        if (err) {
-          return next(err);
-        }
-
-        return res.json({
-          message: "Login successful",
-          user: { id: user.id, username: user.username },
-        });
-      });
-    })(req, res, next);
-  });
-
   app.get("/api/user", (req, res) => {
     if (req.isAuthenticated()) {
+      // Check session validity
+      if (!req.session?.passport?.user) {
+        return res.status(401).json({ message: "Session expired" });
+      }
       return res.json(req.user);
     }
     res.status(401).json({ message: "Not logged in" });
