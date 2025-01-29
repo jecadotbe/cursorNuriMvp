@@ -16,6 +16,7 @@ async function handleRequest(
   method: string,
   body?: InsertUser
 ): Promise<RequestResult> {
+  console.log(`[Auth Debug] Making ${method} request to ${url}`, { body });
   try {
     const response = await fetch(url, {
       method,
@@ -30,23 +31,29 @@ async function handleRequest(
       credentials: "include",
     });
 
+    console.log(`[Auth Debug] Response status:`, response.status);
+
     if (!response.ok) {
       if (response.status >= 500) {
         return { ok: false, message: response.statusText };
       }
 
       const message = await response.text();
+      console.log(`[Auth Debug] Error response:`, message);
       return { ok: false, message };
     }
 
     const data = await response.json();
+    console.log(`[Auth Debug] Success response:`, data);
     return { ok: true, message: data.message };
   } catch (e: any) {
+    console.error('[Auth Debug] Request error:', e);
     return { ok: false, message: e.toString() };
   }
 }
 
 async function fetchUser(): Promise<User | null> {
+  console.log('[Auth Debug] Fetching user data');
   const response = await fetch('/api/user', {
     credentials: 'include',
     headers: {
@@ -56,15 +63,24 @@ async function fetchUser(): Promise<User | null> {
     }
   });
 
+  console.log('[Auth Debug] User fetch response:', {
+    status: response.status,
+    ok: response.ok,
+    headers: Object.fromEntries(response.headers.entries())
+  });
+
   if (!response.ok) {
     if (response.status === 401) {
+      console.log('[Auth Debug] User not authenticated (401)');
       return null;
     }
 
     throw new Error(`${response.status}: ${await response.text()}`);
   }
 
-  return response.json();
+  const userData = await response.json();
+  console.log('[Auth Debug] Fetched user data:', userData);
+  return userData;
 }
 
 export function useUser() {
@@ -73,11 +89,17 @@ export function useUser() {
 
   // Helper to clear all auth-related data
   const clearAuthData = useCallback(() => {
+    console.log('[Auth Debug] Clearing all auth data');
     queryClient.clear(); // Clear all queries
     queryClient.setQueryData(['user'], null);
+    console.log('[Auth Debug] Current cache state after clear:', {
+      user: queryClient.getQueryData(['user']),
+      queries: queryClient.getQueryCache().findAll()
+    });
   }, [queryClient]);
 
   const checkSession = useCallback(async () => {
+    console.log('[Auth Debug] Checking session');
     try {
       await queryClient.invalidateQueries({ queryKey: ['user'] });
       const response = await fetch('/api/user', { 
@@ -89,13 +111,18 @@ export function useUser() {
         }
       });
 
+      console.log('[Auth Debug] Session check response:', {
+        status: response.status,
+        ok: response.ok
+      });
+
       if (!response.ok) {
         clearAuthData();
         throw new Error('Session check failed');
       }
     } catch (error) {
       clearAuthData();
-      console.error('Session check error:', error);
+      console.error('[Auth Debug] Session check error:', error);
     }
   }, [queryClient, clearAuthData]);
 
@@ -107,17 +134,20 @@ export function useUser() {
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     onError: () => {
+      console.log('[Auth Debug] Query error, clearing auth data');
       clearAuthData();
     }
   });
 
   useEffect(() => {
+    console.log('[Auth Debug] Initial mount, current user state:', user);
     checkSession();
   }, [checkSession]);
 
   const loginMutation = useMutation<RequestResult, Error, InsertUser>({
     mutationFn: (userData) => handleRequest('/api/login', 'POST', userData),
     onSuccess: (result) => {
+      console.log('[Auth Debug] Login success:', result);
       if (result.ok) {
         queryClient.invalidateQueries({ queryKey: ['user'] });
         toast({
@@ -127,6 +157,7 @@ export function useUser() {
       }
     },
     onError: (error) => {
+      console.error('[Auth Debug] Login error:', error);
       clearAuthData();
       toast({
         variant: "destructive",
@@ -139,6 +170,7 @@ export function useUser() {
   const logoutMutation = useMutation<RequestResult, Error>({
     mutationFn: () => handleRequest('/api/logout', 'POST'),
     onSuccess: (result) => {
+      console.log('[Auth Debug] Logout success:', result);
       if (result.ok) {
         clearAuthData();
         toast({
@@ -148,6 +180,7 @@ export function useUser() {
       }
     },
     onError: (error) => {
+      console.error('[Auth Debug] Logout error:', error);
       clearAuthData();
       toast({
         variant: "destructive",
@@ -160,6 +193,7 @@ export function useUser() {
   const registerMutation = useMutation<RequestResult, Error, InsertUser>({
     mutationFn: (userData) => handleRequest('/api/register', 'POST', userData),
     onSuccess: (result) => {
+      console.log('[Auth Debug] Register success:', result);
       if (result.ok) {
         queryClient.invalidateQueries({ queryKey: ['user'] });
         toast({
@@ -169,6 +203,7 @@ export function useUser() {
       }
     },
     onError: (error) => {
+      console.error('[Auth Debug] Register error:', error);
       clearAuthData();
       toast({
         variant: "destructive",

@@ -9,6 +9,11 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: async ({ queryKey }) => {
+        console.log('[QueryClient Debug] Making request:', {
+          queryKey,
+          cacheEntries: queryClient.getQueryCache().findAll()
+        });
+
         const res = await fetch(queryKey[0] as string, {
           credentials: "include",
           headers: {
@@ -18,11 +23,19 @@ export const queryClient = new QueryClient({
           }
         });
 
+        console.log('[QueryClient Debug] Response received:', {
+          status: res.status,
+          ok: res.ok,
+          queryKey,
+          headers: Object.fromEntries(res.headers.entries())
+        });
+
         if (!res.ok) {
           if (res.status === 529) {
             throw new Error("Server overloaded");
           }
           if (res.status === 401) {
+            console.log('[QueryClient Debug] Auth error (401), clearing cache');
             // Force clear cache on auth errors
             queryClient.setQueryData(['user'], null);
             queryClient.clear();
@@ -35,13 +48,23 @@ export const queryClient = new QueryClient({
           throw new Error(`${res.status}: ${await res.text()}`);
         }
 
-        return res.json();
+        const data = await res.json();
+        console.log('[QueryClient Debug] Parsed response data:', {
+          queryKey,
+          data
+        });
+        return data;
       },
       refetchInterval: false,
       refetchOnMount: true,
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,
       retry: (failureCount, error) => {
+        console.log('[QueryClient Debug] Retry attempt:', {
+          failureCount,
+          error
+        });
+
         // Don't retry auth failures
         if (error instanceof Error && error.message.includes('401')) {
           return false;
@@ -54,10 +77,21 @@ export const queryClient = new QueryClient({
         }
         return false; // Don't retry other errors
       },
-      retryDelay: (attemptIndex) => getBackoffDelay(attemptIndex),
+      retryDelay: (attemptIndex) => {
+        const delay = getBackoffDelay(attemptIndex);
+        console.log('[QueryClient Debug] Retry delay:', {
+          attemptIndex,
+          delay
+        });
+        return delay;
+      },
     },
     mutations: {
       retry: (failureCount, error) => {
+        console.log('[QueryClient Debug] Mutation retry attempt:', {
+          failureCount,
+          error
+        });
         // Same retry logic for mutations
         if (error instanceof Error && 
             (error.message.startsWith("500") || 
