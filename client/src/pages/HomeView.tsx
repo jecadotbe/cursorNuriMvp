@@ -70,6 +70,14 @@ export default function HomeView() {
     refetch
   } = useSuggestion();
   const [isLoading, setIsLoading] = useState(false);
+  const [showSkeleton, setShowSkeleton] = useState(true);
+
+  // Keep skeleton visible if we have at least one suggestion
+  useEffect(() => {
+    if (!suggestionLoading && suggestion) {
+      setShowSkeleton(true);
+    }
+  }, [suggestionLoading, suggestion]);
   const [showFeedback, setShowFeedback] = useState(false);
   const [currentSuggestionId, setCurrentSuggestionId] = useState<number | null>(null);
   const { toast } = useToast();
@@ -219,7 +227,7 @@ export default function HomeView() {
 
       {/* Chat Prompt */}
       <div className="px-5 py-6">
-        {isLoading || suggestionLoading ? (
+        {(isLoading || suggestionLoading || showSkeleton) && !suggestion ? (
           <Card className="bg-white mb-4">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
