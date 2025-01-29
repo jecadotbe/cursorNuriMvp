@@ -60,8 +60,16 @@ export function useUser() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const checkSession = useCallback(() => {
-    return queryClient.invalidateQueries({ queryKey: ['user'] });
+  const checkSession = useCallback(async () => {
+    try {
+      await queryClient.invalidateQueries({ queryKey: ['user'] });
+      const response = await fetch('/api/user', { credentials: 'include' });
+      if (!response.ok) {
+        throw new Error('Session check failed');
+      }
+    } catch (error) {
+      console.error('Session check error:', error);
+    }
   }, [queryClient]);
 
   const { data: user, error, isLoading } = useQuery<User | null, Error>({
