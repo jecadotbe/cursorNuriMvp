@@ -44,24 +44,30 @@ declare global {
 
 export function setupAuth(app: Express) {
   const MemoryStore = createMemoryStore(session);
+  const sessionStore = new MemoryStore({
+    checkPeriod: 60 * 1000, // Prune expired entries every minute
+    stale: false,
+    noPromise: false,
+    clear: true
+  });
+
+  // Clear all sessions on server start
+  sessionStore.clear();
+  
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || randomBytes(32).toString('hex'),
-    resave: false,
+    resave: true,
     saveUninitialized: false,
-    rolling: false,
+    rolling: true,
     unset: 'destroy',
+    name: 'sessionId', // Custom cookie name
     cookie: {
       secure: app.get("env") === "production",
       httpOnly: true,
-      maxAge: 1 * 60 * 60 * 1000, // 1 hour
-      sameSite: 'lax'
+      maxAge: 15 * 60 * 1000, // 15 minutes
+      sameSite: 'strict'
     },
-    store: new MemoryStore({
-      checkPeriod: 3600000,
-      stale: true,
-      noPromise: true,
-      clear: true
-    }),
+    store: sessionStore
   };
 
   if (app.get("env") === "production") {
