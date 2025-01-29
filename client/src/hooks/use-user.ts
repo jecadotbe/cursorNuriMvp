@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { InsertUser, User } from "@db/schema";
 import { useToast } from '@/hooks/use-toast';
+import { useCallback, useEffect } from 'react';
 
 type RequestResult = {
   ok: true;
@@ -59,12 +60,20 @@ export function useUser() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const checkSession = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['user'] });
+  }, [queryClient]);
+
   const { data: user, error, isLoading } = useQuery<User | null, Error>({
     queryKey: ['user'],
     queryFn: fetchUser,
     staleTime: Infinity,
     retry: false
   });
+
+  useEffect(() => {
+    checkSession();
+  }, [checkSession]);
 
   const loginMutation = useMutation<RequestResult, Error, InsertUser>({
     mutationFn: (userData) => handleRequest('/api/login', 'POST', userData),

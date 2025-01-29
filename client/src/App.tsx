@@ -21,17 +21,19 @@ import LearnDetailView from "./pages/LearnDetailView";
 import OnboardingPage from "@/pages/onboarding";
 
 function Router() {
-  const { user, isLoading } = useUser();
+  const { user, isLoading, checkSession } = useUser();
   const [location, setLocation] = useLocation();
 
   useEffect(() => {
-    // Clean up URL if it contains initialPath params
+    // Force session check on initial load
+    checkSession();
+    
     if (location.includes('initialPath')) {
       const cleanPath = new URLSearchParams(location.split('?')[1]).get('initialPath') || '/';
       setLocation(cleanPath);
     }
     window.scrollTo(0, 0);
-  }, [location]);
+  }, []);
   const showNavigation = !location.startsWith('/learn/') && !location.startsWith('/onboarding');
 
   if (isLoading) {
