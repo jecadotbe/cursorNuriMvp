@@ -86,8 +86,11 @@ export function useSuggestion() {
         setIsRefreshing(true);
       }
       console.log('Refetching suggestions...');
-      await refetchQuery();
-      setCurrentIndex(0);
+      const result = await refetchQuery();
+      if (result.data && Array.isArray(result.data)) {
+        queryClient.setQueryData(['suggestions'], result.data);
+        setCurrentIndex(0);
+      }
     } catch (error) {
       console.error('Failed to refetch suggestions:', error);
       toast({
@@ -95,6 +98,8 @@ export function useSuggestion() {
         title: "Error",
         description: "Failed to load new suggestions",
       });
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
