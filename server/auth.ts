@@ -211,6 +211,8 @@ export function setupAuth(app: Express) {
         req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
       }
 
+      req.session.checkSuggestions = true; // Add flag to check suggestions on successful login
+
       req.logIn(user, (err) => {
         if (err) {
           return next(err);

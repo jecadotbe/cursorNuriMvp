@@ -460,6 +460,11 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
       return res.status(401).send("Not authenticated");
     }
 
+    const forceCheck = req.session.checkSuggestions;
+    if (forceCheck) {
+      req.session.checkSuggestions = false;
+    }
+
     const user = req.user as User;
     const now = new Date();
     const forceRefresh = req.query.refresh === 'true';
