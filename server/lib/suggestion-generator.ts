@@ -1,4 +1,3 @@
-
 import { Chat, VillageMember } from "@db/schema";
 import { VILLAGE_RULES, analyzeVillageGaps } from "./village-rules";
 import { MemoryService } from "../services/memory";
@@ -37,6 +36,17 @@ export async function generateVillageSuggestions(
       context: 'Based on your recent conversations about support needs'
     });
   }
+
+  // Ensure at least two suggestions
+  if (suggestions.length < 2) {
+    suggestions.push({
+      type: 'placeholder',
+      priority: 'low',
+      suggestion: 'More suggestions will be available soon.',
+      context: 'Placeholder suggestion'
+    });
+  }
+
 
   return suggestions.sort((a, b) => b.priority - a.priority);
 }

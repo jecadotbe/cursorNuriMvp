@@ -39,7 +39,7 @@ export function SuggestionChips({ suggestions, onSelect, isExpanded, onToggle }:
 
           <ScrollArea className="flex-1 p-4">
             <div className="space-y-3">
-              {suggestions.map((suggestion, index) => (
+              {suggestions && suggestions.length > 0 && suggestions.map((suggestion, index) => (
                 <Card
                   key={index}
                   className="p-3 cursor-pointer hover:shadow-md transition-shadow"
@@ -48,6 +48,11 @@ export function SuggestionChips({ suggestions, onSelect, isExpanded, onToggle }:
                   <p className="text-sm text-gray-800">{suggestion}</p>
                 </Card>
               ))}
+              {(!suggestions || suggestions.length === 0) && (
+                <div className="text-center text-gray-500">
+                  <p>Generating new suggestions...</p>
+                </div>
+              )}
             </div>
           </ScrollArea>
         </div>
