@@ -38,7 +38,6 @@ export function useSuggestion() {
     refetchOnMount: true,
     retry: 1, // Only retry once to prevent long loading states
     retryDelay: 1000, // Retry after 1 second
-    initialData: [], // Provide empty array as initial data to prevent undefined
   });
 
   // Get the current suggestion

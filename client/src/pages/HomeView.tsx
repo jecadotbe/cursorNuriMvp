@@ -217,8 +217,7 @@ export default function HomeView() {
 
       {/* Chat Prompt */}
       <div className="px-5 py-6">
-        {/* Only show skeleton when initially loading suggestions */}
-        {(suggestionLoading && !suggestion) ? (
+        {isLoading || suggestionLoading ? (
           <Card className="bg-white mb-4">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
@@ -239,26 +238,26 @@ export default function HomeView() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-2 h-2 rounded-full" style={{
-                        backgroundColor: suggestion.category === 'stress' ? '#EF4444' :
-                          suggestion.category === 'learning' ? '#3B82F6' :
-                          suggestion.category === 'village' ? '#10B981' :
-                          suggestion.category === 'child_development' ? '#8B5CF6' :
-                          suggestion.category === 'personal_growth' ? '#F59E0B' :
+                        backgroundColor: suggestion.type === 'stress' ? '#EF4444' :
+                          suggestion.type === 'learning' ? '#3B82F6' :
+                          suggestion.type === 'village' ? '#10B981' :
+                          suggestion.type === 'child_development' ? '#8B5CF6' :
+                          suggestion.type === 'personal_growth' ? '#F59E0B' :
                           '#6B7280'
                       }}></div>
                       <div className="text-sm font-semibold tracking-wide uppercase" style={{
-                        color: suggestion.category === 'stress' ? '#EF4444' :
-                          suggestion.category === 'learning' ? '#3B82F6' :
-                          suggestion.category === 'village' ? '#10B981' :
-                          suggestion.category === 'child_development' ? '#8B5CF6' :
-                          suggestion.category === 'personal_growth' ? '#F59E0B' :
+                        color: suggestion.type === 'stress' ? '#EF4444' :
+                          suggestion.type === 'learning' ? '#3B82F6' :
+                          suggestion.type === 'village' ? '#10B981' :
+                          suggestion.type === 'child_development' ? '#8B5CF6' :
+                          suggestion.type === 'personal_growth' ? '#F59E0B' :
                           '#6B7280'
                       }}>
-                        {suggestion.category === 'stress' ? 'Stress Management' :
-                          suggestion.category === 'learning' ? 'Leren & Ontwikkeling' :
-                          suggestion.category === 'village' ? 'Je Village' :
-                          suggestion.category === 'child_development' ? 'Kind Ontwikkeling' :
-                          suggestion.category === 'personal_growth' ? 'Persoonlijke Groei' :
+                        {suggestion.type === 'stress' ? 'Stress Management' :
+                          suggestion.type === 'learning' ? 'Leren & Ontwikkeling' :
+                          suggestion.type === 'village' ? 'Je Village' :
+                          suggestion.type === 'child_development' ? 'Kind Ontwikkeling' :
+                          suggestion.type === 'personal_growth' ? 'Persoonlijke Groei' :
                           'Op basis van onze gesprekken'}
                       </div>
                     </div>
