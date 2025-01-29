@@ -39,15 +39,9 @@ function Router() {
     );
   }
 
-  // Redirect to home for unauthenticated users trying to access protected routes
-  if (!user && location !== '/' && location !== '/login' && location !== '/register') {
-    setLocation('/');
-    return null;
-  }
-
-  // Show HomeView (which includes WelcomeView for unauthenticated users)
+  // Show auth page for unauthenticated users
   if (!user) {
-    return <HomeView />;
+    return <AuthPage />;
   }
 
   return (
