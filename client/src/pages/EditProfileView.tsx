@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Loader2, X, Plus } from "lucide-react";
 
 type OnboardingData = {
@@ -66,6 +66,7 @@ const isValidJson = (text: string): boolean => {
 export default function EditProfileView() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [formData, setFormData] = useState<OnboardingData>(defaultFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newConcern, setNewConcern] = useState("");
@@ -113,7 +114,7 @@ export default function EditProfileView() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          step: 4, 
+          step: 4,
           data: data
         }),
         credentials: 'include'
@@ -136,6 +137,8 @@ export default function EditProfileView() {
         title: "Success",
         description: "Je profiel is bijgewerkt",
       });
+      // Invalidate and refetch profile data
+      queryClient.invalidateQueries({ queryKey: ['/api/onboarding/progress'] });
       setLocation("/profile");
     },
     onError: (error: Error) => {
