@@ -61,6 +61,11 @@ export function registerRoutes(app: Express): Server {
     try {
       const profile = await db.query.parentProfiles.findFirst({
         where: eq(parentProfiles.userId, user.id),
+        columns: {
+          currentOnboardingStep: true,
+          completedOnboarding: true,
+          onboardingData: true,
+        }
       });
 
       res.json({
@@ -906,7 +911,7 @@ ${
                     `Previous relevant conversation (relevance: ${m.relevance?.toFixed(2)}): ${m.content}`,
                 )
                 .join("\n\n")
-            : "No relevant conversation history"
+            : "No relevantconversation history"
         }
 
 4. Potential retrieved content that can help you with answering:
