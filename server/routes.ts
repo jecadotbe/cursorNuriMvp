@@ -31,6 +31,13 @@ const SUGGESTION_CATEGORIES = {
   PERSONAL_GROWTH: "personal_growth"
 } as const;
 
+// Type definition for child profile
+type ChildProfile = {
+  name: string;
+  age: number;
+  specialNeeds: string[];
+};
+
 export function registerRoutes(app: Express): Server {
   // Add file upload middleware
   app.use(
@@ -208,15 +215,12 @@ Communication Preference: ${data.goals.communicationPreference || "Not specified
 app.post("/api/onboarding/complete", async (req, res) => {
     console.log("[DEBUG] Starting onboarding completion");
     if (!req.isAuthenticated() || !req.user) {
-      console.log("[DEBUG] User not authenticated");
       return res.status(401).json({ message: "Not authenticated" });
     }
 
     const user = req.user as User;
     const finalData = req.body;
-    console.log("[DEBUG] Onboarding completion data:", {
-      userId: user.id,
-      dataFields: Object.keys(finalData),
+    console.log("[DEBUG] Child profiles received:", {
       childProfiles: finalData.childProfiles
     });
 
@@ -244,12 +248,38 @@ app.post("/api/onboarding/complete", async (req, res) => {
         });
       }
 
-      // Ensure childProfiles is always an array
-      const childProfiles = Array.isArray(finalData.childProfiles) 
-        ? finalData.childProfiles 
-        : [];
+      // Validate and process child profiles
+      let validatedChildProfiles: ChildProfile[] = [];
+      if (Array.isArray(finalData.childProfiles)) {
+        try {
+          validatedChildProfiles = finalData.childProfiles.map((child: any) => {
+            if (!child.name || typeof child.name !== 'string') {
+              throw new Error(`Invalid child name for profile: ${JSON.stringify(child)}`);
+            }
+            if (typeof child.age !== 'number' || child.age < 0 || child.age > 18) {
+              throw new Error(`Invalid age for child ${child.name}: ${child.age}`);
+            }
+            if (!Array.isArray(child.specialNeeds)) {
+              throw new Error(`Invalid special needs for child ${child.name}: must be an array`);
+            }
+            return {
+              name: child.name,
+              age: child.age,
+              specialNeeds: Array.isArray(child.specialNeeds) ? child.specialNeeds : []
+            };
+          });
+        } catch (validationError) {
+          console.error("[DEBUG] Child profile validation error:", validationError);
+          return res.status(400).json({
+            message: "Invalid child profile data",
+            error: validationError instanceof Error ? validationError.message : "Unknown validation error"
+          });
+        }
+      }
 
-      // Store onboarding data in mem0
+      console.log("[DEBUG] Validated child profiles:", validatedChildProfiles);
+
+      // Store onboarding data in memory
       try {
         const onboardingContent = `
 Parent Profile:
@@ -258,13 +288,13 @@ Experience Level: ${experienceLevel}
 Stress Level: ${stressLevel}
 ${finalData.stressAssessment?.primaryConcerns ? `Primary Concerns: ${finalData.stressAssessment.primaryConcerns.join(", ")}` : ""}
 
-${childProfiles.length > 0
+${validatedChildProfiles.length > 0
   ? `Children:
-${childProfiles
-    .map((child: any) =>
+${validatedChildProfiles
+    .map(child =>
       `- ${child.name} (Age: ${child.age})${
-        Array.isArray(child.specialNeeds) && child.specialNeeds.length 
-          ? ` Special needs: ${child.specialNeeds.join(", ")}` 
+        child.specialNeeds.length
+          ? ` Special needs: ${child.specialNeeds.join(", ")}`
           : ""
       }`
     )
@@ -304,10 +334,12 @@ ${finalData.goals.supportAreas?.length ? `Support areas: ${finalData.goals.suppo
           experienceLevel: experienceLevel as any,
           onboardingData: {
             ...finalData,
-            childProfiles // Ensure we're using the validated childProfiles array
+            childProfiles: validatedChildProfiles // Store the validated child profiles array
           },
           completedOnboarding: true,
           currentOnboardingStep: 4, // Final step
+          primaryConcerns: finalData.stressAssessment?.primaryConcerns || [],
+          supportNetwork,
         })
         .onConflictDoUpdate({
           target: parentProfiles.userId,
@@ -317,10 +349,12 @@ ${finalData.goals.supportAreas?.length ? `Support areas: ${finalData.goals.suppo
             experienceLevel: experienceLevel as any,
             onboardingData: {
               ...finalData,
-              childProfiles // Ensure we're using the validated childProfiles array
+              childProfiles: validatedChildProfiles // Store the validated child profiles array
             },
             completedOnboarding: true,
             currentOnboardingStep: 4,
+            primaryConcerns: finalData.stressAssessment?.primaryConcerns || undefined,
+            supportNetwork,
             updatedAt: new Date(),
           },
         })
@@ -775,7 +809,7 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
   });
 
   app.post("/api/chat", async (req, res) => {
-    console.log("the current request is:\n" + req.body.messages);
+    console.log("the current request is:\n"+ req.body.messages);
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
     }
