@@ -1183,6 +1183,35 @@ ${mergedRAG || "No relevant content available"}
     }
 
     const user = req.user as User;
+
+  app.post("/api/profile/update", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    const user = req.user as User;
+    const profileData = req.body;
+
+    try {
+      const [profile] = await db
+        .update(parentProfiles)
+        .set({
+          onboardingData: profileData,
+          updatedAt: new Date(),
+        })
+        .where(eq(parentProfiles.userId, user.id))
+        .returning();
+
+      return res.json(profile);
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+      res.status(500).json({
+        message: "Failed to update profile",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  });
+
     const userChats = await db.query.chats.findMany({
       where: eq(chats.userId, user.id),
       orderBy: desc(chats.updatedAt),
