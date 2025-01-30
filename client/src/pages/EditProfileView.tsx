@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -76,42 +75,25 @@ export default function EditProfileView() {
   const [newSupportArea, setNewSupportArea] = useState("");
   const [newSpecialNeed, setNewSpecialNeed] = useState("");
 
-  const { data: profile, isLoading } = useQuery<ProfileResponse>({
+  const { data: profile, isLoading } = useQuery({
     queryKey: ['/api/onboarding/progress'],
     retry: false,
-    queryFn: async ({ queryKey }) => {
+    queryFn: async () => {
       try {
-        const response = await fetch(queryKey[0] as string, {
+        const response = await fetch('/api/onboarding/progress', {
           credentials: 'include',
         });
 
         if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Failed to fetch profile data: ${errorText}`);
-        }
-
-        const contentType = response.headers.get('content-type');
-        if (!contentType?.includes('application/json')) {
-          throw new Error('Server did not return JSON');
+          throw new Error(`Failed to fetch profile data: ${await response.text()}`);
         }
 
         const data = await response.json();
-        if (!data.onboardingData) {
-          throw new Error('Invalid response format: missing onboardingData');
-        }
-
         return data;
       } catch (error) {
         console.error('Profile fetch error:', error);
         throw error;
       }
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to load profile data",
-        variant: "destructive",
-      });
     },
   });
 
@@ -123,32 +105,28 @@ export default function EditProfileView() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: OnboardingData) => {
-      const response = await fetch("/api/profile/update", {
+      console.log('Sending profile update:', data);
+
+      const response = await fetch("/api/onboarding/progress", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          step: 4, 
+          data: data
+        }),
         credentials: 'include'
       });
 
-      const contentType = response.headers.get('content-type');
-      let errorMessage = 'Failed to update profile';
-      
       if (!response.ok) {
+        const errorText = await response.text();
         try {
-          const data = await response.json();
-          errorMessage = data.message || errorMessage;
+          const errorJson = JSON.parse(errorText);
+          throw new Error(errorJson.message || 'Failed to update profile');
         } catch {
-          const text = await response.text();
-          errorMessage = text || errorMessage;
+          throw new Error(errorText || 'Failed to update profile');
         }
-        throw new Error(errorMessage);
-      }
-
-      if (!contentType?.includes('application/json')) {
-        console.error('Invalid content type:', contentType);
-        throw new Error('Server response format error');
       }
 
       return response.json();
@@ -493,7 +471,7 @@ export default function EditProfileView() {
               <Plus className="h-4 w-4 mr-2" />
               Kind toevoegen
             </Button>
-            
+
             {formData.childProfiles.map((child, index) => (
               <Card key={index}>
                 <CardContent className="pt-6 space-y-4">
