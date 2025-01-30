@@ -77,28 +77,28 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.post("/api/onboarding/progress", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
+app.post("/api/onboarding/progress", async (req, res) => {
+  if (!req.isAuthenticated() || !req.user) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
 
-    const user = req.user as User;
-    const { step, data } = req.body;
+  const user = req.user as User;
+  const { step, data } = req.body;
 
+  try {
+    // Store intermediate progress in mem0
     try {
-      // Store intermediate progress in mem0
-      try {
-        const childProfilesString = Array.isArray(data.childProfiles)
-          ? data.childProfiles
-              .map(
-                (child: any) =>
-                  `- ${child.name} (Age: ${child.age})
-                   ${child.specialNeeds?.length ? `Special needs: ${child.specialNeeds.join(", ")}` : "No special needs"}`
-              )
-              .join("\n")
-          : "No children profiles added";
+      const childProfilesString = Array.isArray(data.childProfiles)
+        ? data.childProfiles
+            .map(
+              (child: any) =>
+                `- ${child.name} (Age: ${child.age})
+                 ${child.specialNeeds?.length ? `Special needs: ${child.specialNeeds.join(", ")}` : "No special needs"}`
+            )
+            .join("\n")
+        : "No children profiles added";
 
-        const stepContent = `
+      const stepContent = `
 Onboarding Step ${step} Progress:
 ${data.basicInfo ? `
 Basic Information:
@@ -124,95 +124,95 @@ Support Areas: ${data.goals.supportAreas?.join(", ") || "None"}
 Communication Preference: ${data.goals.communicationPreference || "Not specified"}
 ` : ''}`;
 
-        await memoryService.createMemory(user.id, stepContent, {
-          type: "onboarding_progress",
-          category: "user_onboarding",
-          step: step,
-          isComplete: false,
-          source: "onboarding_form",
-          timestamp: new Date().toISOString(),
-          metadata: {
-            stepData: data,
-            progressPercentage: (step / 4) * 100,
-          }
-        });
+      await memoryService.createMemory(user.id, stepContent, {
+        type: "onboarding_progress",
+        category: "user_onboarding",
+        step: step,
+        isComplete: false,
+        source: "onboarding_form",
+        timestamp: new Date().toISOString(),
+        metadata: {
+          stepData: data,
+          progressPercentage: (step / 4) * 100,
+        }
+      });
 
-        console.log("Successfully stored onboarding progress in memory");
-      } catch (memoryError) {
-        console.error("Failed to store onboarding progress in memory:", memoryError);
-        // Continue with database storage even if memory storage fails
-      }
+      console.log("Successfully stored onboarding progress in memory");
+    } catch (memoryError) {
+      console.error("Failed to store onboarding progress in memory:", memoryError);
+      // Continue with database storage even if memory storage fails
+    }
 
-      // Extract fields from onboarding data
-      const name = data.basicInfo?.name || "";
-      const email = data.basicInfo?.email || "";
-      const stressLevel = data.stressAssessment?.stressLevel || "moderate";
-      const experienceLevel = data.basicInfo?.experienceLevel || "first_time";
+    // Extract fields from onboarding data
+    const name = data.basicInfo?.name || "";
+    const email = data.basicInfo?.email || "";
+    const stressLevel = data.stressAssessment?.stressLevel || "moderate";
+    const experienceLevel = data.basicInfo?.experienceLevel || "first_time";
 
-      // Only save to parent_profiles if we have the required data
-      if (step >= 2 && data.basicInfo?.name && data.basicInfo?.email) {
-        const [profile] = await db
-          .insert(parentProfiles)
-          .values({
-            userId: user.id,
+    // Only save to parent_profiles if we have the required data
+    if (step >= 2 && data.basicInfo?.name && data.basicInfo?.email) {
+      const [profile] = await db
+        .insert(parentProfiles)
+        .values({
+          userId: user.id,
+          name,
+          email,
+          stressLevel: stressLevel as any,
+          experienceLevel: experienceLevel as any,
+          currentOnboardingStep: step,
+          onboardingData: {
+            ...data,
+            childProfiles: Array.isArray(data.childProfiles) ? data.childProfiles : []
+          },
+          completedOnboarding: false,
+          primaryConcerns: data.stressAssessment?.primaryConcerns || [],
+          supportNetwork: data.stressAssessment?.supportNetwork || [],
+        })
+        .onConflictDoUpdate({
+          target: parentProfiles.userId,
+          set: {
             name,
             email,
-            stressLevel: stressLevel as any,
-            experienceLevel: experienceLevel as any,
+            stressLevel: (data.stressAssessment?.stressLevel as any) || undefined,
+            experienceLevel: (data.basicInfo?.experienceLevel as any) || undefined,
             currentOnboardingStep: step,
             onboardingData: {
               ...data,
               childProfiles: Array.isArray(data.childProfiles) ? data.childProfiles : []
             },
-            completedOnboarding: false,
-            primaryConcerns: data.stressAssessment?.primaryConcerns || [],
-            supportNetwork: data.stressAssessment?.supportNetwork || [],
-          })
-          .onConflictDoUpdate({
-            target: parentProfiles.userId,
-            set: {
-              name,
-              email,
-              stressLevel: (data.stressAssessment?.stressLevel as any) || undefined,
-              experienceLevel: (data.basicInfo?.experienceLevel as any) || undefined,
-              currentOnboardingStep: step,
-              onboardingData: {
-                ...data,
-                childProfiles: Array.isArray(data.childProfiles) ? data.childProfiles : []
-              },
-              primaryConcerns: data.stressAssessment?.primaryConcerns || undefined,
-              supportNetwork: data.stressAssessment?.supportNetwork || undefined,
-              updatedAt: new Date(),
-            },
-          })
-          .returning();
+            primaryConcerns: data.stressAssessment?.primaryConcerns || undefined,
+            supportNetwork: data.stressAssessment?.supportNetwork || undefined,
+            updatedAt: new Date(),
+          },
+        })
+        .returning();
 
-        return res.json({
-          currentOnboardingStep: profile.currentOnboardingStep,
-          completedOnboarding: profile.completedOnboarding,
-          onboardingData: profile.onboardingData,
-        });
-      }
-
-      // For early steps, just return the current progress without saving to database
-      res.json({
-        currentOnboardingStep: step,
-        completedOnboarding: false,
-        onboardingData: {
-          ...data,
-          childProfiles: Array.isArray(data.childProfiles) ? data.childProfiles : []
-        },
-      });
-    } catch (error) {
-      console.error("Failed to save onboarding progress:", error);
-      res.status(500).json({
-        message: "Failed to save onboarding progress",
-        error: error instanceof Error ? error.message : "Unknown error",
+      return res.json({
+        currentOnboardingStep: profile.currentOnboardingStep,
+        completedOnboarding: profile.completedOnboarding,
+        onboardingData: profile.onboardingData,
       });
     }
-  });
 
-  app.post("/api/onboarding/complete", async (req, res) => {
+    // For early steps, just return the current progress without saving to database
+    res.json({
+      currentOnboardingStep: step,
+      completedOnboarding: false,
+      onboardingData: {
+        ...data,
+        childProfiles: Array.isArray(data.childProfiles) ? data.childProfiles : []
+      },
+    });
+  } catch (error) {
+    console.error("Failed to save onboarding progress:", error);
+    res.status(500).json({
+      message: "Failed to save onboarding progress",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+app.post("/api/onboarding/complete", async (req, res) => {
     console.log("[DEBUG] Starting onboarding completion");
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ message: "Not authenticated" });
@@ -361,57 +361,6 @@ ${finalData.goals.supportAreas?.length ? `Support areas: ${finalData.goals.suppo
         })
         .returning();
 
-      // Add support network members to village
-      if (Array.isArray(supportNetwork) && supportNetwork.length > 0) {
-        try {
-          // Calculate angles for even distribution in the first circle
-          const angleStep = 360 / supportNetwork.length;
-
-          // Create village members from support network
-          const villageMembers = await Promise.all(
-            supportNetwork.map(async (member, index) => {
-              // Determine member type and category
-              let type = "support";
-              let category: "informeel" | "formeel" | "inspiratie" = "informeel";
-
-              // Basic categorization based on common support network members
-              if (member.toLowerCase().includes("oma") ||
-                  member.toLowerCase().includes("opa") ||
-                  member.toLowerCase().includes("grootouder")) {
-                type = "family";
-              } else if (member.toLowerCase().includes("therapeut") ||
-                         member.toLowerCase().includes("coach") ||
-                         member.toLowerCase().includes("dokter")) {
-                type = "professional";
-                category = "formeel";
-              }
-
-              return db
-                .insert(villageMembers)
-                .values({
-                  userId: user.id,
-                  name: member,
-                  type,
-                  category,
-                  circle: 1, // Place all initial support members in first circle
-                  contactFrequency: "M", // Default to medium contact frequency
-                  positionAngle: index * angleStep,
-                  metadata: {
-                    source: "onboarding",
-                    addedAt: new Date().toISOString(),
-                  },
-                })
-                .returning();
-            })
-          );
-
-          console.log(`Added ${villageMembers.length} support network members to village`);
-        } catch (villageError) {
-          console.error("Failed to add support network to village:", villageError);
-          // Continue with response even if village creation fails
-        }
-      }
-
       res.json({
         message: "Onboarding completed successfully",
         profile,
@@ -475,134 +424,6 @@ ${finalData.goals.supportAreas?.length ? `Support areas: ${finalData.goals.suppo
     } catch (error) {
       console.error("Error uploading file:", error);
       res.status(500).json({ message: "Failed to upload file" });
-    }
-  });
-
-  // Get user profile
-  app.get("/api/profile", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-
-    const user = req.user as User;
-
-    try {
-      const profile = await db.query.parentProfiles.findFirst({
-        where: eq(parentProfiles.userId, user.id),
-      });
-
-      if (!profile) {
-        return res.status(404).json({ message: "Profile not found" });
-      }
-
-      res.json({
-        name: profile.name,
-        email: profile.email,
-        stressLevel: profile.stressLevel,
-        experienceLevel: profile.experienceLevel,
-        primaryConcerns: profile.primaryConcerns,
-        supportNetwork: profile.supportNetwork,
-        childProfiles: profile.onboardingData?.childProfiles || [],
-        goals: profile.onboardingData?.goals || {
-          shortTerm: [],
-          longTerm: [],
-          supportAreas: []
-        }
-      });
-    } catch (error) {
-      console.error("Failed to fetch profile:", error);
-      res.status(500).json({
-        message: "Failed to fetch profile",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-  });
-
-  // Update user profile
-  app.post("/api/profile", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-
-    const user = req.user as User;
-    const profileData = req.body;
-
-    try {
-      // Update profile in database
-      const [updatedProfile] = await db
-        .update(parentProfiles)
-        .set({
-          name: profileData.name,
-          stressLevel: profileData.stressLevel as any,
-          experienceLevel: profileData.experienceLevel as any,
-          primaryConcerns: profileData.primaryConcerns || [],
-          supportNetwork: profileData.supportNetwork || [],
-          onboardingData: {
-            basicInfo: {
-              name: profileData.name,
-              experienceLevel: profileData.experienceLevel,
-            },
-            stressAssessment: {
-              stressLevel: profileData.stressLevel,
-              primaryConcerns: profileData.primaryConcerns || [],
-              supportNetwork: profileData.supportNetwork || [],
-            },
-            childProfiles: profileData.childProfiles || [],
-            goals: profileData.goals || {
-              shortTerm: [],
-              longTerm: [],
-              supportAreas: []
-            }
-          },
-          updatedAt: new Date(),
-        })
-        .where(eq(parentProfiles.userId, user.id))
-        .returning();
-
-      if (!updatedProfile) {
-        return res.status(404).json({ message: "Profile not found" });
-      }
-
-      // Store profile update in memory
-      try {
-        const profileContent = `
-Profile Updated:
-Name: ${profileData.name}
-Experience Level: ${profileData.experienceLevel}
-Stress Level: ${profileData.stressLevel}
-Primary Concerns: ${profileData.primaryConcerns?.join(", ") || "None"}
-Support Network: ${profileData.supportNetwork?.join(", ") || "None"}
-
-Children:
-${profileData.childProfiles?.map((child: any) =>
-  `- ${child.name} (Age: ${child.age})
-   ${child.specialNeeds?.length ? `Special needs: ${child.specialNeeds.join(", ")}` : "No special needs"}`
-).join("\n") || "No children profiles"}
-
-Goals:
-${profileData.goals?.shortTerm?.length ? `Short term: ${profileData.goals.shortTerm.join(", ")}` : ""}
-${profileData.goals?.longTerm?.length ? `Long term: ${profileData.goals.longTerm.join(", ")}` : ""}
-${profileData.goals?.supportAreas?.length ? `Support areas: ${profileData.goals.supportAreas.join(", ")}` : ""}
-`;
-
-        await memoryService.createMemory(user.id, profileContent, {
-          type: "profile_update",
-          category: "user_profile",
-          source: "profile_editor",
-          timestamp: new Date().toISOString(),
-        });
-      } catch (memoryError) {
-        console.error("Failed to store profile update in memory:", memoryError);
-        // Continue even if memory storage fails
-      }
-
-      res.json(updatedProfile);
-    } catch (error) {
-      console.error("Failed to update profile:", error);
-      res.status(500).json({
-        message: "Failed to update profile",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
     }
   });
 
@@ -687,7 +508,7 @@ ${profileData.goals?.supportAreas?.length ? `Support areas: ${profileData.goals.
       orderBy: desc(promptSuggestions.createdAt),
     });
 
-    const hasNewContent = lastMemory && lastSuggestion &&
+    const hasNewContent = lastMemory && lastSuggestion && 
       lastMemory.createdAt > lastSuggestion.createdAt;
 
     if (!forceRefresh && !hasNewContent) {
@@ -915,7 +736,6 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
         .where(
           and(
             eq(promptSuggestions.id, suggestionId),
-            eq(promptSuggestions```typescript
             eq(promptSuggestions.userId, user.id),
           ),
         );
@@ -1206,7 +1026,7 @@ ${mergedRAG || "No relevant content available"}
       return res.status(401).send("Not authenticated");
     }
 
-    const chatId = parseChatId(req.params.chatId);
+    const chatId = parseChatId(req.paramschatId);
     if (chatId === null) {
       return res.status(400).json({ message: "Invalid chat ID" });
     }
@@ -1267,7 +1087,7 @@ ${mergedRAG || "No relevant content available"}
         significantMemories.length,
       );
 
-      const response = await anthropic.messages.create({
+            const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 300,
         system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the conversation and provide a relevant follow-up prompt. If the topic relates to an existing conversation, reference it. Consider this historical context:\n${memoryContext}`,
@@ -1363,6 +1183,40 @@ ${mergedRAG || "No relevant content available"}
     }
 
     const user = req.user as User;
+
+  app.post("/api/profile/update", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    const user = req.user as User;
+    const profileData = req.body;
+
+    try {
+      const [profile] = await db
+        .update(parentProfiles)
+        .set({
+          onboardingData: profileData,
+          updatedAt: new Date(),
+        })
+        .where(eq(parentProfiles.userId, user.id))
+        .returning();
+
+      res.setHeader('Content-Type', 'application/json');
+      return res.json({
+        status: "success",
+        data: profile
+      });
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+      res.setHeader('Content-Type', 'application/json');
+      res.status(500).json({
+        status: "error",
+        message: "Failed to update profile",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  });
 
     const userChats = await db.query.chats.findMany({
       where: eq(chats.userId, user.id),
@@ -1867,7 +1721,7 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
 
   // Village member interactions endpoints
   app.post("/api/village/members/:memberId/interactions", async (req, res) => {
-    if (!req.isAuthenticated()|| !req.user) {
+    if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
     }
 
@@ -1932,7 +1786,7 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
     const insightId = parseInt(req.params.id);
 
     if (isNaN(insightId)) {
-      return res.status(400).json({ message: "Invalid insightID" });
+      return res.status(400).json({ message: "Invalid insight ID" });
     }
 
     try {
@@ -1961,10 +1815,16 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
     }
   });
 
-  const NURI_SYSTEM_PROMPT = `You are Nuri, a digital (iOS & Android) app that specializes in family counseling with attachment-style parenting, using Aware Parenting and Afgestemd Opvoeden principles, sparingly mentioning them. The App has 3 domains outside the chat:
-- The Village where people can build a support network in real life
-- Learning section where you can learn about our methods and tips
-- The homepage where you can find all your actions and insights
+  const httpServer = createServer(app);
+  return httpServer;
+}
+
+function parseChatId(id: string): number | null {
+  const parsed = parseInt(id);
+  return isNaN(parsed) ? null : parsed;
+}
+
+const NURI_SYSTEM_PROMPT = `You are Nuri, a digital (ios & android) app that is specialize family counseling in attachment-style parenting, using Aware Parenting and Afgestemd Opvoeden principles sparingly mentioning them. The Apps has 3 domains outisde the chat. The Village where people can build a support network in real life. Learning section where you can learn about our methods and tips. The homepage where you can find all your actions and insights
 
 Date and time: {{currentDateTime}}
 
@@ -1980,19 +1840,10 @@ Remember:
 - KEEP A CONVERSATIONAL STYLE that keeps the conversation flowing
 - KEEP YOUR USE FOR Bullet-points TO MINIMUM ON NEED BASIS
 - Keep responses conversational and authentic
-- Explore the parent's context and their emotions
+- Explore the parents context and their emotions
 - Focus on the parent's immediate needs
 - Balance empathy with practical guidance
 - Stay solution-focused while validating feelings`;
-
-  const httpServer = createServer(app);
-  return httpServer;
-}
-
-function parseChatId(id: string): number | null {
-  const parsed = parseInt(id);
-  return isNaN(parsed) ? null : parsed;
-}
 
 async function getVillageContext(userId: number): Promise<string | null> {
   try {
@@ -2010,5 +1861,4 @@ async function getVillageContext(userId: number): Promise<string | null> {
     console.error("Error fetching village context:", error);
     return null;
   }
-}
 }
