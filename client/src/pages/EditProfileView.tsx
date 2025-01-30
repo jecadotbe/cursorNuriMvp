@@ -132,14 +132,23 @@ export default function EditProfileView() {
         credentials: 'include'
       });
 
+      const contentType = response.headers.get('content-type');
+      let errorMessage = 'Failed to update profile';
+      
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Failed to update profile');
+        try {
+          const data = await response.json();
+          errorMessage = data.message || errorMessage;
+        } catch {
+          const text = await response.text();
+          errorMessage = text || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
-      const contentType = response.headers.get('content-type');
       if (!contentType?.includes('application/json')) {
-        throw new Error('Server did not return JSON');
+        console.error('Invalid content type:', contentType);
+        throw new Error('Server response format error');
       }
 
       return response.json();
