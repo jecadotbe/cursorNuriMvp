@@ -1,13 +1,15 @@
+
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ChevronLeft, Loader2 } from "lucide-react";
+import { ChevronLeft, Loader2, X, Plus } from "lucide-react";
 
 type OnboardingData = {
   basicInfo: {
@@ -18,6 +20,16 @@ type OnboardingData = {
     stressLevel: "low" | "moderate" | "high" | "very_high";
     primaryConcerns: string[];
     supportNetwork: string[];
+  };
+  childProfiles: Array<{
+    name: string;
+    age: number;
+    specialNeeds: string[];
+  }>;
+  goals: {
+    shortTerm: string[];
+    longTerm: string[];
+    supportAreas: string[];
   };
 };
 
@@ -35,6 +47,12 @@ const defaultFormData: OnboardingData = {
     primaryConcerns: [],
     supportNetwork: [],
   },
+  childProfiles: [],
+  goals: {
+    shortTerm: [],
+    longTerm: [],
+    supportAreas: [],
+  },
 };
 
 const isValidJson = (text: string): boolean => {
@@ -51,6 +69,12 @@ export default function EditProfileView() {
   const { toast } = useToast();
   const [formData, setFormData] = useState<OnboardingData>(defaultFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newConcern, setNewConcern] = useState("");
+  const [newSupport, setNewSupport] = useState("");
+  const [newShortTerm, setNewShortTerm] = useState("");
+  const [newLongTerm, setNewLongTerm] = useState("");
+  const [newSupportArea, setNewSupportArea] = useState("");
+  const [newSpecialNeed, setNewSpecialNeed] = useState("");
 
   const { data: profile, isLoading } = useQuery<ProfileResponse>({
     queryKey: ['/api/onboarding/progress'],
@@ -87,52 +111,26 @@ export default function EditProfileView() {
 
   useEffect(() => {
     if (profile?.onboardingData) {
-      setFormData({
-        ...defaultFormData,
-        ...profile.onboardingData,
-        basicInfo: {
-          ...defaultFormData.basicInfo,
-          ...profile.onboardingData.basicInfo,
-        },
-        stressAssessment: {
-          ...defaultFormData.stressAssessment,
-          ...profile.onboardingData.stressAssessment,
-        },
-      });
+      setFormData(profile.onboardingData);
     }
   }, [profile]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: OnboardingData) => {
-      try {
-        const response = await fetch("/api/profile/update", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(data),
-          credentials: 'include'
-        });
+      const response = await fetch("/api/profile/update", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+        credentials: 'include'
+      });
 
-        const responseText = await response.text();
-        console.log('Response text:', responseText); 
-
-        if (!response.ok) {
-          throw new Error(responseText || `HTTP error! status: ${response.status}`);
-        }
-
-        if (response.headers.get("content-type")?.includes("application/json")) {
-          if (!isValidJson(responseText)) {
-            throw new Error('Server returned invalid JSON');
-          }
-          return JSON.parse(responseText);
-        }
-
-        return { success: true };
-      } catch (error) {
-        console.error('Update profile error:', error);
-        throw error;
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
       }
+
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -160,8 +158,132 @@ export default function EditProfileView() {
     }
   };
 
-  const handleCancel = () => {
-    setLocation("/profile");
+  const addConcern = () => {
+    if (newConcern.trim()) {
+      setFormData({
+        ...formData,
+        stressAssessment: {
+          ...formData.stressAssessment,
+          primaryConcerns: [...formData.stressAssessment.primaryConcerns, newConcern.trim()]
+        }
+      });
+      setNewConcern("");
+    }
+  };
+
+  const removeConcern = (index: number) => {
+    setFormData({
+      ...formData,
+      stressAssessment: {
+        ...formData.stressAssessment,
+        primaryConcerns: formData.stressAssessment.primaryConcerns.filter((_, i) => i !== index)
+      }
+    });
+  };
+
+  const addSupport = () => {
+    if (newSupport.trim()) {
+      setFormData({
+        ...formData,
+        stressAssessment: {
+          ...formData.stressAssessment,
+          supportNetwork: [...formData.stressAssessment.supportNetwork, newSupport.trim()]
+        }
+      });
+      setNewSupport("");
+    }
+  };
+
+  const removeSupport = (index: number) => {
+    setFormData({
+      ...formData,
+      stressAssessment: {
+        ...formData.stressAssessment,
+        supportNetwork: formData.stressAssessment.supportNetwork.filter((_, i) => i !== index)
+      }
+    });
+  };
+
+  const addChild = () => {
+    setFormData({
+      ...formData,
+      childProfiles: [
+        ...formData.childProfiles,
+        { name: "", age: 0, specialNeeds: [] }
+      ]
+    });
+  };
+
+  const updateChild = (index: number, field: keyof typeof formData.childProfiles[0], value: any) => {
+    const updatedChildren = [...formData.childProfiles];
+    updatedChildren[index] = {
+      ...updatedChildren[index],
+      [field]: value
+    };
+    setFormData({
+      ...formData,
+      childProfiles: updatedChildren
+    });
+  };
+
+  const removeChild = (index: number) => {
+    setFormData({
+      ...formData,
+      childProfiles: formData.childProfiles.filter((_, i) => i !== index)
+    });
+  };
+
+  const addSpecialNeed = (childIndex: number) => {
+    if (newSpecialNeed.trim()) {
+      const updatedChildren = [...formData.childProfiles];
+      updatedChildren[childIndex] = {
+        ...updatedChildren[childIndex],
+        specialNeeds: [...updatedChildren[childIndex].specialNeeds, newSpecialNeed.trim()]
+      };
+      setFormData({
+        ...formData,
+        childProfiles: updatedChildren
+      });
+      setNewSpecialNeed("");
+    }
+  };
+
+  const removeSpecialNeed = (childIndex: number, needIndex: number) => {
+    const updatedChildren = [...formData.childProfiles];
+    updatedChildren[childIndex] = {
+      ...updatedChildren[childIndex],
+      specialNeeds: updatedChildren[childIndex].specialNeeds.filter((_, i) => i !== needIndex)
+    };
+    setFormData({
+      ...formData,
+      childProfiles: updatedChildren
+    });
+  };
+
+  const addGoal = (type: 'shortTerm' | 'longTerm' | 'supportAreas') => {
+    const value = type === 'shortTerm' ? newShortTerm : type === 'longTerm' ? newLongTerm : newSupportArea;
+    if (value.trim()) {
+      setFormData({
+        ...formData,
+        goals: {
+          ...formData.goals,
+          [type]: [...formData.goals[type], value.trim()]
+        }
+      });
+      if (type === 'shortTerm') setNewShortTerm("");
+      else if (type === 'longTerm') setNewLongTerm("");
+      else setNewSupportArea("");
+    }
+  };
+
+  const removeGoal = (type: 'shortTerm' | 'longTerm' | 'supportAreas', index: number) => {
+    setFormData({
+      ...formData,
+      goals: {
+        ...formData.goals,
+        [type]: formData.goals[type].filter((_, i) => i !== index)
+      }
+    });
   };
 
   if (isLoading) {
@@ -269,6 +391,266 @@ export default function EditProfileView() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-2">
+              <Label>Zorgen</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={newConcern}
+                  onChange={(e) => setNewConcern(e.target.value)}
+                  placeholder="Voeg een zorg toe"
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addConcern();
+                    }
+                  }}
+                />
+                <Button type="button" onClick={addConcern}>
+                  Toevoegen
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {formData.stressAssessment.primaryConcerns.map((concern, index) => (
+                  <Badge key={index} variant="secondary">
+                    {concern}
+                    <button
+                      type="button"
+                      onClick={() => removeConcern(index)}
+                      className="ml-2"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Ondersteuningsnetwerk</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={newSupport}
+                  onChange={(e) => setNewSupport(e.target.value)}
+                  placeholder="Voeg ondersteuning toe"
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addSupport();
+                    }
+                  }}
+                />
+                <Button type="button" onClick={addSupport}>
+                  Toevoegen
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {formData.stressAssessment.supportNetwork.map((support, index) => (
+                  <Badge key={index} variant="secondary">
+                    {support}
+                    <button
+                      type="button"
+                      onClick={() => removeSupport(index)}
+                      className="ml-2"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Kinderen</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button type="button" onClick={addChild} className="w-full">
+              <Plus className="h-4 w-4 mr-2" />
+              Kind toevoegen
+            </Button>
+            
+            {formData.childProfiles.map((child, index) => (
+              <Card key={index}>
+                <CardContent className="pt-6 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-semibold">Kind {index + 1}</h3>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => removeChild(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Naam</Label>
+                    <Input
+                      value={child.name}
+                      onChange={(e) => updateChild(index, 'name', e.target.value)}
+                      placeholder="Naam van het kind"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Leeftijd</Label>
+                    <Input
+                      type="number"
+                      value={child.age}
+                      onChange={(e) => updateChild(index, 'age', parseInt(e.target.value) || 0)}
+                      min={0}
+                      max={18}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Speciale behoeften</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={newSpecialNeed}
+                        onChange={(e) => setNewSpecialNeed(e.target.value)}
+                        placeholder="Voeg speciale behoefte toe"
+                        onKeyPress={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addSpecialNeed(index);
+                          }
+                        }}
+                      />
+                      <Button type="button" onClick={() => addSpecialNeed(index)}>
+                        Toevoegen
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {child.specialNeeds.map((need, needIndex) => (
+                        <Badge key={needIndex} variant="secondary">
+                          {need}
+                          <button
+                            type="button"
+                            onClick={() => removeSpecialNeed(index, needIndex)}
+                            className="ml-2"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Doelen</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Korte termijn doelen</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={newShortTerm}
+                  onChange={(e) => setNewShortTerm(e.target.value)}
+                  placeholder="Voeg korte termijn doel toe"
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addGoal('shortTerm');
+                    }
+                  }}
+                />
+                <Button type="button" onClick={() => addGoal('shortTerm')}>
+                  Toevoegen
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {formData.goals.shortTerm.map((goal, index) => (
+                  <Badge key={index} variant="secondary">
+                    {goal}
+                    <button
+                      type="button"
+                      onClick={() => removeGoal('shortTerm', index)}
+                      className="ml-2"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Lange termijn doelen</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={newLongTerm}
+                  onChange={(e) => setNewLongTerm(e.target.value)}
+                  placeholder="Voeg lange termijn doel toe"
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addGoal('longTerm');
+                    }
+                  }}
+                />
+                <Button type="button" onClick={() => addGoal('longTerm')}>
+                  Toevoegen
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {formData.goals.longTerm.map((goal, index) => (
+                  <Badge key={index} variant="secondary">
+                    {goal}
+                    <button
+                      type="button"
+                      onClick={() => removeGoal('longTerm', index)}
+                      className="ml-2"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Ondersteuningsgebieden</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={newSupportArea}
+                  onChange={(e) => setNewSupportArea(e.target.value)}
+                  placeholder="Voeg ondersteuningsgebied toe"
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addGoal('supportAreas');
+                    }
+                  }}
+                />
+                <Button type="button" onClick={() => addGoal('supportAreas')}>
+                  Toevoegen
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {formData.goals.supportAreas.map((area, index) => (
+                  <Badge key={index} variant="secondary">
+                    {area}
+                    <button
+                      type="button"
+                      onClick={() => removeGoal('supportAreas', index)}
+                      className="ml-2"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -276,7 +658,7 @@ export default function EditProfileView() {
           <Button
             type="button"
             variant="outline"
-            onClick={handleCancel}
+            onClick={() => setLocation("/profile")}
             disabled={isSubmitting}
           >
             Annuleren
