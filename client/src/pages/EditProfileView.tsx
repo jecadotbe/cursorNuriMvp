@@ -33,23 +33,8 @@ type OnboardingData = {
 };
 
 type ProfileResponse = {
-  name: string;
-  experienceLevel: "first_time" | "experienced" | "multiple_children";
-  stressLevel: "low" | "moderate" | "high" | "very_high";
-  primaryConcerns: string[];
-  supportNetwork: string[];
-  children: Array<{
-    name: string;
-    age: number;
-    specialNeeds: string[];
-  }>;
-  goals: {
-    shortTerm: string[];
-    longTerm: string[];
-    supportAreas: string[];
-  };
+  onboardingData: OnboardingData;
 };
-
 
 const defaultFormData: OnboardingData = {
   basicInfo: {
@@ -92,11 +77,11 @@ export default function EditProfileView() {
   const [newSpecialNeed, setNewSpecialNeed] = useState("");
 
   const { data: profile, isLoading } = useQuery({
-    queryKey: ['/api/profile'],
+    queryKey: ['/api/onboarding/progress'],
     retry: false,
     queryFn: async () => {
       try {
-        const response = await fetch('/api/profile', {
+        const response = await fetch('/api/onboarding/progress', {
           credentials: 'include',
         });
 
@@ -105,6 +90,7 @@ export default function EditProfileView() {
         }
 
         const data = await response.json();
+        console.log('Fetched profile data:', data); 
         return data;
       } catch (error) {
         console.error('Profile fetch error:', error);
@@ -114,25 +100,9 @@ export default function EditProfileView() {
   });
 
   useEffect(() => {
-    if (profile) {
-      console.log('Setting form data from profile:', profile);
-      setFormData({
-        basicInfo: {
-          name: profile.name,
-          experienceLevel: profile.experienceLevel,
-        },
-        stressAssessment: {
-          stressLevel: profile.stressLevel,
-          primaryConcerns: profile.primaryConcerns || [],
-          supportNetwork: profile.supportNetwork || [],
-        },
-        childProfiles: profile.children || [],
-        goals: profile.goals || {
-          shortTerm: [],
-          longTerm: [],
-          supportAreas: [],
-        },
-      });
+    if (profile?.onboardingData) {
+      console.log('Setting form data from profile:', profile.onboardingData); 
+      setFormData(profile.onboardingData);
     }
   }, [profile]);
 
@@ -140,12 +110,15 @@ export default function EditProfileView() {
     mutationFn: async (data: OnboardingData) => {
       console.log('Sending profile update:', data);
 
-      const response = await fetch("/api/profile", {
-        method: "PUT",
+      const response = await fetch("/api/onboarding/progress", {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          step: 4,
+          data: data
+        }),
         credentials: 'include'
       });
 
@@ -160,7 +133,7 @@ export default function EditProfileView() {
       }
 
       const result = await response.json();
-      console.log('Profile update response:', result);
+      console.log('Profile update response:', result); 
       return result;
     },
     onSuccess: () => {
@@ -168,7 +141,8 @@ export default function EditProfileView() {
         title: "Success",
         description: "Je profiel is bijgewerkt",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/profile'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/onboarding/progress'] });
+      queryClient.refetchQueries({ queryKey: ['/api/onboarding/progress'] });
       setLocation("/profile");
     },
     onError: (error: Error) => {
@@ -185,7 +159,7 @@ export default function EditProfileView() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      console.log('Submitting form data:', formData);
+      console.log('Submitting form data:', formData); 
       await updateProfileMutation.mutateAsync(formData);
     } finally {
       setIsSubmitting(false);

@@ -22,7 +22,6 @@ import type { User } from "./auth";
 import { memoryService } from "./services/memory";
 import { villageRouter } from "./routes/village";
 import { searchBooks } from "./rag";
-import { getProfile, updateProfile } from "./routes/profile";
 
 const SUGGESTION_CATEGORIES = {
   LEARNING: "learning",
@@ -50,10 +49,6 @@ export function registerRoutes(app: Express): Server {
   );
 
   setupAuth(app);
-
-  // Add profile routes
-  app.get("/api/profile", getProfile);
-  app.put("/api/profile", updateProfile);
 
   // Add onboarding routes
   app.get("/api/onboarding/progress", async (req, res) => {
@@ -908,13 +903,14 @@ ${
                 .slice(0, 3)
                 .map(
                   (m) =>
-                    `Previous relevant conversation (relevance: ${m.relevance?.toFixed(2)}): ${m.content}`,                )
+                    `Previous relevant conversation (relevance: ${m.relevance?.toFixed(2)}): ${m.content}`,
+                )
                 .join("\n\n")
             : "No relevant conversation history"
         }
 
 4. Potential retrieved content that can help you with answering:
-These contents are coming mainly from 2 books that are written by "Lynn Geerinck", the co-founder ofNuri. The books names are "Goed Omringd" and "Wie zorgtvoor mijn kinderen". The content start here:
+These contents are coming mainly from 2 books that are written by "Lynn Geerinck", the co-founder of Nuri. The books names are "Goed Omringd" and "Wie zorgtvoor mijn kinderen". The content start here:
 <start helper content>
 ${mergedRAG || "No relevant content available"}
 <end helper content>
@@ -1030,7 +1026,7 @@ ${mergedRAG || "No relevant content available"}
       return res.status(401).send("Not authenticated");
     }
 
-    const chatId = parseChatId(req.params.chatId);
+    const chatId = parseChatId(req.paramschatId);
     if (chatId === null) {
       return res.status(400).json({ message: "Invalid chat ID" });
     }
@@ -1091,7 +1087,7 @@ ${mergedRAG || "No relevant content available"}
         significantMemories.length,
       );
 
-      const response = await anthropic.messages.create({
+            const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 300,
         system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the conversation and provide a relevant follow-up prompt. If the topic relates to an existing conversation, reference it. Consider this historical context:\n${memoryContext}`,
@@ -1188,39 +1184,39 @@ ${mergedRAG || "No relevant content available"}
 
     const user = req.user as User;
 
-    app.post("/api/profile/update", async (req, res) => {
-      if (!req.isAuthenticated() || !req.user) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
+  app.post("/api/profile/update", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
 
-      const user = req.user as User;
-      const profileData = req.body;
+    const user = req.user as User;
+    const profileData = req.body;
 
-      try {
-        const [profile] = await db
-          .update(parentProfiles)
-          .set({
-            onboardingData: profileData,
-            updatedAt: new Date(),
-          })
-          .where(eq(parentProfiles.userId, user.id))
-          .returning();
+    try {
+      const [profile] = await db
+        .update(parentProfiles)
+        .set({
+          onboardingData: profileData,
+          updatedAt: new Date(),
+        })
+        .where(eq(parentProfiles.userId, user.id))
+        .returning();
 
-        res.setHeader('Content-Type', 'application/json');
-        return res.json({
-          status: "success",
-          data: profile
-        });
-      } catch (error) {
-        console.error("Failed to update profile:", error);
-        res.setHeader('Content-Type', 'application/json');
-        res.status(500).json({
-          status: "error",
-          message: "Failed to update profile",
-          error: error instanceof Error ? error.message : "Unknown error",
-        });
-      }
-    });
+      res.setHeader('Content-Type', 'application/json');
+      return res.json({
+        status: "success",
+        data: profile
+      });
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+      res.setHeader('Content-Type', 'application/json');
+      res.status(500).json({
+        status: "error",
+        message: "Failed to update profile",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  });
 
     const userChats = await db.query.chats.findMany({
       where: eq(chats.userId, user.id),
