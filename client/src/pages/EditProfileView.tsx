@@ -133,7 +133,13 @@ export default function EditProfileView() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update profile');
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to update profile');
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType?.includes('application/json')) {
+        throw new Error('Server did not return JSON');
       }
 
       return response.json();
@@ -146,6 +152,7 @@ export default function EditProfileView() {
       setLocation("/profile");
     },
     onError: (error: Error) => {
+      console.error('Profile update error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to update profile",
