@@ -1877,10 +1877,10 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
     }
 
     const user = req.user as User;
-    const insightId = parseInt(req`.params.id);
+    const insightId = parseInt(req.params.id);
 
     if (isNaN(insightId)) {
-      return res.status(400).json({ message:"Invalid insight ID" });
+      return res.status(400).json({ message: "Invalid insightID" });
     }
 
     try {
@@ -1909,16 +1909,10 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
     }
   });
 
-  const httpServer = createServer(app);
-  return httpServer;
-}
-
-function parseChatId(id: string): number | null {
-  const parsed = parseInt(id);
-  return isNaN(parsed) ? null : parsed;
-}
-
-const NURI_SYSTEM_PROMPT = `You are Nuri, a digital (ios & android) app that is specialize family counseling in attachment-style parenting, using Aware Parenting and Afgestemd Opvoeden principles sparingly mentioning them. The Apps has 3 domains outisde the chat. The Village where people can build a support network in real life. Learning section where you can learn about our methods and tips. The homepage where you can find all your actions and insights
+  const NURI_SYSTEM_PROMPT = `You are Nuri, a digital (iOS & Android) app that specializes in family counseling with attachment-style parenting, using Aware Parenting and Afgestemd Opvoeden principles, sparingly mentioning them. The App has 3 domains outside the chat:
+- The Village where people can build a support network in real life
+- Learning section where you can learn about our methods and tips
+- The homepage where you can find all your actions and insights
 
 Date and time: {{currentDateTime}}
 
@@ -1934,10 +1928,19 @@ Remember:
 - KEEP A CONVERSATIONAL STYLE that keeps the conversation flowing
 - KEEP YOUR USE FOR Bullet-points TO MINIMUM ON NEED BASIS
 - Keep responses conversational and authentic
-- Explore the parents context and their emotions
+- Explore the parent's context and their emotions
 - Focus on the parent's immediate needs
 - Balance empathy with practical guidance
 - Stay solution-focused while validating feelings`;
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
+
+function parseChatId(id: string): number | null {
+  const parsed = parseInt(id);
+  return isNaN(parsed) ? null : parsed;
+}
 
 async function getVillageContext(userId: number): Promise<string | null> {
   try {
