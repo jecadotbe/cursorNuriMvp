@@ -90,6 +90,7 @@ export default function EditProfileView() {
         }
 
         const data = await response.json();
+        console.log('Fetched profile data:', data); 
         return data;
       } catch (error) {
         console.error('Profile fetch error:', error);
@@ -100,6 +101,7 @@ export default function EditProfileView() {
 
   useEffect(() => {
     if (profile?.onboardingData) {
+      console.log('Setting form data from profile:', profile.onboardingData); 
       setFormData(profile.onboardingData);
     }
   }, [profile]);
@@ -130,15 +132,17 @@ export default function EditProfileView() {
         }
       }
 
-      return response.json();
+      const result = await response.json();
+      console.log('Profile update response:', result); 
+      return result;
     },
     onSuccess: () => {
       toast({
         title: "Success",
         description: "Je profiel is bijgewerkt",
       });
-      // Invalidate and refetch profile data
       queryClient.invalidateQueries({ queryKey: ['/api/onboarding/progress'] });
+      queryClient.refetchQueries({ queryKey: ['/api/onboarding/progress'] });
       setLocation("/profile");
     },
     onError: (error: Error) => {
@@ -155,6 +159,7 @@ export default function EditProfileView() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      console.log('Submitting form data:', formData); 
       await updateProfileMutation.mutateAsync(formData);
     } finally {
       setIsSubmitting(false);
