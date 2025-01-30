@@ -223,16 +223,14 @@ app.post("/api/onboarding/complete", async (req, res) => {
     try {
       // Extract required fields from onboarding data
       const name = finalData.basicInfo?.name;
-      const email = finalData.basicInfo?.email;
       const stressLevel = finalData.stressAssessment?.stressLevel;
       const experienceLevel = finalData.basicInfo?.experienceLevel;
       const supportNetwork = finalData.stressAssessment?.supportNetwork || [];
 
       // Validate required fields
-      if (!name || !email || !stressLevel || !experienceLevel) {
+      if (!name || !stressLevel || !experienceLevel) {
         console.log("[DEBUG] Missing required fields:", {
           name: !name,
-          email: !email,
           stressLevel: !stressLevel,
           experienceLevel: !experienceLevel
         });
@@ -240,7 +238,6 @@ app.post("/api/onboarding/complete", async (req, res) => {
           message: "Missing required fields",
           details: {
             name: !name,
-            email: !email,
             stressLevel: !stressLevel,
             experienceLevel: !experienceLevel,
           },
@@ -257,7 +254,6 @@ app.post("/api/onboarding/complete", async (req, res) => {
         const onboardingContent = `
 Parent Profile:
 Name: ${name}
-Email: ${email}
 Experience Level: ${experienceLevel}
 Stress Level: ${stressLevel}
 ${finalData.stressAssessment?.primaryConcerns ? `Primary Concerns: ${finalData.stressAssessment.primaryConcerns.join(", ")}` : ""}
@@ -281,7 +277,6 @@ Goals:
 ${finalData.goals.shortTerm?.length ? `Short term: ${finalData.goals.shortTerm.join(", ")}` : ""}
 ${finalData.goals.longTerm?.length ? `Long term: ${finalData.goals.longTerm.join(", ")}` : ""}
 ${finalData.goals.supportAreas?.length ? `Support areas: ${finalData.goals.supportAreas.join(", ")}` : ""}
-Communication preference: ${finalData.goals.communicationPreference || "Not specified"}
 `
   : ""}`;
 
@@ -305,7 +300,6 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
         .values({
           userId: user.id,
           name,
-          email,
           stressLevel: stressLevel as any,
           experienceLevel: experienceLevel as any,
           onboardingData: {
@@ -319,7 +313,6 @@ Communication preference: ${finalData.goals.communicationPreference || "Not spec
           target: parentProfiles.userId,
           set: {
             name,
-            email,
             stressLevel: stressLevel as any,
             experienceLevel: experienceLevel as any,
             onboardingData: {
@@ -660,7 +653,7 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
           content: `Generate a short, descriptive title (max 5 words) for this suggestion: "${parsedResponse.prompt.text}"`
         }]
       });
-      
+
       const generatedTitle = titleResponse.content[0].type === "text" ? titleResponse.content[0].text.trim() : "New Suggestion";
 
       const [suggestion] = await db
@@ -911,8 +904,7 @@ ${mergedRAG || "No relevant content available"}
               role: "user",
               messageIndex: req.body.messages.length - 1,
               chatId: req.body.chatId || "new",
-              source: "nuri-chat",
-              type: "conversation",
+              source: "nuri-chat",type: "conversation",
               category: "chat_history",
               timestamp: new Date().toISOString(),
             },
