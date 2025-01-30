@@ -31,12 +31,13 @@ type ChildProfileStepProps = {
 
 export default function ChildProfileStep({ onComplete, initialData = [] }: ChildProfileStepProps) {
   const [newSpecialNeed, setNewSpecialNeed] = useState("");
-  const [activeChildIndex, setActiveChildIndex] = useState(0);
+  const [activeChildIndex, setActiveChildIndex] = useState<number | null>(null);
+  const [showForm, setShowForm] = useState(false);
   const [children, setChildren] = useState<Child[]>(initialData);
 
   const form = useForm<Child>({
     resolver: zodResolver(childSchema),
-    defaultValues: children[activeChildIndex] || {
+    defaultValues: {
       name: "",
       age: 0,
       specialNeeds: [],
@@ -44,49 +45,56 @@ export default function ChildProfileStep({ onComplete, initialData = [] }: Child
   });
 
   const addChild = () => {
-    setChildren([...children, { name: "", age: 0, specialNeeds: [] }]);
+    setShowForm(true);
     setActiveChildIndex(children.length);
     form.reset({ name: "", age: 0, specialNeeds: [] });
   };
 
   const removeChild = (index: number) => {
-    if (children.length > 1) {
-      const newChildren = children.filter((_, i) => i !== index);
-      setChildren(newChildren);
-      setActiveChildIndex(Math.max(0, activeChildIndex - 1));
-      form.reset(newChildren[Math.max(0, activeChildIndex - 1)]);
-    }
+    const newChildren = children.filter((_, i) => i !== index);
+    setChildren(newChildren);
+    setActiveChildIndex(null);
+    setShowForm(false);
+    form.reset({ name: "", age: 0, specialNeeds: [] });
+  };
+
+  const editChild = (index: number) => {
+    setShowForm(true);
+    setActiveChildIndex(index);
+    form.reset(children[index]);
   };
 
   const addSpecialNeed = () => {
     if (newSpecialNeed.trim()) {
-      const updatedChildren = [...children];
-      const currentChild = updatedChildren[activeChildIndex] || { name: "", age: 0, specialNeeds: [] };
-      currentChild.specialNeeds = [...(currentChild.specialNeeds || []), newSpecialNeed.trim()];
-      updatedChildren[activeChildIndex] = currentChild;
-      setChildren(updatedChildren);
+      const currentSpecialNeeds = form.getValues("specialNeeds");
+      form.setValue("specialNeeds", [...currentSpecialNeeds, newSpecialNeed.trim()]);
       setNewSpecialNeed("");
     }
   };
 
   const removeSpecialNeed = (needIndex: number) => {
-    const updatedChildren = [...children];
-    const currentChild = updatedChildren[activeChildIndex];
-    if (currentChild) {
-      currentChild.specialNeeds = currentChild.specialNeeds.filter((_, i) => i !== needIndex);
-      updatedChildren[activeChildIndex] = currentChild;
+    const currentSpecialNeeds = form.getValues("specialNeeds");
+    form.setValue(
+      "specialNeeds",
+      currentSpecialNeeds.filter((_, i) => i !== needIndex)
+    );
+  };
+
+  const saveChild = (data: Child) => {
+    if (activeChildIndex !== null) {
+      const updatedChildren = [...children];
+      updatedChildren[activeChildIndex] = data;
       setChildren(updatedChildren);
+      setActiveChildIndex(null);
+      setShowForm(false);
+      form.reset({ name: "", age: 0, specialNeeds: [] });
     }
   };
 
-  const onSubmit = (data: Child) => {
-    const updatedChildren = [...children];
-    updatedChildren[activeChildIndex] = data;
-    setChildren(updatedChildren);
-
-    // Validate that we have at least one child with required fields
-    if (updatedChildren.some(child => child.name && child.age >= 0)) {
-      onComplete(updatedChildren);
+  const handleContinue = () => {
+    // Only proceed if we have at least one child saved
+    if (children.some(child => child.name && child.age >= 0)) {
+      onComplete(children);
     }
   };
 
@@ -97,22 +105,17 @@ export default function ChildProfileStep({ onComplete, initialData = [] }: Child
           <Button
             key={index}
             variant={activeChildIndex === index ? "default" : "outline"}
-            onClick={() => {
-              setActiveChildIndex(index);
-              form.reset(children[index]);
-            }}
+            onClick={() => editChild(index)}
             className="flex items-center gap-2"
           >
             {child.name || `Kind ${index + 1}`}
-            {children.length > 1 && (
-              <X
-                className="h-4 w-4 hover:text-destructive"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  removeChild(index);
-                }}
-              />
-            )}
+            <X
+              className="h-4 w-4 hover:text-destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                removeChild(index);
+              }}
+            />
           </Button>
         ))}
         <Button
@@ -125,88 +128,96 @@ export default function ChildProfileStep({ onComplete, initialData = [] }: Child
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="pt-6">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Naam van het kind</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Vul de naam in" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+      {showForm && (
+        <Card>
+          <CardContent className="pt-6">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(saveChild)} className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Naam van het kind</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Vul de naam in" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="age"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Leeftijd</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                        min={0}
-                        max={18}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="age"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Leeftijd</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          {...field}
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                          min={0}
+                          max={18}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <div className="space-y-2">
-                <FormLabel>Speciale behoeften of overwegingen</FormLabel>
-                <div className="flex gap-2">
-                  <Input
-                    value={newSpecialNeed}
-                    onChange={(e) => setNewSpecialNeed(e.target.value)}
-                    placeholder="Voeg speciale behoeften toe"
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        addSpecialNeed();
-                      }
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    onClick={addSpecialNeed}
-                  >
-                    Toevoegen
-                  </Button>
+                <div className="space-y-2">
+                  <FormLabel>Speciale behoeften of overwegingen</FormLabel>
+                  <div className="flex gap-2">
+                    <Input
+                      value={newSpecialNeed}
+                      onChange={(e) => setNewSpecialNeed(e.target.value)}
+                      placeholder="Voeg speciale behoeften toe"
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addSpecialNeed();
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      onClick={addSpecialNeed}
+                    >
+                      Toevoegen
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {form.watch("specialNeeds").map((need, index) => (
+                      <Badge key={index} variant="secondary">
+                        {need}
+                        <button
+                          type="button"
+                          onClick={() => removeSpecialNeed(index)}
+                          className="ml-2"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {children[activeChildIndex]?.specialNeeds.map((need, index) => (
-                    <Badge key={index} variant="secondary">
-                      {need}
-                      <button
-                        type="button"
-                        onClick={() => removeSpecialNeed(index)}
-                        className="ml-2"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              </div>
 
-              <Button type="submit" className="w-full">
-                Doorgaan
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+                <Button type="submit" className="w-full">
+                  Kind Opslaan
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      )}
+
+      {children.length > 0 && (
+        <Button onClick={handleContinue} className="w-full">
+          Doorgaan
+        </Button>
+      )}
     </div>
   );
 }
