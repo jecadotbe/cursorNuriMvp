@@ -80,25 +80,31 @@ export default function EditProfileView() {
     queryKey: ['/api/onboarding/progress'],
     retry: false,
     queryFn: async ({ queryKey }) => {
-      const response = await fetch(queryKey[0] as string, {
-        credentials: 'include',
-      });
+      try {
+        const response = await fetch(queryKey[0] as string, {
+          credentials: 'include',
+        });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch profile data');
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to fetch profile data: ${errorText}`);
+        }
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType?.includes('application/json')) {
+          throw new Error('Server did not return JSON');
+        }
+
+        const data = await response.json();
+        if (!data.onboardingData) {
+          throw new Error('Invalid response format: missing onboardingData');
+        }
+
+        return data;
+      } catch (error) {
+        console.error('Profile fetch error:', error);
+        throw error;
       }
-
-      const text = await response.text();
-      if (!isValidJson(text)) {
-        throw new Error('Invalid response format: expected JSON');
-      }
-
-      const data = JSON.parse(text);
-      if (!data.onboardingData) {
-        throw new Error('Invalid response format: missing onboardingData');
-      }
-
-      return data;
     },
     onError: (error: Error) => {
       toast({
