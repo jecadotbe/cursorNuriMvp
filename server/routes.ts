@@ -361,6 +361,57 @@ ${finalData.goals.supportAreas?.length ? `Support areas: ${finalData.goals.suppo
         })
         .returning();
 
+      // Add support network members to village
+      if (Array.isArray(supportNetwork) && supportNetwork.length > 0) {
+        try {
+          // Calculate angles for even distribution in the first circle
+          const angleStep = 360 / supportNetwork.length;
+
+          // Create village members from support network
+          const villageMembers = await Promise.all(
+            supportNetwork.map(async (member, index) => {
+              // Determine member type and category
+              let type = "support";
+              let category: "informeel" | "formeel" | "inspiratie" = "informeel";
+
+              // Basic categorization based on common support network members
+              if (member.toLowerCase().includes("oma") ||
+                  member.toLowerCase().includes("opa") ||
+                  member.toLowerCase().includes("grootouder")) {
+                type = "family";
+              } else if (member.toLowerCase().includes("therapeut") ||
+                         member.toLowerCase().includes("coach") ||
+                         member.toLowerCase().includes("dokter")) {
+                type = "professional";
+                category = "formeel";
+              }
+
+              return db
+                .insert(villageMembers)
+                .values({
+                  userId: user.id,
+                  name: member,
+                  type,
+                  category,
+                  circle: 1, // Place all initial support members in first circle
+                  contactFrequency: "M", // Default to medium contact frequency
+                  positionAngle: index * angleStep,
+                  metadata: {
+                    source: "onboarding",
+                    addedAt: new Date().toISOString(),
+                  },
+                })
+                .returning();
+            })
+          );
+
+          console.log(`Added ${villageMembers.length} support network members to village`);
+        } catch (villageError) {
+          console.error("Failed to add support network to village:", villageError);
+          // Continue with response even if village creation fails
+        }
+      }
+
       res.json({
         message: "Onboarding completed successfully",
         profile,
@@ -862,7 +913,8 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
       await db
         .delete(promptSuggestions)
         .where(
-          and(
+          and```typescript
+          (
             eq(promptSuggestions.id, suggestionId),
             eq(promptSuggestions.userId, user.id),
           ),
@@ -1815,7 +1867,7 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
 
   // Village member interactions endpoints
   app.post("/api/village/members/:memberId/interactions", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
+    if (!req.isAuthenticated()|| !req.user) {
       return res.status(401).send("Not authenticated");
     }
 
@@ -1958,4 +2010,5 @@ async function getVillageContext(userId: number): Promise<string | null> {
     console.error("Error fetching village context:", error);
     return null;
   }
+}
 }
