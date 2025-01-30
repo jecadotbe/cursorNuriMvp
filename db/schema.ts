@@ -44,15 +44,22 @@ export const parentProfiles = pgTable("parent_profiles", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
   name: text("name").notNull(),
-  email: text("email"), // Remove notNull constraint
+  email: text("email"), 
   stressLevel: stressLevelEnum("stress_level").notNull(),
   experienceLevel: experienceLevelEnum("experience_level").notNull(),
   primaryConcerns: text("primary_concerns").array(),
   supportNetwork: text("support_network").array(),
+  bio: text("bio"),
+  preferredLanguage: text("preferred_language").default('nl'),
+  communicationPreference: text("communication_preference"),
+  // Onboarding specific fields
   completedOnboarding: boolean("completed_onboarding").default(false),
   currentOnboardingStep: integer("current_onboarding_step").default(1),
   onboardingData: jsonb("onboarding_data").default({}),
+  // AI and memory fields
   profileEmbedding: text("profile_embedding").default('[]'),
+  lastSuggestionCheck: timestamp("last_suggestion_check"),
+  // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => {
@@ -90,10 +97,10 @@ export const parentingChallenges = pgTable("parenting_challenges", {
 
 export const parentingGoals = pgTable("parenting_goals", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
+  parentProfileId: integer("parent_profile_id").references(() => parentProfiles.id).notNull(),
   title: text("title").notNull(),
   description: text("description").notNull(),
-  timeframe: text("timeframe").notNull(),
+  category: text("category").notNull(), 
   priority: integer("priority").notNull(),
   status: text("status").default("active"),
   targetDate: timestamp("target_date"),
@@ -131,18 +138,19 @@ export const villageMemberMemories = pgTable("village_member_memories", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// New table for child profiles
 export const childProfiles = pgTable("child_profiles", {
   id: serial("id").primaryKey(),
   parentProfileId: integer("parent_profile_id").references(() => parentProfiles.id).notNull(),
   name: text("name").notNull(),
   age: integer("age").notNull(),
   specialNeeds: text("special_needs").array(),
+  routines: jsonb("routines").default({}),
+  developmentNotes: text("development_notes"),
+  lastAssessment: timestamp("last_assessment"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// New table for parenting goals from onboarding
 export const onboardingGoals = pgTable("onboarding_goals", {
   id: serial("id").primaryKey(),
   parentProfileId: integer("parent_profile_id").references(() => parentProfiles.id).notNull(),
@@ -228,13 +236,11 @@ export const villageMemberMemoriesRelations = relations(villageMemberMemories, (
   }),
 }));
 
-// Update parent profiles relations
 export const parentProfilesRelations = relations(parentProfiles, ({ many }) => ({
   childProfiles: many(childProfiles),
-  onboardingGoals: many(onboardingGoals),
+  parentingGoals: many(parentingGoals),
 }));
 
-// Add relations for child profiles
 export const childProfilesRelations = relations(childProfiles, ({ one }) => ({
   parentProfile: one(parentProfiles, {
     fields: [childProfiles.parentProfileId],
@@ -242,10 +248,9 @@ export const childProfilesRelations = relations(childProfiles, ({ one }) => ({
   }),
 }));
 
-// Add relations for onboarding goals
-export const onboardingGoalsRelations = relations(onboardingGoals, ({ one }) => ({
+export const parentingGoalsRelations = relations(parentingGoals, ({ one }) => ({
   parentProfile: one(parentProfiles, {
-    fields: [onboardingGoals.parentProfileId],
+    fields: [parentingGoals.parentProfileId],
     references: [parentProfiles.id],
   }),
 }));

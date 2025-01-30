@@ -29,6 +29,7 @@ export type OnboardingData = {
     shortTerm: string[];
     longTerm: string[];
     supportAreas: string[];
+    communicationPreference?: string;
   };
 };
 
@@ -57,7 +58,7 @@ const handleApiResponse = async (response: Response) => {
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({
-    childProfiles: [] // Initialize with empty array
+    childProfiles: []
   });
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -76,7 +77,6 @@ export default function OnboardingPage() {
           }
         });
         const data = await handleApiResponse(response);
-        // Ensure childProfiles is always an array
         return {
           ...data,
           onboardingData: {
