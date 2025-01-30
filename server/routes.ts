@@ -1202,10 +1202,16 @@ ${mergedRAG || "No relevant content available"}
         .where(eq(parentProfiles.userId, user.id))
         .returning();
 
-      return res.json(profile);
+      res.setHeader('Content-Type', 'application/json');
+      return res.json({
+        status: "success",
+        data: profile
+      });
     } catch (error) {
       console.error("Failed to update profile:", error);
+      res.setHeader('Content-Type', 'application/json');
       res.status(500).json({
+        status: "error",
         message: "Failed to update profile",
         error: error instanceof Error ? error.message : "Unknown error",
       });
