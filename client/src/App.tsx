@@ -19,6 +19,7 @@ import { OnboardingProvider } from "@/context/onboarding-context";
 import OnboardingTooltip from "@/components/OnboardingTooltip";
 import LearnDetailView from "./pages/LearnDetailView";
 import OnboardingPage from "@/pages/onboarding";
+import PageTransition from "@/components/PageTransition";
 
 function Router() {
   const { user, isLoading } = useUser();
@@ -47,19 +48,21 @@ function Router() {
   return (
     <div className="flex flex-col min-h-screen">
       <div className={`flex-1 ${showNavigation ? 'pb-16' : ''}`}>
-        <Switch>
-          <Route path="/onboarding" component={OnboardingPage} />
-          <Route path="/" component={HomeView} />
-          <Route path="/chat" component={ChatHistoryView} />
-          <Route path="/chat/:id" component={ChatView} />
-          <Route path="/chat/history" component={ChatHistoryView} />
-          <Route path="/village" component={VillageView} />
-          <Route path="/learn" component={LearnView} />
-          <Route path="/learn/:id" component={LearnDetailView} />
-          <Route path="/profile" component={ProfileView} />
-          <Route path="/profile/edit" component={EditProfileView} />
-          <Route component={NotFound} />
-        </Switch>
+        <PageTransition>
+          <Switch>
+            <Route path="/onboarding" component={OnboardingPage} />
+            <Route path="/" component={HomeView} />
+            <Route path="/chat" component={ChatHistoryView} />
+            <Route path="/chat/:id" component={ChatView} />
+            <Route path="/chat/history" component={ChatHistoryView} />
+            <Route path="/village" component={VillageView} />
+            <Route path="/learn" component={LearnView} />
+            <Route path="/learn/:id" component={LearnDetailView} />
+            <Route path="/profile" component={ProfileView} />
+            <Route path="/profile/edit" component={EditProfileView} />
+            <Route component={NotFound} />
+          </Switch>
+        </PageTransition>
       </div>
       {showNavigation && <Navigation />}
       <OnboardingTooltip />
