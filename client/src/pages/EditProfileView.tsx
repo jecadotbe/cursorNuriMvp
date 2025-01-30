@@ -10,16 +10,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Loader2, X, Plus } from "lucide-react";
 
-type OnboardingData = {
-  basicInfo: {
-    name: string;
-    experienceLevel: "first_time" | "experienced" | "multiple_children";
-  };
-  stressAssessment: {
-    stressLevel: "low" | "moderate" | "high" | "very_high";
-    primaryConcerns: string[];
-    supportNetwork: string[];
-  };
+type ProfileData = {
+  name: string;
+  experienceLevel: "first_time" | "experienced" | "multiple_children";
+  stressLevel: "low" | "moderate" | "high" | "very_high";
+  primaryConcerns: string[];
+  supportNetwork: string[];
   childProfiles: Array<{
     name: string;
     age: number;
@@ -32,20 +28,12 @@ type OnboardingData = {
   };
 };
 
-type ProfileResponse = {
-  onboardingData: OnboardingData;
-};
-
-const defaultFormData: OnboardingData = {
-  basicInfo: {
-    name: "",
-    experienceLevel: "first_time",
-  },
-  stressAssessment: {
-    stressLevel: "low",
-    primaryConcerns: [],
-    supportNetwork: [],
-  },
+const defaultFormData: ProfileData = {
+  name: "",
+  experienceLevel: "first_time",
+  stressLevel: "low",
+  primaryConcerns: [],
+  supportNetwork: [],
   childProfiles: [],
   goals: {
     shortTerm: [],
@@ -54,20 +42,11 @@ const defaultFormData: OnboardingData = {
   },
 };
 
-const isValidJson = (text: string): boolean => {
-  try {
-    JSON.parse(text);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
 export default function EditProfileView() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [formData, setFormData] = useState<OnboardingData>(defaultFormData);
+  const [formData, setFormData] = useState<ProfileData>(defaultFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newConcern, setNewConcern] = useState("");
   const [newSupport, setNewSupport] = useState("");
@@ -76,64 +55,51 @@ export default function EditProfileView() {
   const [newSupportArea, setNewSupportArea] = useState("");
   const [newSpecialNeed, setNewSpecialNeed] = useState("");
 
+  // Fetch profile data
   const { data: profile, isLoading } = useQuery({
-    queryKey: ['/api/onboarding/progress'],
-    retry: false,
+    queryKey: ['/api/profile'],
     queryFn: async () => {
-      try {
-        const response = await fetch('/api/onboarding/progress', {
-          credentials: 'include',
-        });
+      const response = await fetch('/api/profile', {
+        credentials: 'include',
+      });
 
-        if (!response.ok) {
-          throw new Error(`Failed to fetch profile data: ${await response.text()}`);
-        }
-
-        const data = await response.json();
-        console.log('Fetched profile data:', data); 
-        return data;
-      } catch (error) {
-        console.error('Profile fetch error:', error);
-        throw error;
+      if (!response.ok) {
+        throw new Error(`Failed to fetch profile: ${await response.text()}`);
       }
+
+      return response.json();
     },
   });
 
+  // Update profile data when fetched
   useEffect(() => {
-    if (profile?.onboardingData) {
-      console.log('Setting form data from profile:', profile.onboardingData); 
-      setFormData(profile.onboardingData);
+    if (profile) {
+      console.log('Setting profile data:', profile);
+      setFormData(profile);
     }
   }, [profile]);
 
+  // Update profile mutation
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: OnboardingData) => {
-      console.log('Sending profile update:', data);
+    mutationFn: async (data: ProfileData) => {
+      console.log('Updating profile with:', data);
 
-      const response = await fetch("/api/onboarding/progress", {
+      const response = await fetch("/api/profile", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          step: 4,
-          data: data
-        }),
+        body: JSON.stringify(data),
         credentials: 'include'
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        try {
-          const errorJson = JSON.parse(errorText);
-          throw new Error(errorJson.message || 'Failed to update profile');
-        } catch {
-          throw new Error(errorText || 'Failed to update profile');
-        }
+        console.error('Profile update failed:', await response.text());
+        throw new Error('Failed to update profile');
       }
 
       const result = await response.json();
-      console.log('Profile update response:', result); 
+      console.log('Profile update response:', result);
       return result;
     },
     onSuccess: () => {
@@ -141,8 +107,9 @@ export default function EditProfileView() {
         title: "Success",
         description: "Je profiel is bijgewerkt",
       });
+      // Invalidate both profile and onboarding queries to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/profile'] });
       queryClient.invalidateQueries({ queryKey: ['/api/onboarding/progress'] });
-      queryClient.refetchQueries({ queryKey: ['/api/onboarding/progress'] });
       setLocation("/profile");
     },
     onError: (error: Error) => {
@@ -155,11 +122,11 @@ export default function EditProfileView() {
     },
   });
 
+  // Form submission handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      console.log('Submitting form data:', formData); 
       await updateProfileMutation.mutateAsync(formData);
     } finally {
       setIsSubmitting(false);
@@ -170,10 +137,7 @@ export default function EditProfileView() {
     if (newConcern.trim()) {
       setFormData({
         ...formData,
-        stressAssessment: {
-          ...formData.stressAssessment,
-          primaryConcerns: [...formData.stressAssessment.primaryConcerns, newConcern.trim()]
-        }
+        primaryConcerns: [...formData.primaryConcerns, newConcern.trim()]
       });
       setNewConcern("");
     }
@@ -182,10 +146,7 @@ export default function EditProfileView() {
   const removeConcern = (index: number) => {
     setFormData({
       ...formData,
-      stressAssessment: {
-        ...formData.stressAssessment,
-        primaryConcerns: formData.stressAssessment.primaryConcerns.filter((_, i) => i !== index)
-      }
+      primaryConcerns: formData.primaryConcerns.filter((_, i) => i !== index)
     });
   };
 
@@ -193,10 +154,7 @@ export default function EditProfileView() {
     if (newSupport.trim()) {
       setFormData({
         ...formData,
-        stressAssessment: {
-          ...formData.stressAssessment,
-          supportNetwork: [...formData.stressAssessment.supportNetwork, newSupport.trim()]
-        }
+        supportNetwork: [...formData.supportNetwork, newSupport.trim()]
       });
       setNewSupport("");
     }
@@ -205,10 +163,7 @@ export default function EditProfileView() {
   const removeSupport = (index: number) => {
     setFormData({
       ...formData,
-      stressAssessment: {
-        ...formData.stressAssessment,
-        supportNetwork: formData.stressAssessment.supportNetwork.filter((_, i) => i !== index)
-      }
+      supportNetwork: formData.supportNetwork.filter((_, i) => i !== index)
     });
   };
 
@@ -329,14 +284,11 @@ export default function EditProfileView() {
               <Label htmlFor="name">Naam</Label>
               <Input
                 id="name"
-                value={formData.basicInfo.name}
+                value={formData.name}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    basicInfo: {
-                      ...formData.basicInfo,
-                      name: e.target.value,
-                    },
+                    name: e.target.value,
                   })
                 }
               />
@@ -345,14 +297,11 @@ export default function EditProfileView() {
             <div className="space-y-2">
               <Label htmlFor="experienceLevel">Ervaring niveau</Label>
               <Select
-                value={formData.basicInfo.experienceLevel}
+                value={formData.experienceLevel}
                 onValueChange={(value: "first_time" | "experienced" | "multiple_children") =>
                   setFormData({
                     ...formData,
-                    basicInfo: {
-                      ...formData.basicInfo,
-                      experienceLevel: value,
-                    },
+                    experienceLevel: value,
                   })
                 }
               >
@@ -377,14 +326,11 @@ export default function EditProfileView() {
             <div className="space-y-2">
               <Label htmlFor="stressLevel">Stress niveau</Label>
               <Select
-                value={formData.stressAssessment.stressLevel}
+                value={formData.stressLevel}
                 onValueChange={(value: "low" | "moderate" | "high" | "very_high") =>
                   setFormData({
                     ...formData,
-                    stressAssessment: {
-                      ...formData.stressAssessment,
-                      stressLevel: value,
-                    },
+                    stressLevel: value,
                   })
                 }
               >
@@ -419,7 +365,7 @@ export default function EditProfileView() {
                 </Button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {formData.stressAssessment.primaryConcerns.map((concern, index) => (
+                {formData.primaryConcerns.map((concern, index) => (
                   <Badge key={index} variant="secondary">
                     {concern}
                     <button
@@ -453,7 +399,7 @@ export default function EditProfileView() {
                 </Button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {formData.stressAssessment.supportNetwork.map((support, index) => (
+                {formData.supportNetwork.map((support, index) => (
                   <Badge key={index} variant="secondary">
                     {support}
                     <button
