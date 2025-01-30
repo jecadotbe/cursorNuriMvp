@@ -10,56 +10,50 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Loader2, X, Plus } from "lucide-react";
 
-type OnboardingData = {
-  basicInfo: {
-    name: string;
-    experienceLevel: "first_time" | "experienced" | "multiple_children";
-  };
-  stressAssessment: {
-    stressLevel: "low" | "moderate" | "high" | "very_high";
-    primaryConcerns: string[];
-    supportNetwork: string[];
-  };
-  childProfiles: Array<{
-    name: string;
-    age: number;
-    specialNeeds: string[];
-  }>;
+type ChildProfile = {
+  name: string;
+  age: number;
+  specialNeeds: string[];
+};
+
+type Goal = {
+  title: string;
+  description: string;
+  category: 'short_term' | 'long_term';
+  priority: number;
+};
+
+type ProfileData = {
+  name: string;
+  email: string;
+  bio: string;
+  preferredLanguage: string;
+  communicationPreference: string;
+  experienceLevel: "first_time" | "experienced" | "multiple_children";
+  stressLevel: "low" | "moderate" | "high" | "very_high";
+  primaryConcerns: string[];
+  supportNetwork: string[];
+  childProfiles: ChildProfile[];
   goals: {
     shortTerm: string[];
     longTerm: string[];
-    supportAreas: string[];
   };
 };
 
-type ProfileResponse = {
-  onboardingData: OnboardingData;
-};
-
-const defaultFormData: OnboardingData = {
-  basicInfo: {
-    name: "",
-    experienceLevel: "first_time",
-  },
-  stressAssessment: {
-    stressLevel: "low",
-    primaryConcerns: [],
-    supportNetwork: [],
-  },
+const defaultProfileData: ProfileData = {
+  name: "",
+  email: "",
+  bio: "",
+  preferredLanguage: "nl",
+  communicationPreference: "",
+  experienceLevel: "first_time",
+  stressLevel: "low",
+  primaryConcerns: [],
+  supportNetwork: [],
   childProfiles: [],
   goals: {
     shortTerm: [],
-    longTerm: [],
-    supportAreas: [],
-  },
-};
-
-const isValidJson = (text: string): boolean => {
-  try {
-    JSON.parse(text);
-    return true;
-  } catch {
-    return false;
+    longTerm: []
   }
 };
 
@@ -67,21 +61,20 @@ export default function EditProfileView() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [formData, setFormData] = useState<OnboardingData>(defaultFormData);
+  const [formData, setFormData] = useState<ProfileData>(defaultProfileData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newConcern, setNewConcern] = useState("");
   const [newSupport, setNewSupport] = useState("");
   const [newShortTerm, setNewShortTerm] = useState("");
   const [newLongTerm, setNewLongTerm] = useState("");
-  const [newSupportArea, setNewSupportArea] = useState("");
   const [newSpecialNeed, setNewSpecialNeed] = useState("");
 
   const { data: profile, isLoading } = useQuery({
-    queryKey: ['/api/onboarding/progress'],
+    queryKey: ['/api/profile'],
     retry: false,
     queryFn: async () => {
       try {
-        const response = await fetch('/api/onboarding/progress', {
+        const response = await fetch('/api/profile', {
           credentials: 'include',
         });
 
@@ -90,7 +83,6 @@ export default function EditProfileView() {
         }
 
         const data = await response.json();
-        console.log('Fetched profile data:', data); 
         return data;
       } catch (error) {
         console.error('Profile fetch error:', error);
@@ -100,25 +92,35 @@ export default function EditProfileView() {
   });
 
   useEffect(() => {
-    if (profile?.onboardingData) {
-      console.log('Setting form data from profile:', profile.onboardingData); 
-      setFormData(profile.onboardingData);
+    if (profile) {
+      // Transform the profile data to match our form structure
+      setFormData({
+        name: profile.name || "",
+        email: profile.email || "",
+        bio: profile.bio || "",
+        preferredLanguage: profile.preferredLanguage || "nl",
+        communicationPreference: profile.communicationPreference || "",
+        experienceLevel: profile.experienceLevel || "first_time",
+        stressLevel: profile.stressLevel || "low",
+        primaryConcerns: profile.primaryConcerns || [],
+        supportNetwork: profile.supportNetwork || [],
+        childProfiles: profile.childProfiles || [],
+        goals: {
+          shortTerm: profile.goals?.filter(g => g.category === 'short_term').map(g => g.title) || [],
+          longTerm: profile.goals?.filter(g => g.category === 'long_term').map(g => g.title) || []
+        }
+      });
     }
   }, [profile]);
 
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: OnboardingData) => {
-      console.log('Sending profile update:', data);
-
-      const response = await fetch("/api/onboarding/progress", {
+    mutationFn: async (data: ProfileData) => {
+      const response = await fetch("/api/profile/update", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          step: 4,
-          data: data
-        }),
+        body: JSON.stringify(data),
         credentials: 'include'
       });
 
@@ -132,17 +134,14 @@ export default function EditProfileView() {
         }
       }
 
-      const result = await response.json();
-      console.log('Profile update response:', result); 
-      return result;
+      return response.json();
     },
     onSuccess: () => {
       toast({
         title: "Success",
         description: "Je profiel is bijgewerkt",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/onboarding/progress'] });
-      queryClient.refetchQueries({ queryKey: ['/api/onboarding/progress'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/profile'] });
       setLocation("/profile");
     },
     onError: (error: Error) => {
@@ -159,7 +158,6 @@ export default function EditProfileView() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      console.log('Submitting form data:', formData); 
       await updateProfileMutation.mutateAsync(formData);
     } finally {
       setIsSubmitting(false);
@@ -170,10 +168,7 @@ export default function EditProfileView() {
     if (newConcern.trim()) {
       setFormData({
         ...formData,
-        stressAssessment: {
-          ...formData.stressAssessment,
-          primaryConcerns: [...formData.stressAssessment.primaryConcerns, newConcern.trim()]
-        }
+        primaryConcerns: [...formData.primaryConcerns, newConcern.trim()]
       });
       setNewConcern("");
     }
@@ -182,10 +177,7 @@ export default function EditProfileView() {
   const removeConcern = (index: number) => {
     setFormData({
       ...formData,
-      stressAssessment: {
-        ...formData.stressAssessment,
-        primaryConcerns: formData.stressAssessment.primaryConcerns.filter((_, i) => i !== index)
-      }
+      primaryConcerns: formData.primaryConcerns.filter((_, i) => i !== index)
     });
   };
 
@@ -193,10 +185,7 @@ export default function EditProfileView() {
     if (newSupport.trim()) {
       setFormData({
         ...formData,
-        stressAssessment: {
-          ...formData.stressAssessment,
-          supportNetwork: [...formData.stressAssessment.supportNetwork, newSupport.trim()]
-        }
+        supportNetwork: [...formData.supportNetwork, newSupport.trim()]
       });
       setNewSupport("");
     }
@@ -205,10 +194,7 @@ export default function EditProfileView() {
   const removeSupport = (index: number) => {
     setFormData({
       ...formData,
-      stressAssessment: {
-        ...formData.stressAssessment,
-        supportNetwork: formData.stressAssessment.supportNetwork.filter((_, i) => i !== index)
-      }
+      supportNetwork: formData.supportNetwork.filter((_, i) => i !== index)
     });
   };
 
@@ -222,7 +208,7 @@ export default function EditProfileView() {
     });
   };
 
-  const updateChild = (index: number, field: keyof typeof formData.childProfiles[0], value: any) => {
+  const updateChild = (index: number, field: keyof ChildProfile, value: any) => {
     const updatedChildren = [...formData.childProfiles];
     updatedChildren[index] = {
       ...updatedChildren[index],
@@ -268,8 +254,8 @@ export default function EditProfileView() {
     });
   };
 
-  const addGoal = (type: 'shortTerm' | 'longTerm' | 'supportAreas') => {
-    const value = type === 'shortTerm' ? newShortTerm : type === 'longTerm' ? newLongTerm : newSupportArea;
+  const addGoal = (type: 'shortTerm' | 'longTerm') => {
+    const value = type === 'shortTerm' ? newShortTerm : newLongTerm;
     if (value.trim()) {
       setFormData({
         ...formData,
@@ -279,12 +265,11 @@ export default function EditProfileView() {
         }
       });
       if (type === 'shortTerm') setNewShortTerm("");
-      else if (type === 'longTerm') setNewLongTerm("");
-      else setNewSupportArea("");
+      else setNewLongTerm("");
     }
   };
 
-  const removeGoal = (type: 'shortTerm' | 'longTerm' | 'supportAreas', index: number) => {
+  const removeGoal = (type: 'shortTerm' | 'longTerm', index: number) => {
     setFormData({
       ...formData,
       goals: {
@@ -329,14 +314,75 @@ export default function EditProfileView() {
               <Label htmlFor="name">Naam</Label>
               <Input
                 id="name"
-                value={formData.basicInfo.name}
+                value={formData.name}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    basicInfo: {
-                      ...formData.basicInfo,
-                      name: e.target.value,
-                    },
+                    name: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    email: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bio">Bio</Label>
+              <Input
+                id="bio"
+                value={formData.bio}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    bio: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="preferredLanguage">Voorkeurstaal</Label>
+              <Select
+                value={formData.preferredLanguage}
+                onValueChange={(value) =>
+                  setFormData({
+                    ...formData,
+                    preferredLanguage: value,
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecteer een taal" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nl">Nederlands</SelectItem>
+                  <SelectItem value="en">Engels</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="communicationPreference">Communicatie voorkeur</Label>
+              <Input
+                id="communicationPreference"
+                value={formData.communicationPreference}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    communicationPreference: e.target.value,
                   })
                 }
               />
@@ -345,14 +391,11 @@ export default function EditProfileView() {
             <div className="space-y-2">
               <Label htmlFor="experienceLevel">Ervaring niveau</Label>
               <Select
-                value={formData.basicInfo.experienceLevel}
+                value={formData.experienceLevel}
                 onValueChange={(value: "first_time" | "experienced" | "multiple_children") =>
                   setFormData({
                     ...formData,
-                    basicInfo: {
-                      ...formData.basicInfo,
-                      experienceLevel: value,
-                    },
+                    experienceLevel: value,
                   })
                 }
               >
@@ -377,14 +420,11 @@ export default function EditProfileView() {
             <div className="space-y-2">
               <Label htmlFor="stressLevel">Stress niveau</Label>
               <Select
-                value={formData.stressAssessment.stressLevel}
+                value={formData.stressLevel}
                 onValueChange={(value: "low" | "moderate" | "high" | "very_high") =>
                   setFormData({
                     ...formData,
-                    stressAssessment: {
-                      ...formData.stressAssessment,
-                      stressLevel: value,
-                    },
+                    stressLevel: value,
                   })
                 }
               >
@@ -419,7 +459,7 @@ export default function EditProfileView() {
                 </Button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {formData.stressAssessment.primaryConcerns.map((concern, index) => (
+                {formData.primaryConcerns.map((concern, index) => (
                   <Badge key={index} variant="secondary">
                     {concern}
                     <button
@@ -453,7 +493,7 @@ export default function EditProfileView() {
                 </Button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {formData.stressAssessment.supportNetwork.map((support, index) => (
+                {formData.supportNetwork.map((support, index) => (
                   <Badge key={index} variant="secondary">
                     {support}
                     <button
@@ -617,40 +657,6 @@ export default function EditProfileView() {
                     <button
                       type="button"
                       onClick={() => removeGoal('longTerm', index)}
-                      className="ml-2"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Ondersteuningsgebieden</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={newSupportArea}
-                  onChange={(e) => setNewSupportArea(e.target.value)}
-                  placeholder="Voeg ondersteuningsgebied toe"
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addGoal('supportAreas');
-                    }
-                  }}
-                />
-                <Button type="button" onClick={() => addGoal('supportAreas')}>
-                  Toevoegen
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.goals.supportAreas.map((area, index) => (
-                  <Badge key={index} variant="secondary">
-                    {area}
-                    <button
-                      type="button"
-                      onClick={() => removeGoal('supportAreas', index)}
                       className="ml-2"
                     >
                       <X className="h-3 w-3" />

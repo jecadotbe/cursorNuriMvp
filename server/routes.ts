@@ -12,6 +12,8 @@ import {
   promptSuggestions,
   suggestionFeedback,
   parentProfiles,
+  childProfiles,
+  parentingGoals,
 } from "@db/schema";
 import path from "path";
 import fs from "fs/promises";
@@ -82,28 +84,28 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-app.post("/api/onboarding/progress", async (req, res) => {
-  if (!req.isAuthenticated() || !req.user) {
-    return res.status(401).json({ message: "Not authenticated" });
-  }
+  app.post("/api/onboarding/progress", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
 
-  const user = req.user as User;
-  const { step, data } = req.body;
+    const user = req.user as User;
+    const { step, data } = req.body;
 
-  try {
-    // Store intermediate progress in mem0
     try {
-      const childProfilesString = Array.isArray(data.childProfiles)
-        ? data.childProfiles
-            .map(
-              (child: any) =>
-                `- ${child.name} (Age: ${child.age})
+      // Store intermediate progress in mem0
+      try {
+        const childProfilesString = Array.isArray(data.childProfiles)
+          ? data.childProfiles
+              .map(
+                (child: any) =>
+                  `- ${child.name} (Age: ${child.age})
                  ${child.specialNeeds?.length ? `Special needs: ${child.specialNeeds.join(", ")}` : "No special needs"}`
-            )
-            .join("\n")
-        : "No children profiles added";
+              )
+              .join("\n")
+          : "No children profiles added";
 
-      const stepContent = `
+        const stepContent = `
 Onboarding Step ${step} Progress:
 ${data.basicInfo ? `
 Basic Information:
@@ -129,95 +131,95 @@ Support Areas: ${data.goals.supportAreas?.join(", ") || "None"}
 Communication Preference: ${data.goals.communicationPreference || "Not specified"}
 ` : ''}`;
 
-      await memoryService.createMemory(user.id, stepContent, {
-        type: "onboarding_progress",
-        category: "user_onboarding",
-        step: step,
-        isComplete: false,
-        source: "onboarding_form",
-        timestamp: new Date().toISOString(),
-        metadata: {
-          stepData: data,
-          progressPercentage: (step / 4) * 100,
-        }
-      });
+        await memoryService.createMemory(user.id, stepContent, {
+          type: "onboarding_progress",
+          category: "user_onboarding",
+          step: step,
+          isComplete: false,
+          source: "onboarding_form",
+          timestamp: new Date().toISOString(),
+          metadata: {
+            stepData: data,
+            progressPercentage: (step / 4) * 100,
+          }
+        });
 
-      console.log("Successfully stored onboarding progress in memory");
-    } catch (memoryError) {
-      console.error("Failed to store onboarding progress in memory:", memoryError);
-      // Continue with database storage even if memory storage fails
-    }
+        console.log("Successfully stored onboarding progress in memory");
+      } catch (memoryError) {
+        console.error("Failed to store onboarding progress in memory:", memoryError);
+        // Continue with database storage even if memory storage fails
+      }
 
-    // Extract fields from onboarding data
-    const name = data.basicInfo?.name || "";
-    const email = data.basicInfo?.email || "";
-    const stressLevel = data.stressAssessment?.stressLevel || "moderate";
-    const experienceLevel = data.basicInfo?.experienceLevel || "first_time";
+      // Extract fields from onboarding data
+      const name = data.basicInfo?.name || "";
+      const email = data.basicInfo?.email || "";
+      const stressLevel = data.stressAssessment?.stressLevel || "moderate";
+      const experienceLevel = data.basicInfo?.experienceLevel || "first_time";
 
-    // Only save to parent_profiles if we have the required data
-    if (step >= 2 && data.basicInfo?.name && data.basicInfo?.email) {
-      const [profile] = await db
-        .insert(parentProfiles)
-        .values({
-          userId: user.id,
-          name,
-          email,
-          stressLevel: stressLevel as any,
-          experienceLevel: experienceLevel as any,
-          currentOnboardingStep: step,
-          onboardingData: {
-            ...data,
-            childProfiles: Array.isArray(data.childProfiles) ? data.childProfiles : []
-          },
-          completedOnboarding: false,
-          primaryConcerns: data.stressAssessment?.primaryConcerns || [],
-          supportNetwork: data.stressAssessment?.supportNetwork || [],
-        })
-        .onConflictDoUpdate({
-          target: parentProfiles.userId,
-          set: {
+      // Only save to parent_profiles if we have the required data
+      if (step >= 2 && data.basicInfo?.name && data.basicInfo?.email) {
+        const [profile] = await db
+          .insert(parentProfiles)
+          .values({
+            userId: user.id,
             name,
             email,
-            stressLevel: (data.stressAssessment?.stressLevel as any) || undefined,
-            experienceLevel: (data.basicInfo?.experienceLevel as any) || undefined,
+            stressLevel: stressLevel as any,
+            experienceLevel: experienceLevel as any,
             currentOnboardingStep: step,
             onboardingData: {
               ...data,
               childProfiles: Array.isArray(data.childProfiles) ? data.childProfiles : []
             },
-            primaryConcerns: data.stressAssessment?.primaryConcerns || undefined,
-            supportNetwork: data.stressAssessment?.supportNetwork || undefined,
-            updatedAt: new Date(),
-          },
-        })
-        .returning();
+            completedOnboarding: false,
+            primaryConcerns: data.stressAssessment?.primaryConcerns || [],
+            supportNetwork: data.stressAssessment?.supportNetwork || [],
+          })
+          .onConflictDoUpdate({
+            target: parentProfiles.userId,
+            set: {
+              name,
+              email,
+              stressLevel: (data.stressAssessment?.stressLevel as any) || undefined,
+              experienceLevel: (data.basicInfo?.experienceLevel as any) || undefined,
+              currentOnboardingStep: step,
+              onboardingData: {
+                ...data,
+                childProfiles: Array.isArray(data.childProfiles) ? data.childProfiles : []
+              },
+              primaryConcerns: data.stressAssessment?.primaryConcerns || undefined,
+              supportNetwork: data.stressAssessment?.supportNetwork || undefined,
+              updatedAt: new Date(),
+            },
+          })
+          .returning();
 
-      return res.json({
-        currentOnboardingStep: profile.currentOnboardingStep,
-        completedOnboarding: profile.completedOnboarding,
-        onboardingData: profile.onboardingData,
+        return res.json({
+          currentOnboardingStep: profile.currentOnboardingStep,
+          completedOnboarding: profile.completedOnboarding,
+          onboardingData: profile.onboardingData,
+        });
+      }
+
+      // For early steps, just return the current progress without saving to database
+      res.json({
+        currentOnboardingStep: step,
+        completedOnboarding: false,
+        onboardingData: {
+          ...data,
+          childProfiles: Array.isArray(data.childProfiles) ? data.childProfiles : []
+        },
+      });
+    } catch (error) {
+      console.error("Failed to save onboarding progress:", error);
+      res.status(500).json({
+        message: "Failed to save onboarding progress",
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
+  });
 
-    // For early steps, just return the current progress without saving to database
-    res.json({
-      currentOnboardingStep: step,
-      completedOnboarding: false,
-      onboardingData: {
-        ...data,
-        childProfiles: Array.isArray(data.childProfiles) ? data.childProfiles : []
-      },
-    });
-  } catch (error) {
-    console.error("Failed to save onboarding progress:", error);
-    res.status(500).json({
-      message: "Failed to save onboarding progress",
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-});
-
-app.post("/api/onboarding/complete", async (req, res) => {
+  app.post("/api/onboarding/complete", async (req, res) => {
     console.log("[DEBUG] Starting onboarding completion");
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ message: "Not authenticated" });
@@ -513,7 +515,7 @@ ${finalData.goals.supportAreas?.length ? `Support areas: ${finalData.goals.suppo
       orderBy: desc(promptSuggestions.createdAt),
     });
 
-    const hasNewContent = lastMemory && lastSuggestion && 
+    const hasNewContent = lastMemory && lastSuggestion &&
       lastMemory.createdAt > lastSuggestion.createdAt;
 
     if (!forceRefresh && !hasNewContent) {
@@ -815,7 +817,7 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
   });
 
   app.post("/api/chat", async (req, res) => {
-    console.log("the current request is:\n"+ req.body.messages);
+    console.log("the current request is:\n" + req.body.messages);
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
     }
@@ -915,7 +917,7 @@ ${
         }
 
 4. Potential retrieved content that can help you with answering:
-These contents are coming mainly from 2 books that are written by "Lynn Geerinck", the co-founder of Nuri. The books names are "Goed Omringd" and "Wie zorgtvoor mijn kinderen". The content start here:
+These contents are coming mainly from 2 books that are written by "Lynn Geerinck", the co-founder of Nuri. The books names are ""Goed Omringd" and "Wie zorgtvoor mijn kinderen". The content start here:
 <start helper content>
 ${mergedRAG || "No relevant content available"}
 <end helper content>
@@ -944,7 +946,7 @@ ${mergedRAG || "No relevant content available"}
               role: "user",
               messageIndex: req.body.messages.length - 1,
               chatId: req.body.chatId || "new",
-              source: "nuri-chat",type: "conversation",
+              source: "nuri-chat", type: "conversation",
               category: "chat_history",
               timestamp: new Date().toISOString(),
             },
@@ -1031,7 +1033,7 @@ ${mergedRAG || "No relevant content available"}
       return res.status(401).send("Not authenticated");
     }
 
-    const chatId = parseChatId(req.paramschatId);
+    const chatId = parseChatId(req.params.chatId);
     if (chatId === null) {
       return res.status(400).json({ message: "Invalid chat ID" });
     }
@@ -1092,7 +1094,7 @@ ${mergedRAG || "No relevant content available"}
         significantMemories.length,
       );
 
-            const response = await anthropic.messages.create({
+      const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 300,
         system: `${NURI_SYSTEM_PROMPT}\n\nAnalyze the conversation and provide a relevant follow-up prompt. If the topic relates to an existing conversation, reference it. Consider this historical context:\n${memoryContext}`,
@@ -1189,39 +1191,146 @@ ${mergedRAG || "No relevant content available"}
 
     const user = req.user as User;
 
-  app.post("/api/profile/update", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
+    app.post("/api/profile/update", async (req, res) => {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
 
-    const user = req.user as User;
-    const profileData = req.body;
+      const user = req.user as User;
+      const {
+        name,
+        email,
+        stressLevel,
+        experienceLevel,
+        bio,
+        preferredLanguage,
+        communicationPreference,
+        primaryConcerns,
+        supportNetwork,
+        childProfiles,
+        goals
+      } = req.body;
 
-    try {
-      const [profile] = await db
-        .update(parentProfiles)
-        .set({
-          onboardingData: profileData,
-          updatedAt: new Date(),
-        })
-        .where(eq(parentProfiles.userId, user.id))
-        .returning();
+      try {
+        // Update profile in database
+        const [updatedProfile] = await db
+          .update(parentProfiles)
+          .set({
+            name,
+            email,
+            stressLevel,
+            experienceLevel,
+            bio,
+            preferredLanguage,
+            communicationPreference,
+            primaryConcerns,
+            supportNetwork,
+            updatedAt: new Date(),
+          })
+          .where(eq(parentProfiles.userId, user.id))
+          .returning();
 
-      res.setHeader('Content-Type', 'application/json');
-      return res.json({
-        status: "success",
-        data: profile
-      });
-    } catch (error) {
-      console.error("Failed to update profile:", error);
-      res.setHeader('Content-Type', 'application/json');
-      res.status(500).json({
-        status: "error",
-        message: "Failed to update profile",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-  });
+        // Update child profiles
+        if (Array.isArray(childProfiles)) {
+          // First delete existing child profiles
+          await db
+            .delete(childProfiles)
+            .where(eq(childProfiles.parentProfileId, updatedProfile.id));
+
+          // Then insert new ones
+          const childProfilePromises = childProfiles.map(child =>
+            db.insert(childProfiles).values({
+              parentProfileId: updatedProfile.id,
+              name: child.name,
+              age: child.age,
+              specialNeeds: child.specialNeeds || [],
+            })
+          );
+
+          await Promise.all(childProfilePromises);
+        }
+
+        // Update goals
+        if (goals) {
+          // Delete existing goals
+          await db
+            .delete(parentingGoals)
+            .where(eq(parentingGoals.parentProfileId, updatedProfile.id));
+
+          // Insert new goals
+          const goalPromises = [
+            ...goals.shortTerm.map(goal =>
+              db.insert(parentingGoals).values({
+                parentProfileId: updatedProfile.id,
+                title: goal,
+                description: goal,
+                category: 'short_term',
+                priority: 1,
+              })
+            ),
+            ...goals.longTerm.map(goal =>
+              db.insert(parentingGoals).values({
+                parentProfileId: updatedProfile.id,
+                title: goal,
+                description: goal,
+                category: 'long_term',
+                priority: 1,
+              })
+            )
+          ];
+
+          await Promise.all(goalPromises);
+        }
+
+        // Get updated profile with related data
+        const fullProfile = await db.query.parentProfiles.findFirst({
+          where: eq(parentProfiles.id, updatedProfile.id),
+          with: {
+            childProfiles: true,
+            parentingGoals: true,
+          }
+        });
+
+        res.json(fullProfile);
+      } catch (error) {
+        console.error("Failed to update profile:", error);
+        res.status(500).json({
+          message: "Failed to update profile",
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    });
+
+    // Add endpoint to fetch full profile data
+    app.get("/api/profile", async (req, res) => {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const user = req.user as User;
+
+      try {
+        const profile = await db.query.parentProfiles.findFirst({
+          where: eq(parentProfiles.userId, user.id),
+          with: {
+            childProfiles: true,
+            parentingGoals: true,
+          }
+        });
+
+        if (!profile) {
+          return res.status(404).json({ message: "Profile not found" });
+        }
+
+        res.json(profile);
+      } catch (error) {
+        console.error("Failed to fetch profile:", error);
+        res.status(500).json({
+          message: "Failed to fetch profile",
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    });
 
     const userChats = await db.query.chats.findMany({
       where: eq(chats.userId, user.id),
@@ -1810,7 +1919,7 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
         .returning();
 
       if (!updated) {
-        return res.status(404).json({ message: "Insight not found" });
+        return resreturn res.status(404).json({ message: "Insight not found" });
       }
 
       res.json(updated);
@@ -1824,9 +1933,12 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
   return httpServer;
 }
 
-function parseChatId(id: string): number | null {
-  const parsed = parseInt(id);
-  return isNaN(parsed) ? null : parsed;
+function parseChatId(chatId: string): number | null {
+  const parsed = parseInt(chatId);
+  if (isNaN(parsed)) {
+    return null;
+  }
+  return parsed;
 }
 
 const NURI_SYSTEM_PROMPT = `You are Nuri, a digital (ios & android) app that is specialize family counseling in attachment-style parenting, using Aware Parenting and Afgestemd Opvoeden principles sparingly mentioning them. The Apps has 3 domains outisde the chat. The Village where people can build a support network in real life. Learning section where you can learn about our methods and tips. The homepage where you can find all your actions and insights
