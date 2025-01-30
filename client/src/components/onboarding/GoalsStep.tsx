@@ -14,39 +14,29 @@ import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 const formSchema = z.object({
   shortTerm: z.array(z.string()).min(1, "Add at least one short-term goal"),
   longTerm: z.array(z.string()).min(1, "Add at least one long-term goal"),
   supportAreas: z.array(z.string()).min(1, "Select at least one area where you need support"),
-  communicationPreference: z.string({
-    required_error: "Please select your preferred communication style",
-  }),
 });
 
 type GoalsStepProps = {
   onComplete: (data: z.infer<typeof formSchema>) => void;
+  initialData?: z.infer<typeof formSchema>;
 };
 
-export default function GoalsStep({ onComplete }: GoalsStepProps) {
+export default function GoalsStep({ onComplete, initialData }: GoalsStepProps) {
   const [newShortTerm, setNewShortTerm] = useState("");
   const [newLongTerm, setNewLongTerm] = useState("");
   const [newSupportArea, setNewSupportArea] = useState("");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: initialData || {
       shortTerm: [],
       longTerm: [],
       supportAreas: [],
-      communicationPreference: "",
     },
   });
 
@@ -234,36 +224,6 @@ export default function GoalsStep({ onComplete }: GoalsStepProps) {
                   ))}
                 </div>
               </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="communicationPreference"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Preferred Communication Style</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your communication style" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="direct">Direct and concise</SelectItem>
-                  <SelectItem value="detailed">
-                    Detailed with explanations
-                  </SelectItem>
-                  <SelectItem value="collaborative">
-                    Collaborative discussion
-                  </SelectItem>
-                  <SelectItem value="supportive">
-                    Supportive and encouraging
-                  </SelectItem>
-                </SelectContent>
-              </Select>
               <FormMessage />
             </FormItem>
           )}

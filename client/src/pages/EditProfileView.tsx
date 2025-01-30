@@ -12,7 +12,6 @@ import { ChevronLeft, Loader2 } from "lucide-react";
 type OnboardingData = {
   basicInfo: {
     name: string;
-    email: string;
     experienceLevel: "first_time" | "experienced" | "multiple_children";
   };
   stressAssessment: {
@@ -29,7 +28,6 @@ type ProfileResponse = {
 const defaultFormData: OnboardingData = {
   basicInfo: {
     name: "",
-    email: "",
     experienceLevel: "first_time",
   },
   stressAssessment: {
@@ -54,7 +52,6 @@ export default function EditProfileView() {
   const [formData, setFormData] = useState<OnboardingData>(defaultFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch existing profile data
   const { data: profile, isLoading } = useQuery<ProfileResponse>({
     queryKey: ['/api/onboarding/progress'],
     retry: false,
@@ -118,13 +115,12 @@ export default function EditProfileView() {
         });
 
         const responseText = await response.text();
-        console.log('Response text:', responseText); // Debug log
+        console.log('Response text:', responseText); 
 
         if (!response.ok) {
           throw new Error(responseText || `HTTP error! status: ${response.status}`);
         }
 
-        // Only try to parse as JSON if we expect a JSON response
         if (response.headers.get("content-type")?.includes("application/json")) {
           if (!isValidJson(responseText)) {
             throw new Error('Server returned invalid JSON');
@@ -132,7 +128,6 @@ export default function EditProfileView() {
           return JSON.parse(responseText);
         }
 
-        // If we don't get JSON back but the request was successful, return a default response
         return { success: true };
       } catch (error) {
         console.error('Update profile error:', error);
@@ -211,24 +206,6 @@ export default function EditProfileView() {
                     basicInfo: {
                       ...formData.basicInfo,
                       name: e.target.value,
-                    },
-                  })
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.basicInfo.email}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    basicInfo: {
-                      ...formData.basicInfo,
-                      email: e.target.value,
                     },
                   })
                 }

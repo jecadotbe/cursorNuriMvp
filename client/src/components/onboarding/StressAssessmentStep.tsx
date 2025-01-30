@@ -165,7 +165,7 @@ export default function StressAssessmentStep({ onComplete, initialData }: Stress
           name="supportNetwork"
           render={() => (
             <FormItem>
-              <FormLabel>Support Network</FormLabel>
+              <FormLabel>Support Network (My Village)</FormLabel>
               <div className="space-y-2">
                 <div className="flex gap-2">
                   <Input

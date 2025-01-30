@@ -13,7 +13,6 @@ import { Loader2 } from "lucide-react";
 export type OnboardingData = {
   basicInfo?: {
     name: string;
-    email: string;
     experienceLevel: "first_time" | "experienced" | "multiple_children";
   };
   stressAssessment?: {
@@ -30,7 +29,6 @@ export type OnboardingData = {
     shortTerm: string[];
     longTerm: string[];
     supportAreas: string[];
-    communicationPreference: string;
   };
 };
 
@@ -83,8 +81,8 @@ export default function OnboardingPage() {
           ...data,
           onboardingData: {
             ...data.onboardingData,
-            childProfiles: Array.isArray(data.onboardingData?.childProfiles) 
-              ? data.onboardingData.childProfiles 
+            childProfiles: Array.isArray(data.onboardingData?.childProfiles)
+              ? data.onboardingData.childProfiles
               : []
           }
         };
@@ -169,11 +167,11 @@ export default function OnboardingPage() {
   });
 
   const handleStepComplete = async (stepData: Partial<OnboardingData>) => {
-    const updatedData = { 
+    const updatedData = {
       ...onboardingData,
       ...stepData,
-      childProfiles: Array.isArray(stepData.childProfiles) 
-        ? stepData.childProfiles 
+      childProfiles: Array.isArray(stepData.childProfiles)
+        ? stepData.childProfiles
         : onboardingData.childProfiles
     };
     setOnboardingData(updatedData);
@@ -210,9 +208,9 @@ export default function OnboardingPage() {
       <div className="w-full max-w-2xl space-y-6">
         <div className="space-y-4 text-center">
           <div className="flex justify-center">
-            <img 
-              src="/images/nuri_chat.png" 
-              alt="Nuri Logo" 
+            <img
+              src="/images/nuri_chat.png"
+              alt="Nuri Logo"
               className="w-24 h-24 object-contain"
             />
           </div>

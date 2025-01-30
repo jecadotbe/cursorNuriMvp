@@ -21,7 +21,6 @@ import {
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
   experienceLevel: z.enum(["first_time", "experienced"], {
     required_error: "Please select your parenting experience",
   }),
@@ -37,7 +36,6 @@ export default function BasicInfoStep({ onComplete, initialData }: BasicInfoStep
     resolver: zodResolver(formSchema),
     defaultValues: initialData || {
       name: "",
-      email: "",
       experienceLevel: undefined,
     },
   });
@@ -57,24 +55,6 @@ export default function BasicInfoStep({ onComplete, initialData }: BasicInfoStep
               <FormLabel>Jouw Naam</FormLabel>
               <FormControl>
                 <Input placeholder="Vul jouwn naam in" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>E-mail</FormLabel>
-              <FormControl>
-                <Input
-                  type="email"
-                  placeholder="Vul je e-mailadres in"
-                  {...field}
-                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -103,7 +83,6 @@ export default function BasicInfoStep({ onComplete, initialData }: BasicInfoStep
                   <SelectItem value="experienced">
                     Ervaren ouder
                   </SelectItem>
-            
                 </SelectContent>
               </Select>
               <FormMessage />
