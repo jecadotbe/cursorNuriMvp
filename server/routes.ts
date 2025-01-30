@@ -913,8 +913,7 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
       await db
         .delete(promptSuggestions)
         .where(
-          and```typescript
-          (
+          and(
             eq(promptSuggestions.id, suggestionId),
             eq(promptSuggestions.userId, user.id),
           ),
