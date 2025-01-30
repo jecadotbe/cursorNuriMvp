@@ -915,6 +915,7 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
         .where(
           and(
             eq(promptSuggestions.id, suggestionId),
+            eq(promptSuggestions```typescript
             eq(promptSuggestions.userId, user.id),
           ),
         );
