@@ -44,7 +44,7 @@ export const parentProfiles = pgTable("parent_profiles", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
   name: text("name").notNull(),
-  email: text("email").notNull(),
+  email: text("email"), // Remove notNull constraint
   stressLevel: stressLevelEnum("stress_level").notNull(),
   experienceLevel: experienceLevelEnum("experience_level").notNull(),
   primaryConcerns: text("primary_concerns").array(),
@@ -52,7 +52,6 @@ export const parentProfiles = pgTable("parent_profiles", {
   completedOnboarding: boolean("completed_onboarding").default(false),
   currentOnboardingStep: integer("current_onboarding_step").default(1),
   onboardingData: jsonb("onboarding_data").default({}),
-  // Store embedding as text for compatibility, will be converted to vector
   profileEmbedding: text("profile_embedding").default('[]'),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -60,7 +59,6 @@ export const parentProfiles = pgTable("parent_profiles", {
   return {
     userIdIdx: unique("parent_profiles_user_id_idx").on(table.userId),
     emailIdx: index("parent_profiles_email_idx").on(table.email),
-    // Index will be created via SQL for the vector column
     profileEmbeddingIdx: index("parent_profiles_embedding_idx").on(table.profileEmbedding),
   };
 });
@@ -177,13 +175,11 @@ export const chats = pgTable("chats", {
   messages: jsonb("messages").notNull(),
   metadata: jsonb("metadata"),
   tags: text("tags").array(),
-  // Store embedding as text for compatibility, will be converted to vector
   contentEmbedding: text("content_embedding").default('[]'),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => {
   return {
-    // Index will be created via SQL for the vector column
     contentEmbeddingIdx: index("chats_content_embedding_idx").on(table.contentEmbedding),
   };
 });

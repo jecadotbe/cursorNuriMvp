@@ -225,7 +225,7 @@ app.post("/api/onboarding/complete", async (req, res) => {
     });
 
     try {
-      // Extract required fields from onboarding data
+      // Extract fields from onboarding data
       const name = finalData.basicInfo?.name;
       const stressLevel = finalData.stressAssessment?.stressLevel;
       const experienceLevel = finalData.basicInfo?.experienceLevel;
@@ -325,6 +325,7 @@ ${finalData.goals.supportAreas?.length ? `Support areas: ${finalData.goals.suppo
         // Continue with database storage even if memory storage fails
       }
 
+      // Insert or update parent profile
       const [profile] = await db
         .insert(parentProfiles)
         .values({
@@ -334,10 +335,10 @@ ${finalData.goals.supportAreas?.length ? `Support areas: ${finalData.goals.suppo
           experienceLevel: experienceLevel as any,
           onboardingData: {
             ...finalData,
-            childProfiles: validatedChildProfiles // Store the validated child profiles array
+            childProfiles: validatedChildProfiles
           },
           completedOnboarding: true,
-          currentOnboardingStep: 4, // Final step
+          currentOnboardingStep: 4,
           primaryConcerns: finalData.stressAssessment?.primaryConcerns || [],
           supportNetwork,
         })
@@ -349,7 +350,7 @@ ${finalData.goals.supportAreas?.length ? `Support areas: ${finalData.goals.suppo
             experienceLevel: experienceLevel as any,
             onboardingData: {
               ...finalData,
-              childProfiles: validatedChildProfiles // Store the validated child profiles array
+              childProfiles: validatedChildProfiles
             },
             completedOnboarding: true,
             currentOnboardingStep: 4,
@@ -909,7 +910,7 @@ ${
         }
 
 4. Potential retrieved content that can help you with answering:
-These contents are coming mainly from 2 books that are written by "Lynn Geerinck", the co-founder of Nuri. The books names are "Goed Omringd" and "Wie zorgt voor mijn kinderen". The content start here:
+These contents are coming mainly from 2 books that are written by "Lynn Geerinck", the co-founder of Nuri. The books names are "Goed Omringd" and "Wie zorgtvoor mijn kinderen". The content start here:
 <start helper content>
 ${mergedRAG || "No relevant content available"}
 <end helper content>
