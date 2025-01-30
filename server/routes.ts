@@ -374,129 +374,6 @@ ${finalData.goals.supportAreas?.length ? `Support areas: ${finalData.goals.suppo
     }
   });
 
-  // Add these new profile routes after the existing onboarding routes
-  app.get("/api/profile", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-
-    const user = req.user as User;
-
-    try {
-      const profile = await db.query.parentProfiles.findFirst({
-        where: eq(parentProfiles.userId, user.id),
-      });
-
-      if (!profile) {
-        return res.status(404).json({ message: "Profile not found" });
-      }
-
-      return res.json({
-        profile: {
-          name: profile.name,
-          experienceLevel: profile.experienceLevel,
-          stressLevel: profile.stressLevel,
-          primaryConcerns: profile.primaryConcerns,
-          supportNetwork: profile.supportNetwork,
-          childProfiles: profile.onboardingData.childProfiles || [],
-          goals: profile.onboardingData.goals || {
-            shortTerm: [],
-            longTerm: [],
-            supportAreas: []
-          }
-        }
-      });
-    } catch (error) {
-      console.error("Failed to fetch profile:", error);
-      res.status(500).json({
-        message: "Failed to fetch profile",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-  });
-
-  app.post("/api/profile/update", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-
-    const user = req.user as User;
-    const updateData = req.body;
-
-    try {
-      // Store profile update in memory
-      try {
-        const profileContent = `
-Profile Update:
-Name: ${updateData.name}
-Experience Level: ${updateData.experienceLevel}
-Stress Level: ${updateData.stressLevel}
-Primary Concerns: ${updateData.primaryConcerns?.join(", ") || "None"}
-Support Network: ${updateData.supportNetwork?.join(", ") || "None"}
-
-Children:
-${Array.isArray(updateData.childProfiles)
-          ? updateData.childProfiles
-              .map((child: any) =>
-                `- ${child.name} (Age: ${child.age})
-                 ${child.specialNeeds?.length ? `Special needs: ${child.specialNeeds.join(", ")}` : "No special needs"}`
-              )
-              .join("\n")
-          : "No children profiles"}
-
-Goals:
-${updateData.goals?.shortTerm?.length ? `Short term: ${updateData.goals.shortTerm.join(", ")}` : ""}
-${updateData.goals?.longTerm?.length ? `Long term: ${updateData.goals.longTerm.join(", ")}` : ""}
-${updateData.goals?.supportAreas?.length ? `Support areas: ${updateData.goals.supportAreas.join(", ")}` : ""}`;
-
-        await memoryService.createMemory(user.id, profileContent, {
-          type: "profile_update",
-          category: "user_profile",
-          source: "profile_editor",
-          timestamp: new Date().toISOString(),
-        });
-
-        console.log("Successfully stored profile update in memory");
-      } catch (memoryError) {
-        console.error("Failed to store profile update in memory:", memoryError);
-        // Continue with database update even if memory storage fails
-      }
-
-      // Update the profile in the database
-      const [updatedProfile] = await db
-        .update(parentProfiles)
-        .set({
-          name: updateData.name,
-          experienceLevel: updateData.experienceLevel as any,
-          stressLevel: updateData.stressLevel as any,
-          primaryConcerns: updateData.primaryConcerns || [],
-          supportNetwork: updateData.supportNetwork || [],
-          onboardingData: {
-            ...updateData,
-            childProfiles: Array.isArray(updateData.childProfiles) ? updateData.childProfiles : []
-          },
-          updatedAt: new Date()
-        })
-        .where(eq(parentProfiles.userId, user.id))
-        .returning();
-
-      if (!updatedProfile) {
-        return res.status(404).json({ message: "Profile not found" });
-      }
-
-      res.json({
-        message: "Profile updated successfully",
-        profile: updatedProfile
-      });
-    } catch (error) {
-      console.error("Failed to update profile:", error);
-      res.status(500).json({
-        message: "Failed to update profile",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
   // Profile picture upload endpoint
   app.post("/api/profile/picture", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
@@ -631,7 +508,7 @@ ${updateData.goals?.supportAreas?.length ? `Support areas: ${updateData.goals.su
       orderBy: desc(promptSuggestions.createdAt),
     });
 
-    const hasNewContent = lastMemory && lastSuggestion &&
+    const hasNewContent = lastMemory && lastSuggestion && 
       lastMemory.createdAt > lastSuggestion.createdAt;
 
     if (!forceRefresh && !hasNewContent) {
@@ -772,7 +649,7 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
             "prompt": {
               "text": "follow-up question or suggestion",
               "type": "action" | "follow_up",
-              "category": "${Object.values(SUGGESTION_CATEGORIES).join('" | "')}",
+              "category": "${Object.values(SUGGESTION_CATEGORIES).join('" | "')}", 
               "relevance": 1.0,
               "context": "new" | "existing",
               "relatedChatId": null | number,
@@ -911,8 +788,8 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
       return res.status(401).send("Not authenticated");
     }
 
-    const chatId = parseInt(req.params.chatId);
-    if (isNaN(chatId))```typescript
+    const chatId = parseChatId(req.params.chatId);
+    if (chatId === null) {
       return res.status(400).json({ message: "Invalid chat ID" });
     }
 
@@ -932,7 +809,6 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
     res.json(chat);
   });
 
-  // Add other chat-related endpoints
   app.post("/api/chat", async (req, res) => {
     console.log("the current request is:\n"+ req.body.messages);
     if (!req.isAuthenticated() || !req.user) {
@@ -1150,7 +1026,7 @@ ${mergedRAG || "No relevant content available"}
       return res.status(401).send("Not authenticated");
     }
 
-    const chatId = parseChatId(req.params.chatId);
+    const chatId = parseChatId(req.paramschatId);
     if (chatId === null) {
       return res.status(400).json({ message: "Invalid chat ID" });
     }
@@ -1307,6 +1183,40 @@ ${mergedRAG || "No relevant content available"}
     }
 
     const user = req.user as User;
+
+  app.post("/api/profile/update", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    const user = req.user as User;
+    const profileData = req.body;
+
+    try {
+      const [profile] = await db
+        .update(parentProfiles)
+        .set({
+          onboardingData: profileData,
+          updatedAt: new Date(),
+        })
+        .where(eq(parentProfiles.userId, user.id))
+        .returning();
+
+      res.setHeader('Content-Type', 'application/json');
+      return res.json({
+        status: "success",
+        data: profile
+      });
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+      res.setHeader('Content-Type', 'application/json');
+      res.status(500).json({
+        status: "error",
+        message: "Failed to update profile",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  });
 
     const userChats = await db.query.chats.findMany({
       where: eq(chats.userId, user.id),
@@ -1905,7 +1815,6 @@ Make the prompts feel natural and conversational in Dutch, as if the parent is s
     }
   });
 
-  // Create HTTP server
   const httpServer = createServer(app);
   return httpServer;
 }

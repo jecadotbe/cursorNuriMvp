@@ -33,7 +33,7 @@ type OnboardingData = {
 };
 
 type ProfileResponse = {
-  profile: OnboardingData;
+  onboardingData: OnboardingData;
 };
 
 const defaultFormData: OnboardingData = {
@@ -76,12 +76,12 @@ export default function EditProfileView() {
   const [newSupportArea, setNewSupportArea] = useState("");
   const [newSpecialNeed, setNewSpecialNeed] = useState("");
 
-  const { data: profileData, isLoading } = useQuery({
-    queryKey: ['/api/profile'],
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ['/api/onboarding/progress'],
     retry: false,
     queryFn: async () => {
       try {
-        const response = await fetch('/api/profile', {
+        const response = await fetch('/api/onboarding/progress', {
           credentials: 'include',
         });
 
@@ -100,45 +100,24 @@ export default function EditProfileView() {
   });
 
   useEffect(() => {
-    if (profileData?.profile) {
-      console.log('Setting form data from profile:', profileData.profile);
-      setFormData({
-        basicInfo: {
-          name: profileData.profile.name,
-          experienceLevel: profileData.profile.experienceLevel,
-        },
-        stressAssessment: {
-          stressLevel: profileData.profile.stressLevel,
-          primaryConcerns: profileData.profile.primaryConcerns || [],
-          supportNetwork: profileData.profile.supportNetwork || [],
-        },
-        childProfiles: profileData.profile.childProfiles || [],
-        goals: profileData.profile.goals || {
-          shortTerm: [],
-          longTerm: [],
-          supportAreas: [],
-        },
-      });
+    if (profile?.onboardingData) {
+      console.log('Setting form data from profile:', profile.onboardingData); 
+      setFormData(profile.onboardingData);
     }
-  }, [profileData]);
+  }, [profile]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: OnboardingData) => {
       console.log('Sending profile update:', data);
 
-      const response = await fetch("/api/profile/update", {
+      const response = await fetch("/api/onboarding/progress", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: data.basicInfo.name,
-          experienceLevel: data.basicInfo.experienceLevel,
-          stressLevel: data.stressAssessment.stressLevel,
-          primaryConcerns: data.stressAssessment.primaryConcerns,
-          supportNetwork: data.stressAssessment.supportNetwork,
-          childProfiles: data.childProfiles,
-          goals: data.goals
+          step: 4,
+          data: data
         }),
         credentials: 'include'
       });
@@ -162,7 +141,8 @@ export default function EditProfileView() {
         title: "Success",
         description: "Je profiel is bijgewerkt",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/profile'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/onboarding/progress'] });
+      queryClient.refetchQueries({ queryKey: ['/api/onboarding/progress'] });
       setLocation("/profile");
     },
     onError: (error: Error) => {
