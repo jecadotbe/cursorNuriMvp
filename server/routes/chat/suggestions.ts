@@ -15,9 +15,9 @@ const SUGGESTION_CATEGORIES = {
 
 export function setupSuggestionsRoutes(router: Router) {
   // Get suggestions
-  router.get("/suggestions", async (req, res) => {
+  router.get("/", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).send("Not authenticated");
+      return res.status(401).json({ message: "Not authenticated" });
     }
 
     const user = req.user as User;
@@ -41,10 +41,46 @@ export function setupSuggestionsRoutes(router: Router) {
     }
   });
 
-  // Submit feedback for a suggestion
-  router.post("/suggestions/:id/feedback", async (req, res) => {
+  // Use a suggestion
+  router.post("/:id/use", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).send("Not authenticated");
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    try {
+      const user = req.user as User;
+      const suggestionId = parseInt(req.params.id);
+
+      if (isNaN(suggestionId)) {
+        return res.status(400).json({ message: "Invalid suggestion ID" });
+      }
+
+      const [updated] = await db
+        .update(promptSuggestions)
+        .set({ usedAt: new Date() })
+        .where(
+          and(
+            eq(promptSuggestions.id, suggestionId),
+            eq(promptSuggestions.userId, user.id)
+          )
+        )
+        .returning();
+
+      if (!updated) {
+        return res.status(404).json({ message: "Suggestion not found" });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error marking suggestion as used:", error);
+      res.status(500).json({ message: "Failed to mark suggestion as used" });
+    }
+  });
+
+  // Submit feedback for a suggestion
+  router.post("/:id/feedback", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
     }
 
     const user = req.user as User;
@@ -92,9 +128,9 @@ export function setupSuggestionsRoutes(router: Router) {
   });
 
   // Dismiss a suggestion
-  router.post("/suggestions/:id/dismiss", async (req, res) => {
+  router.post("/:id/dismiss", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).send("Not authenticated");
+      return res.status(401).json({ message: "Not authenticated" });
     }
 
     const user = req.user as User;

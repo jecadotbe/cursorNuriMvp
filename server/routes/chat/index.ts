@@ -16,7 +16,16 @@ export function setupChatRouter(app: Router) {
     if (err instanceof SyntaxError && 'body' in err) {
       return res.status(400).json({ message: "Invalid JSON" });
     }
-    next();
+    next(err);
+  });
+
+  // Generic error handler
+  router.use((err: Error, req: any, res: any, next: any) => {
+    console.error('Router error:', err);
+    res.status(500).json({
+      message: "Internal server error",
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   });
 
   // Mount subroutes
