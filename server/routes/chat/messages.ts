@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@db";
 import { chats } from "@db/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { anthropic } from "../../anthropic";
 import { memoryService } from "../../services/memory";
 import { searchBooks } from "../../rag";
@@ -9,6 +9,59 @@ import type { User } from "../../auth";
 import { getVillageContext } from "../village";
 
 export function setupChatRoutes(router: Router) {
+  // List all chats
+  router.get("/", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const user = req.user as User;
+      const userChats = await db.query.chats.findMany({
+        where: eq(chats.userId, user.id),
+        orderBy: desc(chats.updatedAt),
+      });
+
+      res.json(userChats);
+    } catch (error) {
+      console.error("Error fetching chats:", error);
+      res.status(500).json({ 
+        message: "Failed to fetch chats",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Create a new chat
+  router.post("/", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const user = req.user as User;
+      const { title = `Chat ${new Date().toLocaleDateString()}`, messages = [] } = req.body;
+
+      const [newChat] = await db.insert(chats)
+        .values({
+          userId: user.id,
+          title,
+          messages,
+          metadata: {},
+          contentEmbedding: '[]'
+        })
+        .returning();
+
+      res.json(newChat);
+    } catch (error) {
+      console.error("Error creating chat:", error);
+      res.status(500).json({ 
+        message: "Failed to create chat",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Get chat by ID
   router.get("/:chatId", async (req, res) => {
     try {
@@ -22,6 +75,7 @@ export function setupChatRoutes(router: Router) {
       }
 
       const user = req.user as User;
+
       const chat = await db.query.chats.findFirst({
         where: eq(chats.id, chatId),
       });
@@ -45,24 +99,24 @@ export function setupChatRoutes(router: Router) {
   });
 
   // Handle chat messages
-  router.post("/", async (req, res) => {
+  router.post("/messages", async (req, res) => {
     try {
       if (!req.isAuthenticated() || !req.user) {
         return res.status(401).json({ message: "Not authenticated" });
       }
 
       const user = req.user as User;
+      const { chatId, messages } = req.body;
 
       // Get relevant memories for context
       const relevantMemories = await memoryService.getRelevantMemories(
         user.id,
-        req.body.messages[req.body.messages.length - 1].content,
+        messages[messages.length - 1].content,
       );
 
       const villageContextString = await getVillageContext(user.id);
-
       const ragContext = await searchBooks(
-        req.body.messages[req.body.messages.length - 1].content,
+        messages[messages.length - 1].content,
         2,
       );
 
@@ -74,22 +128,31 @@ export function setupChatRoutes(router: Router) {
         max_tokens: 512,
         temperature: 0.4,
         system: `${process.env.NURI_SYSTEM_PROMPT}\n\nContext:\n${villageContextString}\n\n${mergedRAG}`,
-        messages: req.body.messages,
+        messages,
       });
 
       const messageContent =
         response.content[0].type === "text" ? response.content[0].text : "";
 
+      // Update chat with new messages
+      if (chatId) {
+        await db.update(chats)
+          .set({ 
+            messages: [...messages, { role: "assistant", content: messageContent }],
+            updatedAt: new Date()
+          })
+          .where(eq(chats.id, chatId));
+      }
+
       // Store conversation in memory
       try {
-        // Store user's message
         await memoryService.createMemory(
           user.id,
-          req.body.messages[req.body.messages.length - 1].content,
+          messages[messages.length - 1].content,
           {
             role: "user",
-            messageIndex: req.body.messages.length - 1,
-            chatId: req.body.chatId || "new",
+            messageIndex: messages.length - 1,
+            chatId: chatId || "new",
             source: "nuri-chat",
             type: "conversation",
             category: "chat_history",
@@ -97,17 +160,15 @@ export function setupChatRoutes(router: Router) {
           },
         );
 
-        // Store assistant's response
         await memoryService.createMemory(user.id, messageContent, {
           role: "assistant",
-          messageIndex: req.body.messages.length,
-          chatId: req.body.chatId || "new",
+          messageIndex: messages.length,
+          chatId: chatId || "new",
           source: "nuri-chat",
           type: "conversation",
           category: "chat_history",
           timestamp: new Date().toISOString(),
         });
-
       } catch (memoryError) {
         console.error("Failed to store chat in memory:", memoryError);
       }
@@ -115,7 +176,7 @@ export function setupChatRoutes(router: Router) {
       res.json({ 
         role: "assistant",
         content: messageContent,
-        chatId: req.body.chatId
+        chatId
       });
 
     } catch (error) {

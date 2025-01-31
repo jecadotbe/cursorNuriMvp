@@ -11,8 +11,19 @@ export function setupChatRouter(app: Router) {
     next();
   });
 
-  setupChatRoutes(router);
-  setupSuggestionsRoutes(router);
+  // Mount subroutes
+  const chatRouter = Router();
+  const suggestionsRouter = Router();
+
+  // Setup each route module
+  setupChatRoutes(chatRouter);
+  setupSuggestionsRoutes(suggestionsRouter);
+
+  // Mount the subrouters
+  router.use('/', chatRouter);
+  router.use('/suggestions', suggestionsRouter);
+
+  app.use('/api/chats', router);
 
   return router;
 }
