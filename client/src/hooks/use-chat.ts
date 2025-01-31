@@ -19,18 +19,18 @@ export function useChat() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const params = useParams();
-  const chatId = params?.id;
+  const chatId = params?.id ? parseInt(params.id) : undefined;
   const [, navigate] = useLocation();
 
-  // Load existing chat messages or latest chat if no ID is provided
+  // Load existing chat messages
   const { data: chatData, isLoading: isChatLoading } = useQuery<ChatResponse>({
-    queryKey: chatId ? [`/api/chats/${chatId}`] : ["/api/chats/latest"],
+    queryKey: [`/api/chats/${chatId}`],
+    enabled: !!chatId, // Only run query if we have a chatId
     retry: (failureCount, error: any) => {
-      // Only retry on network errors, not on 404s or other API errors
       return failureCount < 3 && error?.message?.includes('network');
     },
-    staleTime: 5000, // Consider data fresh for 5 seconds
-    gcTime: 30 * 60 * 1000, // Cache for 30 minutes
+    staleTime: 5000,
+    gcTime: 30 * 60 * 1000,
   });
 
   // Maintain local messages state
@@ -42,7 +42,6 @@ export function useChat() {
     if (chatData?.messages) {
       setMessages(chatData.messages);
     } else if (!chatId && !isChatLoading) {
-      // Only reset messages if we're in a new chat and not loading
       setMessages([]);
     }
   }, [chatData, chatId, isChatLoading]);
@@ -53,7 +52,6 @@ export function useChat() {
       queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatId}`] });
     }
     queryClient.invalidateQueries({ queryKey: ["/api/chats"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/chats/latest"] });
   }, [chatId, queryClient]);
 
   const mutation = useMutation({
@@ -61,38 +59,39 @@ export function useChat() {
       const userMessage: Message = { role: "user", content };
 
       try {
-        // Update messages immediately for better UX
+        console.log('Sending message, chatId:', chatId); // Debug log
         setMessages((prev) => [...prev, userMessage]);
         setIsProcessing(true);
 
-        const response = await fetch("/api/chats/messages", { // Fixed endpoint
+        const response = await fetch("/api/chats/messages", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({
             messages: [...messages, userMessage],
             chatId: chatId
           }),
-          credentials: "include",
         });
 
         if (!response.ok) {
           const errorText = await response.text();
+          console.error('Chat message error:', errorText); // Debug log
           throw new Error(errorText);
         }
 
         const chatResponse = await response.json();
+        console.log('Chat response:', chatResponse); // Debug log
+
         const assistantMessage: Message = {
           role: "assistant",
           content: chatResponse.content,
         };
 
-        // Update messages with assistant's response
         setMessages((prev) => [...prev, assistantMessage]);
-        invalidateQueries();
+        await invalidateQueries();
 
         return chatResponse.content;
       } catch (error) {
-        // Remove the last message on error to maintain consistency
         setMessages((prev) => prev.slice(0, -1));
         throw error;
       } finally {
@@ -110,7 +109,7 @@ export function useChat() {
 
   return {
     messages,
-    chatId: chatData?.id,
+    chatId: chatId || chatData?.id,
     sendMessage: mutation.mutateAsync,
     isLoading: mutation.isPending || isChatLoading || isProcessing,
     refreshMessages: invalidateQueries,
