@@ -13,6 +13,10 @@ export function setupChatRoutes(router: Router) {
   router.get("/", async (req, res) => {
     try {
       const user = req.user as User;
+      if (!user?.id) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
       const userChats = await db.query.chats.findMany({
         where: eq(chats.userId, user.id),
         orderBy: [desc(chats.updatedAt)],
@@ -32,6 +36,10 @@ export function setupChatRoutes(router: Router) {
   router.post("/", async (req, res) => {
     try {
       const user = req.user as User;
+      if (!user?.id) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
       const { title = `Chat ${new Date().toLocaleDateString()}` } = req.body;
 
       const [newChat] = await db
@@ -44,6 +52,10 @@ export function setupChatRoutes(router: Router) {
           contentEmbedding: '[]'
         })
         .returning();
+
+      if (!newChat?.id) {
+        throw new Error("Failed to create chat");
+      }
 
       res.json(newChat);
     } catch (error) {
@@ -64,6 +76,10 @@ export function setupChatRoutes(router: Router) {
       }
 
       const user = req.user as User;
+      if (!user?.id) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
       const chat = await db.query.chats.findFirst({
         where: eq(chats.id, chatId),
       });
@@ -79,7 +95,7 @@ export function setupChatRoutes(router: Router) {
       res.json(chat);
     } catch (error) {
       console.error("Error fetching chat:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to fetch chat",
         error: error instanceof Error ? error.message : "Unknown error"
       });
@@ -90,10 +106,29 @@ export function setupChatRoutes(router: Router) {
   router.post("/messages", async (req, res) => {
     try {
       const user = req.user as User;
+      if (!user?.id) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
       const { chatId, messages } = req.body;
 
       if (!Array.isArray(messages) || messages.length === 0) {
         return res.status(400).json({ message: "Invalid messages format" });
+      }
+
+      // Verify chat ownership if chatId is provided
+      if (chatId) {
+        const chat = await db.query.chats.findFirst({
+          where: eq(chats.id, chatId),
+        });
+
+        if (!chat) {
+          return res.status(404).json({ message: "Chat not found" });
+        }
+
+        if (chat.userId !== user.id) {
+          return res.status(403).json({ message: "Unauthorized to access this chat" });
+        }
       }
 
       const relevantMemories = await memoryService.getRelevantMemories(
@@ -123,12 +158,17 @@ export function setupChatRoutes(router: Router) {
 
       // Update chat with new messages
       if (chatId) {
-        await db.update(chats)
+        const updateResult = await db.update(chats)
           .set({ 
             messages: [...messages, { role: "assistant", content: messageContent }],
             updatedAt: new Date()
           })
-          .where(eq(chats.id, chatId));
+          .where(eq(chats.id, chatId))
+          .returning();
+
+        if (!updateResult?.[0]) {
+          throw new Error("Failed to update chat");
+        }
       }
 
       // Store conversation in memory

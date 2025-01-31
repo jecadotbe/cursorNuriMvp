@@ -35,12 +35,18 @@ export function setupRoutes(app: Router) {
     }),
   );
 
-  // Apply rate limiting to all API routes
+  // Apply rate limiting to API routes
   app.use("/api/", apiLimiter);
 
   // Apply stricter rate limiting to auth routes
   app.use("/api/auth/login", authLimiter);
   app.use("/api/auth/register", authLimiter);
+
+  // Default JSON content type for all API routes
+  app.use('/api', (req, res, next) => {
+    res.setHeader('Content-Type', 'application/json');
+    next();
+  });
 
   // Mount route modules
   app.use("/api/auth", setupAuthRoutes(Router()));
@@ -50,16 +56,33 @@ export function setupRoutes(app: Router) {
   app.use("/api/suggestions", setupSuggestionRouter(Router()));
   app.use("/api/onboarding", setupOnboardingRoutes(Router()));
 
+  // Handle 404 for API routes
+  app.use('/api/*', (req, res) => {
+    res.status(404).json({ error: 'API endpoint not found' });
+  });
+
   return app;
 }
 
 export function registerRoutes(app: Express): Server {
+  // Initialize authentication
   setupAuth(app);
 
-  // Apply routes from modular router
-  const router = Router();
-  setupRoutes(router);
-  app.use(router);
+  // Create and configure the API router
+  const apiRouter = Router();
+  setupRoutes(apiRouter);
+
+  // Mount the API router at /api
+  app.use(apiRouter);
+
+  // Let Vite handle all other routes
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api/')) {
+      res.status(404).json({ error: 'API endpoint not found' });
+    } else {
+      next();
+    }
+  });
 
   return createServer(app);
 }

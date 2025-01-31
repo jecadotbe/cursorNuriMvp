@@ -47,15 +47,22 @@ app.use((req, res, next) => {
   next();
 });
 
-// Handle CORS and Content-Type for API routes
-app.use('/api', (req, res, next) => {
-  res.setHeader('Content-Type', 'application/json');
-  next();
-});
-
 (async () => {
   try {
+    // Create and configure the API router first
+    const apiRouter = express.Router();
+
+    // Set JSON content type for all API routes
+    apiRouter.use((req, res, next) => {
+      res.setHeader('Content-Type', 'application/json');
+      next();
+    });
+
+    // Register API routes
     const server = registerRoutes(app);
+
+    // Mount API router before Vite middleware
+    app.use('/api', apiRouter);
 
     // Error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -64,7 +71,7 @@ app.use('/api', (req, res, next) => {
       const message = err.message || "Internal Server Error";
 
       // Send error response with more details in development
-      if (app.get("env") === "development") {
+      if (process.env.NODE_ENV === "development") {
         res.status(status).json({
           message,
           stack: err.stack,
@@ -75,21 +82,22 @@ app.use('/api', (req, res, next) => {
       }
     });
 
-    // Setup Vite or serve static files
-    if (app.get("env") === "development") {
+    // Setup Vite or serve static files last
+    if (process.env.NODE_ENV === "development") {
       await setupVite(app, server);
     } else {
       serveStatic(app);
     }
 
-    const PORT = process.env.PORT || 3000;
-    server.listen(PORT, "0.0.0.0", () => {
-      log(`Server running on port ${PORT}`);
+    const port = parseInt(process.env.PORT || "3000", 10);
+    server.listen(port, "0.0.0.0", () => {
+      log(`Server running on port ${port}`);
     })
     .on('error', (error: any) => {
       if (error.code === 'EADDRINUSE') {
-        log(`Port ${PORT} is busy, trying ${PORT + 1}...`);
-        server.listen(PORT + 1, "0.0.0.0");
+        const nextPort = port + 1;
+        log(`Port ${port} is busy, trying ${nextPort}...`);
+        server.listen(nextPort, "0.0.0.0");
       } else {
         console.error('Server error:', error);
       }

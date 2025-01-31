@@ -45,7 +45,7 @@ export default function ChatView() {
   const [inputText, setInputText] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPromptLibrary, setShowPromptLibrary] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(true); 
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
@@ -54,6 +54,7 @@ export default function ChatView() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { user } = useUser();
   const { isRecording, startRecording, stopRecording, error: voiceError } = useVoiceInput(
     (transcript) => {
       setInputText(transcript);
@@ -67,6 +68,11 @@ export default function ChatView() {
     }
   );
 
+  useEffect(() => {
+    if (!chatId && !isInitializing) {
+      initializeChat();
+    }
+  }, [chatId, isInitializing]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -76,8 +82,8 @@ export default function ChatView() {
     scrollToBottom();
   }, [messages, isLoading]);
 
-  const initializeChat = async (): Promise<string | null> => {
-    if (chatId || isInitializing) return chatId;
+  const initializeChat = async () => {
+    if (isInitializing) return null;
 
     setIsInitializing(true);
     setInitError(null);
@@ -100,7 +106,7 @@ export default function ChatView() {
       }
 
       const newChat = await response.json();
-      if (!newChat.id) {
+      if (!newChat?.id) {
         throw new Error('No chat ID received from server');
       }
 
@@ -120,20 +126,25 @@ export default function ChatView() {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleInputChange = async (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value;
     setInputText(newText);
     checkForUncertainty(newText);
+
     if (newText.trim() && !chatId) {
-      initializeChat();
+      await initializeChat();
     }
   };
 
   const handleSend = async () => {
     if (!inputText.trim()) return;
 
-    const initializedChatId = chatId || await initializeChat();
-    if (!initializedChatId) {
+    let currentChatId = chatId;
+    if (!currentChatId) {
+      currentChatId = await initializeChat();
+    }
+
+    if (!currentChatId) {
       toast({
         variant: "destructive",
         title: "Error",
@@ -277,8 +288,12 @@ export default function ChatView() {
   };
 
   const handleSuggestionSelect = async (suggestion: string) => {
-    const initializedChatId = chatId || await initializeChat();
-    if (!initializedChatId) {
+    let currentChatId = chatId;
+    if (!currentChatId) {
+      currentChatId = await initializeChat();
+    }
+
+    if (!currentChatId) {
       toast({
         variant: "destructive",
         title: "Error",
@@ -487,7 +502,6 @@ export default function ChatView() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Hide navigation on this page */}
       <style>{`
         nav {
           display: none !important;

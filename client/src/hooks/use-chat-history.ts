@@ -21,6 +21,10 @@ interface SuggestionResponse extends PromptSuggestion {
 
 async function fetchChatHistory(): Promise<ChatResponse[]> {
   const response = await fetch("/api/chats", {
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    },
     credentials: "include",
   });
 
@@ -28,11 +32,19 @@ async function fetchChatHistory(): Promise<ChatResponse[]> {
     throw new Error(`${response.status}: ${await response.text()}`);
   }
 
+  if (!response.headers.get('content-type')?.includes('application/json')) {
+    throw new Error('Invalid response format from server');
+  }
+
   return response.json();
 }
 
 async function fetchSuggestion(): Promise<SuggestionResponse> {
   const response = await fetch('/api/suggestions', {
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    },
     credentials: 'include',
   });
 
@@ -41,17 +53,6 @@ async function fetchSuggestion(): Promise<SuggestionResponse> {
   }
 
   return response.json();
-}
-
-async function markSuggestionAsUsed(id: number): Promise<void> {
-  const response = await fetch(`/api/suggestions/${id}/use`, {
-    method: 'POST',
-    credentials: 'include',
-  });
-
-  if (!response.ok) {
-    throw new Error(`${response.status}: ${await response.text()}`);
-  }
 }
 
 export function useChatHistory() {
@@ -66,7 +67,8 @@ export function useChatHistory() {
   } = useQuery<ChatResponse[]>({
     queryKey: ["/api/chats"],
     queryFn: fetchChatHistory,
-    enabled: !!user,
+    enabled: !!user?.id,
+    retry: 1,
     initialData: [],
   });
 
@@ -78,13 +80,14 @@ export function useChatHistory() {
   } = useQuery<SuggestionResponse>({
     queryKey: ["/api/suggestions"],
     queryFn: fetchSuggestion,
-    enabled: !!user,
+    enabled: !!user?.id,
+    retry: 1,
     staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
   });
 
   const getLatestPrompt = async () => {
     try {
-      if (!user) {
+      if (!user?.id) {
         throw new Error("User not authenticated");
       }
 
@@ -120,26 +123,11 @@ export function useChatHistory() {
     }
   };
 
-  const markPromptAsUsed = async (suggestionId: number) => {
-    try {
-      await markSuggestionAsUsed(suggestionId);
-      await refetchSuggestion();
-    } catch (error) {
-      console.error('Failed to mark suggestion as used:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to mark suggestion as used"
-      });
-    }
-  };
-
   return {
     chats: chats ?? [],
     isLoading: isUserLoading || isChatsLoading || isSuggestionLoading,
     error: chatsError || suggestionError,
     refetch: refetchChats,
     getLatestPrompt,
-    markPromptAsUsed,
   };
 }

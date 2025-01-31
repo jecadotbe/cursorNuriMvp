@@ -84,7 +84,7 @@ export default function ChatHistoryView() {
         });
 
         // Update local cache
-        queryClient.setQueryData(["/api/chats"], (old: Chat[] | undefined) => 
+        queryClient.setQueryData(["/api/chats"], (old: Chat[] | undefined) =>
           old ? old.filter(c => c.id !== chatId) : []
         );
 
@@ -139,7 +139,7 @@ export default function ChatHistoryView() {
             chats.reduce<JSX.Element[]>((acc: JSX.Element[], chat: Chat) => {
               const messages = Array.isArray(chat.messages) ? (chat.messages as ChatMessage[]) : [];
               const lastMessage = messages[messages.length - 1];
-              const chatDate = new Date(chat.updatedAt || chat.createdAt);
+              const chatDate = new Date(chat.updatedAt || chat.createdAt || new Date());
               const today = new Date();
               const yesterday = new Date(today);
               yesterday.setDate(yesterday.getDate() - 1);
@@ -186,7 +186,7 @@ export default function ChatHistoryView() {
                           </Link>
                           <Dialog>
                             <DialogTrigger asChild>
-                              <button 
+                              <button
                                 className="text-xs text-gray-500 hover:text-gray-700 flex-shrink-0 ml-2"
                                 onClick={(e) => e.stopPropagation()}
                               >
@@ -226,7 +226,7 @@ export default function ChatHistoryView() {
                         </div>
                         <div className="prose prose-sm text-gray-500 line-clamp-2 mt-1 mb-2 break-words font-baskerville">
                           {lastMessage?.content ? (
-                            <div dangerouslySetInnerHTML={{ 
+                            <div dangerouslySetInnerHTML={{
                               __html: formatMessagePreview(lastMessage.content)
                             }} />
                           ) : (
