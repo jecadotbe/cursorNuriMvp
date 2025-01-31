@@ -228,6 +228,7 @@ export default function OnboardingPage() {
               <BasicInfoStep
                 onComplete={(data) => handleStepComplete({ basicInfo: data })}
                 initialData={onboardingData.basicInfo}
+                isSubmitting={saveProgressMutation.isLoading}
               />
             )}
             {step === 2 && (
