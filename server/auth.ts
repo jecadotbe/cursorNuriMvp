@@ -3,28 +3,20 @@ import { IVerifyOptions, Strategy as LocalStrategy } from "passport-local";
 import { type Express } from "express";
 import session from "express-session";
 import createMemoryStore from "memorystore";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
-import { promisify } from "util";
+import bcrypt from "bcrypt";
 import { users } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
+import { randomBytes } from "crypto";
 
-const scryptAsync = promisify(scrypt);
+const SALT_ROUNDS = 10;
+
 const crypto = {
   hash: async (password: string) => {
-    const salt = randomBytes(16).toString("hex");
-    const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-    return `${buf.toString("hex")}.${salt}`;
+    return bcrypt.hash(password, SALT_ROUNDS);
   },
   compare: async (suppliedPassword: string, storedPassword: string) => {
-    const [hashedPassword, salt] = storedPassword.split(".");
-    const hashedPasswordBuf = Buffer.from(hashedPassword, "hex");
-    const suppliedPasswordBuf = (await scryptAsync(
-      suppliedPassword,
-      salt,
-      64
-    )) as Buffer;
-    return timingSafeEqual(hashedPasswordBuf, suppliedPasswordBuf);
+    return bcrypt.compare(suppliedPassword, storedPassword);
   },
 };
 
@@ -35,6 +27,7 @@ export interface User {
   profilePicture: string | null;
   createdAt: Date;
   email: string;
+  isAdmin: boolean;
 }
 
 declare global {
@@ -45,6 +38,7 @@ declare global {
       profilePicture: string | null;
       createdAt: Date;
       email: string;
+      isAdmin: boolean;
     }
   }
 }
@@ -118,10 +112,12 @@ export function setupAuth(app: Express) {
         if (!user) {
           return done(null, false, { message: "Incorrect username." });
         }
+
         const isMatch = await crypto.compare(password, user.password);
         if (!isMatch) {
           return done(null, false, { message: "Incorrect password." });
         }
+
         return done(null, user);
       } catch (err) {
         return done(err);
@@ -145,6 +141,31 @@ export function setupAuth(app: Express) {
       done(err);
     }
   });
+
+  // Create global admin if it doesn't exist
+  (async () => {
+    try {
+      const [existingAdmin] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, 'global_admin'))
+        .limit(1);
+
+      if (!existingAdmin) {
+        const hashedPassword = await crypto.hash('admin123');
+        await db.insert(users).values({
+          username: 'global_admin',
+          password: hashedPassword,
+          email: 'admin@nuri.ai',
+          isAdmin: true,
+          createdAt: new Date(),
+        });
+        console.log('Created global admin user');
+      }
+    } catch (error) {
+      console.error('Error creating global admin:', error);
+    }
+  })();
 
   app.post("/api/register", async (req, res, next) => {
     try {
@@ -170,6 +191,7 @@ export function setupAuth(app: Express) {
           email: req.body.email,
           password: hashedPassword,
           createdAt: new Date(),
+          isAdmin: false, // added isAdmin field
         })
         .returning();
 
@@ -179,11 +201,12 @@ export function setupAuth(app: Express) {
         }
         return res.json({
           message: "Registration successful",
-          user: { 
-            id: newUser.id, 
+          user: {
+            id: newUser.id,
             username: newUser.username,
             email: newUser.email,
-            profilePicture: newUser.profilePicture
+            profilePicture: newUser.profilePicture,
+            isAdmin: newUser.isAdmin // added isAdmin field
           },
         });
       });
@@ -220,11 +243,12 @@ export function setupAuth(app: Express) {
 
         return res.json({
           message: "Login successful",
-          user: { 
-            id: user.id, 
+          user: {
+            id: user.id,
             username: user.username,
             email: user.email,
-            profilePicture: user.profilePicture
+            profilePicture: user.profilePicture,
+            isAdmin: user.isAdmin // added isAdmin field
           },
         });
       });
