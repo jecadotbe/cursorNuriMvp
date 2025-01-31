@@ -3,25 +3,28 @@ import { IVerifyOptions, Strategy as LocalStrategy } from "passport-local";
 import { type Express } from "express";
 import session from "express-session";
 import createMemoryStore from "memorystore";
-import bcrypt from "bcrypt";
+import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { promisify } from "util";
 import { users } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
-import { randomBytes } from "crypto";
 
-const SALT_ROUNDS = 10;
-
+const scryptAsync = promisify(scrypt);
 const crypto = {
   hash: async (password: string) => {
-    return bcrypt.hash(password, SALT_ROUNDS);
+    const salt = randomBytes(16).toString("hex");
+    const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+    return `${buf.toString("hex")}.${salt}`;
   },
   compare: async (suppliedPassword: string, storedPassword: string) => {
-    try {
-      return await bcrypt.compare(suppliedPassword, storedPassword);
-    } catch (error) {
-      console.error('Error comparing passwords:', error);
-      return false;
-    }
+    const [hashedPassword, salt] = storedPassword.split(".");
+    const hashedPasswordBuf = Buffer.from(hashedPassword, "hex");
+    const suppliedPasswordBuf = (await scryptAsync(
+      suppliedPassword,
+      salt,
+      64
+    )) as Buffer;
+    return timingSafeEqual(hashedPasswordBuf, suppliedPasswordBuf);
   },
 };
 
@@ -32,7 +35,6 @@ export interface User {
   profilePicture: string | null;
   createdAt: Date;
   email: string;
-  isAdmin: boolean;
 }
 
 declare global {
@@ -43,13 +45,26 @@ declare global {
       profilePicture: string | null;
       createdAt: Date;
       email: string;
-      isAdmin: boolean;
     }
   }
 }
 
 export function setupAuth(app: Express) {
   const MemoryStore = createMemoryStore(session);
+
+  // Add security headers
+  app.use((req, res, next) => {
+    res.set({
+      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+      'X-Frame-Options': 'SAMEORIGIN',
+      'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Surrogate-Control': 'no-store'
+    });
+    next();
+  });
 
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || randomBytes(32).toString('hex'),
@@ -60,13 +75,13 @@ export function setupAuth(app: Express) {
     cookie: {
       secure: app.get("env") === "production",
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      maxAge: 24 * 60 * 60 * 1000,
       sameSite: 'lax',
       path: '/'
     },
     store: new MemoryStore({
-      checkPeriod: 86400000, // 24 hours
-      ttl: 24 * 60 * 60 * 1000 // 24 hours
+      checkPeriod: 86400000,
+      ttl: 24 * 60 * 60 * 1000
     }),
   };
 
@@ -79,10 +94,21 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api/') && !req.path.startsWith('/api/login') && !req.path.startsWith('/api/register')) {
+      if (!req.session || !req.session.passport) {
+        if (req.xhr || req.path.startsWith('/api/')) {
+          return res.status(401).json({ message: "Session expired" });
+        }
+        return res.redirect('/');
+      }
+    }
+    next();
+  });
+
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
-        console.log(`Attempting login for username: ${username}`);
         const [user] = await db
           .select()
           .from(users)
@@ -90,23 +116,14 @@ export function setupAuth(app: Express) {
           .limit(1);
 
         if (!user) {
-          console.log('User not found');
           return done(null, false, { message: "Incorrect username." });
         }
-
-        console.log('Found user, comparing passwords...');
         const isMatch = await crypto.compare(password, user.password);
-        console.log(`Password match result: ${isMatch}`);
-
         if (!isMatch) {
           return done(null, false, { message: "Incorrect password." });
         }
-
-        // Remove password from user object before passing to done
-        const { password: _, ...userWithoutPassword } = user;
-        return done(null, userWithoutPassword);
+        return done(null, user);
       } catch (err) {
-        console.error('Authentication error:', err);
         return done(err);
       }
     })
@@ -123,42 +140,11 @@ export function setupAuth(app: Express) {
         .from(users)
         .where(eq(users.id, id))
         .limit(1);
-
-      if (!user) {
-        return done(new Error('User not found'));
-      }
-
-      const { password: _, ...userWithoutPassword } = user;
-      done(null, userWithoutPassword);
+      done(null, user);
     } catch (err) {
       done(err);
     }
   });
-
-  // Create global admin if it doesn't exist
-  (async () => {
-    try {
-      const [existingAdmin] = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, 'global_admin'))
-        .limit(1);
-
-      if (!existingAdmin) {
-        const hashedPassword = await crypto.hash('admin123');
-        await db.insert(users).values({
-          username: 'global_admin',
-          password: hashedPassword,
-          email: 'admin@nuri.ai',
-          isAdmin: true,
-          createdAt: new Date(),
-        });
-        console.log('Created global admin user');
-      }
-    } catch (error) {
-      console.error('Error creating global admin:', error);
-    }
-  })();
 
   app.post("/api/register", async (req, res, next) => {
     try {
@@ -177,8 +163,6 @@ export function setupAuth(app: Express) {
       }
 
       const hashedPassword = await crypto.hash(req.body.password);
-      console.log('Created hashed password for new user');
-
       const [newUser] = await db
         .insert(users)
         .values({
@@ -186,7 +170,6 @@ export function setupAuth(app: Express) {
           email: req.body.email,
           password: hashedPassword,
           createdAt: new Date(),
-          isAdmin: false,
         })
         .returning();
 
@@ -196,12 +179,11 @@ export function setupAuth(app: Express) {
         }
         return res.json({
           message: "Registration successful",
-          user: {
-            id: newUser.id,
+          user: { 
+            id: newUser.id, 
             username: newUser.username,
             email: newUser.email,
-            profilePicture: newUser.profilePicture,
-            isAdmin: newUser.isAdmin
+            profilePicture: newUser.profilePicture
           },
         });
       });
@@ -224,6 +206,13 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: info.message ?? "Login failed" });
       }
 
+      // Handle remember me functionality
+      if (req.body.rememberMe) {
+        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+      }
+
+      req.session.checkSuggestions = true; // Add flag to check suggestions on successful login
+
       req.logIn(user, (err) => {
         if (err) {
           return next(err);
@@ -231,12 +220,11 @@ export function setupAuth(app: Express) {
 
         return res.json({
           message: "Login successful",
-          user: {
-            id: user.id,
+          user: { 
+            id: user.id, 
             username: user.username,
             email: user.email,
-            profilePicture: user.profilePicture,
-            isAdmin: user.isAdmin
+            profilePicture: user.profilePicture
           },
         });
       });

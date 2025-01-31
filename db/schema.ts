@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, pgEnum, numeric, unique, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, pgEnum, numeric, unique, index, real } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -38,7 +38,6 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   profilePicture: text("profile_picture"),
   createdAt: timestamp("created_at").defaultNow(),
-  isAdmin: boolean("is_admin").default(false),
 });
 
 export const parentProfiles = pgTable("parent_profiles", {
@@ -257,25 +256,6 @@ export const parentingGoalsRelations = relations(parentingGoals, ({ one }) => ({
 }));
 
 
-// Add admin actions table
-export const adminActions = pgTable("admin_actions", {
-  id: serial("id").primaryKey(),
-  adminId: integer("admin_id").references(() => users.id).notNull(),
-  actionType: text("action_type").notNull(),
-  targetType: text("target_type").notNull(),
-  targetId: integer("target_id"),
-  details: jsonb("details"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-// Add relations
-export const adminActionsRelations = relations(adminActions, ({ one }) => ({
-  admin: one(users, {
-    fields: [adminActions.adminId],
-    references: [users.id],
-  }),
-}));
-
 // Schema types
 export const insertParentProfileSchema = createInsertSchema(parentProfiles);
 export const selectParentProfileSchema = createSelectSchema(parentProfiles);
@@ -306,10 +286,6 @@ export const selectChildProfileSchema = createSelectSchema(childProfiles);
 export const insertOnboardingGoalSchema = createInsertSchema(onboardingGoals);
 export const selectOnboardingGoalSchema = createSelectSchema(onboardingGoals);
 
-// Add schemas for new table
-export const insertAdminActionSchema = createInsertSchema(adminActions);
-export const selectAdminActionSchema = createSelectSchema(adminActions);
-
 // Types
 export type ParentProfile = typeof parentProfiles.$inferSelect;
 export type InsertParentProfile = typeof parentProfiles.$inferInsert;
@@ -339,7 +315,3 @@ export type ChildProfile = typeof childProfiles.$inferSelect;
 export type InsertChildProfile = typeof childProfiles.$inferInsert;
 export type OnboardingGoal = typeof onboardingGoals.$inferSelect;
 export type InsertOnboardingGoal = typeof onboardingGoals.$inferInsert;
-
-// Add types for new table
-export type AdminAction = typeof adminActions.$inferSelect;
-export type InsertAdminAction = typeof adminActions.$inferInsert;

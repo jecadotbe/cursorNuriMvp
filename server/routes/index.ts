@@ -3,7 +3,6 @@ import fileUpload from "express-fileupload";
 import { setupAuthRoutes } from "./auth";
 import { setupChatRouter } from "./chat";
 import { setupProfileRouter } from "./profile";
-import { setupAdminRoutes } from "./admin";
 import { villageRouter } from "./village";
 
 export function setupRoutes(app: Router) {
@@ -21,7 +20,6 @@ export function setupRoutes(app: Router) {
   app.use("/api/chat", setupChatRouter(app));
   app.use("/api/profile", setupProfileRouter(app));
   app.use("/api/village", villageRouter);
-  app.use("/api/admin", setupAdminRoutes(app));
 
   return app;
 }
