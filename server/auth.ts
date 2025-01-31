@@ -88,25 +88,10 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Update session check middleware to allow admin routes
-  app.use((req, res, next) => {
-    if (req.path.startsWith('/api/') && 
-        !req.path.startsWith('/api/login') && 
-        !req.path.startsWith('/api/register') &&
-        !req.path.startsWith('/api/admin/login')) {
-      if (!req.session || !req.session.passport) {
-        if (req.xhr || req.path.startsWith('/api/')) {
-          return res.status(401).json({ message: "Session expired" });
-        }
-        return res.redirect('/');
-      }
-    }
-    next();
-  });
-
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
+        console.log(`Attempting login for username: ${username}`);
         const [user] = await db
           .select()
           .from(users)
@@ -114,16 +99,22 @@ export function setupAuth(app: Express) {
           .limit(1);
 
         if (!user) {
+          console.log('User not found');
           return done(null, false, { message: "Incorrect username." });
         }
 
         const isMatch = await crypto.compare(password, user.password);
+        console.log(`Password match result: ${isMatch}`);
+
         if (!isMatch) {
           return done(null, false, { message: "Incorrect password." });
         }
 
-        return done(null, user);
+        // Remove password from user object before passing to done
+        const { password: _, ...userWithoutPassword } = user;
+        return done(null, userWithoutPassword);
       } catch (err) {
+        console.error('Authentication error:', err);
         return done(err);
       }
     })
@@ -140,7 +131,13 @@ export function setupAuth(app: Express) {
         .from(users)
         .where(eq(users.id, id))
         .limit(1);
-      done(null, user);
+
+      if (!user) {
+        return done(new Error('User not found'));
+      }
+
+      const { password: _, ...userWithoutPassword } = user;
+      done(null, userWithoutPassword);
     } catch (err) {
       done(err);
     }
@@ -195,7 +192,7 @@ export function setupAuth(app: Express) {
           email: req.body.email,
           password: hashedPassword,
           createdAt: new Date(),
-          isAdmin: false, // added isAdmin field
+          isAdmin: false, 
         })
         .returning();
 
@@ -210,7 +207,7 @@ export function setupAuth(app: Express) {
             username: newUser.username,
             email: newUser.email,
             profilePicture: newUser.profilePicture,
-            isAdmin: newUser.isAdmin // added isAdmin field
+            isAdmin: newUser.isAdmin 
           },
         });
       });
@@ -233,13 +230,6 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: info.message ?? "Login failed" });
       }
 
-      // Handle remember me functionality
-      if (req.body.rememberMe) {
-        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-      }
-
-      req.session.checkSuggestions = true; // Add flag to check suggestions on successful login
-
       req.logIn(user, (err) => {
         if (err) {
           return next(err);
@@ -252,7 +242,7 @@ export function setupAuth(app: Express) {
             username: user.username,
             email: user.email,
             profilePicture: user.profilePicture,
-            isAdmin: user.isAdmin // added isAdmin field
+            isAdmin: user.isAdmin
           },
         });
       });
