@@ -29,7 +29,6 @@ const formSchema = z.object({
 type BasicInfoStepProps = {
   onComplete: (data: z.infer<typeof formSchema>) => void;
   initialData?: z.infer<typeof formSchema>;
-  isSubmitting?: boolean;
 };
 
 export default function BasicInfoStep({ onComplete, initialData }: BasicInfoStepProps) {
@@ -91,15 +90,8 @@ export default function BasicInfoStep({ onComplete, initialData }: BasicInfoStep
           )}
         />
 
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Opslaan...
-            </>
-          ) : (
-            "Volgende"
-          )}
+        <Button type="submit" className="w-full">
+          Volgende
         </Button>
       </form>
     </Form>
