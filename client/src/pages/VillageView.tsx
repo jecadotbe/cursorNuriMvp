@@ -73,10 +73,9 @@ interface Memory {
 interface Insight {
   id: number;
   type: string;
-  title: string;
-  description: string;
-  suggestedAction?: string;
-  priority: number;
+  suggestion: string;
+  context: string;
+  priority: 'high' | 'medium' | 'low';
   status: string;
   dismissed: boolean;
 }
@@ -576,7 +575,7 @@ export default function VillageView() {
         title: "Success",
         description: "Memory saved successfully"
       });
-      
+
       setNewMemory({
         title: "",
         content: "",
@@ -584,7 +583,7 @@ export default function VillageView() {
         tags: [],
         date: format(new Date(), "yyyy-MM-dd")
       });
-      
+
       // Switch back to view tab after saving
       const tabsList = document.querySelector('[role="tablist"]');
       if (tabsList) {
@@ -721,26 +720,20 @@ export default function VillageView() {
                 </p>
               </div>
             ) : (
-              suggestions.map((insight) => (
-                !insight.dismissed && (
+              suggestions?.filter(s => !s.dismissed).map((insight) => (
                   <Card key={insight.id}>
                     <CardContent className="pt-6">
                       <div className="flex items-start gap-4">
                         <div className="flex-1">
-                          <h3 className="font-semibold mb-1">{insight.title}</h3>
-                          <p className="text-sm text-gray-600">{insight.description}</p>
-                          {insight.suggestedAction && (
-                            <p className="text-sm text-gray-600 mt-2 italic">
-                              Suggestie: {insight.suggestedAction}
-                            </p>
-                          )}
+                          <h3 className="font-semibold mb-1">{insight.suggestion}</h3>
+                          <p className="text-sm text-gray-600">{insight.context}</p>
                         </div>
                         <div className="flex gap-2">
-                          <Badge variant={insight.priority > 3 ? "default" : "secondary"}>
-                            Prioriteit {insight.priority}
+                          <Badge variant={insight.priority === 'high' ? "default" : "secondary"}>
+                            {insight.priority}
                           </Badge>
                           <Button variant="ghost" onClick={() => handleInsightAction(insight.id)}>
-                            {insight.type === "network_gap" ? "Voeg toe" : "OK"}
+                            {insight.type === "network_growth" ? "Voeg toe" : "OK"}
                           </Button>
                           <Button variant="ghost" onClick={() => dismissInsight(insight.id)}>
                             Verwijder
@@ -749,8 +742,7 @@ export default function VillageView() {
                       </div>
                     </CardContent>
                   </Card>
-                )
-              ))
+                ))
             )}
           </div>
         </SheetContent>
@@ -885,8 +877,7 @@ export default function VillageView() {
                     top: "50%",
                     touchAction: "none",
                     zIndex: 20
-                  }}
-                >
+                  }}                >
                   <MemberContent
                     member={member}
                     position={{ x: 0, y: 0 }}
