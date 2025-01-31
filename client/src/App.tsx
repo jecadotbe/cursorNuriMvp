@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
+import AdminDashboard from "@/pages/admin/Dashboard";
 import { useUser } from "@/hooks/use-user";
 import { Loader2 } from "lucide-react";
 import HomeView from "@/pages/HomeView";
@@ -44,6 +45,12 @@ function Router() {
     return <AuthPage />;
   }
 
+  // Redirect non-admin users trying to access admin routes
+  if (location.startsWith('/admin') && !user.isAdmin) {
+    setLocation('/');
+    return null;
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       <div className={`flex-1 ${showNavigation ? 'pb-16' : ''}`}>
@@ -58,6 +65,7 @@ function Router() {
           <Route path="/learn/:id" component={LearnDetailView} />
           <Route path="/profile" component={ProfileView} />
           <Route path="/profile/edit" component={EditProfileView} />
+          {user.isAdmin && <Route path="/admin" component={AdminDashboard} />}
           <Route component={NotFound} />
         </Switch>
       </div>

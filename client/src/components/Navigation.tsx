@@ -1,9 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { Home, MessageSquare, Users, GraduationCap, User } from "lucide-react";
+import { Home, MessageSquare, Users, GraduationCap, User, ShieldAlert } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUser } from "@/hooks/use-user";
-
 
 export default function Navigation() {
   const [location] = useLocation();
@@ -14,6 +13,7 @@ export default function Navigation() {
     { icon: MessageSquare, label: "Nuri", href: "/chat", onboarding: "chat" },
     { icon: Users, label: "Village", href: "/village", onboarding: "village" },
     { icon: GraduationCap, label: "Learn", href: "/learn", onboarding: "learn" },
+    ...(user?.isAdmin ? [{ icon: ShieldAlert, label: "Admin", href: "/admin" }] : []),
   ];
 
   return (
