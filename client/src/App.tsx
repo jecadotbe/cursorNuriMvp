@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
+import AdminAuthPage from "@/pages/admin/auth";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import { useUser } from "@/hooks/use-user";
 import { Loader2 } from "lucide-react";
@@ -40,15 +41,22 @@ function Router() {
     );
   }
 
-  // Show auth page for unauthenticated users
-  if (!user) {
-    return <AuthPage />;
+  // Handle admin routes
+  if (location.startsWith('/admin')) {
+    // If not logged in, show admin login
+    if (!user) {
+      return <AdminAuthPage />;
+    }
+    // If logged in but not admin, redirect to home
+    if (!user.isAdmin) {
+      setLocation('/');
+      return null;
+    }
   }
 
-  // Redirect non-admin users trying to access admin routes
-  if (location.startsWith('/admin') && !user.isAdmin) {
-    setLocation('/');
-    return null;
+  // Show auth page for unauthenticated users on non-admin routes
+  if (!user && !location.startsWith('/admin')) {
+    return <AuthPage />;
   }
 
   return (
@@ -65,7 +73,12 @@ function Router() {
           <Route path="/learn/:id" component={LearnDetailView} />
           <Route path="/profile" component={ProfileView} />
           <Route path="/profile/edit" component={EditProfileView} />
-          {user.isAdmin && <Route path="/admin" component={AdminDashboard} />}
+          {user?.isAdmin && (
+            <>
+              <Route path="/admin" component={AdminDashboard} />
+              <Route path="/admin/login" component={AdminAuthPage} />
+            </>
+          )}
           <Route component={NotFound} />
         </Switch>
       </div>
