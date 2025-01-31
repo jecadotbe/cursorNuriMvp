@@ -228,6 +228,10 @@ app.post("/api/onboarding/complete", async (req, res) => {
     console.log("[DEBUG] Child profiles received:", {
       childProfiles: finalData.childProfiles
     });
+    
+    // Set flag to force suggestion refresh after memory storage
+    req.session.checkSuggestions = true;
+    await req.session.save();
 
     try {
       // Extract fields from onboarding data
@@ -286,6 +290,7 @@ app.post("/api/onboarding/complete", async (req, res) => {
 
       // Store onboarding data in memory
       try {
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Small delay to ensure proper sequencing
         const onboardingContent = `
 Parent Profile:
 Name: ${name}
