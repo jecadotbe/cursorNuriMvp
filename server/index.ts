@@ -1,5 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
+import { setupRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 
@@ -11,9 +11,6 @@ app.set('trust proxy', 1);
 // Essential middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
-// Add static file serving for public directory
-app.use(express.static(path.join(process.cwd(), "public")));
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -49,28 +46,20 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    // Create and configure the API router first
-    const apiRouter = express.Router();
+    // Initialize server with routes
+    const server = setupRoutes(app);
 
-    // Set JSON content type for all API routes
-    apiRouter.use((req, res, next) => {
-      res.setHeader('Content-Type', 'application/json');
-      next();
-    });
+    // Setup Vite in development mode
+    if (process.env.NODE_ENV === "development") {
+      await setupVite(app, server);
+    }
 
-    // Register API routes
-    const server = registerRoutes(app);
-
-    // Mount API router before Vite middleware
-    app.use('/api', apiRouter);
-
-    // Error handling middleware
+    // Global error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       console.error("Error:", err);
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
 
-      // Send error response with more details in development
       if (process.env.NODE_ENV === "development") {
         res.status(status).json({
           message,
@@ -78,22 +67,17 @@ app.use((req, res, next) => {
           details: err.details || undefined
         });
       } else {
+        // Serve static files only in production
+        app.use(express.static(path.join(process.cwd(), "public")));
+        serveStatic(app);
         res.status(status).json({ message });
       }
     });
 
-    // Setup Vite or serve static files last
-    if (process.env.NODE_ENV === "development") {
-      await setupVite(app, server);
-    } else {
-      serveStatic(app);
-    }
-
     const port = parseInt(process.env.PORT || "3000", 10);
     server.listen(port, "0.0.0.0", () => {
       log(`Server running on port ${port}`);
-    })
-    .on('error', (error: any) => {
+    }).on('error', (error: any) => {
       if (error.code === 'EADDRINUSE') {
         const nextPort = port + 1;
         log(`Port ${port} is busy, trying ${nextPort}...`);

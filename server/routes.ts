@@ -25,61 +25,52 @@ export type ChildProfile = {
   specialNeeds: string[];
 };
 
-export function setupRoutes(app: Router) {
-  // Add file upload middleware
-  app.use(
-    fileUpload({
-      limits: { fileSize: 2 * 1024 * 1024 }, // 2MB max file size
-      abortOnLimit: true,
-      createParentPath: true,
-    }),
-  );
+export function setupRoutes(app: Express): Server {
+  // Initialize authentication
+  setupAuth(app);
 
-  // Apply rate limiting to API routes
-  app.use("/api/", apiLimiter);
+  // Create API router
+  const apiRouter = Router();
 
-  // Apply stricter rate limiting to auth routes
-  app.use("/api/auth/login", authLimiter);
-  app.use("/api/auth/register", authLimiter);
-
-  // Default JSON content type for all API routes
-  app.use('/api', (req, res, next) => {
+  // Set JSON content type for all API routes
+  apiRouter.use((req, res, next) => {
     res.setHeader('Content-Type', 'application/json');
     next();
   });
 
+  // File upload middleware for API routes
+  apiRouter.use(fileUpload({
+    limits: { fileSize: 2 * 1024 * 1024 },
+    abortOnLimit: true,
+    createParentPath: true,
+  }));
+
+  // Apply rate limiting to API routes
+  apiRouter.use(apiLimiter);
+
+  // Apply stricter rate limiting to auth endpoints
+  apiRouter.use("/auth/login", authLimiter);
+  apiRouter.use("/auth/register", authLimiter);
+
   // Mount route modules
-  app.use("/api/auth", setupAuthRoutes(Router()));
-  app.use("/api/chat", setupChatRouter(Router()));
-  app.use("/api/profile", setupProfileRouter(Router()));
-  app.use("/api/village", setupVillageRouter(Router()));
-  app.use("/api/suggestions", setupSuggestionRouter(Router()));
-  app.use("/api/onboarding", setupOnboardingRoutes(Router()));
+  apiRouter.use("/auth", setupAuthRoutes(Router()));
+  apiRouter.use("/chat", setupChatRouter(Router()));
+  apiRouter.use("/profile", setupProfileRouter(Router()));
+  apiRouter.use("/village", setupVillageRouter(Router()));
+  apiRouter.use("/suggestions", setupSuggestionRouter(Router()));
+  apiRouter.use("/onboarding", setupOnboardingRoutes(Router()));
 
   // Handle 404 for API routes
-  app.use('/api/*', (req, res) => {
+  apiRouter.use((req, res) => {
     res.status(404).json({ error: 'API endpoint not found' });
   });
 
-  return app;
-}
+  // Mount API router at /api
+  app.use('/api', apiRouter);
 
-export function registerRoutes(app: Express): Server {
-  // Initialize authentication
-  setupAuth(app);
-
-  // Create and configure the API router
-  const apiRouter = Router();
-  setupRoutes(apiRouter);
-
-  // Mount the API router at /api
-  app.use(apiRouter);
-
-  // Let Vite handle all other routes
+  // Let Vite handle all other routes in development
   app.use((req, res, next) => {
-    if (req.path.startsWith('/api/')) {
-      res.status(404).json({ error: 'API endpoint not found' });
-    } else {
+    if (!req.path.startsWith('/api/')) {
       next();
     }
   });

@@ -7,8 +7,10 @@ export function setupChatRouter(router: Router) {
   // Apply authentication middleware to all chat routes
   router.use(requireAuth);
 
-  // Setup chat routes directly on the router
-  setupChatRoutes(router);
+  // Setup chat message routes
+  const chatRouter = Router();
+  setupChatRoutes(chatRouter);
+  router.use('/', chatRouter);
 
   // Setup suggestions as a subroute
   const suggestionsRouter = Router();
