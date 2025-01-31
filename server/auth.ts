@@ -16,7 +16,12 @@ const crypto = {
     return bcrypt.hash(password, SALT_ROUNDS);
   },
   compare: async (suppliedPassword: string, storedPassword: string) => {
-    return bcrypt.compare(suppliedPassword, storedPassword);
+    try {
+      return await bcrypt.compare(suppliedPassword, storedPassword);
+    } catch (error) {
+      console.error('Error comparing passwords:', error);
+      return false;
+    }
   },
 };
 
@@ -45,20 +50,6 @@ declare global {
 
 export function setupAuth(app: Express) {
   const MemoryStore = createMemoryStore(session);
-
-  // Add security headers
-  app.use((req, res, next) => {
-    res.set({
-      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-      'X-Frame-Options': 'SAMEORIGIN',
-      'X-Content-Type-Options': 'nosniff',
-      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0',
-      'Surrogate-Control': 'no-store'
-    });
-    next();
-  });
 
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || randomBytes(32).toString('hex'),
@@ -103,6 +94,7 @@ export function setupAuth(app: Express) {
           return done(null, false, { message: "Incorrect username." });
         }
 
+        console.log('Found user, comparing passwords...');
         const isMatch = await crypto.compare(password, user.password);
         console.log(`Password match result: ${isMatch}`);
 
@@ -185,6 +177,8 @@ export function setupAuth(app: Express) {
       }
 
       const hashedPassword = await crypto.hash(req.body.password);
+      console.log('Created hashed password for new user');
+
       const [newUser] = await db
         .insert(users)
         .values({
@@ -192,7 +186,7 @@ export function setupAuth(app: Express) {
           email: req.body.email,
           password: hashedPassword,
           createdAt: new Date(),
-          isAdmin: false, 
+          isAdmin: false,
         })
         .returning();
 
@@ -207,7 +201,7 @@ export function setupAuth(app: Express) {
             username: newUser.username,
             email: newUser.email,
             profilePicture: newUser.profilePicture,
-            isAdmin: newUser.isAdmin 
+            isAdmin: newUser.isAdmin
           },
         });
       });
