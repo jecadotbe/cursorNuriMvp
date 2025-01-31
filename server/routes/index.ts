@@ -5,7 +5,6 @@ import { setupChatRouter } from "./chat";
 import { setupProfileRouter } from "./profile";
 import { setupVillageRouter } from "./village";
 import { setupSuggestionRouter } from "./suggestions";
-import { setupOnboardingRoutes } from "./onboarding";
 import { apiLimiter, authLimiter } from "../middleware/auth";
 
 export function setupRoutes(app: Router) {
@@ -31,7 +30,6 @@ export function setupRoutes(app: Router) {
   app.use("/api/profile", setupProfileRouter(Router()));
   app.use("/api/village", setupVillageRouter(Router()));
   app.use("/api/suggestions", setupSuggestionRouter(Router()));
-  app.use("/api/onboarding", setupOnboardingRoutes(Router()));
 
   return app;
 }
