@@ -11,11 +11,11 @@ import { getVillageContext } from "../village";
 export function setupChatRoutes(router: Router) {
   // List all chats
   router.get("/", async (req, res) => {
-    try {
-      if (!req.isAuthenticated() || !req.user) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
 
+    try {
       const user = req.user as User;
       const userChats = await db.query.chats.findMany({
         where: eq(chats.userId, user.id),
@@ -34,19 +34,20 @@ export function setupChatRoutes(router: Router) {
 
   // Create a new chat
   router.post("/", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
     try {
-      if (!req.isAuthenticated() || !req.user) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
-
       const user = req.user as User;
-      const { title = `Chat ${new Date().toLocaleDateString()}`, messages = [] } = req.body;
+      const { title = `Chat ${new Date().toLocaleDateString()}` } = req.body;
 
-      const [newChat] = await db.insert(chats)
+      const [newChat] = await db
+        .insert(chats)
         .values({
           userId: user.id,
           title,
-          messages,
+          messages: [],
           metadata: {},
           contentEmbedding: '[]'
         })
@@ -64,18 +65,17 @@ export function setupChatRoutes(router: Router) {
 
   // Get chat by ID
   router.get("/:chatId", async (req, res) => {
-    try {
-      if (!req.isAuthenticated() || !req.user) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
 
+    try {
       const chatId = parseInt(req.params.chatId);
       if (isNaN(chatId)) {
         return res.status(400).json({ message: "Invalid chat ID" });
       }
 
       const user = req.user as User;
-
       const chat = await db.query.chats.findFirst({
         where: eq(chats.id, chatId),
       });
@@ -100,13 +100,17 @@ export function setupChatRoutes(router: Router) {
 
   // Handle chat messages
   router.post("/messages", async (req, res) => {
-    try {
-      if (!req.isAuthenticated() || !req.user) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
 
+    try {
       const user = req.user as User;
       const { chatId, messages } = req.body;
+
+      if (!Array.isArray(messages) || messages.length === 0) {
+        return res.status(400).json({ message: "Invalid messages format" });
+      }
 
       // Get relevant memories for context
       const relevantMemories = await memoryService.getRelevantMemories(
@@ -124,7 +128,7 @@ export function setupChatRoutes(router: Router) {
       const mergedRAG = ragContent.join("\n\n");
 
       const response = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
+        model: "claude-3-sonnet-20240229",
         max_tokens: 512,
         temperature: 0.4,
         system: `${process.env.NURI_SYSTEM_PROMPT}\n\nContext:\n${villageContextString}\n\n${mergedRAG}`,
@@ -178,7 +182,6 @@ export function setupChatRoutes(router: Router) {
         content: messageContent,
         chatId
       });
-
     } catch (error) {
       console.error("Chat error:", error);
       res.status(500).json({
