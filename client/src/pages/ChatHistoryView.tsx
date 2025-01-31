@@ -39,11 +39,11 @@ export default function ChatHistoryView() {
 
   const startNewChat = async () => {
     try {
-      console.log('Creating new chat...'); // Debug log
       const response = await fetch('/api/chats', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         credentials: 'include',
         body: JSON.stringify({
@@ -52,30 +52,25 @@ export default function ChatHistoryView() {
         }),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to create chat:', errorText); // Debug log
-        throw new Error(`Failed to create new chat: ${errorText}`);
+      const contentType = response.headers.get("content-type");
+      if (!contentType?.includes("application/json")) {
+        throw new Error("Server returned an invalid response format");
       }
 
       const newChat = await response.json();
-      console.log('New chat created:', newChat); // Debug log
 
       if (!newChat?.id) {
         throw new Error('No chat ID received from server');
       }
 
-      // Invalidate queries before navigation
       await queryClient.invalidateQueries({ queryKey: ['/api/chats'] });
-
-      // Navigate to the new chat
       navigate(`/chat/${newChat.id}`);
     } catch (error) {
       console.error('Error creating new chat:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "Could not create a new chat. Please try again.",
+        description: "Could not create new chat. Please try again.",
       });
     }
   };
