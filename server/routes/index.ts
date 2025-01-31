@@ -4,6 +4,7 @@ import { setupAuthRoutes } from "./auth";
 import { setupChatRouter } from "./chat";
 import { setupProfileRouter } from "./profile";
 import { villageRouter } from "./village";
+import { apiLimiter, authLimiter } from "../middleware/auth";
 
 export function setupRoutes(app: Router) {
   // Add file upload middleware
@@ -14,6 +15,13 @@ export function setupRoutes(app: Router) {
       createParentPath: true,
     }),
   );
+
+  // Apply rate limiting to all API routes
+  app.use("/api/", apiLimiter);
+
+  // Apply stricter rate limiting to auth routes
+  app.use("/api/auth/login", authLimiter);
+  app.use("/api/auth/register", authLimiter);
 
   // Mount route modules
   app.use("/api/auth", setupAuthRoutes(app));
