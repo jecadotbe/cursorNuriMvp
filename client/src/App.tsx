@@ -19,6 +19,7 @@ import { OnboardingProvider } from "@/context/onboarding-context";
 import OnboardingTooltip from "@/components/OnboardingTooltip";
 import LearnDetailView from "./pages/LearnDetailView";
 import OnboardingPage from "@/pages/onboarding";
+import BuildingProfilePage from "@/pages/building-profile";
 
 function Router() {
   const { user, isLoading } = useUser();
