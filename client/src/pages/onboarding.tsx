@@ -177,14 +177,25 @@ export default function OnboardingPage() {
     setOnboardingData(updatedData);
 
     try {
+      toast({
+        title: "Saving progress...",
+        description: "Please wait while we save your information.",
+      });
+
       await saveProgressMutation.mutateAsync({
         step,
         data: updatedData,
       });
 
+      toast({
+        title: "Progress saved",
+        description: "Your information has been saved successfully.",
+      });
+
       if (step < totalSteps) {
         setStep(step + 1);
       } else {
+        setLocation("/building-profile");
         await completeOnboardingMutation.mutateAsync(updatedData);
       }
     } catch (error) {
