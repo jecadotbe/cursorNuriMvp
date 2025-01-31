@@ -20,7 +20,7 @@ interface SuggestionResponse extends PromptSuggestion {
 }
 
 async function fetchChatHistory(): Promise<ChatResponse[]> {
-  const response = await fetch("/api/chats?sort=desc", {
+  const response = await fetch("/api/chats", {
     credentials: "include",
   });
 
@@ -58,10 +58,16 @@ export function useChatHistory() {
   const { toast } = useToast();
   const { user, isLoading: isUserLoading } = useUser();
 
-  const { data: chats = [], isLoading: isChatsLoading, error: chatsError, refetch: refetchChats } = useQuery<ChatResponse[]>({
-    queryKey: ["chats"],
+  const { 
+    data: chats, 
+    isLoading: isChatsLoading, 
+    error: chatsError, 
+    refetch: refetchChats 
+  } = useQuery<ChatResponse[]>({
+    queryKey: ["/api/chats"],
     queryFn: fetchChatHistory,
     enabled: !!user,
+    initialData: [],
   });
 
   const { 
@@ -70,18 +76,10 @@ export function useChatHistory() {
     error: suggestionError,
     refetch: refetchSuggestion 
   } = useQuery<SuggestionResponse>({
-    queryKey: ["suggestion"],
+    queryKey: ["/api/suggestions"],
     queryFn: fetchSuggestion,
     enabled: !!user,
-    retry: false,
-    onError: (error: Error) => {
-      console.error('Failed to fetch suggestion:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load suggestion",
-      });
-    },
+    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
   });
 
   const getLatestPrompt = async () => {
@@ -131,13 +129,13 @@ export function useChatHistory() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to mark suggestion as used",
+        description: "Failed to mark suggestion as used"
       });
     }
   };
 
   return {
-    chats,
+    chats: chats ?? [],
     isLoading: isUserLoading || isChatsLoading || isSuggestionLoading,
     error: chatsError || suggestionError,
     refetch: refetchChats,

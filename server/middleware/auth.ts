@@ -10,10 +10,7 @@ export interface AuthenticatedRequest extends Request {
 // Authentication middleware
 export function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   if (!req.isAuthenticated()) {
-    return res.status(401).json({ 
-      message: "Not authenticated",
-      details: "Please log in to continue"
-    });
+    return res.status(401).json({ message: "Not authenticated" });
   }
   next();
 }
@@ -46,10 +43,7 @@ export function validateSession(req: AuthenticatedRequest, res: Response, next: 
   }
 
   if (!req.session || !req.isAuthenticated()) {
-    return res.status(401).json({ 
-      message: "Not authenticated",
-      details: "Please log in to continue"
-    });
+    return res.status(401).json({ message: "Not authenticated" });
   }
 
   // Refresh session if it exists

@@ -24,13 +24,21 @@ export function setupRoutes(app: Router) {
     }),
   );
 
-  // Mount route modules
-  const chatRouter = setupChatRouter(Router());
-  const authRouter = setupAuthRoutes(Router());
-  const profileRouter = setupProfileRouter(Router());
-  const villageRouter = setupVillageRouter(Router());
-  const suggestionRouter = setupSuggestionRouter(Router());
+  // Initialize sub-routers
+  const chatRouter = Router();
+  const authRouter = Router();
+  const profileRouter = Router();
+  const villageRouter = Router();
+  const suggestionRouter = Router();
 
+  // Set up route handlers
+  setupChatRouter(chatRouter);
+  setupAuthRoutes(authRouter);
+  setupProfileRouter(profileRouter);
+  setupVillageRouter(villageRouter);
+  setupSuggestionRouter(suggestionRouter);
+
+  // Mount routes
   app.use("/api/auth", authRouter);
   app.use("/api/chats", chatRouter);
   app.use("/api/profile", profileRouter);

@@ -1,24 +1,11 @@
 import { Router } from "express";
 import { setupChatRoutes } from "./messages";
 import { setupSuggestionsRoutes } from "./suggestions";
+import { requireAuth } from "../../middleware/auth";
 
-export function setupChatRouter(app: Router) {
-  const router = Router();
-
-  // Ensure JSON responses for all routes
-  router.use((req, res, next) => {
-    res.setHeader('Content-Type', 'application/json');
-    next();
-  });
-
-  // Add session check middleware
-  router.use((req, res, next) => {
-    if (req.session && !req.session.cookie.expires) {
-      console.log("Refreshing session");
-      req.session.touch();
-    }
-    next();
-  });
+export function setupChatRouter(router: Router) {
+  // Apply authentication middleware to all chat routes
+  router.use(requireAuth);
 
   // Setup chat routes directly on the router
   setupChatRoutes(router);
@@ -28,7 +15,7 @@ export function setupChatRouter(app: Router) {
   setupSuggestionsRoutes(suggestionsRouter);
   router.use('/suggestions', suggestionsRouter);
 
-  // Handle JSON parsing errors
+  // Add error handlers
   router.use((err: Error, req: any, res: any, next: any) => {
     if (err instanceof SyntaxError && 'body' in err) {
       console.error('JSON parsing error:', err);
@@ -37,7 +24,6 @@ export function setupChatRouter(app: Router) {
     next(err);
   });
 
-  // Generic error handler
   router.use((err: Error, req: any, res: any, next: any) => {
     console.error('Router error:', err);
     res.status(500).json({
@@ -45,9 +31,6 @@ export function setupChatRouter(app: Router) {
       error: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
   });
-
-  // Mount the main router under /api/chats to match client expectations
-  app.use('/api/chats', router);
 
   return router;
 }

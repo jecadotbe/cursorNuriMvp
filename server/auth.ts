@@ -146,17 +146,6 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Security headers
-  app.use((req, res, next) => {
-    res.set({
-      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-      'X-Frame-Options': 'SAMEORIGIN',
-      'X-Content-Type-Options': 'nosniff',
-      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
-    });
-    next();
-  });
-
   app.post("/api/register", async (req, res, next) => {
     try {
       if (!req.body.username || !req.body.password || !req.body.email) {
@@ -208,7 +197,7 @@ export function setupAuth(app: Express) {
       return res.status(400).json({ message: "Username and password are required" });
     }
 
-    passport.authenticate("local", (err: any, user: User | false, info: any) => { //Fixed type error
+    passport.authenticate("local", (err: any, user: User | false, info: any) => {
       if (err) {
         return next(err);
       }
@@ -221,8 +210,6 @@ export function setupAuth(app: Express) {
       if (req.body.rememberMe) {
         req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
       }
-
-      req.session.checkSuggestions = true; // Add flag to check suggestions on successful login
 
       req.logIn(user, (err) => {
         if (err) {
@@ -271,26 +258,6 @@ export function setupAuth(app: Express) {
       return res.json(req.user);
     }
     res.status(401).json({ message: "Not logged in" });
-  });
-
-  // Session validation middleware (added back from original)
-  app.use((req, res, next) => {
-    if (!req.session || !req.session.id) {
-      return res.status(401).json({ message: "Session expired" });
-    }
-
-    // Refresh session if needed
-    if (req.session.cookie.maxAge && req.session.cookie.maxAge <= 60000) { // Less than 1 minute remaining
-      req.session.regenerate((err) => {
-        if (err) {
-          console.error('Failed to regenerate session:', err);
-          return res.status(500).json({ message: "Session error" });
-        }
-        next();
-      });
-    } else {
-      next();
-    }
   });
 
   return app;
