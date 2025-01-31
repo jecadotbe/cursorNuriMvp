@@ -9,8 +9,11 @@ export interface AuthenticatedRequest extends Request {
 
 // Authentication middleware
 export function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated() || !req.user) {
-    return res.status(401).json({ message: "Not authenticated" });
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ 
+      message: "Not authenticated",
+      details: "Please log in to continue"
+    });
   }
   next();
 }
@@ -37,13 +40,22 @@ export const authLimiter = rateLimit({
 
 // Session validation middleware
 export function validateSession(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-  if (req.session && req.session.cookie.maxAge && req.session.cookie.maxAge <= 0) {
-    req.session.destroy((err) => {
-      if (err) {
-        console.error("Error destroying expired session:", err);
-      }
-    });
-    return res.status(401).json({ message: "Session expired" });
+  // Skip session validation for login and register routes
+  if (req.path.includes('/auth/login') || req.path.includes('/auth/register')) {
+    return next();
   }
+
+  if (!req.session || !req.isAuthenticated()) {
+    return res.status(401).json({ 
+      message: "Not authenticated",
+      details: "Please log in to continue"
+    });
+  }
+
+  // Refresh session if it exists
+  if (req.session) {
+    req.session.touch();
+  }
+
   next();
 }

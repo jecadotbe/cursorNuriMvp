@@ -1,5 +1,5 @@
 import passport from "passport";
-import { IVerifyOptions, Strategy as LocalStrategy } from "passport-local";
+import { Strategy as LocalStrategy } from "passport-local";
 import { type Express } from "express";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -31,7 +31,7 @@ const crypto = {
 export interface User {
   id: number;
   username: string;
-  password: string;
+  password?: string;
   profilePicture: string | null;
   createdAt: Date;
   email: string;
@@ -50,100 +50,111 @@ declare global {
 }
 
 export function setupAuth(app: Express) {
+  // Configure session store
   const MemoryStore = createMemoryStore(session);
-
-  // Add security headers
-  app.use((req, res, next) => {
-    res.set({
-      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-      'X-Frame-Options': 'SAMEORIGIN',
-      'X-Content-Type-Options': 'nosniff',
-      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0',
-      'Surrogate-Control': 'no-store'
-    });
-    next();
+  const store = new MemoryStore({
+    checkPeriod: 86400000, // Prune expired entries every 24h
+    ttl: 24 * 60 * 60 * 1000, // Session TTL (24 hours)
   });
 
-  const sessionSettings: session.SessionOptions = {
+  // Configure session middleware
+  app.use(session({
     secret: process.env.SESSION_SECRET || randomBytes(32).toString('hex'),
+    name: 'nuri.session',
+    store: store,
     resave: false,
     saveUninitialized: false,
-    name: 'nuri.session',
     rolling: true,
+    proxy: app.get("env") === "production",
     cookie: {
       secure: app.get("env") === "production",
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000,
       sameSite: 'lax',
       path: '/'
-    },
-    store: new MemoryStore({
-      checkPeriod: 86400000,
-      ttl: 24 * 60 * 60 * 1000
-    }),
-  };
+    }
+  }));
 
-  if (app.get("env") === "production") {
-    app.set("trust proxy", 1);
-    sessionSettings.cookie!.secure = true;
-  }
-
-  app.use(session(sessionSettings));
+  // Initialize Passport and session handling
   app.use(passport.initialize());
   app.use(passport.session());
 
-  app.use((req, res, next) => {
-    if (req.path.startsWith('/api/') && !req.path.startsWith('/api/login') && !req.path.startsWith('/api/register')) {
-      if (!req.session || !req.session.passport) {
-        if (req.xhr || req.path.startsWith('/api/')) {
-          return res.status(401).json({ message: "Session expired" });
-        }
-        return res.redirect('/');
-      }
-    }
-    next();
-  });
-
-  passport.use(
-    new LocalStrategy(async (username, password, done) => {
-      try {
-        const [user] = await db
-          .select()
-          .from(users)
-          .where(eq(users.username, username))
-          .limit(1);
-
-        if (!user) {
-          return done(null, false, { message: "Incorrect username." });
-        }
-        const isMatch = await crypto.compare(password, user.password);
-        if (!isMatch) {
-          return done(null, false, { message: "Incorrect password." });
-        }
-        return done(null, user);
-      } catch (err) {
-        return done(err);
-      }
-    })
-  );
-
-  passport.serializeUser((user, done) => {
-    done(null, user.id);
-  });
-
-  passport.deserializeUser(async (id: number, done) => {
+  // Configure Passport LocalStrategy
+  passport.use(new LocalStrategy(async (username, password, done) => {
     try {
+      console.log("Authenticating user:", username);
+
       const [user] = await db
         .select()
         .from(users)
+        .where(eq(users.username, username))
+        .limit(1);
+
+      if (!user) {
+        console.log("User not found:", username);
+        return done(null, false, { message: "Incorrect username or password" });
+      }
+
+      const isMatch = await crypto.compare(password, user.password);
+      if (!isMatch) {
+        console.log("Invalid password for user:", username);
+        return done(null, false, { message: "Incorrect username or password" });
+      }
+
+      // Remove password from user object before serializing
+      const { password: _, ...userWithoutPassword } = user;
+      console.log("Authentication successful for user:", username);
+      return done(null, userWithoutPassword as User);
+    } catch (err) {
+      console.error("Authentication error:", err);
+      return done(err);
+    }
+  }));
+
+  // User serialization
+  passport.serializeUser((user, done) => {
+    console.log("Serializing user:", user.id);
+    done(null, user.id);
+  });
+
+  // User deserialization
+  passport.deserializeUser(async (id: number, done) => {
+    try {
+      console.log("Deserializing user:", id);
+      const [user] = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          profilePicture: users.profilePicture,
+          createdAt: users.createdAt
+        })
+        .from(users)
         .where(eq(users.id, id))
         .limit(1);
+
+      if (!user) {
+        console.log("User not found during deserialization:", id);
+        return done(null, false);
+      }
+
+      console.log("User deserialized successfully:", id);
       done(null, user);
     } catch (err) {
+      console.error("Deserialization error:", err);
       done(err);
     }
+  });
+
+  // Security headers
+  app.use((req, res, next) => {
+    res.set({
+      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+      'X-Frame-Options': 'SAMEORIGIN',
+      'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
+    });
+    next();
   });
 
   app.post("/api/register", async (req, res, next) => {
@@ -197,7 +208,7 @@ export function setupAuth(app: Express) {
       return res.status(400).json({ message: "Username and password are required" });
     }
 
-    passport.authenticate("local", (err: any, user: User | false, info: IVerifyOptions) => {
+    passport.authenticate("local", (err: any, user: User | false, info: any) => { //Fixed type error
       if (err) {
         return next(err);
       }
@@ -261,4 +272,26 @@ export function setupAuth(app: Express) {
     }
     res.status(401).json({ message: "Not logged in" });
   });
+
+  // Session validation middleware (added back from original)
+  app.use((req, res, next) => {
+    if (!req.session || !req.session.id) {
+      return res.status(401).json({ message: "Session expired" });
+    }
+
+    // Refresh session if needed
+    if (req.session.cookie.maxAge && req.session.cookie.maxAge <= 60000) { // Less than 1 minute remaining
+      req.session.regenerate((err) => {
+        if (err) {
+          console.error('Failed to regenerate session:', err);
+          return res.status(500).json({ message: "Session error" });
+        }
+        next();
+      });
+    } else {
+      next();
+    }
+  });
+
+  return app;
 }
