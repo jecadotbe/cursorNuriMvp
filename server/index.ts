@@ -21,6 +21,7 @@ app.use((req, res, next) => {
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
+  // Capture JSON responses for logging
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
     capturedJsonResponse = bodyJson;
@@ -43,6 +44,12 @@ app.use((req, res, next) => {
     }
   });
 
+  next();
+});
+
+// Handle CORS and Content-Type for API routes
+app.use('/api', (req, res, next) => {
+  res.setHeader('Content-Type', 'application/json');
   next();
 });
 
