@@ -65,12 +65,12 @@ export function useChat() {
         setMessages((prev) => [...prev, userMessage]);
         setIsProcessing(true);
 
-        const response = await fetch("/api/chat", {
+        const response = await fetch("/api/chats/messages", { // Fixed endpoint
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             messages: [...messages, userMessage],
-            chatId: chatData?.id
+            chatId: chatId
           }),
           credentials: "include",
         });
