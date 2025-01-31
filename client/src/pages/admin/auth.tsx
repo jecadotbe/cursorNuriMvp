@@ -18,14 +18,29 @@ export default function AdminAuthPage() {
     e.preventDefault();
     setIsSubmitting(true);
     setError("");
-    
+
     try {
-      const user = await login({ username, password });
-      if (user?.isAdmin) {
-        setLocation("/admin");
-      } else {
-        setError("You do not have admin privileges");
+      const response = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Login failed");
       }
+
+      if (!data.user.isAdmin) {
+        throw new Error("You do not have admin privileges");
+      }
+
+      // Update user context
+      await login({ username, password, email: data.user.email });
+      setLocation("/admin");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {

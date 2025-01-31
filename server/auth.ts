@@ -69,13 +69,13 @@ export function setupAuth(app: Express) {
     cookie: {
       secure: app.get("env") === "production",
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
       sameSite: 'lax',
       path: '/'
     },
     store: new MemoryStore({
-      checkPeriod: 86400000,
-      ttl: 24 * 60 * 60 * 1000
+      checkPeriod: 86400000, // 24 hours
+      ttl: 24 * 60 * 60 * 1000 // 24 hours
     }),
   };
 
@@ -88,8 +88,12 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // Update session check middleware to allow admin routes
   app.use((req, res, next) => {
-    if (req.path.startsWith('/api/') && !req.path.startsWith('/api/login') && !req.path.startsWith('/api/register')) {
+    if (req.path.startsWith('/api/') && 
+        !req.path.startsWith('/api/login') && 
+        !req.path.startsWith('/api/register') &&
+        !req.path.startsWith('/api/admin/login')) {
       if (!req.session || !req.session.passport) {
         if (req.xhr || req.path.startsWith('/api/')) {
           return res.status(401).json({ message: "Session expired" });

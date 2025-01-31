@@ -3,15 +3,19 @@ import { db } from "@db";
 import { users, adminActions } from "@db/schema";
 import { requireAdmin } from "../../auth/admin";
 import { desc, sql } from "drizzle-orm";
+import { setupAdminAuthRoutes } from "./auth";
 
-export function setupAdminRoutes(app: Router) {
-  const router = Router();
+export function setupAdminRoutes(router: Router) {
+  const adminRouter = Router();
+
+  // Setup admin authentication routes
+  setupAdminAuthRoutes(adminRouter);
 
   // Protect all admin routes with requireAdmin middleware
-  router.use(requireAdmin);
+  adminRouter.use(requireAdmin);
 
   // Get all users
-  router.get("/users", async (req, res) => {
+  adminRouter.get("/users", async (req, res) => {
     try {
       const usersList = await db.query.users.findMany({
         orderBy: desc(users.createdAt),
@@ -19,7 +23,7 @@ export function setupAdminRoutes(app: Router) {
 
       // Remove sensitive information
       const sanitizedUsers = usersList.map(({ password, ...user }) => user);
-      
+
       res.json(sanitizedUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -28,7 +32,7 @@ export function setupAdminRoutes(app: Router) {
   });
 
   // Get user statistics
-  router.get("/stats", async (req, res) => {
+  adminRouter.get("/stats", async (req, res) => {
     try {
       const stats = await db.select({
         totalUsers: sql<number>`count(*)`,
@@ -44,7 +48,7 @@ export function setupAdminRoutes(app: Router) {
   });
 
   // Log admin action
-  router.post("/log", async (req, res) => {
+  adminRouter.post("/log", async (req, res) => {
     const adminUser = req.user as { id: number };
     const { actionType, targetType, targetId, details } = req.body;
 
@@ -64,5 +68,5 @@ export function setupAdminRoutes(app: Router) {
     }
   });
 
-  return router;
+  router.use("/admin", adminRouter);
 }
