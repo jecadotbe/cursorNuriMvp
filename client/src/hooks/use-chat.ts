@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "./use-toast";
-import type { Chat } from "@db/schema";
 import { useParams, useLocation } from "wouter";
 
 interface Message {
@@ -61,11 +60,11 @@ export function useChat() {
     mutationFn: async (content: string) => {
       const userMessage: Message = { role: "user", content };
 
-      // Update messages immediately for better UX
-      setMessages((prev) => [...prev, userMessage]);
-      setIsProcessing(true);
-
       try {
+        // Update messages immediately for better UX
+        setMessages((prev) => [...prev, userMessage]);
+        setIsProcessing(true);
+
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -77,7 +76,8 @@ export function useChat() {
         });
 
         if (!response.ok) {
-          throw new Error(await response.text());
+          const errorText = await response.text();
+          throw new Error(errorText);
         }
 
         const chatResponse = await response.json();
@@ -91,19 +91,20 @@ export function useChat() {
         invalidateQueries();
 
         return chatResponse.content;
+      } catch (error) {
+        // Remove the last message on error to maintain consistency
+        setMessages((prev) => prev.slice(0, -1));
+        throw error;
       } finally {
         setIsProcessing(false);
       }
     },
     onError: (error: Error) => {
-      // Remove the last message on error to maintain consistency
-      setMessages((prev) => prev.slice(0, -1));
       toast({
         variant: "destructive",
         title: "Error",
         description: error.message || "Failed to send message. Please try again.",
       });
-      setIsProcessing(false);
     },
   });
 
@@ -115,16 +116,3 @@ export function useChat() {
     refreshMessages: invalidateQueries,
   };
 }
-
-import { useVillageMemories } from './use-village-memories';
-
-// Add memory context to chat messages
-const getMemoryContext = async (memberId: number) => {
-  const { memories } = useVillageMemories(memberId);
-  return memories.map(m => ({
-    content: m.content,
-    date: m.date,
-    impact: m.emotionalImpact,
-    tags: m.tags
-  }));
-};

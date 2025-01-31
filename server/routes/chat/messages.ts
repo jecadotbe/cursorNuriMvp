@@ -11,38 +11,46 @@ import { getVillageContext } from "../village";
 export function setupChatRoutes(router: Router) {
   // Get chat by ID
   router.get("/:chatId", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).send("Not authenticated");
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const chatId = parseInt(req.params.chatId);
+      if (isNaN(chatId)) {
+        return res.status(400).json({ message: "Invalid chat ID" });
+      }
+
+      const user = req.user as User;
+      const chat = await db.query.chats.findFirst({
+        where: eq(chats.id, chatId),
+      });
+
+      if (!chat) {
+        return res.status(404).json({ message: "Chat not found" });
+      }
+
+      if (chat.userId !== user.id) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      res.json(chat);
+    } catch (error) {
+      console.error("Error fetching chat:", error);
+      res.status(500).json({ 
+        message: "Failed to fetch chat",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
-
-    const chatId = parseInt(req.params.chatId);
-    if (isNaN(chatId)) {
-      return res.status(400).json({ message: "Invalid chat ID" });
-    }
-
-    const user = req.user as User;
-    const chat = await db.query.chats.findFirst({
-      where: eq(chats.id, chatId),
-    });
-
-    if (!chat) {
-      return res.status(404).json({ message: "Chat not found" });
-    }
-
-    if (chat.userId !== user.id) {
-      return res.status(403).json({ message: "Unauthorized" });
-    }
-
-    res.json(chat);
   });
 
   // Handle chat messages
   router.post("/", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).send("Not authenticated");
-    }
-
     try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
       const user = req.user as User;
 
       // Get relevant memories for context
@@ -106,7 +114,8 @@ export function setupChatRoutes(router: Router) {
 
       res.json({ 
         role: "assistant",
-        content: messageContent
+        content: messageContent,
+        chatId: req.body.chatId
       });
 
     } catch (error) {
