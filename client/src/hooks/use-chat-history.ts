@@ -12,7 +12,6 @@ async function fetchChatHistory(): Promise<Chat[]> {
     if (response.status >= 500) {
       throw new Error(`${response.status}: ${response.statusText}`);
     }
-
     throw new Error(`${response.status}: ${await response.text()}`);
   }
 
@@ -46,10 +45,10 @@ export function useChatHistory() {
   const { toast } = useToast();
   const { user, isLoading: isUserLoading } = useUser();
 
-  const { data: chats = [], isLoading: isChatsLoading, error: chatsError, refetch: refetchChats } = useQuery<Chat[], Error>({
+  const { data: chats = [], isLoading: isChatsLoading, error: chatsError, refetch: refetchChats } = useQuery<Chat[]>({
     queryKey: ["chats"],
     queryFn: fetchChatHistory,
-    enabled: !!user, // Only fetch when user is authenticated
+    enabled: !!user,
   });
 
   const { 
@@ -60,9 +59,9 @@ export function useChatHistory() {
   } = useQuery<PromptSuggestion>({
     queryKey: ["suggestion"],
     queryFn: fetchSuggestion,
-    enabled: !!user, // Only fetch when user is authenticated
+    enabled: !!user,
     retry: false,
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error('Failed to fetch suggestion:', error);
       toast({
         variant: "destructive",
@@ -81,12 +80,12 @@ export function useChatHistory() {
       if (suggestion) {
         return {
           prompt: {
-            text: suggestion.text,
-            type: suggestion.type,
-            context: suggestion.context,
-            relatedChatId: suggestion.relatedChatId?.toString(),
-            relatedChatTitle: suggestion.relatedChatTitle,
-            suggestionId: suggestion.id
+            text: suggestion.text as string,
+            type: suggestion.type as string,
+            context: suggestion.context as string,
+            relatedChatId: suggestion.related_chat_id?.toString(),
+            relatedChatTitle: suggestion.related_chat_title as string | undefined,
+            suggestionId: suggestion.id as number
           }
         };
       }

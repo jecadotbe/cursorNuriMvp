@@ -5,6 +5,9 @@ import path from "path";
 
 const app = express();
 
+// Trust proxy - required for rate limiting behind proxy
+app.set('trust proxy', 1);
+
 // Essential middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -53,7 +56,16 @@ app.use((req, res, next) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
 
-      res.status(status).json({ message });
+      // Send error response with more details in development
+      if (app.get("env") === "development") {
+        res.status(status).json({
+          message,
+          stack: err.stack,
+          details: err.details || undefined
+        });
+      } else {
+        res.status(status).json({ message });
+      }
     });
 
     // Setup Vite or serve static files
@@ -70,7 +82,7 @@ app.use((req, res, next) => {
       log(`serving on port ${PORT}`);
     });
 
-    // Cleanup on exit - simplified because memoryService is removed
+    // Cleanup on exit
     process.on('SIGTERM', () => {
       console.log('Shutting down...');
       server.close();

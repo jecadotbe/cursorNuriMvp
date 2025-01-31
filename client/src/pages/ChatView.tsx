@@ -48,6 +48,7 @@ export default function ChatView() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
   const [currentSuggestions, setCurrentSuggestions] = useState<string[]>(DEFAULT_SUGGESTIONS);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -65,7 +66,7 @@ export default function ChatView() {
       }
     }
   );
-  
+
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -75,41 +76,47 @@ export default function ChatView() {
     scrollToBottom();
   }, [messages, isLoading]);
 
-  const initializeChat = async () => {
-    if (!chatId && !isInitializing) {
-      setIsInitializing(true);
-      try {
-        const response = await fetch('/api/chats', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
-            messages: [],
-          }),
-          credentials: 'include',
-        });
+  const initializeChat = async (): Promise<string | null> => {
+    if (chatId || isInitializing) return chatId;
 
-        if (!response.ok) {
-          throw new Error('Failed to create new chat');
-        }
+    setIsInitializing(true);
+    setInitError(null);
 
-        const newChat = await response.json();
-        if (!newChat.id) {
-          throw new Error('No chat ID received from server');
-        }
-        navigate(`/chat/${newChat.id}`, { replace: true });
-      } catch (error) {
-        console.error('Error creating new chat:', error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Could not create a new chat. Please try again.",
-        });
-      } finally {
-        setIsInitializing(false);
+    try {
+      const response = await fetch('/api/chats', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
+          messages: [],
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
       }
+
+      const newChat = await response.json();
+      if (!newChat.id) {
+        throw new Error('No chat ID received from server');
+      }
+
+      navigate(`/chat/${newChat.id}`);
+      return newChat.id;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Could not create a new chat';
+      setInitError(errorMessage);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: errorMessage,
+      });
+      return null;
+    } finally {
+      setIsInitializing(false);
     }
   };
 
@@ -123,16 +130,22 @@ export default function ChatView() {
   };
 
   const handleSend = async () => {
-    if (inputText.trim()) {
-      if (!chatId) {
-        await initializeChat();
-        if (!chatId) return;
-      }
-      const text = inputText.trim();
-      setInputText('');
-      setIsExpanded(false);
-      await sendMessage(text);
+    if (!inputText.trim()) return;
+
+    const initializedChatId = chatId || await initializeChat();
+    if (!initializedChatId) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not start the conversation. Please try again.",
+      });
+      return;
     }
+
+    const text = inputText.trim();
+    setInputText('');
+    setIsExpanded(false);
+    await sendMessage(text);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -264,10 +277,16 @@ export default function ChatView() {
   };
 
   const handleSuggestionSelect = async (suggestion: string) => {
-    if (!chatId) {
-      await initializeChat();
-      if (!chatId) return;
+    const initializedChatId = chatId || await initializeChat();
+    if (!initializedChatId) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not start the conversation. Please try again.",
+      });
+      return;
     }
+
     setInputText('');
     setCurrentSuggestions([]);
     await sendMessage(suggestion);
@@ -300,7 +319,7 @@ export default function ChatView() {
           >
             <BookOpen className="w-6 h-6 text-[#629785]" />
           </button>
-          
+
           <button
             onClick={() => setShowNewChatDialog(true)}
             className={`p-2 ${theme.accent} hover:bg-[#4A7566] rounded-full`}
@@ -467,7 +486,7 @@ export default function ChatView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
+
       {/* Hide navigation on this page */}
       <style>{`
         nav {
