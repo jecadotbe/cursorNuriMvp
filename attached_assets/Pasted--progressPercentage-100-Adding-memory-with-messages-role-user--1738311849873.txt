@@ -1,0 +1,77 @@
+   "progressPercentage": 100
+  }
+}
+Adding memory with messages: [
+  {
+    "role": "user",
+    "content": "\nOnboarding Step 4 Progress:\n\nBasic Information:\nName: Maxim\nEmail: undefined\nExperience Level: first_time\n\n\nStress Assessment:\nStress Level: moderate\nPrimary Concerns: ruzie & agressie bij mijn kind\nSupport Network: oma & opa, Fons de hond\n\n\nChild Profiles:\n- Anneke (Age: 5)\n                 Special needs: ASS, Angst\n\n\nGoals:\nShort Term: Omgaan met de angst van mijn kind\nLong Term: Leren de mama zijn die ik wil zijn\nSupport Areas: agressie, angst, eten\nCommunication Preference: Not specified\n"
+  }
+]
+Memory creation result: [
+  {
+    id: '57567873-708e-4a05-a79f-f79075beca64',
+    data: {
+      old_memory: 'Child profile: Anneke, Age 5, Special needs: ASS, Angst',
+      memory: "Child's name is Anneke, age is 5, has special needs: ASS, Angst"
+    },
+    event: 'UPDATE'
+  },
+  {
+    id: '5220e023-7a36-4ed9-9450-744828cda8f8',
+    data: {
+      memory: 'Short term goal is om te gaan met de angst van mijn kind'
+    },
+    event: 'ADD'
+  },
+  {
+    id: '236090ae-17ed-41d2-881a-f5cbc0edfe45',
+    data: { memory: 'Long term goal is leren de mama zijn die ik wil zijn' },
+    event: 'ADD'
+  },
+  {
+    id: '1d6abec6-d9c0-4db7-8420-399521954398',
+    data: { memory: 'Support areas include agressie, angst, eten' },
+    event: 'ADD'
+  }
+]
+Successfully stored onboarding progress in memory
+8:19:40 AM [express] POST /api/onboarding/progress 200 in 7394ms :: {"currentOnboardingStep":4,"comp…
+8:19:40 AM [express] GET /api/user 200 in 142ms :: {"id":72,"username":"maxim3000","email":"maxim300…
+[DEBUG] Starting onboarding completion
+[DEBUG] Child profiles received: {
+  childProfiles: [ { name: 'Anneke', age: 5, specialNeeds: [Array] } ]
+}
+[DEBUG] Validated child profiles: [ { name: 'Anneke', age: 5, specialNeeds: [ 'ASS', 'Angst' ] } ]
+Creating memory for user: 72
+Content: 
+Parent Profile:
+Name: Maxim
+Experience Level: first_time
+Stress Level: moderate
+Primary Concerns: r...
+Metadata: {
+  "type": "onboarding_profile",
+  "category": "user_profile",
+  "source": "onboarding"
+}
+Adding memory with messages: [
+  {
+    "role": "user",
+    "content": "\nParent Profile:\nName: Maxim\nExperience Level: first_time\nStress Level: moderate\nPrimary Concerns: ruzie & agressie bij mijn kind\n\nChildren:\n- Anneke (Age: 5) Special needs: ASS, Angst\n\n\nGoals:\nShort term: Omgaan met de angst van mijn kind\nLong term: Leren de mama zijn die ik wil zijn\nSupport areas: agressie, angst, eten\n"
+  }
+]
+8:19:43 AM [express] GET /api/user 200 in 49ms :: {"id":72,"username":"maxim3000","email":"maxim3000…
+8:19:47 AM [express] GET /api/suggestions 200 in 4128ms :: {"id":236,"userId":72,"text":"Ik zie dat …
+Memory creation result: [
+  {
+    id: '8a0aded0-f85e-4c3a-a5bd-bbd173ce2e63',
+    data: { memory: 'Anneke is 5 years old' },
+    event: 'ADD'
+  },
+  {
+    id: '56eee3f1-e889-44c5-b955-778970fbe0e8',
+    data: { memory: 'Anneke has special needs: ASS, Angst' },
+    event: 'ADD'
+  }
+]
+Successfully stored onboarding data in memory layer
