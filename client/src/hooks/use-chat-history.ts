@@ -3,22 +3,35 @@ import type { Chat, PromptSuggestion } from "@db/schema";
 import { useToast } from "./use-toast";
 import { useUser } from "./use-user";
 
-async function fetchChatHistory(): Promise<Chat[]> {
+interface ChatResponse extends Chat {
+  messages: Array<{
+    role: "user" | "assistant";
+    content: string;
+  }>;
+}
+
+interface SuggestionResponse extends PromptSuggestion {
+  id: number;
+  text: string;
+  type: string;
+  context: string;
+  related_chat_id?: number;
+  related_chat_title?: string;
+}
+
+async function fetchChatHistory(): Promise<ChatResponse[]> {
   const response = await fetch("/api/chats?sort=desc", {
     credentials: "include",
   });
 
   if (!response.ok) {
-    if (response.status >= 500) {
-      throw new Error(`${response.status}: ${response.statusText}`);
-    }
     throw new Error(`${response.status}: ${await response.text()}`);
   }
 
   return response.json();
 }
 
-async function fetchSuggestion(): Promise<PromptSuggestion> {
+async function fetchSuggestion(): Promise<SuggestionResponse> {
   const response = await fetch('/api/suggestions', {
     credentials: 'include',
   });
@@ -45,7 +58,7 @@ export function useChatHistory() {
   const { toast } = useToast();
   const { user, isLoading: isUserLoading } = useUser();
 
-  const { data: chats = [], isLoading: isChatsLoading, error: chatsError, refetch: refetchChats } = useQuery<Chat[]>({
+  const { data: chats = [], isLoading: isChatsLoading, error: chatsError, refetch: refetchChats } = useQuery<ChatResponse[]>({
     queryKey: ["chats"],
     queryFn: fetchChatHistory,
     enabled: !!user,
@@ -56,7 +69,7 @@ export function useChatHistory() {
     isLoading: isSuggestionLoading,
     error: suggestionError,
     refetch: refetchSuggestion 
-  } = useQuery<PromptSuggestion>({
+  } = useQuery<SuggestionResponse>({
     queryKey: ["suggestion"],
     queryFn: fetchSuggestion,
     enabled: !!user,
@@ -80,17 +93,16 @@ export function useChatHistory() {
       if (suggestion) {
         return {
           prompt: {
-            text: suggestion.text as string,
-            type: suggestion.type as string,
-            context: suggestion.context as string,
+            text: suggestion.text,
+            type: suggestion.type,
+            context: suggestion.context,
             relatedChatId: suggestion.related_chat_id?.toString(),
-            relatedChatTitle: suggestion.related_chat_title as string | undefined,
-            suggestionId: suggestion.id as number
+            relatedChatTitle: suggestion.related_chat_title,
+            suggestionId: suggestion.id
           }
         };
       }
 
-      // Fallback to default prompt if no suggestion is available
       return {
         prompt: {
           text: "Let's talk about your parenting journey",
@@ -100,7 +112,6 @@ export function useChatHistory() {
       };
     } catch (error) {
       console.error('Failed to get prompt:', error);
-      // Provide a safe fallback
       return {
         prompt: {
           text: "Let's continue our conversation about parenting",
@@ -114,7 +125,7 @@ export function useChatHistory() {
   const markPromptAsUsed = async (suggestionId: number) => {
     try {
       await markSuggestionAsUsed(suggestionId);
-      await refetchSuggestion(); // Fetch a new suggestion after marking the current one as used
+      await refetchSuggestion();
     } catch (error) {
       console.error('Failed to mark suggestion as used:', error);
       toast({
