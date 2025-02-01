@@ -235,6 +235,7 @@ export default function ChatView() {
         body: JSON.stringify({
           chatId,
           lastMessageContent: messages[messages.length - 1].content,
+          messages: messages.slice(-3) // Send last 3 messages for better context
         }),
         credentials: 'include',
       });
@@ -244,6 +245,7 @@ export default function ChatView() {
       }
 
       const data = await response.json();
+      console.log('Received suggestions:', data);
 
       if (!data || !Array.isArray(data.suggestions)) {
         console.error('Invalid response format:', data);
@@ -253,19 +255,12 @@ export default function ChatView() {
       setCurrentSuggestions(data.suggestions);
     } catch (error) {
       console.error('Error generating suggestions:', error);
-
-      // Check if it's a response error
-      if (error instanceof Response) {
-        const text = await error.text();
-        console.error('Error response:', text);
-      }
-
+      setCurrentSuggestions(DEFAULT_SUGGESTIONS);
       toast({
         variant: "destructive",
         title: "Error",
         description: "Could not generate suggestions. Using default suggestions instead.",
       });
-      setCurrentSuggestions(DEFAULT_SUGGESTIONS);
     } finally {
       setIsLoadingSuggestions(false);
     }

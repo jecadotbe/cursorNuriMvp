@@ -48,7 +48,7 @@ export function setupSuggestionsRoutes(router: Router) {
     }
 
     const user = req.user as User;
-    const { chatId, lastMessageContent } = req.body;
+    const { chatId, lastMessageContent, messages } = req.body;
 
     if (!lastMessageContent) {
       return res.status(400).json({ message: "Last message content is required" });
@@ -64,17 +64,26 @@ export function setupSuggestionsRoutes(router: Router) {
         });
 
         if (chat && chat.userId === user.id) {
+          console.log('Generating suggestions for chat:', chatId);
+
+          // Format messages for context
+          const contextMessages = messages?.map(msg => 
+            `${msg.role}: ${msg.content}`
+          ).join("\n") || lastMessageContent;
+
           // Generate contextual suggestions using anthropic
           const response = await anthropic.messages.create({
             model: "claude-3-5-sonnet-20241022",
             max_tokens: 150,
             temperature: 0.7,
-            system: "Generate 3-5 natural follow-up questions or prompts based on the current conversation context. These should be in Dutch and help continue the conversation naturally.",
+            system: "Generate 3-5 natural follow-up questions or prompts based on the current conversation context. These should be in Dutch and help continue the conversation naturally. Each suggestion should be a complete question or prompt.",
             messages: [{
               role: "user",
-              content: `Based on this message: "${lastMessageContent}", generate natural follow-up prompts or questions that would help continue the conversation.`
+              content: `Based on this conversation:\n${contextMessages}\n\nGenerate natural follow-up prompts or questions that would help continue the conversation.`
             }]
           });
+
+          console.log('Received AI response for suggestions');
 
           if (response.content[0].type === "text") {
             // Split response into individual suggestions
@@ -83,6 +92,8 @@ export function setupSuggestionsRoutes(router: Router) {
               .filter(s => s.trim())
               .map(s => s.replace(/^\d+\.\s*/, '').trim())
               .slice(0, 5);
+
+            console.log('Generated suggestions:', suggestions);
           }
         }
       }
