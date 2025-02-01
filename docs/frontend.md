@@ -190,7 +190,6 @@ Patterns:
 ```typescript
 Core Contexts:
 - User authentication
-- Theme preferences
 - Navigation state
 - Feature flags
 
@@ -212,18 +211,8 @@ Standards:
 - Focus management
 
 Testing:
-- Automated audits
 - Manual verification
 - User feedback integration
-```
-
-### Progressive Enhancement
-```typescript
-Features:
-- Fallback content
-- Offline support
-- Performance optimization
-- Error recovery
 ```
 
 This documentation provides a comprehensive overview of the Nuri frontend implementation. For specific details, refer to the respective component files and inline documentation.
