@@ -1,10 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { useChat } from "@/hooks/use-chat";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, Plus, Mic, ArrowUpCircle, Expand, Circle, BookOpen, RefreshCw, Star } from "lucide-react";
+import { ArrowLeft, Plus, Mic, ArrowUpCircle, Expand, Circle } from "lucide-react";
 import { format } from "date-fns";
 import { MessageFeedback } from "@/components/MessageFeedback";
-import { SuggestionChips } from "@/components/SuggestionChips";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -16,10 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
-import { PromptLibrary } from "@/components/PromptLibrary";
 import { useVoiceInput } from "@/hooks/use-voice-input";
 import { MicrophoneVisualizer } from "@/components/MicrophoneVisualizer";
-import {Sheet, SheetContent, SheetHeader, SheetTitle} from '@/components/ui/sheet'
 
 import { renderMarkdown } from "@/lib/markdown";
 
@@ -34,23 +31,12 @@ const theme = {
   }
 };
 
-const DEFAULT_SUGGESTIONS = [
-  "Ik weet het niet goed",
-  "Kan je mij verder helpen?",
-  "Waar moet ik beginnen?",
-  "Leg eens uit hoe andere ouders dit doen"
-];
-
 export default function ChatView() {
   const { messages, sendMessage, isLoading, chatId } = useChat();
   const [inputText, setInputText] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
-  const [showPromptLibrary, setShowPromptLibrary] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
-  const [currentSuggestions, setCurrentSuggestions] = useState<string[]>(DEFAULT_SUGGESTIONS);
-  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -66,7 +52,6 @@ export default function ChatView() {
       }
     }
   );
-
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -117,7 +102,6 @@ export default function ChatView() {
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value;
     setInputText(newText);
-    checkForUncertainty(newText);
     if (newText.trim() && !chatId) {
       initializeChat();
     }
@@ -177,124 +161,6 @@ export default function ChatView() {
       });
     }
   };
-
-  const handlePromptSelect = (prompt: string) => {
-    setInputText(prompt);
-    setShowPromptLibrary(false);
-  };
-
-  const checkForUncertainty = (text: string) => {
-    const uncertaintyPatterns = [
-      'weet niet',
-      'help mij',
-      'waar te beginnen',
-      'even nadenken',
-      '?',
-      'geen idee',
-      'lastig',
-      'moeilijk',
-      'hoe moet'
-    ];
-
-    const hasUncertainty = uncertaintyPatterns.some(pattern =>
-      text.toLowerCase().includes(pattern.toLowerCase())
-    );
-
-    console.log('[DEBUG] Uncertainty check:', { text, hasUncertainty });
-
-    if (hasUncertainty) {
-      const suggestions = [
-        "Help mij even op weg?",
-        "Ik weet niet waar te beginnen",
-        "Kan je een voorbeeld geven?",
-        "Wat zou jij aanraden?",
-        "Leg eens uit hoe andere ouders dit aanpakken"
-      ];
-      setCurrentSuggestions(suggestions);
-      console.log('[DEBUG] Setting suggestions:', suggestions);
-    } else if (!text.trim()) {
-      setCurrentSuggestions(DEFAULT_SUGGESTIONS);
-    } else {
-      setCurrentSuggestions([]);
-    }
-  };
-
-  const generateContextualSuggestions = async () => {
-    if (!chatId || messages.length === 0) {
-      setCurrentSuggestions(DEFAULT_SUGGESTIONS);
-      return;
-    }
-
-    setIsLoadingSuggestions(true);
-    try {
-      // Log request details for debugging
-      console.log('Generating suggestions for chat:', {
-        chatId,
-        messageCount: messages.length,
-        lastMessage: messages[messages.length - 1]
-      });
-
-      const response = await fetch(`/api/suggestions/generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          chatId,
-          lastMessageContent: messages[messages.length - 1].content,
-          messages: messages.slice(-3).map(msg => ({
-            role: msg.role,
-            content: msg.content
-          }))
-        }),
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to generate suggestions: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Received suggestions:', data);
-
-      if (!data || !Array.isArray(data.suggestions)) {
-        console.error('Invalid response format:', data);
-        throw new Error('Invalid response format: expected suggestions array');
-      }
-
-      setCurrentSuggestions(data.suggestions);
-    } catch (error) {
-      console.error('Error generating suggestions:', error);
-      setCurrentSuggestions(DEFAULT_SUGGESTIONS);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Could not generate suggestions. Using default suggestions instead.",
-      });
-    } finally {
-      setIsLoadingSuggestions(false);
-    }
-  };
-
-  const handleSuggestionSelect = async (suggestion: string) => {
-    if (!chatId) {
-      await initializeChat();
-      if (!chatId) return;
-    }
-    setInputText('');
-    setCurrentSuggestions([]);
-    await sendMessage(suggestion);
-  };
-
-    // Update the suggestions button click handler
-  const handleShowSuggestions = () => {
-    if (!showSuggestions) {
-      console.log('Generating new suggestions...');
-      generateContextualSuggestions();
-    }
-    setShowSuggestions(true);
-  };
-
 
   return (
     <div className="flex flex-col h-screen animate-gradient" style={{
@@ -414,70 +280,9 @@ export default function ChatView() {
                 </button>
               </div>
             </div>
-
-            {/* Removed suggestion button and related functionality */}
-            {/*<div className="flex items-center justify-between">
-              <div className="text-xs text-gray-500">
-                {currentSuggestions.length} suggesties beschikbaar
-              </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                  onClick={handleShowSuggestions}
-                disabled={isLoadingSuggestions || !chatId || messages.length === 0}
-                className="flex items-center gap-2"
-              >
-                {!showSuggestions ? (
-                  <>
-                    <RefreshCw className={`w-4 h-4 ${isLoadingSuggestions ? 'animate-spin' : ''}`} />
-                    <span>Toon suggesties</span>
-                  </>
-                ) : (
-                  <>
-                    <Star className="w-4 h-4" />
-                    <span>Bekijk suggesties</span>
-                  </>
-                )}
-              </Button>
-            </div>*/}
-
-            {/* Removed suggestion sheet */}
-            {/*<Sheet open={showSuggestions} onOpenChange={setShowSuggestions}>
-              <SheetContent side="bottom" className="h-[80vh]">
-                <SheetHeader className="border-b border-gray-200 pb-4">
-                  <div className="flex items-center gap-2">
-                    <Star className="w-5 h-5 text-[#629785]" />
-                    <SheetTitle>Suggesties</SheetTitle>
-                  </div>
-                </SheetHeader>
-                <div className="mt-4">
-                  <div className="grid grid-cols-1 gap-2">
-                    {currentSuggestions.map((suggestion, index) => (
-                      <button
-                        key={index}
-                        onClick={() => {
-                          handleSuggestionSelect(suggestion);
-                          setShowSuggestions(false);
-                        }}
-                        className="p-3 text-left text-sm bg-white hover:bg-gray-50 rounded-lg border border-gray-200"
-                      >
-                        {suggestion}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </SheetContent>
-            </Sheet>*/}
           </div>
         </div>
       </div>
-
-      {/* Removed PromptLibrary component */}
-      {/*<PromptLibrary
-        onSelectPrompt={handlePromptSelect}
-        isExpanded={showPromptLibrary}
-        onToggle={() => setShowPromptLibrary(!showPromptLibrary)}
-      />*/}
 
       <AlertDialog open={showNewChatDialog} onOpenChange={setShowNewChatDialog}>
         <AlertDialogContent>
