@@ -404,34 +404,33 @@ export default function ChatView() {
               <div className="text-xs text-gray-500">
                 {currentSuggestions.length} suggesties beschikbaar
               </div>
-              {!showSuggestions ? (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  if (!showSuggestions) {
                     generateContextualSuggestions();
-                    setShowSuggestions(true);
-                  }}
-                  disabled={isLoadingSuggestions || !chatId}
-                  className="flex items-center gap-2"
-                >
-                  <RefreshCw className={`w-4 h-4 ${isLoadingSuggestions ? 'animate-spin' : ''}`} />
-                  <span>Toon suggesties</span>
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setShowSuggestions(!showSuggestions)}
-                  className="flex items-center gap-2"
-                >
-                  <Star className="w-4 h-4" />
-                  <span>Bekijk suggesties</span>
-                </Button>
-              )}
+                  }
+                  setShowSuggestions(true);
+                }}
+                disabled={isLoadingSuggestions || !chatId}
+                className="flex items-center gap-2"
+              >
+                {!showSuggestions ? (
+                  <>
+                    <RefreshCw className={`w-4 h-4 ${isLoadingSuggestions ? 'animate-spin' : ''}`} />
+                    <span>Toon suggesties</span>
+                  </>
+                ) : (
+                  <>
+                    <Star className="w-4 h-4" />
+                    <span>Bekijk suggesties</span>
+                  </>
+                )}
+              </Button>
             </div>
 
-            <Sheet open={showSuggestions} onOpenChange={setShowSuggestions}> {/* Sheet for suggestions */}
+            <Sheet open={showSuggestions} onOpenChange={setShowSuggestions}>
               <SheetContent side="bottom" className="h-[80vh]">
                 <SheetHeader className="border-b border-gray-200 pb-4">
                   <div className="flex items-center gap-2">
@@ -439,12 +438,22 @@ export default function ChatView() {
                     <SheetTitle>Suggesties</SheetTitle>
                   </div>
                 </SheetHeader>
-                <SuggestionChips
-                  suggestions={currentSuggestions}
-                  onSelect={handleSuggestionSelect}
-                  isExpanded={showSuggestions}
-                  onToggle={() => setShowSuggestions(!showSuggestions)}
-                />
+                <div className="mt-4">
+                  <div className="grid grid-cols-1 gap-2">
+                    {currentSuggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        onClick={() => {
+                          handleSuggestionSelect(suggestion);
+                          setShowSuggestions(false);
+                        }}
+                        className="p-3 text-left text-sm bg-white hover:bg-gray-50 rounded-lg border border-gray-200"
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </SheetContent>
             </Sheet>
           </div>
