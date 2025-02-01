@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@db";
-import { promptSuggestions, suggestionFeedback } from "@db/schema";
+import { promptSuggestions, suggestionFeedback, chats } from "@db/schema";
 import { eq, desc, and, isNull, gte } from "drizzle-orm";
 import { anthropic } from "../../anthropic";
 import type { User } from "../../auth";
@@ -38,6 +38,70 @@ export function setupSuggestionsRoutes(router: Router) {
     } catch (error) {
       console.error("Error fetching suggestions:", error);
       res.status(500).json({ message: "Failed to fetch suggestions" });
+    }
+  });
+
+  // Generate suggestions based on chat context
+  router.post("/suggestions/generate", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const user = req.user as User;
+    const { chatId, lastMessageContent } = req.body;
+
+    if (!lastMessageContent) {
+      return res.status(400).json({ message: "Last message content is required" });
+    }
+
+    try {
+      let suggestions: string[] = [];
+
+      // Get chat context if chatId is provided
+      if (chatId) {
+        const chat = await db.query.chats.findFirst({
+          where: eq(chats.id, chatId),
+        });
+
+        if (chat && chat.userId === user.id) {
+          // Generate contextual suggestions using anthropic
+          const response = await anthropic.messages.create({
+            model: "claude-3-5-sonnet-20241022",
+            max_tokens: 150,
+            temperature: 0.7,
+            system: "Generate 3-5 natural follow-up questions or prompts based on the current conversation context. These should be in Dutch and help continue the conversation naturally.",
+            messages: [{
+              role: "user",
+              content: `Based on this message: "${lastMessageContent}", generate natural follow-up prompts or questions that would help continue the conversation.`
+            }]
+          });
+
+          if (response.content[0].type === "text") {
+            // Split response into individual suggestions
+            suggestions = response.content[0].text
+              .split('\n')
+              .filter(s => s.trim())
+              .map(s => s.replace(/^\d+\.\s*/, '').trim())
+              .slice(0, 5);
+          }
+        }
+      }
+
+      // If no suggestions were generated or no chatId provided, use default suggestions
+      if (suggestions.length === 0) {
+        suggestions = [
+          "Kan je me daar meer over vertellen?",
+          "Hoe voel je je daar precies bij?",
+          "Wat zou je graag anders willen zien?",
+          "Heb je hier al eerder ervaring mee gehad?",
+          "Wat denk je dat een goede eerste stap zou zijn?"
+        ];
+      }
+
+      res.json({ suggestions });
+    } catch (error) {
+      console.error("Error generating suggestions:", error);
+      res.status(500).json({ message: "Failed to generate suggestions" });
     }
   });
 
