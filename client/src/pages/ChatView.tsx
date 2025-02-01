@@ -227,6 +227,13 @@ export default function ChatView() {
 
     setIsLoadingSuggestions(true);
     try {
+      // Log request details for debugging
+      console.log('Generating suggestions for chat:', {
+        chatId,
+        messageCount: messages.length,
+        lastMessage: messages[messages.length - 1]
+      });
+
       const response = await fetch(`/api/suggestions/generate`, {
         method: 'POST',
         headers: {
@@ -235,7 +242,10 @@ export default function ChatView() {
         body: JSON.stringify({
           chatId,
           lastMessageContent: messages[messages.length - 1].content,
-          messages: messages.slice(-3) // Send last 3 messages for better context
+          messages: messages.slice(-3).map(msg => ({
+            role: msg.role,
+            content: msg.content
+          }))
         }),
         credentials: 'include',
       });
@@ -275,6 +285,16 @@ export default function ChatView() {
     setCurrentSuggestions([]);
     await sendMessage(suggestion);
   };
+
+    // Update the suggestions button click handler
+  const handleShowSuggestions = () => {
+    if (!showSuggestions) {
+      console.log('Generating new suggestions...');
+      generateContextualSuggestions();
+    }
+    setShowSuggestions(true);
+  };
+
 
   return (
     <div className="flex flex-col h-screen animate-gradient" style={{
@@ -409,13 +429,8 @@ export default function ChatView() {
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => {
-                  if (!showSuggestions) {
-                    generateContextualSuggestions();
-                  }
-                  setShowSuggestions(true);
-                }}
-                disabled={isLoadingSuggestions || !chatId}
+                  onClick={handleShowSuggestions}
+                disabled={isLoadingSuggestions || !chatId || messages.length === 0}
                 className="flex items-center gap-2"
               >
                 {!showSuggestions ? (

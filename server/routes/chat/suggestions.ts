@@ -50,6 +50,12 @@ export function setupSuggestionsRoutes(router: Router) {
     const user = req.user as User;
     const { chatId, lastMessageContent, messages } = req.body;
 
+    console.log('Generating suggestions request:', {
+      chatId,
+      userId: user.id,
+      messageCount: messages?.length
+    });
+
     if (!lastMessageContent) {
       return res.status(400).json({ message: "Last message content is required" });
     }
@@ -64,7 +70,7 @@ export function setupSuggestionsRoutes(router: Router) {
         });
 
         if (chat && chat.userId === user.id) {
-          console.log('Generating suggestions for chat:', chatId);
+          console.log('Found chat, generating suggestions...');
 
           // Format messages for context
           const contextMessages = messages?.map(msg => 
@@ -95,11 +101,16 @@ export function setupSuggestionsRoutes(router: Router) {
 
             console.log('Generated suggestions:', suggestions);
           }
+        } else {
+          console.log('Chat not found or unauthorized');
         }
+      } else {
+        console.log('No chatId provided');
       }
 
       // If no suggestions were generated or no chatId provided, use default suggestions
       if (suggestions.length === 0) {
+        console.log('Using default suggestions');
         suggestions = [
           "Kan je me daar meer over vertellen?",
           "Hoe voel je je daar precies bij?",

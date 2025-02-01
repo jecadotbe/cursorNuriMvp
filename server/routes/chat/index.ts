@@ -4,9 +4,14 @@ import { setupSuggestionsRoutes } from "./suggestions";
 
 export function setupChatRouter(app: Router) {
   const router = Router();
-  
+
+  // Register chat message routes
   setupChatRoutes(router);
-  setupSuggestionsRoutes(router);
-  
+
+  // Register suggestion routes - add proper base path
+  const suggestionRouter = Router();
+  setupSuggestionsRoutes(suggestionRouter);
+  router.use('/suggestions', suggestionRouter);
+
   return router;
 }
