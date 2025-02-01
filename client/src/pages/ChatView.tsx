@@ -390,7 +390,7 @@ export default function ChatView() {
                 onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
                 placeholder="Typ een boodschap..."
-                className={`flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#629785] focus:border-transparent resize-none transition-all duration-200 ease-in-out chat-message ${
+                className={`flex-1 px-4 py-2 border border-gray-300 ${isExpanded ? 'rounded-lg' : 'rounded-full'} focus:outline-none focus:ring-2 focus:ring-[#629785] focus:border-transparent resize-none transition-all duration-200 ease-in-out chat-message ${
                   isExpanded ? 'h-24' : 'h-10'
                 }`}
                 style={{
