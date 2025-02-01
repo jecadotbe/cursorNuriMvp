@@ -43,9 +43,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Export app for testing
-export { app };
-
 (async () => {
   try {
     const server = registerRoutes(app);
@@ -66,15 +63,14 @@ export { app };
       serveStatic(app);
     }
 
-    // Only start the server if not in test environment
-    if (process.env.NODE_ENV !== 'test') {
-      const PORT = 5000;
-      server.listen(PORT, "0.0.0.0", () => {
-        log(`serving on port ${PORT}`);
-      });
-    }
+    // ALWAYS serve the app on port 5000
+    // this serves both the API and the client
+    const PORT = 5000;
+    server.listen(PORT, "0.0.0.0", () => {
+      log(`serving on port ${PORT}`);
+    });
 
-    // Cleanup on exit
+    // Cleanup on exit - simplified because memoryService is removed
     process.on('SIGTERM', () => {
       console.log('Shutting down...');
       server.close();

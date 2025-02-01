@@ -9,7 +9,7 @@ const config: Config.InitialOptions = {
     '^@db/(.*)$': '<rootDir>/db/$1'
   },
   moduleDirectories: ['node_modules', '<rootDir>'],
-  setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
+  setupFiles: ['<rootDir>/test/setup.ts'],
   testMatch: ['**/*.test.ts'],
   verbose: true,
   collectCoverage: true,
