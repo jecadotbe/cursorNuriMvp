@@ -13,6 +13,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.33.1",
     "@hookform/resolvers": "^3.9.1",
+    "@jest/types": "^29.6.3",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@langchain/community": "^0.3.26",
     "@langchain/core": "^0.3.33",
