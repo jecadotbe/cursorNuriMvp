@@ -1,5 +1,5 @@
 import passport from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
+import { IVerifyOptions, Strategy as LocalStrategy } from "passport-local";
 import { type Express } from "express";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -31,7 +31,7 @@ const crypto = {
 export interface User {
   id: number;
   username: string;
-  password?: string;
+  password: string;
   profilePicture: string | null;
   createdAt: Date;
   email: string;
@@ -50,98 +50,98 @@ declare global {
 }
 
 export function setupAuth(app: Express) {
-  // Configure session store
   const MemoryStore = createMemoryStore(session);
-  const store = new MemoryStore({
-    checkPeriod: 86400000, // Prune expired entries every 24h
-    ttl: 24 * 60 * 60 * 1000, // Session TTL (24 hours)
+
+  // Add security headers
+  app.use((req, res, next) => {
+    res.set({
+      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+      'X-Frame-Options': 'SAMEORIGIN',
+      'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Surrogate-Control': 'no-store'
+    });
+    next();
   });
 
-  // Configure session middleware
-  app.use(session({
+  const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || randomBytes(32).toString('hex'),
-    name: 'nuri.session',
-    store: store,
     resave: false,
     saveUninitialized: false,
+    name: 'nuri.session',
     rolling: true,
-    proxy: app.get("env") === "production",
     cookie: {
       secure: app.get("env") === "production",
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000,
       sameSite: 'lax',
       path: '/'
-    }
-  }));
+    },
+    store: new MemoryStore({
+      checkPeriod: 86400000,
+      ttl: 24 * 60 * 60 * 1000
+    }),
+  };
 
-  // Initialize Passport and session handling
+  if (app.get("env") === "production") {
+    app.set("trust proxy", 1);
+    sessionSettings.cookie!.secure = true;
+  }
+
+  app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Configure Passport LocalStrategy
-  passport.use(new LocalStrategy(async (username, password, done) => {
-    try {
-      console.log("Authenticating user:", username);
-
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, username))
-        .limit(1);
-
-      if (!user) {
-        console.log("User not found:", username);
-        return done(null, false, { message: "Incorrect username or password" });
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api/') && !req.path.startsWith('/api/login') && !req.path.startsWith('/api/register')) {
+      if (!req.session || !req.session.passport) {
+        if (req.xhr || req.path.startsWith('/api/')) {
+          return res.status(401).json({ message: "Session expired" });
+        }
+        return res.redirect('/');
       }
-
-      const isMatch = await crypto.compare(password, user.password);
-      if (!isMatch) {
-        console.log("Invalid password for user:", username);
-        return done(null, false, { message: "Incorrect username or password" });
-      }
-
-      // Remove password from user object before serializing
-      const { password: _, ...userWithoutPassword } = user;
-      console.log("Authentication successful for user:", username);
-      return done(null, userWithoutPassword as User);
-    } catch (err) {
-      console.error("Authentication error:", err);
-      return done(err);
     }
-  }));
+    next();
+  });
 
-  // User serialization
+  passport.use(
+    new LocalStrategy(async (username, password, done) => {
+      try {
+        const [user] = await db
+          .select()
+          .from(users)
+          .where(eq(users.username, username))
+          .limit(1);
+
+        if (!user) {
+          return done(null, false, { message: "Incorrect username." });
+        }
+        const isMatch = await crypto.compare(password, user.password);
+        if (!isMatch) {
+          return done(null, false, { message: "Incorrect password." });
+        }
+        return done(null, user);
+      } catch (err) {
+        return done(err);
+      }
+    })
+  );
+
   passport.serializeUser((user, done) => {
-    console.log("Serializing user:", user.id);
     done(null, user.id);
   });
 
-  // User deserialization
   passport.deserializeUser(async (id: number, done) => {
     try {
-      console.log("Deserializing user:", id);
       const [user] = await db
-        .select({
-          id: users.id,
-          username: users.username,
-          email: users.email,
-          profilePicture: users.profilePicture,
-          createdAt: users.createdAt
-        })
+        .select()
         .from(users)
         .where(eq(users.id, id))
         .limit(1);
-
-      if (!user) {
-        console.log("User not found during deserialization:", id);
-        return done(null, false);
-      }
-
-      console.log("User deserialized successfully:", id);
       done(null, user);
     } catch (err) {
-      console.error("Deserialization error:", err);
       done(err);
     }
   });
@@ -197,7 +197,7 @@ export function setupAuth(app: Express) {
       return res.status(400).json({ message: "Username and password are required" });
     }
 
-    passport.authenticate("local", (err: any, user: User | false, info: any) => {
+    passport.authenticate("local", (err: any, user: User | false, info: IVerifyOptions) => {
       if (err) {
         return next(err);
       }
@@ -210,6 +210,8 @@ export function setupAuth(app: Express) {
       if (req.body.rememberMe) {
         req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
       }
+
+      req.session.checkSuggestions = true; // Add flag to check suggestions on successful login
 
       req.logIn(user, (err) => {
         if (err) {
@@ -259,6 +261,4 @@ export function setupAuth(app: Express) {
     }
     res.status(401).json({ message: "Not logged in" });
   });
-
-  return app;
 }

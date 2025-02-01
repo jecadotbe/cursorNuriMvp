@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "./use-toast";
+import type { Chat } from "@db/schema";
 import { useParams, useLocation } from "wouter";
 
 interface Message {
@@ -8,29 +9,24 @@ interface Message {
   content: string;
 }
 
-interface ChatResponse {
-  id: number;
-  messages: Message[];
-  title: string;
-  content: string;
-}
-
 export function useChat() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const params = useParams();
-  const chatId = params?.id ? parseInt(params.id) : undefined;
+  const chatId = params?.id;
   const [, navigate] = useLocation();
+  console.log("[DEBUG] useChat hook initialized with chatId:", chatId);
 
-  // Load existing chat messages
-  const { data: chatData, isLoading: isChatLoading } = useQuery<ChatResponse>({
-    queryKey: [`/api/chats/${chatId}`],
-    enabled: !!chatId, // Only run query if we have a chatId
+  // Load existing chat messages or latest chat if no ID is provided
+  const { data: chatData, isLoading: isChatLoading } = useQuery<Chat>({
+    queryKey: chatId ? [`/api/chats/${chatId}`] : ["/api/chats/latest"],
     retry: (failureCount, error: any) => {
+      console.log("[DEBUG] Chat query retry:", { failureCount, error });
+      // Only retry on network errors, not on 404s or other API errors
       return failureCount < 3 && error?.message?.includes('network');
     },
-    staleTime: 5000,
-    gcTime: 30 * 60 * 1000,
+    staleTime: 5000, // Consider data fresh for 5 seconds
+    cacheTime: 30 * 60 * 1000, // Cache for 30 minutes
   });
 
   // Maintain local messages state
@@ -40,78 +36,141 @@ export function useChat() {
   // Initialize messages when chatData changes
   useEffect(() => {
     if (chatData?.messages) {
-      setMessages(chatData.messages);
+      setMessages(chatData.messages as Message[]);
     } else if (!chatId && !isChatLoading) {
+      // Only reset messages if we're in a new chat and not loading
       setMessages([]);
     }
   }, [chatData, chatId, isChatLoading]);
 
   // Invalidate all relevant queries
   const invalidateQueries = useCallback(() => {
+    // Invalidate the current chat
     if (chatId) {
       queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatId}`] });
     }
+    // Always invalidate the chat list and latest chat
     queryClient.invalidateQueries({ queryKey: ["/api/chats"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/chats/latest"] });
   }, [chatId, queryClient]);
 
   const mutation = useMutation({
     mutationFn: async (content: string) => {
+      console.log("[DEBUG] Sending chat message:", {
+        content,
+        chatId: chatData?.id,
+        messageCount: messages.length
+      });
+
       const userMessage: Message = { role: "user", content };
 
-      try {
-        console.log('Sending message, chatId:', chatId); // Debug log
-        setMessages((prev) => [...prev, userMessage]);
-        setIsProcessing(true);
+      // Update messages immediately for better UX
+      setMessages((prev) => [...prev, userMessage]);
+      setIsProcessing(true);
 
-        const response = await fetch("/api/chats/messages", {
+      try {
+        const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({
             messages: [...messages, userMessage],
-            chatId: chatId
+            chatId: chatData?.id
           }),
+          credentials: "include",
         });
 
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Chat message error:', errorText); // Debug log
-          throw new Error(errorText);
+          throw new Error(await response.text());
         }
 
         const chatResponse = await response.json();
-        console.log('Chat response:', chatResponse); // Debug log
-
         const assistantMessage: Message = {
           role: "assistant",
           content: chatResponse.content,
         };
 
+        // Update messages with assistant's response
         setMessages((prev) => [...prev, assistantMessage]);
-        await invalidateQueries();
+
+        // Invalidate queries to reload the latest data
+        invalidateQueries();
 
         return chatResponse.content;
-      } catch (error) {
-        setMessages((prev) => prev.slice(0, -1));
-        throw error;
       } finally {
         setIsProcessing(false);
       }
     },
     onError: (error: Error) => {
+      // Remove the last message on error to maintain consistency
+      setMessages((prev) => prev.slice(0, -1));
+
       toast({
         variant: "destructive",
         title: "Error",
         description: error.message || "Failed to send message. Please try again.",
       });
+      setIsProcessing(false);
     },
   });
 
+  const [contextualPrompt, setContextualPrompt] = useState<{
+    text: string;
+    type: 'follow_up' | 'suggestion' | 'action';
+    relevance: number;
+  } | null>(null);
+
+  // Generate contextual prompt with error handling
+  const generateContextualPrompt = useCallback(async () => {
+    if (messages.length > 0) {
+      try {
+        const recentMessages = messages.slice(-3);
+        const res = await fetch('/api/analyze-context', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: recentMessages }),
+          credentials: 'include'
+        });
+
+        if (!res.ok) {
+          throw new Error(await res.text());
+        }
+
+        const prompt = await res.json();
+        setContextualPrompt(prompt?.prompt || null);
+      } catch (err) {
+        console.error('Failed to generate prompt:', err);
+        toast({
+          variant: "destructive",
+          title: "Warning",
+          description: "Could not generate contextual suggestions",
+        });
+      }
+    }
+  }, [messages, toast]);
+
+  useEffect(() => {
+    // Only generate on initial load
+    generateContextualPrompt();
+  }, []); // Empty dependency array
+
   return {
     messages,
-    chatId: chatId || chatData?.id,
+    chatId: chatData?.id,
     sendMessage: mutation.mutateAsync,
     isLoading: mutation.isPending || isChatLoading || isProcessing,
-    refreshMessages: invalidateQueries,
+    contextualPrompt,
+    refreshContextualPrompt: generateContextualPrompt
   };
 }
+import { useVillageMemories } from './use-village-memories';
+
+// Add memory context to chat messages
+const getMemoryContext = async (memberId: number) => {
+  const { memories } = useVillageMemories(memberId);
+  return memories.map(m => ({
+    content: m.content,
+    date: m.date,
+    impact: m.emotionalImpact,
+    tags: m.tags
+  }));
+};
