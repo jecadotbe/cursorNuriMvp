@@ -4,11 +4,12 @@ import { app } from '../../server';
 import { db } from '../../db';
 import { users } from '../../db/schema';
 import type { User } from '../../server/auth';
+import { eq } from 'drizzle-orm';
 
 describe('Authentication Endpoints', () => {
   // Clear test data before each test
   beforeEach(async () => {
-    await db.delete(users).where({});
+    await db.delete(users).where(eq(users.id, users.id));
   });
 
   describe('POST /api/auth/register', () => {
