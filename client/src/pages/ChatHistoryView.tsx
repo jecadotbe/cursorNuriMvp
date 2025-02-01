@@ -119,15 +119,15 @@ export default function ChatHistoryView() {
 
             let dateGroup = '';
             if (format(chatDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')) {
-              dateGroup = 'Today';
+              dateGroup = 'Vandaag';
             } else if (format(chatDate, 'yyyy-MM-dd') === format(yesterday, 'yyyy-MM-dd')) {
-              dateGroup = 'Yesterday';
+              dateGroup = 'Gisteren';
             } else if (chatDate >= lastWeek) {
-              dateGroup = 'This Week';
+              dateGroup = 'Deze Week';
             } else if (chatDate >= lastMonth) {
-              dateGroup = 'Last Month';
+              dateGroup = 'Vorige Maand';
             } else {
-              dateGroup = 'Older';
+              dateGroup = 'Ouder';
             }
 
             if (!acc.find(el => el.key === `divider-${dateGroup}`)) {
@@ -212,11 +212,11 @@ export default function ChatHistoryView() {
                               await fetch(`/api/chats/${chat.id}`, {
                                 method: 'DELETE'
                               });
-                              
+
                               // Update local cache
                               const newChats = chats.filter(c => c.id !== chat.id);
                               queryClient.setQueryData(['chats'], newChats);
-                              
+
                               toast({
                                 title: "Success",
                                 description: "Conversation deleted successfully"
