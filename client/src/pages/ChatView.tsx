@@ -318,13 +318,6 @@ export default function ChatView() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowPromptLibrary(!showPromptLibrary)}
-            className={`p-2 hover:bg-gray-100 rounded-lg ${showPromptLibrary ? 'bg-gray-100' : ''}`}
-          >
-            <BookOpen className="w-6 h-6 text-[#629785]" />
-          </button>
-
-          <button
             onClick={() => setShowNewChatDialog(true)}
             className={`p-2 ${theme.accent} hover:bg-[#4A7566] rounded-full`}
           >
@@ -422,7 +415,8 @@ export default function ChatView() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
+            {/* Removed suggestion button and related functionality */}
+            {/*<div className="flex items-center justify-between">
               <div className="text-xs text-gray-500">
                 {currentSuggestions.length} suggesties beschikbaar
               </div>
@@ -445,9 +439,10 @@ export default function ChatView() {
                   </>
                 )}
               </Button>
-            </div>
+            </div>*/}
 
-            <Sheet open={showSuggestions} onOpenChange={setShowSuggestions}>
+            {/* Removed suggestion sheet */}
+            {/*<Sheet open={showSuggestions} onOpenChange={setShowSuggestions}>
               <SheetContent side="bottom" className="h-[80vh]">
                 <SheetHeader className="border-b border-gray-200 pb-4">
                   <div className="flex items-center gap-2">
@@ -472,16 +467,17 @@ export default function ChatView() {
                   </div>
                 </div>
               </SheetContent>
-            </Sheet>
+            </Sheet>*/}
           </div>
         </div>
       </div>
 
-      <PromptLibrary
+      {/* Removed PromptLibrary component */}
+      {/*<PromptLibrary
         onSelectPrompt={handlePromptSelect}
         isExpanded={showPromptLibrary}
         onToggle={() => setShowPromptLibrary(!showPromptLibrary)}
-      />
+      />*/}
 
       <AlertDialog open={showNewChatDialog} onOpenChange={setShowNewChatDialog}>
         <AlertDialogContent>
