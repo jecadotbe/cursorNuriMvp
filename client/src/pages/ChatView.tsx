@@ -19,7 +19,7 @@ import { useUser } from "@/hooks/use-user";
 import { PromptLibrary } from "@/components/PromptLibrary";
 import { useVoiceInput } from "@/hooks/use-voice-input";
 import { MicrophoneVisualizer } from "@/components/MicrophoneVisualizer";
-import {Sheet, SheetContent, SheetHeader, SheetTitle} from '@shadcn/ui' // Assumed import
+import {Sheet, SheetContent, SheetHeader, SheetTitle} from '@/components/ui/sheet'
 
 import { renderMarkdown } from "@/lib/markdown";
 
