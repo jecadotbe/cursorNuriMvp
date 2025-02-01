@@ -19,6 +19,7 @@ import { useUser } from "@/hooks/use-user";
 import { PromptLibrary } from "@/components/PromptLibrary";
 import { useVoiceInput } from "@/hooks/use-voice-input";
 import { MicrophoneVisualizer } from "@/components/MicrophoneVisualizer";
+import {Sheet, SheetContent, SheetHeader, SheetTitle} from '@shadcn/ui' // Assumed import
 
 import { renderMarkdown } from "@/lib/markdown";
 
@@ -65,7 +66,7 @@ export default function ChatView() {
       }
     }
   );
-  
+
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -300,7 +301,7 @@ export default function ChatView() {
           >
             <BookOpen className="w-6 h-6 text-[#629785]" />
           </button>
-          
+
           <button
             onClick={() => setShowNewChatDialog(true)}
             className={`p-2 ${theme.accent} hover:bg-[#4A7566] rounded-full`}
@@ -430,12 +431,22 @@ export default function ChatView() {
               )}
             </div>
 
-            <SuggestionChips
-              suggestions={currentSuggestions}
-              onSelect={handleSuggestionSelect}
-              isExpanded={showSuggestions}
-              onToggle={() => setShowSuggestions(!showSuggestions)}
-            />
+            <Sheet open={showSuggestions} onOpenChange={setShowSuggestions}> {/* Sheet for suggestions */}
+              <SheetContent side="bottom" className="h-[80vh]">
+                <SheetHeader className="border-b border-gray-200 pb-4">
+                  <div className="flex items-center gap-2">
+                    <Star className="w-5 h-5 text-[#629785]" />
+                    <SheetTitle>Suggesties</SheetTitle>
+                  </div>
+                </SheetHeader>
+                <SuggestionChips
+                  suggestions={currentSuggestions}
+                  onSelect={handleSuggestionSelect}
+                  isExpanded={showSuggestions}
+                  onToggle={() => setShowSuggestions(!showSuggestions)}
+                />
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </div>
@@ -467,7 +478,7 @@ export default function ChatView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
+
       {/* Hide navigation on this page */}
       <style>{`
         nav {
