@@ -253,6 +253,13 @@ export default function ChatView() {
       setCurrentSuggestions(data.suggestions);
     } catch (error) {
       console.error('Error generating suggestions:', error);
+
+      // Check if it's a response error
+      if (error instanceof Response) {
+        const text = await error.text();
+        console.error('Error response:', text);
+      }
+
       toast({
         variant: "destructive",
         title: "Error",
