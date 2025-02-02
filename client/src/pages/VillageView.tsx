@@ -107,7 +107,8 @@ const MemberContent: React.FC<MemberContentProps> = ({
   isRearrangeMode,
   onEdit,
   onSetMemory,
-  onDelete
+  onDelete,
+  isHighlighted
 }) => (
   <div
     className="member-pill group flex items-center"
