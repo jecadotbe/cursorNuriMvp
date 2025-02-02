@@ -1153,7 +1153,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       </AlertDialog>
       {/* List View */}
       {showListView && (
-        <div className="fixed inset-0 z-30 overflow-auto pt-20 pb-24 px-4 animate-gradient" style={{
+        <div className="fixed inset-0 z-20 overflow-auto pt-20 pb-24 px-4 animate-gradient" style={{
           backgroundSize: "400% 400%",
           background: `linear-gradient(135deg, #C9E1D4 0%, #F2F0E5 50%, #F2F0E5 100%)`
         }}>
