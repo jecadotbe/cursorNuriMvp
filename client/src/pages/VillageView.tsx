@@ -235,7 +235,11 @@ export default function VillageView() {
     tags: [] as string[],
     date: format(new Date(), "yyyy-MM-dd")
   });
-  const { suggestion, suggestions, isLoading, markAsUsed } = useSuggestion();
+  const { suggestions, isLoading, markAsUsed } = useVillageSuggestions({
+  autoRefresh: true,
+  maxSuggestions: 5,
+  filterByType: ['network_gap', 'village_interaction']
+});
 
   const { addMemory } = useVillageMemories(selectedMember?.id || 0);
 
