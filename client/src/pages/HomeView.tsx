@@ -6,6 +6,10 @@ import { useSuggestion } from "@/hooks/use-suggestion";
 import { useVillageSuggestions } from "@/hooks/use-village-suggestions";
 import { MessageSquare, Users, Clock, ChevronRight, Wind, Heart, MessageCircle, X, RefreshCw, Check } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
+import { format } from 'date-fns';
+import { SuggestionFeedback } from "@/components/SuggestionFeedback";
+import { useBackgroundRefresh } from "@/hooks/use-background-refresh";
 
 const WelcomeView = () => {
   const greetings = [
@@ -50,15 +54,17 @@ const WelcomeView = () => {
   );
 };
 
-import { useToast } from "@/hooks/use-toast";
-import { format } from 'date-fns';
-import { SuggestionFeedback } from "@/components/SuggestionFeedback";
-
-import { useBackgroundRefresh } from "@/hooks/use-background-refresh";
 
 export default function HomeView() {
-  const { user } = useUser();
+  const { user, isLoading: userLoading } = useUser();
   useBackgroundRefresh();
+
+  // Wait for user state to be determined before rendering
+  if (userLoading) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900"></div>
+    </div>;
+  }
 
   if (!user) {
     return <WelcomeView />;
@@ -67,12 +73,12 @@ export default function HomeView() {
   const {
     suggestion,
     suggestions,
-    suggestions: chatSuggestions,
     isLoading: suggestionLoading,
     markAsUsed,
     nextSuggestion,
     dismissSuggestion,
     refetch,
+    error: suggestionError
   } = useSuggestion();
 
   const {
@@ -86,6 +92,17 @@ export default function HomeView() {
     maxSuggestions: 5,
     filterByType: ['village_maintenance', 'network_growth', 'network_expansion']
   });
+
+   // Handle suggestion errors
+  useEffect(() => {
+    if (suggestionError) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load suggestions. Please try again.",
+      });
+    }
+  }, [suggestionError]);
 
   const [isLoading, setIsLoading] = useState(false);
   const [showSkeleton, setShowSkeleton] = useState(true);
