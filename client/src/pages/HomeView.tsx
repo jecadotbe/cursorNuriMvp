@@ -298,7 +298,7 @@ export default function HomeView() {
           </Card>
         ) : suggestion ? (
           <div onClick={handlePromptClick} className="transition-opacity duration-300 ease-in-out animate-fade-in">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer mb-3 animate-border rounded-2xl">
+            <Card className="hover:shadow-md transition-shadow cursor-pointer mb-3 animate-border rounded-2xl shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)]">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between relative">
                   <button 
