@@ -1,9 +1,11 @@
 import { Router } from "express";
 import { db } from "@db";
-import { promptSuggestions, suggestionFeedback, chats } from "@db/schema";
+import { promptSuggestions, suggestionFeedback, chats, villageMembers } from "@db/schema";
 import { eq, desc, and, isNull, gte } from "drizzle-orm";
 import { anthropic } from "../../anthropic";
 import type { User } from "../../auth";
+import { generateVillageSuggestions } from "../../lib/suggestion-generator";
+import { memoryService } from "../../services/memory";
 
 const SUGGESTION_CATEGORIES = {
   LEARNING: "learning",
@@ -14,7 +16,7 @@ const SUGGESTION_CATEGORIES = {
 } as const;
 
 export function setupSuggestionsRoutes(router: Router) {
-  // Get suggestions
+  // Get suggestions with optional village context
   router.get("/suggestions", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
@@ -22,8 +24,37 @@ export function setupSuggestionsRoutes(router: Router) {
 
     const user = req.user as User;
     const now = new Date();
+    const context = req.query.context as string | undefined;
 
     try {
+      // If village context is requested, generate village-specific suggestions
+      if (context === 'village') {
+        const members = await db.query.villageMembers.findMany({
+          where: eq(villageMembers.userId, user.id),
+        });
+
+        const recentChats = await db.query.chats.findMany({
+          where: eq(chats.userId, user.id),
+          orderBy: desc(chats.updatedAt),
+          limit: 2
+        });
+
+        const suggestions = await generateVillageSuggestions(
+          user.id,
+          members,
+          recentChats,
+          memoryService
+        );
+
+        // Save generated suggestions to database
+        if (suggestions.length > 0) {
+          await db.insert(promptSuggestions).values(suggestions);
+        }
+
+        return res.json(suggestions);
+      }
+
+      // Default suggestion handling
       const existingSuggestions = await db.query.promptSuggestions.findMany({
         where: and(
           eq(promptSuggestions.userId, user.id),
@@ -41,7 +72,7 @@ export function setupSuggestionsRoutes(router: Router) {
     }
   });
 
-  // Generate suggestions based on chat context
+    // Generate suggestions based on chat context
   router.post("/suggestions/generate", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
@@ -127,7 +158,6 @@ export function setupSuggestionsRoutes(router: Router) {
     }
   });
 
-  // Submit feedback for a suggestion
   router.post("/suggestions/:id/feedback", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
@@ -147,7 +177,6 @@ export function setupSuggestionsRoutes(router: Router) {
     }
 
     try {
-      // Check if suggestion exists and belongs to user
       const suggestion = await db.query.promptSuggestions.findFirst({
         where: and(
           eq(promptSuggestions.id, suggestionId),
@@ -159,7 +188,6 @@ export function setupSuggestionsRoutes(router: Router) {
         return res.status(404).json({ message: "Suggestion not found" });
       }
 
-      // Save the feedback
       const [savedFeedback] = await db
         .insert(suggestionFeedback)
         .values({
@@ -174,6 +202,44 @@ export function setupSuggestionsRoutes(router: Router) {
     } catch (error) {
       console.error("Error saving suggestion feedback:", error);
       res.status(500).json({ message: "Failed to save feedback" });
+    }
+  });
+
+  // Mark suggestion as used
+  router.post("/suggestions/:id/use", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const user = req.user as User;
+    const suggestionId = parseInt(req.params.id);
+
+    if (isNaN(suggestionId)) {
+      return res.status(400).json({ message: "Invalid suggestion ID" });
+    }
+
+    try {
+      const [updated] = await db
+        .update(promptSuggestions)
+        .set({
+          usedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(promptSuggestions.id, suggestionId),
+            eq(promptSuggestions.userId, user.id),
+          ),
+        )
+        .returning();
+
+      if (!updated) {
+        return res.status(404).json({ message: "Suggestion not found" });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error marking suggestion as used:", error);
+      res.status(500).json({ message: "Failed to mark suggestion as used" });
     }
   });
 
@@ -206,6 +272,7 @@ export function setupSuggestionsRoutes(router: Router) {
       res.status(500).json({ message: "Failed to dismiss suggestion" });
     }
   });
+
 
   return router;
 }
