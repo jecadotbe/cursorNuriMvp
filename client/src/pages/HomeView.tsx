@@ -397,13 +397,43 @@ export default function HomeView() {
           </div>
           <h3 className="text-l mb-4">Laat je Village bloeien</h3>
 
-          <div className="flex justify-end mt-4">
-            <Link href="/village">
-              <div className="bg-white rounded-full px-4 py-2 shadow-sm inline-flex items-center gap-2 cursor-pointer hover:shadow-md transition-shadow">
-                <span>Bekijk je Village</span>
-                <ChevronRight className="w-4 h-4" />
-              </div>
-            </Link>
+          <div className="mt-4 space-y-4">
+            {/* Village suggestions */}
+            <div className="grid grid-cols-1 gap-3">
+              {suggestions?.slice(0, 3).map((suggestion) => (
+                <Card key={suggestion.id} className="bg-white hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                      <span className="text-sm font-medium text-orange-500">Suggestie voor je village</span>
+                    </div>
+                    <p className="text-gray-700 mb-2">{suggestion.text}</p>
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => {
+                          if (suggestion) {
+                            dismissSuggestion(suggestion.id);
+                            nextSuggestion();
+                          }
+                        }}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <div className="flex justify-end">
+              <Link href="/village">
+                <div className="bg-white rounded-full px-4 py-2 shadow-sm inline-flex items-center gap-2 cursor-pointer hover:shadow-md transition-shadow">
+                  <span>Bekijk je Village</span>
+                  <ChevronRight className="w-4 h-4" />
+                </div>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
