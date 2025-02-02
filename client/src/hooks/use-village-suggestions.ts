@@ -55,8 +55,10 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
       let filtered = data;
 
       if (filterByType.length > 0) {
+        console.log('Before type filtering:', data);
+        console.log('Filtering by types:', filterByType);
         filtered = data.filter(s => filterByType.includes(s.type));
-        console.log('Filtered by type:', filtered);
+        console.log('After type filtering:', filtered);
       }
 
       filtered = filtered.filter(s => !s.usedAt);
