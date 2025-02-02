@@ -71,24 +71,20 @@ export default function HomeView() {
     nextSuggestion,
     dismissSuggestion,
     refetch,
-    isRefreshing
   } = useSuggestion();
-  const isLoadingState = suggestionLoading || isRefreshing;
+
   const [isLoading, setIsLoading] = useState(false);
   const [showSkeleton, setShowSkeleton] = useState(true);
-  
-  useEffect(() => {
-    if (!isLoadingState && suggestions?.length > 0) {
-      setShowSkeleton(false);
-    }
-  }, [isLoadingState, suggestions]);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
-  // Keep skeleton visible if we have at least one suggestion
   useEffect(() => {
-    if (!suggestionLoading && suggestion) {
-      setShowSkeleton(true);
+    if (!suggestionLoading && suggestions?.length > 0) {
+      setShowSkeleton(false);
+      setHasLoadedOnce(true);
     }
-  }, [suggestionLoading, suggestion]);
+  }, [suggestionLoading, suggestions]);
+
+  const shouldShowSkeleton = showSkeleton || suggestionLoading || (!hasLoadedOnce && !suggestion);
   const [showFeedback, setShowFeedback] = useState(false);
   const [currentSuggestionId, setCurrentSuggestionId] = useState<number | null>(null);
   const { toast } = useToast();
@@ -146,15 +142,12 @@ export default function HomeView() {
     if (!suggestion) return;
 
     try {
-      // Mark suggestion as used and store ID for feedback
       await markAsUsed(suggestion.id);
       setCurrentSuggestionId(suggestion.id);
 
       if (suggestion.context === "existing" && suggestion.relatedChatId) {
-        // Navigate to existing chat
         navigate(`/chat/${suggestion.relatedChatId}`);
       } else {
-        // Create new chat with the prompt
         const response = await fetch('/api/chats', {
           method: 'POST',
           headers: {
@@ -178,7 +171,6 @@ export default function HomeView() {
         navigate(`/chat/${newChat.id}`);
       }
 
-      // Show feedback dialog after successful navigation
       setShowFeedback(true);
     } catch (error) {
       console.error('Error handling prompt:', error);
@@ -206,7 +198,6 @@ export default function HomeView() {
 
   return (
     <div className="flex-1 bg-[#F2F0E5] overflow-y-auto">
-      {/* Greeting Section with Logo */}
       <div className="w-full bg-gradient-to-r from-[#F8DD9F] to-[#F2F0E5] via-[#F2F0E5] via-45% ">
         <div className="px-4 pt-8">
           <div className="flex items-end gap-8">
@@ -236,9 +227,8 @@ export default function HomeView() {
         </div>
       </div>
 
-      {/* Chat Prompt */}
       <div className="px-5 py-6">
-        {(isLoading || suggestionLoading || suggestion?.isRefreshing) ? (
+        {shouldShowSkeleton ? (
           <Card className="bg-white mb-4">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
@@ -261,7 +251,6 @@ export default function HomeView() {
                       e.stopPropagation();
                       if (suggestion) {
                         dismissSuggestion(suggestion.id);
-                        // Move to next suggestion if available
                         nextSuggestion();
                       }
                     }}
@@ -329,7 +318,6 @@ export default function HomeView() {
               onClick={async () => {
                 setIsLoading(true);
                 try {
-                  // First dismiss current suggestions
                   for (const suggestion of suggestions || []) {
                     await fetch(`/api/suggestions/${suggestion.id}/dismiss`, {
                       method: 'POST',
@@ -337,7 +325,6 @@ export default function HomeView() {
                     });
                   }
                   
-                  // Then generate new ones
                   const response = await fetch('/api/suggestions/generate', {
                     method: 'POST',
                     headers: {
@@ -350,7 +337,6 @@ export default function HomeView() {
                     throw new Error('Failed to generate suggestions');
                   }
                   
-                  // Force a fresh fetch of suggestions
                   await refetch();
                 } catch (error) {
                   console.error('Error generating suggestions:', error);
@@ -367,7 +353,6 @@ export default function HomeView() {
           </div>
         )}
 
-        {/* Action Chips */}
         <div className="flex flex-wrap justify-center gap-2 mt-4">
           {actionChips.map((chip, index) => (
             <button
@@ -382,7 +367,6 @@ export default function HomeView() {
         </div>
       </div>
 
-      {/* Village Section */}
       <div className="w-full">
         <div
           className="rounded-xl p-6 relative overflow-hidden min-h-[200px]"
@@ -410,7 +394,6 @@ export default function HomeView() {
         </div>
       </div>
 
-      {/* Learning Section */}
       <div className="w-full">
         <div
           className="rounded-xl p-6 relative overflow-hidden mb-4"
@@ -425,7 +408,6 @@ export default function HomeView() {
             </div>
           </div>
 
-          {/* One Card */}
           <div className="space-y-3">
             {OneCard.map((video, index) => (
               <Link key={index} href="/learn">
