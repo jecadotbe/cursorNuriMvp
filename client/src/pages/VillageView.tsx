@@ -1002,7 +1002,7 @@ export default function VillageView() {
         <SheetContent side="bottom" className="h-[90vh] overflow-hidden">
           <ScrollArea className="h-[calc(100vh-120px)] w-full pr-4">
             <SheetHeader className="sticky top-0 z-10 bg-background pb-6">
-              <SheetTitle>{memberToEdit ? 'Edit Village Member' : 'Add Village Member'}</SheetTitle>
+              <SheetTitle className="font-baskerville">{memberToEdit ? 'Edit Village Member' : 'Add Village Member'}</SheetTitle>
             </SheetHeader>
             <form onSubmit={handleSubmit} className="space-y-6 mt-2">
             <div className="space-y-2">
