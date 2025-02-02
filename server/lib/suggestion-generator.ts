@@ -41,13 +41,15 @@ export async function generateVillageSuggestions(
   const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours from now
 
   // Generate personalized suggestions based on gaps and context
-  if (gaps.circles.get(1) < VILLAGE_RULES.CIRCLE_MINIMUMS[1]) {
+  if (gaps.circles?.get(1) < VILLAGE_RULES.CIRCLE_MINIMUMS[1]) {
     suggestions.push({
       userId,
       text: 'Consider strengthening existing relationships to move them to your inner circle',
       type: 'network_growth',
       context: 'Based on your recent conversations about support needs',
       relevance: 8,
+      relatedChatId: null,
+      relatedChatTitle: null,
       usedAt: null,
       expiresAt,
       createdAt: now
@@ -55,13 +57,15 @@ export async function generateVillageSuggestions(
   }
 
   // Add suggestion for outer circle engagement if needed
-  if (gaps.circles.get(4) < VILLAGE_RULES.CIRCLE_MINIMUMS[4]) {
+  if (gaps.circles?.get(4) < VILLAGE_RULES.CIRCLE_MINIMUMS[4]) {
     suggestions.push({
       userId,
       text: 'Your outer support network could use more diversity. Consider joining community groups or parent meetups.',
       type: 'network_expansion',
       context: 'Analysis of your village structure',
       relevance: 6,
+      relatedChatId: null,
+      relatedChatTitle: null,
       usedAt: null,
       expiresAt,
       createdAt: now
@@ -76,11 +80,31 @@ export async function generateVillageSuggestions(
       type: 'memory_connection',
       context: 'Based on your past experiences',
       relevance: 7,
+      relatedChatId: null,
+      relatedChatTitle: null,
       usedAt: null,
       expiresAt,
       createdAt: now
     });
   }
+
+  // Add suggestions based on village member activity
+  const inactiveMemberSuggestion = members
+    .filter(m => m.circle <= 2) // Focus on inner circles
+    .map(member => ({
+      userId,
+      text: `Consider reaching out to ${member.name} to maintain your close connection`,
+      type: 'village_maintenance',
+      context: 'Based on your village member activity',
+      relevance: 5,
+      relatedChatId: null,
+      relatedChatTitle: null,
+      usedAt: null,
+      expiresAt,
+      createdAt: now
+    }));
+
+  suggestions.push(...inactiveMemberSuggestion);
 
   // Ensure at least two suggestions
   if (suggestions.length < 2) {
@@ -90,6 +114,8 @@ export async function generateVillageSuggestions(
       type: 'network_maintenance',
       context: 'Maintaining healthy relationships',
       relevance: 5,
+      relatedChatId: null,
+      relatedChatTitle: null,
       usedAt: null,
       expiresAt,
       createdAt: now
