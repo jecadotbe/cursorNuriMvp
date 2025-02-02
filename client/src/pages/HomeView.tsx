@@ -81,7 +81,8 @@ export default function HomeView() {
     markAsUsed: markVillageSuggestionAsUsed,
   } = useVillageSuggestions({
     autoRefresh: true,
-    maxSuggestions: 3
+    maxSuggestions: 3,
+    filterByType: ['village_maintenance', 'network_growth', 'network_expansion']
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -438,8 +439,20 @@ export default function HomeView() {
                   <Card key={suggestion.id} className="bg-white hover:shadow-md transition-shadow">
                     <CardContent className="p-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                        <span className="text-sm font-medium text-orange-500">Suggestie voor je village</span>
+                        <div className="w-2 h-2 rounded-full" style={{
+                          backgroundColor: suggestion.type === 'network_growth' ? '#10B981' :
+                            suggestion.type === 'network_expansion' ? '#3B82F6' :
+                            '#F59E0B' // village_maintenance
+                        }}></div>
+                        <span className="text-sm font-medium" style={{
+                          color: suggestion.type === 'network_growth' ? '#10B981' :
+                            suggestion.type === 'network_expansion' ? '#3B82F6' :
+                            '#F59E0B'
+                        }}>
+                          {suggestion.type === 'network_growth' ? 'Versterk je village' :
+                           suggestion.type === 'network_expansion' ? 'Breidt je village uit' :
+                           'Onderhoud je village'}
+                        </span>
                       </div>
                       <p className="text-gray-700 mb-2">{suggestion.text}</p>
                       <div className="flex justify-end gap-2">
