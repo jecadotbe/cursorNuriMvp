@@ -3,7 +3,7 @@ import { useVillage } from "@/hooks/use-village";
 import { useUser } from "@/hooks/use-user";
 import { useVillageSuggestions } from "@/hooks/use-village-suggestions";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, User, Users, ArrowUpCircle, ArrowDownCircle, ArrowLeftCircle, ArrowRightCircle, Lightbulb, BookMarked, Star, Clock, Move } from "lucide-react";
+import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, User, Users, ArrowUpCircle, ArrowDownCircle, ArrowLeftCircle, ArrowRightCircle, Lightbulb, BookMarked, Star, Clock, Move, X } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -626,6 +626,24 @@ export default function VillageView() {
     }
   };
 
+    const dismissSuggestion = async (id: number) => {
+      try {
+          await markAsUsed(id);
+      } catch (error) {
+          console.error('Failed to dismiss suggestion:', error);
+          toast({
+              variant: "destructive",
+              title: "Error",
+              description: "Failed to dismiss suggestion"
+          });
+      }
+    };
+
+    const nextSuggestion = () => {
+      refetchSuggestions();
+    };
+  
+
   const handleInsightAction = (id: number) => {
     const insight = suggestions?.find(s => s.id === id);
     if (insight?.type === "network_gap") {
@@ -713,6 +731,7 @@ export default function VillageView() {
 
       {/* Village suggestions dialog */}
       <Sheet open={isSuggestionsOpen} onOpenChange={setIsSuggestionsOpen}>
+      {/* Update the suggestions dialog content */}
         <SheetContent side="bottom" className="h-[90vh]">
           <SheetHeader>
             <SheetTitle>Dorpsuggesties</SheetTitle>
@@ -762,8 +781,14 @@ export default function VillageView() {
                         <Badge variant={suggestion.relevance > 3 ? "default" : "secondary"}>
                           Prioriteit {suggestion.relevance}
                         </Badge>
-                        <Button variant="ghost" onClick={() => markAsUsed(suggestion.id)}>
-                          Verwijder
+                        <Button 
+                          variant="ghost" 
+                          onClick={() => {
+                            dismissSuggestion(suggestion.id);
+                            nextSuggestion();
+                          }}
+                        >
+                          <X className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>
@@ -842,7 +867,7 @@ export default function VillageView() {
                 key={circle}
                 className="absolute border border-[#629785] rounded-full"
                 style={{
-                  width: getCircleRadius(circle - 1) * 2,
+                  width: getCircleRadius(circle- 1) * 2,
                   height: getCircleRadius(circle - 1) * 2,
                   left: "50%",
                   top: "50%",
