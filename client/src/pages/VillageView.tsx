@@ -1,7 +1,7 @@
 import { useState, useRef, createRef } from "react";
 import { useVillage } from "@/hooks/use-village";
 import { useUser } from "@/hooks/use-user";
-import { useSuggestion } from "@/hooks/use-suggestion";
+import { useVillageSuggestions } from "@/hooks/use-village-suggestions";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, User, Users, ArrowUpCircle, ArrowDownCircle, ArrowLeftCircle, ArrowRightCircle, Lightbulb, BookMarked, Star, Clock, Move } from "lucide-react";
 import {
@@ -236,10 +236,10 @@ export default function VillageView() {
     date: format(new Date(), "yyyy-MM-dd")
   });
   const { suggestions, isLoading, markAsUsed } = useVillageSuggestions({
-  autoRefresh: true,
-  maxSuggestions: 5,
-  filterByType: ['network_gap', 'village_interaction']
-});
+    autoRefresh: true,
+    maxSuggestions: 5,
+    filterByType: ['network_gap', 'village_interaction']
+  });
 
   const { addMemory } = useVillageMemories(selectedMember?.id || 0);
 
