@@ -273,6 +273,7 @@ Communication Preference: ${data.goals.communicationPreference || "Not specified
         // Set session flag for suggestion refresh.
         req.session.checkSuggestions = true;
         await req.session.save();
+
         // Validate required fields.
         const { name, stressLevel, experienceLevel } = {
           name: finalData.basicInfo?.name,
@@ -282,6 +283,7 @@ Communication Preference: ${data.goals.communicationPreference || "Not specified
         if (!name || !stressLevel || !experienceLevel) {
           return res.status(400).json({ message: "Missing required fields" });
         }
+
         // Validate and process child profiles.
         let validatedChildProfiles: ChildProfile[] = [];
         if (Array.isArray(finalData.childProfiles)) {
@@ -317,22 +319,27 @@ Name: ${name}
 Experience Level: ${experienceLevel}
 Stress Level: ${stressLevel}
 ${finalData.stressAssessment?.primaryConcerns ? `Primary Concerns: ${finalData.stressAssessment.primaryConcerns.join(", ")}` : ""}
-${
-  validatedChildProfiles.length > 0
+${validatedChildProfiles.length > 0
     ? `Children:
-${validatedChildProfiles.map((child) => `- ${child.name} (Age: ${child.age})${child.specialNeeds.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`).join("\n")}`
-    : "No children profiles specified"
-}
-${
-  finalData.goals
+${validatedChildProfiles
+      .map(
+        (child) =>
+          `- ${child.name} (Age: ${child.age})${
+            child.specialNeeds.length
+              ? `, Special needs: ${child.specialNeeds.join(", ")}`
+              : ""
+          }`,
+      )
+      .join("\n")}`
+    : "No children profiles specified"}
+${finalData.goals
     ? `
 Goals:
 ${finalData.goals.shortTerm?.length ? `Short term: ${finalData.goals.shortTerm.join(", ")}` : ""}
 ${finalData.goals.longTerm?.length ? `Long term: ${finalData.goals.longTerm.join(", ")}` : ""}
 `
-    : ""
-}
-          `;
+    : ""}
+        `;
           await memoryService.createMemory(user.id, onboardingContent, {
             type: "onboarding_profile",
             category: "user_profile",
@@ -341,6 +348,45 @@ ${finalData.goals.longTerm?.length ? `Long term: ${finalData.goals.longTerm.join
         } catch (memoryError) {
           console.error("Memory storage error:", memoryError);
         }
+
+        // Create village members from support network
+        if (finalData.stressAssessment?.supportNetwork?.length) {
+          const supportMembers = finalData.stressAssessment.supportNetwork
+            .filter((member: string) => member.toLowerCase() !== "niemand")
+            .map((member: string) => {
+              // Determine member type and circle based on the name
+              let type = "family";
+              let circle = 2;
+              let category: "informeel" | "formeel" | "inspiratie" = "informeel";
+
+              if (member.toLowerCase().includes("school")) {
+                type = "professional";
+                circle = 3;
+                category = "formeel";
+              } else if (member.toLowerCase().includes("oma") || member.toLowerCase().includes("opa")) {
+                type = "family";
+                circle = 1;
+                category = "informeel";
+              }
+
+              return {
+                userId: user.id,
+                name: member,
+                type,
+                circle,
+                category,
+                role: type === "family" ? "Family Support" : "Professional Support",
+                positionAngle: (Math.random() * 2 * Math.PI).toString(),
+                contactFrequency: "M" as const,
+              };
+            });
+
+          // Insert all support members into the village
+          if (supportMembers.length > 0) {
+            await db.insert(villageMembers).values(supportMembers);
+          }
+        }
+
         // Upsert final parent profile.
         const [profile] = await db
           .insert(parentProfiles)
@@ -376,6 +422,7 @@ ${finalData.goals.longTerm?.length ? `Long term: ${finalData.goals.longTerm.join
             },
           })
           .returning();
+
         res.json({ message: "Onboarding completed successfully", profile });
       } catch (error) {
         handleRouteError(res, error, "Failed to complete onboarding");
