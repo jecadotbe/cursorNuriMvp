@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import MinimapView from "@/components/MinimapView";
+import { useVillageSuggestions } from "@/hooks/use-village-suggestions";
 
 const CATEGORY_COLORS = {
   informeel: "#22c55e", // Green
@@ -66,6 +67,15 @@ export default function VillageView() {
   const [memberToEdit, setMemberToEdit] = useState<typeof members[0] | null>(null);
   const [memberToDelete, setMemberToDelete] = useState<typeof members[0] | null>(null);
   const memberRefs = useRef(new Map());
+
+  const {
+    suggestions,
+    isLoading: isSuggestionsLoading,
+    refetch: refetchSuggestions
+  } = useVillageSuggestions({
+    autoRefresh: false,
+    maxSuggestions: 3
+  });
 
   const getMemberRef = (memberId: number) => {
     if (!memberRefs.current.has(memberId)) {
@@ -588,12 +598,37 @@ export default function VillageView() {
 
       {/* Village suggestions */}
       <div className="p-4">
-        <div className="flex items-center justify-between bg-white rounded-full px-6 py-3 shadow-md w-auto max-w-xs">
-          <span>
-            Er zijn <strong className="text-orange-500">3</strong> village
-            suggesties
-          </span>
-          <ChevronLeft className="w-5 h-5 transform rotate-90 ml-2" />
+        <div className="flex items-center justify-between bg-white rounded-2xl px-6 py-3 shadow-md w-auto max-w-md">
+          <div className="flex-1">
+            <span>
+              Er zijn <strong className="text-orange-500">{suggestions.length}</strong> village
+              suggesties
+            </span>
+            {suggestions.length > 0 && (
+              <div className="mt-2 space-y-2">
+                {suggestions.map((suggestion, index) => (
+                  <div key={suggestion.id} className="text-sm text-gray-600">
+                    {suggestion.text}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={() => refetchSuggestions()}
+              disabled={isSuggestionsLoading}
+            >
+              {isSuggestionsLoading ? (
+                <span className="animate-spin">↻</span>
+              ) : (
+                <RotateCcw className="w-4 h-4" />
+              )}
+            </Button>
+            <ChevronLeft className="w-5 h-5 transform rotate-90" />
+          </div>
         </div>
       </div>
 
