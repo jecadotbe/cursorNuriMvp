@@ -25,6 +25,12 @@ const videos: VideoData[] = [
     title: "Understanding Child Development",
     description: "Discover the key stages of child development and how to support your child's growth.",
     videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+  },
+  {
+    id: "3",
+    title: "Test Video",
+    description: "Test video integration with YouTube",
+    videoUrl: "https://www.youtube.com/watch?v=gwVARm-J1Rg"
   }
 ];
 
