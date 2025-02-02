@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ScrollingTicker } from "@/components/ScrollingTicker";
 import { useUser } from "@/hooks/use-user";
 import { useSuggestion } from "@/hooks/use-suggestion";
 import { useVillageSuggestions } from "@/hooks/use-village-suggestions";
@@ -407,17 +408,23 @@ export default function HomeView() {
           </div>
         )}
 
-        <div className="flex flex-wrap justify-center gap-2 mt-4">
-          {actionChips.map((chip, index) => (
-            <button
-              key={index}
-              onClick={() => handleChipClick(chip.text)}
-              className="inline-flex items-center px-4 py-2 rounded-full bg-white border border-[#E5E7EB] hover:shadow-md transition-all text-sm text-gray-700"
-            >
-              {chip.icon}
-              <span className="ml-2">{chip.text}</span>
-            </button>
-          ))}
+        <div className="mt-4 overflow-hidden">
+          <ScrollingTicker
+            items={actionChips.map((chip, index) => ({
+              id: index.toString(),
+              text: (
+                <div
+                  className="inline-flex items-center cursor-pointer"
+                  onClick={() => handleChipClick(chip.text)}
+                >
+                  {chip.icon}
+                  <span className="ml-2">{chip.text}</span>
+                </div>
+              )
+            }))}
+            className="py-2"
+            speed={30}
+          />
         </div>
       </div>
 
