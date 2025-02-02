@@ -37,7 +37,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VillageMemberMemories } from "@/components/VillageMemberMemories";
-import { MinimapView } from "@/components/MinimapView";
 
 // Component interface definition
 interface MemberContentProps {
@@ -201,10 +200,6 @@ export default function VillageView() {
       setMemberToDelete(null);
     }
   };
-
-  const handleMinimapNavigate = (pos: { x: number, y: number }) => {
-    setPosition(pos);
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -431,8 +426,8 @@ export default function VillageView() {
               }}
             >
               <Avatar className="w-full h-full border-2 border-[#629785]">
-                {user?.profilePicture ? (
-                  <AvatarImage src={user.profilePicture} alt="Profile" className="object-cover" />
+                {user?.avatarUrl ? (
+                  <AvatarImage src={user.avatarUrl} alt="Profile" className="object-cover" />
                 ) : (
                   <AvatarFallback className="bg-[#F4F1E4] text-[#629785]">
                     <Users className="w-12 h-12" />
@@ -443,6 +438,7 @@ export default function VillageView() {
           </div>
         </div>
       </div>
+
       <Sheet open={isOpen} onOpenChange={(open) => {
         setIsOpen(open);
         if (!open) {
@@ -457,7 +453,7 @@ export default function VillageView() {
         }
       }}>
         <SheetTrigger asChild>
-          <button className="fixed bottom-20 right-4 w-12 h-12 bg-[#2F4644] rounded-full flex items-center justify-center shadow-lg hover:bg-[#3a5452]">
+          <button className="fixed bottom-4 right-4 w-12 h-12 bg-[#2F4644] rounded-full flex items-center justify-center shadow-lg hover:bg-[#3a5452]">
             <Plus className="w-6 h-6 text-white" />
           </button>
         </SheetTrigger>
@@ -557,6 +553,7 @@ export default function VillageView() {
           </form>
         </SheetContent>
       </Sheet>
+
       <AlertDialog open={!!memberToDelete} onOpenChange={(open) => !open && setMemberToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -573,6 +570,7 @@ export default function VillageView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
       {/* Memories Dialog */}
       <Sheet open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
         <SheetContent side="bottom" className="h-[90vh]">
@@ -593,8 +591,6 @@ export default function VillageView() {
                   <VillageMemberMemories
                     memberId={selectedMember.id}
                     memberName={selectedMember.name}
-                    open={isMemoryDialogOpen}
-                    onOpenChange={setIsMemoryDialogOpen}
                   />
                 )}
               </TabsContent>
@@ -669,15 +665,6 @@ export default function VillageView() {
           </div>
         </SheetContent>
       </Sheet>
-      {/* MinimapView at the bottom */}
-      <div className="fixed bottom-4 right-4">
-        <MinimapView
-          members={members}
-          scale={scale}
-          position={position}
-          onNavigate={handleMinimapNavigate}
-        />
-      </div>
     </div>
   );
 }
