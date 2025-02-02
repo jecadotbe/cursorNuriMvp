@@ -92,14 +92,16 @@ export default function LearnDetailView() {
         >
           {/* Top Bar */}
           <div className="absolute top-0 left-0 right-0 p-4 flex items-center">
-            <Button 
-              variant="ghost" 
-              size="lg"
-              className="text-white hover:bg-black/30 rounded-xl p-6"
-              onClick={() => window.history.back()}
-            >
-              <ArrowLeft className="h-8 w-8" />
-            </Button>
+            <Link href="/learn">
+              <Button 
+                variant="ghost" 
+                size="lg"
+                className="text-white hover:bg-black/30 rounded-xl p-6 flex items-center gap-2"
+              >
+                <ArrowLeft className="h-8 w-8" />
+                <span>Back to Learning</span>
+              </Button>
+            </Link>
             <div className="ml-4">
               <h1 className="text-white text-xl font-semibold">
                 {videos[currentIndex].title}
