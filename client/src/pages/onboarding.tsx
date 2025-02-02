@@ -195,11 +195,25 @@ export default function OnboardingPage() {
       if (step < totalSteps) {
         setStep(step + 1);
       } else {
-        setLocation("/building-profile");
+        // Show loading toast for final completion
+        toast({
+          title: "Completing onboarding...",
+          description: "Setting up your profile and village. Please wait.",
+        });
+
+        // First complete onboarding
         await completeOnboardingMutation.mutateAsync(updatedData);
+
+        // Only redirect after successful completion
+        setLocation("/building-profile");
       }
     } catch (error) {
       console.error("Step completion error:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "An error occurred while saving your progress.",
+      });
     }
   };
 
