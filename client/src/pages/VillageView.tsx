@@ -431,17 +431,20 @@ export default function VillageView() {
     e.preventDefault();
     
     const validationErrors = [];
-    if (!newMember.name.trim()) validationErrors.push("Name is required");
-    if (!newMember.type) validationErrors.push("Type is required");
-    if (!newMember.circle) validationErrors.push("Circle is required");
-    if (!newMember.category) validationErrors.push("Category is required");
-    if (!newMember.contactFrequency) validationErrors.push("Contact frequency is required");
+    
+    // Strict validation for all required fields
+    if (!newMember.name?.trim()) validationErrors.push("Name is required");
+    if (!newMember.type?.trim()) validationErrors.push("Type is required");
+    if (!newMember.circle || newMember.circle < 1 || newMember.circle > 5) validationErrors.push("Circle must be between 1 and 5");
+    if (!newMember.category || !["informeel", "formeel", "inspiratie"].includes(newMember.category)) validationErrors.push("Valid category is required");
+    if (!newMember.contactFrequency || !["S", "M", "L", "XL"].includes(newMember.contactFrequency)) validationErrors.push("Valid contact frequency is required");
 
     if (validationErrors.length > 0) {
       toast({
         variant: "destructive",
         title: "Validation Error",
-        description: validationErrors.join(", ")
+        description: validationErrors.join(", "),
+        duration: 3000,
       });
       return;
     }
