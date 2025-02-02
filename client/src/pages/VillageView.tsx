@@ -12,6 +12,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -987,11 +988,12 @@ export default function VillageView() {
             <Plus className="w-6 h-6 text-white" />
           </button>
         </SheetTrigger>
-        <SheetContent side="bottom" className="h-[90vh] overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>{memberToEdit ? 'Edit Village Member' : 'Add Village Member'}</SheetTitle>
-          </SheetHeader>
-          <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+        <SheetContent side="bottom" className="h-[90vh]">
+          <ScrollArea className="h-full w-full pr-4">
+            <SheetHeader>
+              <SheetTitle>{memberToEdit ? 'Edit Village Member' : 'Add Village Member'}</SheetTitle>
+            </SheetHeader>
+            <form onSubmit={handleSubmit} className="space-y-4 mt-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
               <Input
@@ -1081,6 +1083,7 @@ export default function VillageView() {
               {memberToEdit ? 'Update Member' : 'Add Member'}
             </Button>
           </form>
+          </ScrollArea>
         </SheetContent>
       </Sheet>
 
