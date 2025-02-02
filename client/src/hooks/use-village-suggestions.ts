@@ -1,8 +1,7 @@
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { PromptSuggestion } from "@db/schema";
 import { useToast } from "./use-toast";
-import { useState, useRef, useCallback } from "react";
+import { useState } from "react";
 
 interface VillageSuggestionOptions {
   autoRefresh?: boolean;
@@ -12,7 +11,7 @@ interface VillageSuggestionOptions {
 }
 
 async function fetchVillageSuggestions(): Promise<PromptSuggestion[]> {
-  const response = await fetch('/api/suggestions?type=village', {
+  const response = await fetch('/api/suggestions?context=village', {
     credentials: 'include',
   });
 
@@ -26,15 +25,13 @@ async function fetchVillageSuggestions(): Promise<PromptSuggestion[]> {
 export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
   const {
     autoRefresh = false,
-    refreshInterval = 300000, // 5 minutes
+    refreshInterval = 300000,
     maxSuggestions = 5,
     filterByType = []
   } = options;
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const lastFetchTime = useRef(Date.now());
 
   const {
     data: suggestions = [],
@@ -51,6 +48,7 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
       if (filterByType.length > 0) {
         filtered = data.filter(s => filterByType.includes(s.type));
       }
+      filtered = filtered.filter(s => !s.dismissed);
       return filtered.slice(0, maxSuggestions);
     }
   });
@@ -61,11 +59,10 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
         method: 'POST',
         credentials: 'include',
       });
-      
-      // Remove from cache
+
       queryClient.setQueryData(['village-suggestions'], 
         (old: PromptSuggestion[] | undefined) => 
-          old?.filter(s => s.id !== suggestionId) || []
+          old?.map(s => s.id === suggestionId ? {...s, dismissed: true} : s) || []
       );
     } catch (error) {
       toast({
@@ -76,31 +73,11 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
     }
   };
 
-  const dismissSuggestion = async (suggestionId: number) => {
-    try {
-      await fetch(`/api/suggestions/${suggestionId}/dismiss`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-      
-      // Remove from cache
-      queryClient.setQueryData(['village-suggestions'], 
-        (old: PromptSuggestion[] | undefined) => 
-          old?.filter(s => s.id !== suggestionId) || []
-      );
-    } catch (error) {
-      console.error('Failed to dismiss suggestion:', error);
-    }
-  };
-
   return {
     suggestions,
-    currentSuggestion: suggestions[currentIndex],
     isLoading,
     error,
     refetch,
-    markAsUsed,
-    dismissSuggestion,
-    nextSuggestion: () => setCurrentIndex(i => (i + 1) % suggestions.length)
+    markAsUsed
   };
 }
