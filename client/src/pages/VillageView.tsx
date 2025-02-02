@@ -1105,7 +1105,7 @@ export default function VillageView() {
       </AlertDialog>
       {/* Memories Dialog */}
       <Sheet open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
-        <SheetContent side="bottom" className="h-[90vh]">
+        <SheetContent side="bottom" className="h-[90vh] overflow-y-auto pb-20">
           <SheetHeader>
             <SheetTitle>Herinneringen met {selectedMember?.name}</SheetTitle>
             <span className="text-sm text-muted-foreground">
@@ -1147,7 +1147,8 @@ export default function VillageView() {
                       value={newMemory.content}
                       onChange={(e) => setNewMemory({ ...newMemory, content: e.target.value })}
                       placeholder="What happened? How did it make you feel?"
-                      className="min-h-[150px]" required
+                      className="min-h-[150px] mb-16 resize-none" 
+                      required
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
