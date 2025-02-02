@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 interface ScrollingTickerProps {
   items: {
     id: string;
-    text: string;
+    text: React.ReactNode;
   }[];
   className?: string;
   speed?: number;
@@ -13,13 +13,15 @@ interface ScrollingTickerProps {
 
 export function ScrollingTicker({ items, className, speed = 30 }: ScrollingTickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const [translateX, setTranslateX] = useState(0);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || !contentRef.current) return;
 
-    const contentWidth = containerRef.current.scrollWidth;
-    const viewportWidth = containerRef.current.offsetWidth;
+    const contentWidth = contentRef.current.scrollWidth;
+    const containerWidth = containerRef.current.offsetWidth;
+    const totalWidth = contentWidth + containerWidth;
 
     const animate = () => {
       setTranslateX(prev => {
@@ -37,20 +39,31 @@ export function ScrollingTicker({ items, className, speed = 30 }: ScrollingTicke
   }, [speed, items]);
 
   return (
-    <div className={cn("relative overflow-hidden whitespace-nowrap", className)}>
-      <div
-        ref={containerRef}
-        className="inline-flex gap-4"
-        style={{ transform: `translateX(${translateX}px)` }}
-      >
-        {items.map((item) => (
-          <button
-            key={item.id}
-            className="inline-flex items-center rounded-full bg-white/90 px-4 py-2 text-sm font-medium shadow-sm hover:bg-white/100 border border-gray-100"
-          >
-            {item.text}
-          </button>
-        ))}
+    <div ref={containerRef} className={cn("relative overflow-hidden whitespace-nowrap", className)}>
+      <div className="flex">
+        <div
+          ref={contentRef}
+          className="inline-flex gap-4 transition-transform duration-75"
+          style={{ transform: `translateX(${translateX}px)` }}
+        >
+          {items.map((item) => (
+            <button
+              key={item.id}
+              className="inline-flex items-center rounded-full bg-white/90 px-4 py-2 text-sm font-medium shadow-sm hover:bg-white/100 border border-gray-100"
+            >
+              {item.text}
+            </button>
+          ))}
+          {/* Duplicate items for seamless loop */}
+          {items.map((item) => (
+            <button
+              key={`duplicate-${item.id}`}
+              className="inline-flex items-center rounded-full bg-white/90 px-4 py-2 text-sm font-medium shadow-sm hover:bg-white/100 border border-gray-100"
+            >
+              {item.text}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
