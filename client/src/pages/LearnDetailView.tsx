@@ -179,11 +179,11 @@ const VideoPlayer: React.FC<{
             <div className="absolute top-0 left-0 right-0 p-4">
               <Button 
                 variant="ghost" 
-                size="icon" 
-                className="text-white"
+                size="lg"
+                className="text-white hover:bg-black/30 rounded-xl p-6" 
                 onClick={() => window.history.back()}
               >
-                <ArrowLeft className="h-6 w-6" />
+                <ArrowLeft className="h-8 w-8" />
               </Button>
             </div>
 
@@ -204,20 +204,14 @@ const VideoPlayer: React.FC<{
             </div>
 
             {/* Side actions */}
-            <div className="absolute right-4 bottom-20 flex flex-col gap-6">
-              <Button variant="ghost" size="icon" className="text-white">
-                <Heart className="h-6 w-6" />
-                <span className="text-sm mt-1">{video.likes}</span>
-              </Button>
-              <Button variant="ghost" size="icon" className="text-white">
-                <MessageSquare className="h-6 w-6" />
-                <span className="text-sm mt-1">{video.comments}</span>
-              </Button>
-              <Button variant="ghost" size="icon" className="text-white">
-                <Share2 className="h-6 w-6" />
-              </Button>
-              <Button variant="ghost" size="icon" className="text-white" onClick={toggleMute}>
-                {isMuted ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
+            <div className="absolute right-4 bottom-20">
+              <Button 
+                variant="ghost" 
+                size="lg"
+                className="text-white hover:bg-black/30 rounded-xl p-6" 
+                onClick={toggleMute}
+              >
+                {isMuted ? <VolumeX className="h-8 w-8" /> : <Volume2 className="h-8 w-8" />}
               </Button>
             </div>
 
