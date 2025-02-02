@@ -111,24 +111,27 @@ export function setupSuggestionsRoutes(router: Router) {
           console.log('Generated suggestions:', newSuggestions);
 
           if (newSuggestions && newSuggestions.length > 0) {
-            try {
-              const inserted = await db.insert(promptSuggestions)
-                .values(newSuggestions)
-                .returning();
+            const inserted = await db.insert(promptSuggestions)
+              .values(newSuggestions)
+              .returning();
 
-              console.log('Inserted suggestions:', inserted);
-              return res.json([...existingVillageSuggestions, ...inserted]);
-            } catch (dbError) {
-              console.error('Database error while inserting suggestions:', dbError);
-              throw dbError;
-            }
-          } else {
-            console.log('No new suggestions generated');
-            return res.json(existingVillageSuggestions);
+            console.log('Inserted suggestions:', inserted);
+            return res.json([...existingVillageSuggestions, ...inserted]);
           }
         } catch (error) {
-          console.error('Error in suggestion generation process:', error);
-          throw error;
+          console.error('Error generating/inserting suggestions:', error);
+          return res.json(existingVillageSuggestions);
+        }
+      }
+
+      return res.json(existingVillageSuggestions);
+
+            console.log(`Generated and inserted ${inserted.length} new suggestions`);
+            return res.json([...existingVillageSuggestions, ...inserted]);
+          }
+        } catch (error) {
+          console.error('Error generating new suggestions:', error);
+          return res.json(existingVillageSuggestions);
         }
       }
 

@@ -30,12 +30,7 @@ export async function generateVillageSuggestions(
   const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
 
   try {
-    console.log('Starting village suggestion generation for user:', userId, {
-      memberCount: members.length,
-      hasParentProfile: !!context.parentProfile,
-      childCount: context.childProfiles.length,
-      challengeCount: context.challenges.length
-    });
+    console.log('Starting village suggestion generation for user:', userId);
 
     // 1. Analyze village structure and gaps
     const gaps = analyzeVillageGaps(members);
