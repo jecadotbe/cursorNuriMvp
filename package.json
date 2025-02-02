@@ -76,7 +76,7 @@
     "marked": "^15.0.6",
     "mem0ai": "^1.0.30",
     "memorystore": "^1.6.7",
-    "openai": "^4.79.4",
+    "openai": "^4.82.0",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
     "pg": "^8.13.1",
