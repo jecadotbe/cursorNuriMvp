@@ -65,13 +65,22 @@ export default function HomeView() {
 
   const {
     suggestion,
-    suggestions,
+    suggestions: chatSuggestions,
     isLoading: suggestionLoading,
     markAsUsed,
     nextSuggestion,
     dismissSuggestion,
     refetch,
   } = useSuggestion();
+
+  const {
+    suggestions: villageSuggestions,
+    isLoading: villageLoading,
+    markAsUsed: markVillageSuggestionAsUsed,
+  } = useVillageSuggestions({
+    autoRefresh: true,
+    maxSuggestions: 3
+  });
 
   const [isLoading, setIsLoading] = useState(false);
   const [showSkeleton, setShowSkeleton] = useState(true);
@@ -400,7 +409,7 @@ export default function HomeView() {
           <div className="mt-4 space-y-4">
             {/* Village suggestions */}
             <div className="grid grid-cols-1 gap-3">
-              {suggestions?.slice(0, 3).map((suggestion) => (
+              {villageSuggestions?.map((suggestion) => (
                 <Card key={suggestion.id} className="bg-white hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-2 mb-2">
@@ -412,8 +421,7 @@ export default function HomeView() {
                       <button
                         onClick={() => {
                           if (suggestion) {
-                            dismissSuggestion(suggestion.id);
-                            nextSuggestion();
+                            markVillageSuggestionAsUsed(suggestion.id);
                           }
                         }}
                         className="text-gray-400 hover:text-gray-600"
