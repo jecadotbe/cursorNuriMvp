@@ -11,7 +11,8 @@ interface VillageSuggestionOptions {
 
 async function fetchVillageSuggestions(): Promise<PromptSuggestion[]> {
   try {
-    const response = await fetch('/api/suggestions?context=village', {
+    // Explicitly request village context suggestions
+    const response = await fetch('/api/suggestions/village', {
       credentials: 'include',
     });
 
@@ -50,7 +51,7 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
     staleTime: refreshInterval,
     refetchInterval: autoRefresh ? refreshInterval : false,
     select: (data) => {
-      console.log('Processing suggestions:', data);
+      console.log('Processing village suggestions:', data);
       let filtered = data;
 
       if (filterByType.length > 0) {
