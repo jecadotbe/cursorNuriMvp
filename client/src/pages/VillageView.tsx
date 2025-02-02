@@ -219,6 +219,7 @@ export default function VillageView() {
   const [isOpen, setIsOpen] = useState(false);
   const memberRefs = useRef(new Map());
   const [isRearrangeMode, setIsRearrangeMode] = useState(false);
+  const [showListView, setShowListView] = useState(false); // Add state for list view toggle
 
   const getMemberRef = (memberId: number) => {
     if (!memberRefs.current.has(memberId)) {
@@ -478,13 +479,13 @@ const handleSubmit = async (e: React.FormEvent) => {
       } else {
         const added = await addMember(newMember);
         setLastAddedMember(added.id);
-        
+
         // Reset position and scale to see the new member
         const radius = getCircleRadius(newMember.circle - 1);
         const angle = Math.random() * 2 * Math.PI;
         const x = Math.cos(angle) * radius;
         const y = Math.sin(angle) * radius;
-        
+
         setPosition({ 
           x: -x * scale, 
           y: -y * scale 
@@ -725,11 +726,19 @@ const handleSubmit = async (e: React.FormEvent) => {
     }}>
       <div
         className="fixed top-0 left-0 right-0 z-50 p-4">
-        <Link href="/">
-          <div className="flex items-center space-x-4 cursor-pointer mb-8">
-            <ChevronLeft className="w-6 h-6 text-gray-800" />
-          </div>
-        </Link>
+        <div className="flex justify-between items-center">
+          <Link href="/">
+            <div className="flex items-center space-x-4 cursor-pointer">
+              <ChevronLeft className="w-6 h-6 text-gray-800" />
+            </div>
+          </Link>
+          <button
+            onClick={() => setShowListView(!showListView)}
+            className="bg-white rounded-lg shadow px-3 py-1.5 text-sm font-medium"
+          >
+            {showListView ? 'Circle View' : 'List View'}
+          </button>
+        </div>
       </div>
 
       <div className="fixed top-24 right-4 flex flex-col space-y-2 z-10">
@@ -870,7 +879,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                   <div className="relative group">
                     <motion.div
                       whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.95 }}
+                      whileTap={{scale: 0.95 }}
                       className="animate-pulse"
                     >
                       <Arrow className="w-6 h-6" style={{ color: categoryColor }} />
