@@ -6,9 +6,24 @@ import { generateVillageSuggestions } from "../../lib/suggestion-generator";
 import { memoryService } from "../../services/memory";
 import type { User } from "../../auth";
 
+// Error handler middleware for JSON responses
+const jsonErrorHandler = (err: any, req: any, res: any, next: any) => {
+  console.error('Error in suggestions route:', err);
+  res.status(500).json({
+    error: "Internal server error",
+    message: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+};
+
 export function setupSuggestionsRoutes(router: Router) {
+  // Ensure JSON content type for all responses in this router
+  router.use((req, res, next) => {
+    res.setHeader('Content-Type', 'application/json');
+    next();
+  });
+
   // Dedicated endpoint for village suggestions
-  router.get("/suggestions/village", async (req, res) => {
+  router.get("/suggestions/village", async (req, res, next) => {
     try {
       if (!req.isAuthenticated() || !req.user) {
         return res.status(401).json({ error: "Not authenticated" });
@@ -18,9 +33,6 @@ export function setupSuggestionsRoutes(router: Router) {
       const now = new Date();
 
       console.log('Fetching village suggestions for user:', user.id);
-
-      // Set proper content type header
-      res.setHeader('Content-Type', 'application/json');
 
       // 1. Get village members with error handling
       const members = await db.query.villageMembers.findMany({
@@ -55,10 +67,17 @@ export function setupSuggestionsRoutes(router: Router) {
 
       // 4. Prepare context object with safe defaults
       const villageContext = {
-        recentChats,
+        recentChats: recentChats.map(chat => ({
+          ...chat,
+          messages: Array.isArray(chat.messages) ? chat.messages : []
+        })),
         parentProfile,
-        childProfiles: parentProfile?.onboardingData?.childProfiles || [],
-        challenges: parentProfile?.onboardingData?.stressAssessment?.primaryConcerns || [],
+        childProfiles: Array.isArray(parentProfile?.onboardingData?.childProfiles) 
+          ? parentProfile.onboardingData.childProfiles 
+          : [],
+        challenges: Array.isArray(parentProfile?.onboardingData?.stressAssessment?.primaryConcerns)
+          ? parentProfile.onboardingData.stressAssessment.primaryConcerns
+          : [],
         memories: []
       };
 
@@ -98,29 +117,23 @@ export function setupSuggestionsRoutes(router: Router) {
                 return [];
               });
 
-            console.log(`Generated and inserted ${newSuggestions.length} new suggestions`);
-
-            // Combine existing and new suggestions
-            const allSuggestions = [...existingVillageSuggestions, ...inserted];
-            return res.json(allSuggestions);
+            console.log(`Generated and inserted ${inserted.length} new suggestions`);
+            return res.json([...existingVillageSuggestions, ...inserted]);
           }
         } catch (error) {
           console.error('Error generating new suggestions:', error);
-          // Return existing suggestions even if generation fails
           return res.json(existingVillageSuggestions);
         }
       }
 
-      // Return existing suggestions if generation wasn't needed
       return res.json(existingVillageSuggestions);
     } catch (error) {
-      console.error('Error in /suggestions/village:', error);
-      return res.status(500).json({ error: "Failed to fetch village suggestions" });
+      next(error); // Pass to error handler
     }
   });
 
-  // Regular suggestions endpoint
-  router.get("/suggestions", async (req, res) => {
+  // Regular suggestions endpoint with proper error handling
+  router.get("/suggestions", async (req, res, next) => {
     try {
       if (!req.isAuthenticated() || !req.user) {
         return res.status(401).json({ error: "Not authenticated" });
@@ -140,25 +153,24 @@ export function setupSuggestionsRoutes(router: Router) {
 
       res.json(suggestions);
     } catch (error) {
-      console.error("Error fetching suggestions:", error);
-      res.status(500).json({ message: "Failed to fetch suggestions" });
+      next(error); // Pass to error handler
     }
   });
 
-  // Mark suggestion as used
-  router.post("/suggestions/:id/use", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-
-    const user = req.user as User;
-    const suggestionId = parseInt(req.params.id);
-
-    if (isNaN(suggestionId)) {
-      return res.status(400).json({ error: "Invalid suggestion ID" });
-    }
-
+  // Mark suggestion as used with proper error handling
+  router.post("/suggestions/:id/use", async (req, res, next) => {
     try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = req.user as User;
+      const suggestionId = parseInt(req.params.id);
+
+      if (isNaN(suggestionId)) {
+        return res.status(400).json({ error: "Invalid suggestion ID" });
+      }
+
       const [updated] = await db
         .update(promptSuggestions)
         .set({
@@ -178,10 +190,12 @@ export function setupSuggestionsRoutes(router: Router) {
 
       res.json(updated);
     } catch (error) {
-      console.error("Error marking suggestion as used:", error);
-      res.status(500).json({ error: "Failed to mark suggestion as used" });
+      next(error); // Pass to error handler
     }
   });
+
+  // Apply JSON error handler to all routes in this router
+  router.use(jsonErrorHandler);
 
   return router;
 }
