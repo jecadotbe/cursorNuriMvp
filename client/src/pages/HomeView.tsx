@@ -66,6 +66,7 @@ export default function HomeView() {
 
   const {
     suggestion,
+    suggestions,
     suggestions: chatSuggestions,
     isLoading: suggestionLoading,
     markAsUsed,
