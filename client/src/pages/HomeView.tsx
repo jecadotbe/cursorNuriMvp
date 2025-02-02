@@ -369,42 +369,6 @@ export default function HomeView() {
               <span>Toon andere suggestie ({suggestions?.length || 0})</span>
               <ChevronRight className="w-4 h-4" />
             </button>
-            <button
-              onClick={async () => {
-                setIsLoading(true);
-                try {
-                  for (const suggestion of suggestions || []) {
-                    await fetch(`/api/suggestions/${suggestion.id}/dismiss`, {
-                      method: 'POST',
-                      credentials: 'include'
-                    });
-                  }
-                  
-                  const response = await fetch('/api/suggestions/generate', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json'
-                    },
-                    credentials: 'include'
-                  });
-                  
-                  if (!response.ok) {
-                    throw new Error('Failed to generate suggestions');
-                  }
-                  
-                  await refetch();
-                } catch (error) {
-                  console.error('Error generating suggestions:', error);
-                } finally {
-                  setIsLoading(false);
-                }
-              }}
-              disabled={isLoading || suggestionLoading}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <span>Genereer nieuwe suggesties</span>
-              <RefreshCw className="w-4 h-4" />
-            </button>
           </div>
         )}
 
