@@ -108,14 +108,23 @@ export function setupSuggestionsRoutes(router: Router) {
             memoryService
           );
 
+          console.log('Generated suggestions:', newSuggestions);
+
           if (newSuggestions && newSuggestions.length > 0) {
             const inserted = await db.insert(promptSuggestions)
               .values(newSuggestions)
-              .returning()
-              .catch(error => {
-                console.error('Error inserting new suggestions:', error);
-                return [];
-              });
+              .returning();
+
+            console.log('Inserted suggestions:', inserted);
+            return res.json([...existingVillageSuggestions, ...inserted]);
+          }
+        } catch (error) {
+          console.error('Error generating/inserting suggestions:', error);
+          return res.json(existingVillageSuggestions);
+        }
+      }
+
+      return res.json(existingVillageSuggestions);
 
             console.log(`Generated and inserted ${inserted.length} new suggestions`);
             return res.json([...existingVillageSuggestions, ...inserted]);
