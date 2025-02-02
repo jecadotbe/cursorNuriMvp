@@ -586,7 +586,7 @@ export default function VillageView() {
         title: "Success",
         description: "Memory saved successfully"
       });
-      
+
       setNewMemory({
         title: "",
         content: "",
@@ -594,7 +594,7 @@ export default function VillageView() {
         tags: [],
         date: format(new Date(), "yyyy-MM-dd")
       });
-      
+
       // Switch back to view tab after saving
       const tabsList = document.querySelector('[role="tablist"]');
       if (tabsList) {
@@ -642,7 +642,7 @@ export default function VillageView() {
     const nextSuggestion = () => {
       refetchSuggestions();
     };
-  
+
 
   const handleInsightAction = (id: number) => {
     const insight = suggestions?.find(s => s.id === id);
@@ -889,7 +889,7 @@ export default function VillageView() {
                     position={pos}
                     onStop={(e, data) => handleDragStop(e, data, member)}
                     bounds={{
-                      left: -getCircleRadius(4),
+                      left:-getCircleRadius(4),
                       right: getCircleRadius(4),
                       top: -getCircleRadius(4),
                       bottom: getCircleRadius(4)
@@ -987,11 +987,11 @@ export default function VillageView() {
             <Plus className="w-6 h-6 text-white" />
           </button>
         </SheetTrigger>
-        <SheetContent>
+        <SheetContent side="bottom" className="h-[90vh] overflow-y-auto">
           <SheetHeader>
             <SheetTitle>{memberToEdit ? 'Edit Village Member' : 'Add Village Member'}</SheetTitle>
           </SheetHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4 mt-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
               <Input
