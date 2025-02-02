@@ -429,9 +429,9 @@ export default function VillageView() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const validationErrors = [];
-    
+
     // Strict validation for all required fields
     if (!newMember.name?.trim()) validationErrors.push("Name is required");
     if (!newMember.type?.trim()) validationErrors.push("Type is required");
@@ -1013,6 +1013,7 @@ export default function VillageView() {
                 onChange={(e) =>
                   setNewMember({ ...newMember, name: e.target.value })
                 }
+                placeholder="Enter the name of the member"
                 required
               />
             </div>
@@ -1025,7 +1026,7 @@ export default function VillageView() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Choose the type of member" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="individual">Individual</SelectItem>
@@ -1042,7 +1043,7 @@ export default function VillageView() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Choose a category" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="informeel">Informeel</SelectItem>
@@ -1060,7 +1061,7 @@ export default function VillageView() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select contact frequency" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="S">Small</SelectItem>
@@ -1079,7 +1080,7 @@ export default function VillageView() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Choose a circle" />
                 </SelectTrigger>
                 <SelectContent>
                   {[1, 2, 3, 4, 5].map((n) => (
@@ -1170,6 +1171,7 @@ export default function VillageView() {
                         type="date"
                         value={newMemory.date}
                         onChange={(e) => setNewMemory({ ...newMemory, date: e.target.value })}
+                        placeholder="Select the date of the memory"
                         required
                       />
                     </div>
@@ -1180,7 +1182,7 @@ export default function VillageView() {
                         onValueChange={(value) => setNewMemory({ ...newMemory, emotionalImpact: Number(value) })}
                       >
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue placeholder="Select emotional impact" />
                         </SelectTrigger>
                         <SelectContent>
                           {[1, 2, 3, 4, 5].map((n) => (
