@@ -1319,7 +1319,7 @@ const handleSubmit = async (e: React.FormEvent) => {
         />
       </div>
 
-      {/* FAB - now visible in both views */}
+      {/* Add/Edit member dialog */}
       <Sheet open={isOpen} onOpenChange={(open) => {
         setIsOpen(open);
         if (!open) {
@@ -1338,8 +1338,103 @@ const handleSubmit = async (e: React.FormEvent) => {
             <Plus className="w-6 h-6 text-white" />
           </button>
         </SheetTrigger>
-        <SheetContent side="bottom" className="h-[90vh] overflow-hidden">
-          {/* Rest of the sheet content */}
+        <SheetContent side="bottom" className="h-[90vh] overflow-y-auto">
+          <ScrollArea className="h-[calc(100vh-120px)] w-full pr-4">
+            <SheetHeader className="sticky top-0 z-10 bg-background pb-6">
+              <SheetTitle className="font-baskerville font-normal">{memberToEdit ? 'Edit Village Member' : 'Add Village Member'}</SheetTitle>
+            </SheetHeader>
+            <form onSubmit={handleSubmit} className="space-y-6 mt-2">
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  value={newMember.name}
+                  onChange={(e) =>
+                    setNewMember({ ...newMember, name: e.target.value })
+                  }
+                  placeholder="Enter the name of the member"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="type">Type</Label>
+                <Select
+                  value={newMember.type}
+                  onValueChange={(value: "individual" | "group") =>
+                    setNewMember({ ...newMember, type: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose the type of member" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="individual">Individual</SelectItem>
+                    <SelectItem value="group">Group</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <Select
+                  value={newMember.category || "informeel"}
+                  onValueChange={(value: "informeel" | "formeel" | "inspiratie") =>
+                    setNewMember({ ...newMember, category: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="informeel">Informeel</SelectItem>
+                    <SelectItem value="formeel">Formeel</SelectItem>
+                    <SelectItem value="inspiratie">Inspiratie</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contactFrequency">Contact Frequency</Label>
+                <Select
+                  value={newMember.contactFrequency || "M"}
+                  onValueChange={(value: "S" | "M" | "L" | "XL") =>
+                    setNewMember({ ...newMember, contactFrequency: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select contact frequency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="S">Small</SelectItem>
+                    <SelectItem value="M">Medium</SelectItem>
+                    <SelectItem value="L">Large</SelectItem>
+                    <SelectItem value="XL">Extra Large</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="circle">Circle</Label>
+                <Select
+                  value={String(newMember.circle)}
+                  onValueChange={(value) =>
+                    setNewMember({ ...newMember, circle: Number(value) })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a circle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        Circle {n}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button type="submit" className="w-full mb-8">
+                {memberToEdit ? 'Update Member' : 'Add Member'}
+              </Button>
+            </form>
+          </ScrollArea>
         </SheetContent>
       </Sheet>
     </div>
