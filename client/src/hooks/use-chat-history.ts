@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, UseQueryOptions } from "@tanstack/react-query";
 import type { Chat, PromptSuggestion } from "@db/schema";
 import { useToast } from "./use-toast";
 import { useUser } from "./use-user";
@@ -46,10 +46,11 @@ export function useChatHistory() {
   const { toast } = useToast();
   const { user, isLoading: isUserLoading } = useUser();
 
-  const { data: chats = [], isLoading: isChatsLoading, error: chatsError, refetch: refetchChats } = useQuery<Chat[], Error>({
+  const { data: chats = [], isLoading: isChatsLoading, error: chatsError, refetch: refetchChats } = useQuery<Chat[]>({
     queryKey: ["chats"],
     queryFn: fetchChatHistory,
-    enabled: !!user, // Only fetch when user is authenticated
+    enabled: !!user,
+    staleTime: 5000, // Consider data fresh for 5 seconds
   });
 
   const { 
@@ -60,9 +61,12 @@ export function useChatHistory() {
   } = useQuery<PromptSuggestion>({
     queryKey: ["suggestion"],
     queryFn: fetchSuggestion,
-    enabled: !!user, // Only fetch when user is authenticated
+    enabled: !!user,
     retry: false,
-    onError: (error) => {
+    staleTime: 0, // Always fetch fresh data
+    refetchOnMount: true, // Refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window gains focus
+    onError: (error: Error) => {
       console.error('Failed to fetch suggestion:', error);
       toast({
         variant: "destructive",
@@ -70,7 +74,7 @@ export function useChatHistory() {
         description: "Failed to load suggestion",
       });
     },
-  });
+  } as UseQueryOptions<PromptSuggestion, Error>);
 
   const getLatestPrompt = async () => {
     try {

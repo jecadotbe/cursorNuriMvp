@@ -11,6 +11,7 @@ import type { Chat } from "@db/schema";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { renderMarkdown } from "@/lib/markdown";
+import { useEffect } from "react";
 
 // Add proper typing for the chat messages
 interface ChatMessage {
@@ -36,6 +37,14 @@ export default function ChatHistoryView() {
   const { chats = [], isLoading } = useChatHistory();
   const [, navigate] = useLocation();
   const { toast } = useToast();
+
+  useEffect(() => {
+    queryClient.prefetchQuery({
+      queryKey: ["suggestion"],
+      queryFn: () => fetch('/api/suggestions', { credentials: 'include' }).then(r => r.json()),
+    });
+  }, [queryClient]);
+
 
   const startNewChat = async () => {
     try {

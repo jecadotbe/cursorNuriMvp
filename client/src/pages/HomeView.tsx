@@ -75,16 +75,17 @@ export default function HomeView() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [showSkeleton, setShowSkeleton] = useState(true);
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
   useEffect(() => {
-    if (!suggestionLoading && suggestions?.length > 0) {
-      setShowSkeleton(false);
-      setHasLoadedOnce(true);
+    if (!suggestionLoading) {
+      const timer = setTimeout(() => {
+        setShowSkeleton(false);
+      }, 300);
+      return () => clearTimeout(timer);
     }
-  }, [suggestionLoading, suggestions]);
+  }, [suggestionLoading]);
 
-  const shouldShowSkeleton = showSkeleton || suggestionLoading || (!hasLoadedOnce && !suggestion);
+  const shouldShowSkeleton = showSkeleton || suggestionLoading || (!suggestion);
   const [showFeedback, setShowFeedback] = useState(false);
   const [currentSuggestionId, setCurrentSuggestionId] = useState<number | null>(null);
   const { toast } = useToast();
@@ -187,7 +188,7 @@ export default function HomeView() {
     setCurrentSuggestionId(null);
   };
 
-  const handleImageLoad = (imageName: string) => {
+    const handleImageLoad = (imageName: string) => {
     console.log(`Successfully loaded image: ${imageName}`);
   };
 
