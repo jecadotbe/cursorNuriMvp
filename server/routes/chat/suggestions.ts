@@ -19,6 +19,9 @@ export function setupSuggestionsRoutes(router: Router) {
 
       console.log('Fetching village suggestions for user:', user.id);
 
+      // Set proper content type header
+      res.setHeader('Content-Type', 'application/json');
+
       // 1. Get village members with error handling
       const members = await db.query.villageMembers.findMany({
         where: eq(villageMembers.userId, user.id),
@@ -54,12 +57,8 @@ export function setupSuggestionsRoutes(router: Router) {
       const villageContext = {
         recentChats,
         parentProfile,
-        childProfiles: Array.isArray(parentProfile?.onboardingData?.childProfiles) 
-          ? parentProfile.onboardingData.childProfiles 
-          : [],
-        challenges: Array.isArray(parentProfile?.onboardingData?.stressAssessment?.primaryConcerns)
-          ? parentProfile.onboardingData.stressAssessment.primaryConcerns
-          : [],
+        childProfiles: parentProfile?.onboardingData?.childProfiles || [],
+        challenges: parentProfile?.onboardingData?.stressAssessment?.primaryConcerns || [],
         memories: []
       };
 
@@ -102,15 +101,17 @@ export function setupSuggestionsRoutes(router: Router) {
             console.log(`Generated and inserted ${newSuggestions.length} new suggestions`);
 
             // Combine existing and new suggestions
-            const allSuggestions = [...existingVillageSuggestions, ...newSuggestions];
+            const allSuggestions = [...existingVillageSuggestions, ...inserted];
             return res.json(allSuggestions);
           }
         } catch (error) {
           console.error('Error generating new suggestions:', error);
+          // Return existing suggestions even if generation fails
+          return res.json(existingVillageSuggestions);
         }
       }
 
-      // Return existing suggestions if generation failed or wasn't needed
+      // Return existing suggestions if generation wasn't needed
       return res.json(existingVillageSuggestions);
     } catch (error) {
       console.error('Error in /suggestions/village:', error);
