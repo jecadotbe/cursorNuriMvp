@@ -1318,6 +1318,30 @@ const handleSubmit = async (e: React.FormEvent) => {
           onNavigate={handleMinimapNavigate}
         />
       </div>
+
+      {/* FAB - now visible in both views */}
+      <Sheet open={isOpen} onOpenChange={(open) => {
+        setIsOpen(open);
+        if (!open) {
+          setMemberToEdit(null);
+          setNewMember({
+            name: "",
+            type: "individual",
+            circle: 1,
+            category: "informeel",
+            contactFrequency: "M"
+          });
+        }
+      }}>
+        <SheetTrigger asChild>
+          <button className="fixed bottom-20 right-4 w-12 h-12 bg-[#2F4644] rounded-full flex items-center justify-center shadow-lg hover:bg-[#3a5452] z-50">
+            <Plus className="w-6 h-6 text-white" />
+          </button>
+        </SheetTrigger>
+        <SheetContent side="bottom" className="h-[90vh] overflow-hidden">
+          {/* Rest of the sheet content */}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
