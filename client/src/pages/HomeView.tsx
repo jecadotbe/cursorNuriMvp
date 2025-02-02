@@ -88,10 +88,19 @@ export default function HomeView() {
     markAsUsed: markVillageSuggestionAsUsed,
     refetch: refetchVillageSuggestions
   } = useVillageSuggestions({
-    autoRefresh: true,
+    autoRefresh: false,
     maxSuggestions: 5,
     filterByType: ['village_maintenance', 'network_growth', 'network_expansion']
   });
+
+  // Debug logging
+  useEffect(() => {
+    console.log('Village suggestions state:', {
+      suggestions: villageSuggestions,
+      loading: villageLoading,
+      error: villageError
+    });
+  }, [villageSuggestions, villageLoading, villageError]);
 
    // Handle suggestion errors
   useEffect(() => {

@@ -11,21 +11,24 @@ interface VillageSuggestionOptions {
 
 async function fetchVillageSuggestions(): Promise<PromptSuggestion[]> {
   try {
-    // Explicitly request village context suggestions
     const response = await fetch('/api/suggestions/village', {
       credentials: 'include',
+      headers: {
+        'Accept': 'application/json'
+      }
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch village suggestions: ${response.status}`);
+      console.error('Village suggestions response not OK:', response.status);
+      return [];
     }
 
     const data = await response.json();
     console.log('Fetched village suggestions:', data);
-    return data;
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     console.error('Error fetching village suggestions:', error);
-    throw error;
+    return [];
   }
 }
 
