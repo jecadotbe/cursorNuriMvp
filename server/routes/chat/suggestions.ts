@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@db";
 import { promptSuggestions, suggestionFeedback, chats, villageMembers } from "@db/schema";
-import { eq, desc, and, isNull, gte } from "drizzle-orm";
+import { eq, desc, and, isNull, gte, or, in as dbIn } from "drizzle-orm";
 import { anthropic } from "../../anthropic";
 import type { User } from "../../auth";
 import { generateVillageSuggestions } from "../../lib/suggestion-generator";
@@ -14,6 +14,12 @@ const SUGGESTION_CATEGORIES = {
   STRESS: "stress",
   PERSONAL_GROWTH: "personal_growth"
 } as const;
+
+const VILLAGE_SUGGESTION_TYPES = [
+  'village_maintenance',
+  'network_growth',
+  'network_expansion'
+] as const;
 
 export function setupSuggestionsRoutes(router: Router) {
   // Get suggestions with optional village context
@@ -39,27 +45,47 @@ export function setupSuggestionsRoutes(router: Router) {
           limit: 2
         });
 
-        const suggestions = await generateVillageSuggestions(
-          user.id,
-          members,
-          recentChats,
-          memoryService
-        );
+        // Get existing village suggestions
+        const existingVillageSuggestions = await db.query.promptSuggestions.findMany({
+          where: and(
+            eq(promptSuggestions.userId, user.id),
+            isNull(promptSuggestions.usedAt),
+            gte(promptSuggestions.expiresAt, now),
+            dbIn(promptSuggestions.type, VILLAGE_SUGGESTION_TYPES)
+          ),
+          orderBy: desc(promptSuggestions.createdAt),
+        });
 
-        // Save generated suggestions to database
-        if (suggestions.length > 0) {
-          await db.insert(promptSuggestions).values(suggestions);
+        // Generate new suggestions if we don't have enough
+        if (existingVillageSuggestions.length < 3) {
+          const newSuggestions = await generateVillageSuggestions(
+            user.id,
+            members,
+            recentChats,
+            memoryService
+          );
+
+          if (newSuggestions.length > 0) {
+            await db.insert(promptSuggestions).values(newSuggestions);
+          }
+
+          // Combine existing and new suggestions
+          return res.json([...existingVillageSuggestions, ...newSuggestions]);
         }
 
-        return res.json(suggestions);
+        return res.json(existingVillageSuggestions);
       }
 
-      // Default suggestion handling
+      // Default suggestion handling for non-village contexts
       const existingSuggestions = await db.query.promptSuggestions.findMany({
         where: and(
           eq(promptSuggestions.userId, user.id),
           isNull(promptSuggestions.usedAt),
-          gte(promptSuggestions.expiresAt, now)
+          gte(promptSuggestions.expiresAt, now),
+          or(
+            isNull(promptSuggestions.type),
+            dbIn(promptSuggestions.type, ['follow_up', 'learning', 'stress', 'child_development', 'personal_growth'])
+          )
         ),
         orderBy: desc(promptSuggestions.createdAt),
         limit: 3
