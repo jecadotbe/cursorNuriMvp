@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -6,10 +5,19 @@ export const useBackgroundRefresh = (interval = 5 * 60 * 1000) => { // 5 minutes
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    // Start the refresh interval
     const timer = setInterval(() => {
-      queryClient.invalidateQueries({ queryKey: ['suggestions'] });
+      // Only invalidate if the query exists in the cache
+      if (queryClient.getQueryData(['suggestions'])) {
+        queryClient.invalidateQueries({ queryKey: ['suggestions'] });
+      }
     }, interval);
 
-    return () => clearInterval(timer);
+    // Cleanup function
+    return () => {
+      clearInterval(timer);
+      // Cancel any pending queries when unmounting
+      queryClient.cancelQueries({ queryKey: ['suggestions'] });
+    };
   }, [queryClient, interval]);
 }

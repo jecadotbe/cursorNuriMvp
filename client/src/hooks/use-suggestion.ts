@@ -34,11 +34,12 @@ export function useSuggestion() {
   } = useQuery({
     queryKey: ['suggestions'],
     queryFn: fetchSuggestions,
-    staleTime: 5 * 60 * 1000, // Keep fresh for 5 minutes
-    gcTime: 30 * 60 * 1000,   // Cache for 30 minutes
-    refetchOnMount: true,
-    retry: 1, // Only retry once to prevent long loading states
-    retryDelay: 1000, // Retry after 1 second
+    staleTime: 30 * 60 * 1000, // Keep fresh for 30 minutes
+    gcTime: 60 * 60 * 1000,   // Cache for 1 hour
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: false, // Disable refetch on window focus
+    retry: 1,
+    retryDelay: 1000,
   });
 
   // Get the current suggestion
@@ -56,23 +57,15 @@ export function useSuggestion() {
         method: 'POST',
         credentials: 'include',
       });
-      
+
       // Update local state to remove the dismissed suggestion
       if (suggestions) {
         const updatedSuggestions = suggestions.filter(s => s.id !== suggestionId);
         queryClient.setQueryData(['suggestions'], updatedSuggestions);
-        
+
         if (updatedSuggestions.length > 0) {
-          // Adjust currentIndex if needed
           const newIndex = Math.min(currentIndex, updatedSuggestions.length - 1);
           setCurrentIndex(newIndex);
-        } else {
-          // If no suggestions left, fetch new ones
-          const newSuggestions = await refetchQuery();
-          if (newSuggestions?.data) {
-            queryClient.setQueryData(['suggestions'], Array.isArray(newSuggestions.data) ? newSuggestions.data : [newSuggestions.data]);
-            setCurrentIndex(0);
-          }
         }
       }
     } catch (error) {
@@ -81,15 +74,15 @@ export function useSuggestion() {
   };
 
   const refetch = async (silent = false) => {
+    if (isRefreshing) return; // Prevent concurrent refreshes
+
     try {
       if (!silent) {
         setIsRefreshing(true);
       }
-      console.log('Refetching suggestions...');
       const result = await refetchQuery();
       if (result.data) {
         const newSuggestions = Array.isArray(result.data) ? result.data : [result.data];
-        console.log('New suggestions:', newSuggestions);
         queryClient.setQueryData(['suggestions'], newSuggestions);
         setCurrentIndex(0);
       }
@@ -117,11 +110,10 @@ export function useSuggestion() {
         throw new Error(`${response.status}: ${await response.text()}`);
       }
 
-      // Prefetch new suggestions after marking one as used
-      queryClient.prefetchQuery({
-        queryKey: ['suggestions'],
-        queryFn: fetchSuggestions,
-      });
+      // Instead of prefetching immediately, schedule a background refresh
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['suggestions'] });
+      }, 1000);
     } catch (error) {
       console.error('Failed to mark suggestion as used:', error);
       toast({
