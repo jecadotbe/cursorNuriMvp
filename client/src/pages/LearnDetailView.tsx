@@ -1,272 +1,179 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { ArrowLeft, Heart, MessageSquare, Share2, Volume2, VolumeX, Play, Pause } from "lucide-react";
+import { useState, useRef } from 'react';
+import { ArrowLeft, Volume2, VolumeX, Play, Pause } from "lucide-react";
 import { Link } from "wouter";
-import YouTube from 'react-youtube';
+import ReactPlayer from 'react-player';
 import { Button } from "@/components/ui/button";
-import { motion, AnimatePresence, PanInfo } from "framer-motion";
+import { motion } from "framer-motion";
+import { Slider } from "@/components/ui/slider";
 
 interface VideoData {
   id: string;
   title: string;
   description: string;
   videoUrl: string;
-  isYoutube: boolean;
-  likes?: number;
-  comments?: number;
 }
 
-// Mock data - replace with real data from your backend
 const videos: VideoData[] = [
   {
     id: "1",
     title: "Aware Parenting Introduction",
     description: "Learn about the core principles of Aware Parenting and how it can transform your relationship with your children.",
-    videoUrl: "/videos/demovideo.mp4",
-    isYoutube: false,
-    likes: 245,
-    comments: 23
+    videoUrl: "/videos/demovideo.mp4"
   },
   {
     id: "2",
     title: "Understanding Child Development",
     description: "Discover the key stages of child development and how to support your child's growth.",
-    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    isYoutube: true,
-    likes: 189,
-    comments: 15
+    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
   }
 ];
 
-const VideoPlayer: React.FC<{
-  video: VideoData;
-  isActive: boolean;
-  onVideoEnd: () => void;
-}> = ({ video, isActive, onVideoEnd }) => {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false); // Changed to false by default
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const youtubeRef = useRef<any>(null);
+export default function LearnDetailView() {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const playerRef = useRef<ReactPlayer>(null);
   const [showControls, setShowControls] = useState(true);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (isPlaying) {
-        setShowControls(false);
-      }
-    }, 3000);
+  const handlePlayPause = () => {
+    setPlaying(!playing);
+  };
 
-    return () => clearTimeout(timer);
-  }, [isPlaying, showControls]);
+  const handleProgress = (state: { played: number }) => {
+    setProgress(state.played);
+  };
 
-  useEffect(() => {
-    const handlePlay = async () => {
-      try {
-        if (video.isYoutube && youtubeRef.current?.internalPlayer) {
-          if (isActive && !isPlaying) {
-            await youtubeRef.current.internalPlayer.playVideo();
-            setIsPlaying(true);
-          } else if (!isActive) {
-            await youtubeRef.current.internalPlayer.pauseVideo();
-            setIsPlaying(false);
-          }
-        } else if (videoRef.current) {
-          if (isActive && !isPlaying) {
-            await videoRef.current.play();
-            setIsPlaying(true);
-          } else if (!isActive) {
-            videoRef.current.pause();
-            setIsPlaying(false);
-          }
-        }
-      } catch (error) {
-        console.error('Error controlling video:', error);
-        setIsPlaying(false);
-      }
-    };
-    handlePlay();
-  }, [isActive, video.isYoutube]);
-
-  const togglePlay = async () => {
-    setShowControls(true);
-    try {
-      if (video.isYoutube && youtubeRef.current?.internalPlayer) {
-        const playerState = await youtubeRef.current.internalPlayer.getPlayerState();
-        if (playerState === 1) { // 1 means playing
-          await youtubeRef.current.internalPlayer.pauseVideo();
-          setIsPlaying(false);
-        } else {
-          await youtubeRef.current.internalPlayer.playVideo();
-          setIsPlaying(true);
-        }
-      } else if (videoRef.current) {
-        if (!videoRef.current.paused) {
-          videoRef.current.pause();
-          setIsPlaying(false);
-        } else {
-          await videoRef.current.play();
-          setIsPlaying(true);
-        }
-      }
-    } catch (error) {
-      console.error('Error toggling play state:', error);
+  const handleSeek = (value: number) => {
+    setProgress(value);
+    if (playerRef.current) {
+      playerRef.current.seekTo(value);
     }
+  };
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  const handleVolumeChange = (value: number[]) => {
+    setVolume(value[0]);
   };
 
   const toggleMute = () => {
-    setIsMuted(!isMuted);
-    if (video.isYoutube && youtubeRef.current?.internalPlayer) {
-      youtubeRef.current.internalPlayer.setVolume(isMuted ? 100 : 0);
-    } else if (videoRef.current) {
-      videoRef.current.muted = !isMuted;
-    }
+    setVolume(volume === 0 ? 1 : 0);
   };
-
-  return (
-    <div className="relative w-full h-full" onClick={() => setShowControls(true)}>
-      <div className="absolute inset-0 bg-black">
-        {video.isYoutube ? (
-          <YouTube
-            ref={youtubeRef}
-            videoId={video.videoUrl.split('v=')[1]}
-            className="w-full h-full"
-            opts={{
-              width: '100%',
-              height: '100%',
-              playerVars: {
-                controls: 0,
-                modestbranding: 1,
-                playsinline: 1,
-                rel: 0,
-                showinfo: 0,
-                mute: 0,
-                enablejsapi: 1
-              },
-            }}
-            onEnd={onVideoEnd}
-            onReady={() => {
-              if (isActive && youtubeRef.current?.internalPlayer) {
-                youtubeRef.current.internalPlayer.playVideo();
-              }
-            }}
-            onStateChange={(event) => {
-              setIsPlaying(event.data === 1);
-              setShowControls(true);
-            }}
-            onError={(error) => console.error('YouTube Error:', error)}
-          />
-        ) : (
-          <video
-            ref={videoRef}
-            src={video.videoUrl}
-            className="w-full h-full object-cover"
-            playsInline
-            loop={false}
-            muted={isMuted}
-            onEnded={onVideoEnd}
-          />
-        )}
-      </div>
-
-      <AnimatePresence>
-        {showControls && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/50"
-          >
-            {/* Top navigation */}
-            <div className="absolute top-0 left-0 right-0 p-4">
-              <Button 
-                variant="ghost" 
-                size="lg"
-                className="text-white hover:bg-black/30 rounded-xl p-6" 
-                onClick={() => window.history.back()}
-              >
-                <ArrowLeft className="h-8 w-8" />
-              </Button>
-            </div>
-
-            {/* Center play/pause button */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-white hover:text-white/80 w-16 h-16 rounded-full bg-black/30"
-                onClick={togglePlay}
-              >
-                {isPlaying ? (
-                  <Pause className="h-8 w-8" />
-                ) : (
-                  <Play className="h-8 w-8" />
-                )}
-              </Button>
-            </div>
-
-            {/* Side actions */}
-            <div className="absolute right-4 bottom-20">
-              <Button 
-                variant="ghost" 
-                size="lg"
-                className="text-white hover:bg-black/30 rounded-xl p-6" 
-                onClick={toggleMute}
-              >
-                {isMuted ? <VolumeX className="h-8 w-8" /> : <Volume2 className="h-8 w-8" />}
-              </Button>
-            </div>
-
-            {/* Bottom info */}
-            <div className="absolute bottom-0 left-0 right-0 p-4">
-              <h2 className="text-white text-lg font-semibold mb-2">{video.title}</h2>
-              <p className="text-white/80 text-sm line-clamp-2">{video.description}</p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
-export default function LearnDetailView() {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    const swipeThreshold = 50;
-    if (info.offset.y < -swipeThreshold && currentIndex < videos.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    } else if (info.offset.y > swipeThreshold && currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    }
-  };
-
-  const handleVideoEnd = useCallback(() => {
-    if (currentIndex < videos.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    }
-  }, [currentIndex]);
 
   return (
     <div className="fixed inset-0 bg-black">
-      <motion.div
-        ref={containerRef}
-        className="h-full w-full"
-        drag="y"
-        dragConstraints={{ top: 0, bottom: 0 }}
-        dragElastic={0.2}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="relative h-full w-full">
-          <VideoPlayer
-            video={videos[currentIndex]}
-            isActive={true}
-            onVideoEnd={handleVideoEnd}
-          />
-        </div>
-      </motion.div>
+      <div className="relative h-full w-full" onClick={() => setShowControls(true)}>
+        {/* Video Player */}
+        <ReactPlayer
+          ref={playerRef}
+          url={videos[currentIndex].videoUrl}
+          width="100%"
+          height="100%"
+          playing={playing}
+          volume={volume}
+          onProgress={handleProgress}
+          onDuration={setDuration}
+          style={{ position: 'absolute', top: 0, left: 0 }}
+          progressInterval={100}
+        />
+
+        {/* Overlay Controls */}
+        <motion.div
+          initial={false}
+          animate={{ opacity: showControls ? 1 : 0 }}
+          transition={{ duration: 0.2 }}
+          className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/50"
+        >
+          {/* Top Bar */}
+          <div className="absolute top-0 left-0 right-0 p-4 flex items-center">
+            <Link href="/learn">
+              <Button 
+                variant="ghost" 
+                size="lg"
+                className="text-white hover:bg-black/30 rounded-xl p-6"
+              >
+                <ArrowLeft className="h-8 w-8" />
+              </Button>
+            </Link>
+            <div className="ml-4">
+              <h1 className="text-white text-xl font-semibold">
+                {videos[currentIndex].title}
+              </h1>
+              <p className="text-white/80 text-sm">
+                {videos[currentIndex].description}
+              </p>
+            </div>
+          </div>
+
+          {/* Center Play/Pause Button */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:text-white/80 w-16 h-16 rounded-full bg-black/30"
+              onClick={handlePlayPause}
+            >
+              {playing ? (
+                <Pause className="h-8 w-8" />
+              ) : (
+                <Play className="h-8 w-8" />
+              )}
+            </Button>
+          </div>
+
+          {/* Bottom Controls */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 space-y-4">
+            {/* Timeline */}
+            <div className="flex items-center gap-2">
+              <span className="text-white text-sm">
+                {formatTime(duration * progress)}
+              </span>
+              <Slider
+                value={[progress]}
+                max={1}
+                step={0.001}
+                className="flex-1"
+                onValueChange={(value) => handleSeek(value[0])}
+              />
+              <span className="text-white text-sm">
+                {formatTime(duration)}
+              </span>
+            </div>
+
+            {/* Volume Controls */}
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-white"
+                onClick={toggleMute}
+              >
+                {volume === 0 ? (
+                  <VolumeX className="h-6 w-6" />
+                ) : (
+                  <Volume2 className="h-6 w-6" />
+                )}
+              </Button>
+              <Slider
+                value={[volume]}
+                max={1}
+                step={0.1}
+                className="w-32"
+                onValueChange={handleVolumeChange}
+              />
+            </div>
+          </div>
+        </motion.div>
+      </div>
 
       {/* Progress indicators */}
-      <div className="fixed top-4 left-0 right-0 z-50 flex justify-center gap-1">
+      <div className="fixed top-4 right-4 z-50 flex justify-center gap-1">
         {videos.map((_, index) => (
           <div
             key={index}
