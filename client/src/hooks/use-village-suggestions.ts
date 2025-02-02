@@ -44,13 +44,10 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
     refetchInterval: autoRefresh ? refreshInterval : false,
     select: (data) => {
       let filtered = data;
-      // Only filter by type if types are specified
       if (filterByType.length > 0) {
         filtered = data.filter(s => filterByType.includes(s.type));
       }
-      // Filter out used suggestions
-      filtered = filtered.filter(s => !s.usedAt);
-      console.log('Filtered village suggestions:', filtered); // Debug log
+      filtered = filtered.filter(s => !s.used_at);
       return filtered.slice(0, maxSuggestions);
     }
   });
@@ -64,7 +61,7 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
 
       queryClient.setQueryData(['village-suggestions'], 
         (old: PromptSuggestion[] | undefined) => 
-          old?.map(s => s.id === suggestionId ? {...s, usedAt: new Date()} : s) || []
+          old?.map(s => s.id === suggestionId ? {...s, used_at: new Date()} : s) || []
       );
     } catch (error) {
       toast({
