@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { useSuggestion } from "@/hooks/use-suggestion";
 import { useVillageSuggestions } from "@/hooks/use-village-suggestions";
-import { MessageSquare, Users, Clock, ChevronRight, Wind, Heart, MessageCircle, X, RefreshCw } from "lucide-react";
+import { MessageSquare, Users, Clock, ChevronRight, Wind, Heart, MessageCircle, X, RefreshCw, Check } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 const WelcomeView = () => {
@@ -411,29 +411,54 @@ export default function HomeView() {
           <div className="mt-4 space-y-4">
             {/* Village suggestions */}
             <div className="grid grid-cols-1 gap-3">
-              {villageSuggestions?.map((suggestion) => (
-                <Card key={suggestion.id} className="bg-white hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                      <span className="text-sm font-medium text-orange-500">Suggestie voor je village</span>
-                    </div>
-                    <p className="text-gray-700 mb-2">{suggestion.text}</p>
-                    <div className="flex justify-end">
-                      <button
-                        onClick={() => {
-                          if (suggestion) {
-                            markVillageSuggestionAsUsed(suggestion.id);
-                          }
-                        }}
-                        className="text-gray-400 hover:text-gray-600"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
+              {villageLoading ? (
+                // Loading skeleton
+                Array.from({ length: 2 }).map((_, i) => (
+                  <Card key={`skeleton-${i}`} className="bg-white">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 rounded-full bg-gray-200"></div>
+                        <div className="h-4 bg-gray-200 rounded w-40 animate-pulse"></div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                        <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : villageSuggestions?.length === 0 ? (
+                <Card className="bg-white">
+                  <CardContent className="p-4 text-center text-gray-500">
+                    Geen suggesties beschikbaar op dit moment
                   </CardContent>
                 </Card>
-              ))}
+              ) : (
+                villageSuggestions?.map((suggestion) => (
+                  <Card key={suggestion.id} className="bg-white hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                        <span className="text-sm font-medium text-orange-500">Suggestie voor je village</span>
+                      </div>
+                      <p className="text-gray-700 mb-2">{suggestion.text}</p>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            if (suggestion) {
+                              markVillageSuggestionAsUsed(suggestion.id);
+                            }
+                          }}
+                           className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gray-100 text-sm text-gray-600 hover:bg-gray-200 transition-colors"
+                        >
+                          <span>Voltooid</span>
+                          <Check className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
 
             <div className="flex justify-end">
