@@ -429,11 +429,19 @@ export default function VillageView() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMember.name.trim()) {
+    
+    const validationErrors = [];
+    if (!newMember.name.trim()) validationErrors.push("Name is required");
+    if (!newMember.type) validationErrors.push("Type is required");
+    if (!newMember.circle) validationErrors.push("Circle is required");
+    if (!newMember.category) validationErrors.push("Category is required");
+    if (!newMember.contactFrequency) validationErrors.push("Contact frequency is required");
+
+    if (validationErrors.length > 0) {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Name is required"
+        title: "Validation Error",
+        description: validationErrors.join(", ")
       });
       return;
     }
