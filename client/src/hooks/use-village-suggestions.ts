@@ -47,7 +47,6 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
       if (filterByType.length > 0) {
         filtered = data.filter(s => filterByType.includes(s.type));
       }
-      filtered = filtered.filter(s => !s.usedAt);
       return filtered.slice(0, maxSuggestions);
     }
   });
@@ -63,6 +62,9 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
         (old: PromptSuggestion[] | undefined) => 
           old?.map(s => s.id === suggestionId ? {...s, usedAt: new Date()} : s) || []
       );
+
+      // Invalidate the query to refetch
+      queryClient.invalidateQueries({ queryKey: ['village-suggestions'] });
     } catch (error) {
       toast({
         variant: "destructive",
