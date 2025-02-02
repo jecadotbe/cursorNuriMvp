@@ -1,6 +1,6 @@
 import { useState, useRef, createRef } from "react";
 import { useVillage } from "@/hooks/use-village";
-import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, User, ArrowUpCircle, ArrowDownCircle, ArrowLeftCircle, ArrowRightCircle } from "lucide-react";
+import { ChevronLeft, Plus, ZoomIn, ZoomOut, RotateCcw, Edit2, Trash2, User, ArrowUpCircle, ArrowDownCircle, ArrowLeftCircle, ArrowRightCircle, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -68,14 +68,17 @@ export default function VillageView() {
   const [memberToDelete, setMemberToDelete] = useState<typeof members[0] | null>(null);
   const memberRefs = useRef(new Map());
 
-  const {
+    const {
     suggestions,
     isLoading: isSuggestionsLoading,
-    refetch: refetchSuggestions
+    refetch: refetchSuggestions,
+    dismissSuggestion,
+    nextSuggestion,
   } = useVillageSuggestions({
     autoRefresh: false,
     maxSuggestions: 3
   });
+
 
   const getMemberRef = (memberId: number) => {
     if (!memberRefs.current.has(memberId)) {
@@ -379,7 +382,7 @@ export default function VillageView() {
     return { x: indicatorX, y: indicatorY, Arrow };
   };
 
-  const handleMinimapNavigate = (x: number, y: number) => {
+    const handleMinimapNavigate = (x: number, y: number) => {
     setPosition({ x, y });
   };
 
@@ -607,8 +610,31 @@ export default function VillageView() {
             {suggestions.length > 0 && (
               <div className="mt-2 space-y-2">
                 {suggestions.map((suggestion, index) => (
-                  <div key={suggestion.id} className="text-sm text-gray-600">
-                    {suggestion.text}
+                  <div 
+                    key={suggestion.id} 
+                    className="text-sm text-gray-600 flex items-start gap-2 p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                  >
+                    <div className="w-2 h-2 rounded-full bg-orange-500 mt-2 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p>{suggestion.text}</p>
+                      {suggestion.context && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          {suggestion.context}
+                        </p>
+                      )}
+                    </div>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (suggestion) {
+                          dismissSuggestion(suggestion.id);
+                           nextSuggestion();
+                        }
+                      }}
+                      className="p-1 hover:bg-gray-200 rounded-full"
+                    >
+                      <X className="w-4 h-4 text-gray-400" />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -702,7 +728,7 @@ export default function VillageView() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+             <div className="space-y-2">
               <Label htmlFor="contactFrequency">Contact Frequency</Label>
               <Select
                 value={newMember.contactFrequency || "M"}
@@ -765,11 +791,11 @@ export default function VillageView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <MinimapView
+       <MinimapView
         members={members}
         scale={scale}
         position={position}
-        onNavigate={handleMinimapNavigate}
+         onNavigate={handleMinimapNavigate}
       />
     </div>
   );
