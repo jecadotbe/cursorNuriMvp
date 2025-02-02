@@ -14,14 +14,8 @@ interface VideoData {
 }
 
 const videos: VideoData[] = [
-  {
-    id: "1",
-    title: "Aware Parenting Introduction",
-    description: "Learn about the core principles of Aware Parenting and how it can transform your relationship with your children.",
-    videoUrl: "/videos/demovideo.mp4"
-  },
-  {
-    id: "2",
+   {
+    id: 1,
     title: "Understanding Child Development",
     description: "Discover the key stages of child development and how to support your child's growth.",
     videoUrl: "https://www.youtube.com/watch?v=gwVARm-J1Rg"
