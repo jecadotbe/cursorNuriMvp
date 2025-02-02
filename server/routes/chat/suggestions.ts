@@ -97,16 +97,107 @@ export function setupSuggestionsRoutes(router: Router) {
 
       console.log(`Found ${existingVillageSuggestions.length} existing village suggestions`);
 
-      // Generate new suggestions if we don't have enough
+      // For testing: Add mock suggestions if none exist
       if (existingVillageSuggestions.length < 3) {
-        console.log('Generating new village suggestions');
+        console.log('Adding mock village suggestions');
         try {
-          const newSuggestions = await generateVillageSuggestions(
-            user.id,
-            members,
-            villageContext,
-            memoryService
-          );
+          const mockSuggestions = [
+            // Network Growth suggestions
+            {
+              userId: user.id,
+              text: "Schedule a weekly coffee catch-up with Sarah from your inner circle to strengthen your bond",
+              type: "network_growth",
+              context: "village",
+              relevance: 9,
+              expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+              createdAt: new Date()
+            },
+            {
+              userId: user.id,
+              text: "Plan a playdate with Tom's family to deepen your parenting support connection",
+              type: "network_growth",
+              context: "village",
+              relevance: 8,
+              expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+              createdAt: new Date()
+            },
+            // Network Expansion suggestions
+            {
+              userId: user.id,
+              text: "Join the local parent-teacher association to expand your parenting network",
+              type: "network_expansion",
+              context: "village",
+              relevance: 7,
+              expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+              createdAt: new Date()
+            },
+            {
+              userId: user.id,
+              text: "Consider reaching out to Emma, who also has a child with similar interests",
+              type: "network_expansion",
+              context: "village",
+              relevance: 8,
+              expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+              createdAt: new Date()
+            },
+            // Village Maintenance suggestions
+            {
+              userId: user.id,
+              text: "It's been two weeks since you last connected with your sister - send her a message",
+              type: "village_maintenance",
+              context: "village",
+              relevance: 9,
+              expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+              createdAt: new Date()
+            },
+            {
+              userId: user.id,
+              text: "Check in with your neighbor John about the upcoming community event",
+              type: "village_maintenance",
+              context: "village",
+              relevance: 7,
+              expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+              createdAt: new Date()
+            },
+            {
+              userId: user.id,
+              text: "Plan a monthly family dinner with your parents to maintain regular contact",
+              type: "village_maintenance",
+              context: "village",
+              relevance: 8,
+              expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+              createdAt: new Date()
+            },
+            {
+              userId: user.id,
+              text: "Reconnect with your old friend Lisa who recently became a parent",
+              type: "network_growth",
+              context: "village",
+              relevance: 8,
+              expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+              createdAt: new Date()
+            },
+            {
+              userId: user.id,
+              text: "Join the weekend parent support group at the community center",
+              type: "network_expansion",
+              context: "village",
+              relevance: 7,
+              expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+              createdAt: new Date()
+            },
+            {
+              userId: user.id,
+              text: "Schedule a video call with your mentor to discuss recent parenting challenges",
+              type: "village_maintenance",
+              context: "village",
+              relevance: 9,
+              expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+              createdAt: new Date()
+            }
+          ];
+
+          const newSuggestions = mockSuggestions;
 
           console.log('Generated suggestions:', newSuggestions);
 
