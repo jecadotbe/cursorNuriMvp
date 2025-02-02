@@ -23,9 +23,13 @@ export function ScrollingTicker({ items, className, speed = 30 }: ScrollingTicke
     const containerWidth = containerRef.current.offsetWidth;
     const totalWidth = contentWidth + containerWidth;
 
+    const isMobile = window.innerWidth <= 768;
+    const mobileSpeedMultiplier = 2;
+    
     const animate = () => {
       setTranslateX(prev => {
-        const next = prev - speed / 600; // Reduced speed by factor of 10
+        const speedModifier = isMobile ? speed * mobileSpeedMultiplier : speed;
+        const next = prev - speedModifier / 600;
         return next <= -contentWidth ? 0 : next;
       });
     };
