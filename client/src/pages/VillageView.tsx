@@ -988,12 +988,12 @@ export default function VillageView() {
             <Plus className="w-6 h-6 text-white" />
           </button>
         </SheetTrigger>
-        <SheetContent side="bottom" className="h-[90vh]">
-          <ScrollArea className="h-full w-full pr-4">
-            <SheetHeader>
+        <SheetContent side="bottom" className="h-[90vh] overflow-hidden">
+          <ScrollArea className="h-[calc(100vh-120px)] w-full pr-4">
+            <SheetHeader className="sticky top-0 z-10 bg-background pb-6">
               <SheetTitle>{memberToEdit ? 'Edit Village Member' : 'Add Village Member'}</SheetTitle>
             </SheetHeader>
-            <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+            <form onSubmit={handleSubmit} className="space-y-6 mt-2">
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
               <Input
@@ -1079,7 +1079,7 @@ export default function VillageView() {
                 </SelectContent>
               </Select>
             </div>
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full mb-8">
               {memberToEdit ? 'Update Member' : 'Add Member'}
             </Button>
           </form>
