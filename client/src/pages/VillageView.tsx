@@ -891,7 +891,7 @@ export default function VillageView() {
                     bounds={{
                       left:-getCircleRadius(4),
                       right: getCircleRadius(4),
-                      top: -getCircleRadius4),
+                      top: -getCircleRadius(4),
                       bottom: getCircleRadius(4)
                     }}
                   >
@@ -987,11 +987,11 @@ export default function VillageView() {
             <Plus className="w-6 h-6 text-white" />
           </button>
         </SheetTrigger>
-        <SheetContent side="bottom" className="h-[90vh] overflow-y-auto max-h-[90vh] pb-20">
-          <SheetHeader className="sticky top-0 z-10 bg-background pt-6 pb-4">
+        <SheetContent side="bottom" className="h-[90vh] overflow-y-auto">
+          <SheetHeader>
             <SheetTitle>{memberToEdit ? 'Edit Village Member' : 'Add Village Member'}</SheetTitle>
           </SheetHeader>
-          <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+          <form onSubmit={handleSubmit} className="space-y-4 mt-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
               <Input
