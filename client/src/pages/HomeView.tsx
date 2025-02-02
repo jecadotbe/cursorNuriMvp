@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { useSuggestion } from "@/hooks/use-suggestion";
+import { useVillageSuggestions } from "@/hooks/use-village-suggestions";
 import { MessageSquare, Users, Clock, ChevronRight, Wind, Heart, MessageCircle, X, RefreshCw } from "lucide-react";
 import { Link, useLocation } from "wouter";
 

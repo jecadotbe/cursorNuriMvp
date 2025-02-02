@@ -276,3 +276,32 @@ export function setupSuggestionsRoutes(router: Router) {
 
   return router;
 }
+import { Router } from "express";
+import { db } from "@db";
+import { promptSuggestions, type User } from "@db/schema";
+import { eq, and, isNull } from "drizzle-orm";
+import { generateVillageSuggestions } from "../../lib/suggestion-generator";
+import { memoryService } from "../../services/memory";
+
+export const suggestionsRouter = Router();
+
+suggestionsRouter.get("/village", async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const suggestions = await generateVillageSuggestions(
+      userId,
+      [], // You'll need to pass actual village members here
+      [], // Recent chats
+      memoryService
+    );
+
+    res.json(suggestions);
+  } catch (error) {
+    console.error("Error generating village suggestions:", error);
+    res.status(500).json({ message: "Failed to generate suggestions" });
+  }
+});
