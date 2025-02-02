@@ -11,7 +11,7 @@ export function setupSuggestionsRoutes(router: Router) {
   router.get("/suggestions/village", async (req, res) => {
     try {
       if (!req.isAuthenticated() || !req.user) {
-        return res.status(401).send("Not authenticated");
+        return res.status(401).json({ error: "Not authenticated" });
       }
 
       const user = req.user as User;
@@ -19,14 +19,20 @@ export function setupSuggestionsRoutes(router: Router) {
 
       console.log('Fetching village suggestions for user:', user.id);
 
-      // 1. Get village members
+      // 1. Get village members with error handling
       const members = await db.query.villageMembers.findMany({
         where: eq(villageMembers.userId, user.id),
+      }).catch(error => {
+        console.error('Error fetching village members:', error);
+        return [];
       });
 
-      // 2. Get parent profile
+      // 2. Get parent profile with error handling
       const parentProfile = await db.query.parentProfiles.findFirst({
         where: eq(parentProfiles.userId, user.id),
+      }).catch(error => {
+        console.error('Error fetching parent profile:', error);
+        return null;
       });
 
       if (!parentProfile) {
@@ -34,30 +40,41 @@ export function setupSuggestionsRoutes(router: Router) {
         return res.json([]);
       }
 
-      // 3. Get recent chats
+      // 3. Get recent chats with error handling
       const recentChats = await db.query.chats.findMany({
         where: eq(chats.userId, user.id),
         orderBy: desc(chats.updatedAt),
         limit: 3
+      }).catch(error => {
+        console.error('Error fetching recent chats:', error);
+        return [];
       });
 
-      // 4. Prepare context object
+      // 4. Prepare context object with safe defaults
       const villageContext = {
         recentChats,
         parentProfile,
-        childProfiles: parentProfile.onboardingData?.childProfiles || [],
-        challenges: parentProfile.onboardingData?.stressAssessment?.primaryConcerns || [],
+        childProfiles: Array.isArray(parentProfile?.onboardingData?.childProfiles) 
+          ? parentProfile.onboardingData.childProfiles 
+          : [],
+        challenges: Array.isArray(parentProfile?.onboardingData?.stressAssessment?.primaryConcerns)
+          ? parentProfile.onboardingData.stressAssessment.primaryConcerns
+          : [],
         memories: []
       };
 
-      // 5. Get existing village suggestions
+      // 5. Get existing village suggestions with type filtering
       const existingVillageSuggestions = await db.query.promptSuggestions.findMany({
         where: and(
           eq(promptSuggestions.userId, user.id),
           isNull(promptSuggestions.usedAt),
-          gte(promptSuggestions.expiresAt, now)
+          gte(promptSuggestions.expiresAt, now),
+          eq(promptSuggestions.context, 'village')
         ),
         orderBy: desc(promptSuggestions.createdAt),
+      }).catch(error => {
+        console.error('Error fetching existing village suggestions:', error);
+        return [];
       });
 
       console.log(`Found ${existingVillageSuggestions.length} existing village suggestions`);
@@ -65,24 +82,39 @@ export function setupSuggestionsRoutes(router: Router) {
       // Generate new suggestions if we don't have enough
       if (existingVillageSuggestions.length < 3) {
         console.log('Generating new village suggestions');
-        const newSuggestions = await generateVillageSuggestions(
-          user.id,
-          members,
-          villageContext,
-          memoryService
-        );
+        try {
+          const newSuggestions = await generateVillageSuggestions(
+            user.id,
+            members,
+            villageContext,
+            memoryService
+          );
 
-        if (newSuggestions.length > 0) {
-          await db.insert(promptSuggestions).values(newSuggestions);
-          console.log(`Generated and inserted ${newSuggestions.length} new suggestions`);
-          return res.json([...existingVillageSuggestions, ...newSuggestions]);
+          if (newSuggestions && newSuggestions.length > 0) {
+            const inserted = await db.insert(promptSuggestions)
+              .values(newSuggestions)
+              .returning()
+              .catch(error => {
+                console.error('Error inserting new suggestions:', error);
+                return [];
+              });
+
+            console.log(`Generated and inserted ${newSuggestions.length} new suggestions`);
+
+            // Combine existing and new suggestions
+            const allSuggestions = [...existingVillageSuggestions, ...newSuggestions];
+            return res.json(allSuggestions);
+          }
+        } catch (error) {
+          console.error('Error generating new suggestions:', error);
         }
       }
 
+      // Return existing suggestions if generation failed or wasn't needed
       return res.json(existingVillageSuggestions);
     } catch (error) {
       console.error('Error in /suggestions/village:', error);
-      res.status(500).json({ message: "Failed to fetch village suggestions" });
+      return res.status(500).json({ error: "Failed to fetch village suggestions" });
     }
   });
 
