@@ -423,7 +423,7 @@ export default function HomeView() {
               )
             }))}
             className="py-2"
-            speed={30}
+            speed={5}
           />
         </div>
       </div>

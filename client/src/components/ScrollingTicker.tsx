@@ -25,7 +25,7 @@ export function ScrollingTicker({ items, className, speed = 30 }: ScrollingTicke
 
     const animate = () => {
       setTranslateX(prev => {
-        const next = prev - speed / 60;
+        const next = prev - speed / 600; // Reduced speed by factor of 10
         return next <= -contentWidth ? 0 : next;
       });
     };
