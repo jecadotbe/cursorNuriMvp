@@ -88,7 +88,7 @@ export default function LearnDetailView() {
           initial={false}
           animate={{ opacity: showControls ? 1 : 0 }}
           transition={{ duration: 0.2 }}
-          className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/50"
+          className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/50 z-50"
         >
           {/* Top Bar */}
           <div className="absolute top-0 left-0 right-0 p-4 flex items-center">
