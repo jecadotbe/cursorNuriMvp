@@ -78,10 +78,12 @@ export default function HomeView() {
   const {
     suggestions: villageSuggestions,
     isLoading: villageLoading,
+    error: villageError,
     markAsUsed: markVillageSuggestionAsUsed,
+    refetch: refetchVillageSuggestions
   } = useVillageSuggestions({
     autoRefresh: true,
-    maxSuggestions: 3,
+    maxSuggestions: 5,
     filterByType: ['village_maintenance', 'network_growth', 'network_expansion']
   });
 
@@ -403,9 +405,20 @@ export default function HomeView() {
             backgroundSize: "contain",
           }}
         >
-          <div className="flex items-center gap-2 mb-2">
-            <img src="/images/VillageIcon.svg" alt="Village" className="w-6 h-6" />
-            <h2 className="text-2xl font-baskerville">Mijn Village</h2>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <img src="/images/VillageIcon.svg" alt="Village" className="w-6 h-6" />
+              <h2 className="text-2xl font-baskerville">Mijn Village</h2>
+            </div>
+            {!villageLoading && villageSuggestions?.length > 0 && (
+              <button
+                onClick={() => refetchVillageSuggestions()}
+                className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Vernieuw suggesties</span>
+              </button>
+            )}
           </div>
           <h3 className="text-l mb-4">Laat je Village bloeien</h3>
 
@@ -414,7 +427,7 @@ export default function HomeView() {
             <div className="grid grid-cols-1 gap-3">
               {villageLoading ? (
                 // Loading skeleton
-                Array.from({ length: 2 }).map((_, i) => (
+                Array.from({ length: 3 }).map((_, i) => (
                   <Card key={`skeleton-${i}`} className="bg-white">
                     <CardContent className="p-4">
                       <div className="flex items-center gap-2 mb-2">
@@ -428,6 +441,12 @@ export default function HomeView() {
                     </CardContent>
                   </Card>
                 ))
+              ) : villageError ? (
+                <Card className="bg-white">
+                  <CardContent className="p-4 text-center text-red-500">
+                    Er ging iets mis bij het ophalen van de suggesties
+                  </CardContent>
+                </Card>
               ) : villageSuggestions?.length === 0 ? (
                 <Card className="bg-white">
                   <CardContent className="p-4 text-center text-gray-500">
@@ -436,19 +455,30 @@ export default function HomeView() {
                 </Card>
               ) : (
                 villageSuggestions?.map((suggestion) => (
-                  <Card key={suggestion.id} className="bg-white hover:shadow-md transition-shadow">
+                  <Card 
+                    key={suggestion.id} 
+                    className="bg-white hover:shadow-md transition-shadow"
+                  >
                     <CardContent className="p-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-2 h-2 rounded-full" style={{
-                          backgroundColor: suggestion.type === 'network_growth' ? '#10B981' :
-                            suggestion.type === 'network_expansion' ? '#3B82F6' :
-                            '#F59E0B' // village_maintenance
-                        }}></div>
-                        <span className="text-sm font-medium" style={{
-                          color: suggestion.type === 'network_growth' ? '#10B981' :
-                            suggestion.type === 'network_expansion' ? '#3B82F6' :
-                            '#F59E0B'
-                        }}>
+                        <div 
+                          className="w-2 h-2 rounded-full" 
+                          style={{
+                            backgroundColor: 
+                              suggestion.type === 'network_growth' ? '#10B981' :
+                              suggestion.type === 'network_expansion' ? '#3B82F6' :
+                              '#F59E0B' // village_maintenance
+                          }}
+                        />
+                        <span 
+                          className="text-sm font-medium"
+                          style={{
+                            color: 
+                              suggestion.type === 'network_growth' ? '#10B981' :
+                              suggestion.type === 'network_expansion' ? '#3B82F6' :
+                              '#F59E0B'
+                          }}
+                        >
                           {suggestion.type === 'network_growth' ? 'Versterk je village' :
                            suggestion.type === 'network_expansion' ? 'Breidt je village uit' :
                            'Onderhoud je village'}
@@ -462,10 +492,10 @@ export default function HomeView() {
                               markVillageSuggestionAsUsed(suggestion.id);
                             }
                           }}
-                           className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gray-100 text-sm text-gray-600 hover:bg-gray-200 transition-colors"
+                          className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gray-100 text-sm text-gray-600 hover:bg-gray-200 transition-colors"
                         >
-                          <span>Voltooid</span>
                           <Check className="w-4 h-4" />
+                          <span>Voltooid</span>
                         </button>
                       </div>
                     </CardContent>
