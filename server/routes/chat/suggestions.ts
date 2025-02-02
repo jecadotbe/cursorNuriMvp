@@ -1,11 +1,10 @@
 import { Router } from "express";
 import { db } from "@db";
-import { promptSuggestions, suggestionFeedback, chats, villageMembers } from "@db/schema";
+import { promptSuggestions, suggestionFeedback, chats, villageMembers, parentProfiles } from "@db/schema";
 import { eq, desc, and, isNull, gte, or, in as dbIn } from "drizzle-orm";
-import { anthropic } from "../../anthropic";
-import type { User } from "../../auth";
 import { generateVillageSuggestions } from "../../lib/suggestion-generator";
 import { memoryService } from "../../services/memory";
+import type { User } from "../../auth";
 
 const SUGGESTION_CATEGORIES = {
   LEARNING: "learning",
@@ -24,53 +23,80 @@ const VILLAGE_SUGGESTION_TYPES = [
 export function setupSuggestionsRoutes(router: Router) {
   // Get suggestions with optional village context
   router.get("/suggestions", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).send("Not authenticated");
-    }
-
-    const user = req.user as User;
-    const now = new Date();
-    const context = req.query.context as string | undefined;
-
     try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).send("Not authenticated");
+      }
+
+      const user = req.user as User;
+      const now = new Date();
+      const context = req.query.context as string | undefined;
+
       // If village context is requested, generate village-specific suggestions
       if (context === 'village') {
+        console.log('Fetching village suggestions for user:', user.id);
+
+        // 1. Get village members
         const members = await db.query.villageMembers.findMany({
           where: eq(villageMembers.userId, user.id),
         });
 
+        // 2. Get parent profile and child profiles
+        const parentProfile = await db.query.parentProfiles.findFirst({
+          where: eq(parentProfiles.userId, user.id),
+        });
+
+        if (!parentProfile) {
+          console.log('No parent profile found for user:', user.id);
+          return res.json([]);
+        }
+
+        // 3. Get recent chats
         const recentChats = await db.query.chats.findMany({
           where: eq(chats.userId, user.id),
           orderBy: desc(chats.updatedAt),
-          limit: 2
+          limit: 3
         });
 
-        // Get existing village suggestions
+        // 4. Prepare context object
+        const villageContext = {
+          recentChats,
+          parentProfile,
+          childProfiles: Array.isArray(parentProfile.onboardingData?.childProfiles) 
+            ? parentProfile.onboardingData.childProfiles 
+            : [],
+          challenges: parentProfile.onboardingData?.stressAssessment?.primaryConcerns || [],
+          memories: [] // Will be fetched in generateVillageSuggestions
+        };
+
+        // 5. Get existing village suggestions
         const existingVillageSuggestions = await db.query.promptSuggestions.findMany({
           where: and(
             eq(promptSuggestions.userId, user.id),
             isNull(promptSuggestions.usedAt),
             gte(promptSuggestions.expiresAt, now),
-            dbIn(promptSuggestions.type, VILLAGE_SUGGESTION_TYPES)
+            dbIn(promptSuggestions.type, ['village_maintenance', 'network_growth', 'network_expansion'])
           ),
           orderBy: desc(promptSuggestions.createdAt),
         });
 
+        console.log(`Found ${existingVillageSuggestions.length} existing village suggestions`);
+
         // Generate new suggestions if we don't have enough
         if (existingVillageSuggestions.length < 3) {
+          console.log('Generating new village suggestions');
           const newSuggestions = await generateVillageSuggestions(
             user.id,
             members,
-            recentChats,
+            villageContext,
             memoryService
           );
 
           if (newSuggestions.length > 0) {
-            await db.insert(promptSuggestions).values(newSuggestions);
+            const [inserted] = await db.insert(promptSuggestions).values(newSuggestions).returning();
+            console.log(`Generated and inserted ${newSuggestions.length} new suggestions`);
+            return res.json([...existingVillageSuggestions, ...newSuggestions]);
           }
-
-          // Combine existing and new suggestions
-          return res.json([...existingVillageSuggestions, ...newSuggestions]);
         }
 
         return res.json(existingVillageSuggestions);
@@ -82,13 +108,8 @@ export function setupSuggestionsRoutes(router: Router) {
           eq(promptSuggestions.userId, user.id),
           isNull(promptSuggestions.usedAt),
           gte(promptSuggestions.expiresAt, now),
-          or(
-            isNull(promptSuggestions.type),
-            dbIn(promptSuggestions.type, ['follow_up', 'learning', 'stress', 'child_development', 'personal_growth'])
-          )
         ),
         orderBy: desc(promptSuggestions.createdAt),
-        limit: 3
       });
 
       res.json(existingSuggestions);
@@ -98,7 +119,7 @@ export function setupSuggestionsRoutes(router: Router) {
     }
   });
 
-    // Generate suggestions based on chat context
+  // Generate suggestions based on chat context
   router.post("/suggestions/generate", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
@@ -302,32 +323,3 @@ export function setupSuggestionsRoutes(router: Router) {
 
   return router;
 }
-import { Router } from "express";
-import { db } from "@db";
-import { promptSuggestions, type User } from "@db/schema";
-import { eq, and, isNull } from "drizzle-orm";
-import { generateVillageSuggestions } from "../../lib/suggestion-generator";
-import { memoryService } from "../../services/memory";
-
-export const suggestionsRouter = Router();
-
-suggestionsRouter.get("/village", async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    const suggestions = await generateVillageSuggestions(
-      userId,
-      [], // You'll need to pass actual village members here
-      [], // Recent chats
-      memoryService
-    );
-
-    res.json(suggestions);
-  } catch (error) {
-    console.error("Error generating village suggestions:", error);
-    res.status(500).json({ message: "Failed to generate suggestions" });
-  }
-});
