@@ -105,7 +105,7 @@ export default function ChatHistoryView() {
         {isLoading ? (
           <div className="text-center py-4 text-gray-500">Laden...</div>
         ) : chats.length === 0 ? (
-          <div className="space-y-6">
+          <div className="space-y-8 pt-8">
             <div className="text-center space-y-4">
               <h2 className="text-2xl font-baskerville">Welkom bij Nuri</h2>
               <p className="text-gray-600">Wat fijn dat je op deze geweldig spannende reis wilt gaan met ons.</p>
@@ -113,7 +113,7 @@ export default function ChatHistoryView() {
             <Card className="bg-white hover:shadow-md transition-all rounded-2xl shadow-sm border-0 cursor-pointer" onClick={startNewChat}>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Start een nieuw gesprek</span>
+                  <span className="text-gray-600">Start je eerste gesprek met Nuri</span>
                   <Plus className="w-5 h-5 text-gray-400" />
                 </div>
               </CardContent>
