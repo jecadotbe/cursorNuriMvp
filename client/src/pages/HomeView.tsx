@@ -75,17 +75,30 @@ export default function HomeView() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [showSkeleton, setShowSkeleton] = useState(true);
+  const [hasSuggestions, setHasSuggestions] = useState(false);
 
+  // Effect to handle suggestion loading state
   useEffect(() => {
-    if (!suggestionLoading) {
-      const timer = setTimeout(() => {
-        setShowSkeleton(false);
-      }, 300);
-      return () => clearTimeout(timer);
+    if (!suggestionLoading && suggestions?.length > 0) {
+      // Force re-render when suggestions are available
+      setHasSuggestions(true);
+      setShowSkeleton(false);
+    } else if (!suggestionLoading && suggestions?.length === 0) {
+      // Handle case when no suggestions are available
+      setHasSuggestions(false);
+      setShowSkeleton(false);
     }
-  }, [suggestionLoading]);
+  }, [suggestionLoading, suggestions]);
 
-  const shouldShowSkeleton = showSkeleton || suggestionLoading || (!suggestion);
+  // Effect to refresh suggestions if needed
+  useEffect(() => {
+    if (!hasSuggestions && !suggestionLoading) {
+      refetch().catch(console.error);
+    }
+  }, [hasSuggestions, suggestionLoading, refetch]);
+
+  const shouldShowSkeleton = showSkeleton || suggestionLoading || (!hasSuggestions && !suggestion);
+
   const [showFeedback, setShowFeedback] = useState(false);
   const [currentSuggestionId, setCurrentSuggestionId] = useState<number | null>(null);
   const { toast } = useToast();
