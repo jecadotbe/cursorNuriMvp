@@ -57,36 +57,17 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
       console.log('Processing village suggestions:', data);
       let filtered = data;
 
-      console.log('Raw data from API:', data);
-      
-      // Ensure data is an array
-      if (!Array.isArray(data)) {
-        console.error('API response is not an array:', data);
-        return [];
-      }
-
-      // First filter by type if specified
       if (filterByType.length > 0) {
+        console.log('Before type filtering:', data);
         console.log('Filtering by types:', filterByType);
-        filtered = data.filter(s => {
-          const isValidType = filterByType.includes(s.type);
-          console.log(`Suggestion ${s.id}: type=${s.type}, included=${isValidType}`);
-          return isValidType;
-        });
+        filtered = data.filter(s => filterByType.includes(s.type));
+        console.log('After type filtering:', filtered);
       }
 
-      // Then filter out used suggestions
-      filtered = filtered.filter(s => {
-        const isUnused = !s.usedAt;
-        console.log(`Suggestion ${s.id}: usedAt=${s.usedAt}, unused=${isUnused}`);
-        return isUnused;
-      });
+      filtered = filtered.filter(s => !s.usedAt);
+      console.log('Filtered unused suggestions:', filtered);
 
-      // Take max number of suggestions
-      const result = filtered.slice(0, maxSuggestions);
-      console.log('Final filtered suggestions:', result);
-
-      return result;
+      return filtered.slice(0, maxSuggestions);
     }
   });
 
