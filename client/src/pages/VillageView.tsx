@@ -91,6 +91,16 @@ interface MemberContentProps {
   onDelete: (member: VillageMember) => void;
 }
 
+interface MemberContentProps {
+  member: VillageMember;
+  position: { x: number; y: number };
+  isRearrangeMode: boolean;
+  onEdit: (member: VillageMember) => void;
+  onSetMemory: (member: VillageMember) => void;
+  onDelete: (member: VillageMember) => void;
+  isHighlighted?: boolean;
+}
+
 const MemberContent: React.FC<MemberContentProps> = ({
   member,
   position,
@@ -122,7 +132,7 @@ const MemberContent: React.FC<MemberContentProps> = ({
           member.contactFrequency === 'XL' ? '1.75rem' : '0.5rem'
       }}
     />
-    <div className="flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB] max-w-[150px]">
+    <div className={`flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB] max-w-[150px] ${isHighlighted ? 'highlight-animation' : ''}`}>
       <div 
         className="cursor-pointer flex-1 min-w-0"
         onTouchEnd={(e) => {
@@ -427,7 +437,9 @@ export default function VillageView() {
     setIsDragging(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const [lastAddedMember, setLastAddedMember] = useState<number | null>(null);
+
+const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const validationErrors = [];
@@ -451,7 +463,7 @@ export default function VillageView() {
 
     try {
       if (memberToEdit) {
-        await updateMember({
+        const updated = await updateMember({
           id: memberToEdit.id,
           name: newMember.name,
           type: newMember.type,
@@ -461,8 +473,21 @@ export default function VillageView() {
           positionAngle: memberToEdit.positionAngle
         });
         setMemberToEdit(null);
+        setLastAddedMember(updated.id);
       } else {
-        await addMember(newMember);
+        const added = await addMember(newMember);
+        setLastAddedMember(added.id);
+        
+        // Reset position and scale to see the new member
+        const radius = getCircleRadius(newMember.circle - 1);
+        const angle = Math.random() * 2 * Math.PI;
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius;
+        
+        setPosition({ 
+          x: -x * scale, 
+          y: -y * scale 
+        });
       }
       setIsOpen(false);
       setNewMember({
@@ -953,6 +978,7 @@ export default function VillageView() {
                           setIsMemoryDialogOpen(true);
                         }}
                     onDelete={setMemberToDelete}
+                    isHighlighted={lastAddedMember === member.id}
                   />
                 </div>
               );
