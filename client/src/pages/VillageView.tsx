@@ -235,8 +235,14 @@ export default function VillageView() {
     tags: [] as string[],
     date: format(new Date(), "yyyy-MM-dd")
   });
-  const { suggestions, isLoading, markAsUsed } = useVillageSuggestions({
-    autoRefresh: true,
+    // Update the suggestions hook usage to include refetch
+  const {
+    suggestions,
+    isLoading: isSuggestionsLoading,
+    refetch: refetchSuggestions,
+    markAsUsed
+  } = useVillageSuggestions({
+    autoRefresh: false,
     maxSuggestions: 5,
     filterByType: ['network_gap', 'village_interaction']
   });
@@ -710,50 +716,59 @@ export default function VillageView() {
         <SheetContent side="bottom" className="h-[90vh]">
           <SheetHeader>
             <SheetTitle>Dorpsuggesties</SheetTitle>
+            <div className="flex justify-end">
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={() => refetchSuggestions()}
+                disabled={isSuggestionsLoading}
+              >
+                {isSuggestionsLoading ? (
+                  <span className="animate-spin">↻</span>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <RotateCcw className="w-4 h-4" />
+                    <span>Ververs suggesties</span>
+                  </div>
+                )}
+              </Button>
+            </div>
           </SheetHeader>
-          <div className="space-y-4">
-            {isLoading ? (
+          <div className="space-y-4 mt-4">
+            {isSuggestionsLoading ? (
               <div className="text-center py-8">
                 <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
                 <p className="mt-2 text-gray-600">Laden...</p>
               </div>
-            ) : !suggestions || !Array.isArray(suggestions) || suggestions.filter(s => !s.dismissed).length === 0 ? (
+            ) : !suggestions || !suggestions.length ? (
               <div className="text-center py-8 px-4">
                 <Lightbulb className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600">
-                  Helemaal klaar voor vandaag. Als er nieuwe suggesties zijn kan je die hier altijd vinden!
+                  Geen suggesties beschikbaar. Klik op ververs om nieuwe suggesties op te halen.
                 </p>
               </div>
             ) : (
-              suggestions.map((insight) => (
-                !insight.dismissed && (
-                  <Card key={insight.id}>
-                    <CardContent className="pt-6">
-                      <div className="flex items-start gap-4">
-                        <div className="flex-1">
-                          <h3 className="font-semibold mb-1">{insight.title}</h3>
-                          <p className="text-sm text-gray-600">{insight.description}</p>
-                          {insight.suggestedAction && (
-                            <p className="text-sm text-gray-600 mt-2 italic">
-                              Suggestie: {insight.suggestedAction}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex gap-2">
-                          <Badge variant={insight.priority > 3 ? "default" : "secondary"}>
-                            Prioriteit {insight.priority}
-                          </Badge>
-                          <Button variant="ghost" onClick={() => handleInsightAction(insight.id)}>
-                            {insight.type === "network_gap" ? "Voeg toe" : "OK"}
-                          </Button>
-                          <Button variant="ghost" onClick={() => dismissInsight(insight.id)}>
-                            Verwijder
-                          </Button>
-                        </div>
+              suggestions.map((suggestion) => (
+                <Card key={suggestion.id}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-start gap-4">
+                      <div className="flex-1">
+                        <h3 className="font-semibold mb-1">{suggestion.text}</h3>
+                        <p className="text-sm text-gray-600 mt-2 italic">
+                          Context: {suggestion.context}
+                        </p>
                       </div>
-                    </CardContent>
-                  </Card>
-                )
+                      <div className="flex gap-2">
+                        <Badge variant={suggestion.relevance > 3 ? "default" : "secondary"}>
+                          Prioriteit {suggestion.relevance}
+                        </Badge>
+                        <Button variant="ghost" onClick={() => markAsUsed(suggestion.id)}>
+                          Verwijder
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               ))
             )}
           </div>
