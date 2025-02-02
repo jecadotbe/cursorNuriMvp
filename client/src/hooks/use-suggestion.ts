@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { PromptSuggestion } from "@db/schema";
 import { useToast } from "./use-toast";
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 
 async function fetchSuggestions(): Promise<PromptSuggestion[]> {
   console.log('Fetching suggestions...');
@@ -25,6 +25,25 @@ export function useSuggestion() {
   const queryClient = useQueryClient();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const lastFetchTime = useRef(Date.now());
+  const fetchDebounceTimer = useRef<NodeJS.Timeout>();
+
+  const debouncedFetch = useCallback(() => {
+    if (fetchDebounceTimer.current) {
+      clearTimeout(fetchDebounceTimer.current);
+    }
+
+    // Only fetch if more than 5 seconds have passed since last fetch
+    const timeSinceLastFetch = Date.now() - lastFetchTime.current;
+    if (timeSinceLastFetch < 5000) {
+      return;
+    }
+
+    fetchDebounceTimer.current = setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: ['suggestions'] });
+      lastFetchTime.current = Date.now();
+    }, 1000);
+  }, [queryClient]);
 
   const {
     data: suggestions,
@@ -34,12 +53,13 @@ export function useSuggestion() {
   } = useQuery({
     queryKey: ['suggestions'],
     queryFn: fetchSuggestions,
-    staleTime: 30 * 60 * 1000, // Keep fresh for 30 minutes
-    gcTime: 60 * 60 * 1000,   // Cache for 1 hour
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: false, // Disable refetch on window focus
+    staleTime: 60 * 60 * 1000, // Keep fresh for 60 minutes
+    gcTime: 2 * 60 * 60 * 1000, // Cache for 2 hours
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
     retry: 1,
     retryDelay: 1000,
+    enabled: true
   });
 
   // Get the current suggestion
@@ -58,7 +78,6 @@ export function useSuggestion() {
         credentials: 'include',
       });
 
-      // Update local state to remove the dismissed suggestion
       if (suggestions) {
         const updatedSuggestions = suggestions.filter(s => s.id !== suggestionId);
         queryClient.setQueryData(['suggestions'], updatedSuggestions);
@@ -74,7 +93,12 @@ export function useSuggestion() {
   };
 
   const refetch = async (silent = false) => {
-    if (isRefreshing) return; // Prevent concurrent refreshes
+    if (isRefreshing) return;
+
+    const timeSinceLastFetch = Date.now() - lastFetchTime.current;
+    if (timeSinceLastFetch < 5000) {
+      return;
+    }
 
     try {
       if (!silent) {
@@ -85,6 +109,7 @@ export function useSuggestion() {
         const newSuggestions = Array.isArray(result.data) ? result.data : [result.data];
         queryClient.setQueryData(['suggestions'], newSuggestions);
         setCurrentIndex(0);
+        lastFetchTime.current = Date.now();
       }
     } catch (error) {
       console.error('Failed to refetch suggestions:', error);
@@ -110,10 +135,7 @@ export function useSuggestion() {
         throw new Error(`${response.status}: ${await response.text()}`);
       }
 
-      // Instead of prefetching immediately, schedule a background refresh
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['suggestions'] });
-      }, 1000);
+      debouncedFetch();
     } catch (error) {
       console.error('Failed to mark suggestion as used:', error);
       toast({

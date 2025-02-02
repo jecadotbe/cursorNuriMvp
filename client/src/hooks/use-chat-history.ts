@@ -19,29 +19,6 @@ async function fetchChatHistory(): Promise<Chat[]> {
   return response.json();
 }
 
-async function fetchSuggestion(): Promise<PromptSuggestion> {
-  const response = await fetch('/api/suggestions', {
-    credentials: 'include',
-  });
-
-  if (!response.ok) {
-    throw new Error(`${response.status}: ${await response.text()}`);
-  }
-
-  return response.json();
-}
-
-async function markSuggestionAsUsed(id: number): Promise<void> {
-  const response = await fetch(`/api/suggestions/${id}/use`, {
-    method: 'POST',
-    credentials: 'include',
-  });
-
-  if (!response.ok) {
-    throw new Error(`${response.status}: ${await response.text()}`);
-  }
-}
-
 export function useChatHistory() {
   const { toast } = useToast();
   const { user, isLoading: isUserLoading } = useUser();
@@ -53,52 +30,16 @@ export function useChatHistory() {
     staleTime: 5000, // Consider data fresh for 5 seconds
   });
 
-  const { 
-    data: suggestion, 
-    isLoading: isSuggestionLoading,
-    error: suggestionError,
-    refetch: refetchSuggestion 
-  } = useQuery<PromptSuggestion>({
-    queryKey: ["suggestion"],
-    queryFn: fetchSuggestion,
-    enabled: !!user,
-    retry: false,
-    staleTime: 0, // Always fetch fresh data
-    refetchOnMount: true, // Refetch when component mounts
-    refetchOnWindowFocus: true, // Refetch when window gains focus
-    onError: (error: Error) => {
-      console.error('Failed to fetch suggestion:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load suggestion",
-      });
-    },
-  } as UseQueryOptions<PromptSuggestion, Error>);
-
   const getLatestPrompt = async () => {
     try {
       if (!user) {
         throw new Error("User not authenticated");
       }
 
-      if (suggestion) {
-        return {
-          prompt: {
-            text: suggestion.text,
-            type: suggestion.type,
-            context: suggestion.context,
-            relatedChatId: suggestion.relatedChatId?.toString(),
-            relatedChatTitle: suggestion.relatedChatTitle,
-            suggestionId: suggestion.id
-          }
-        };
-      }
-
-      // Fallback to default prompt if no suggestion is available
+      // Fallback to default prompt
       return {
         prompt: {
-          text: "Let's talk about your parenting journey",
+          text: "Let's continue our conversation about parenting",
           type: "action",
           context: "new"
         }
@@ -116,26 +57,11 @@ export function useChatHistory() {
     }
   };
 
-  const markPromptAsUsed = async (suggestionId: number) => {
-    try {
-      await markSuggestionAsUsed(suggestionId);
-      await refetchSuggestion(); // Fetch a new suggestion after marking the current one as used
-    } catch (error) {
-      console.error('Failed to mark suggestion as used:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to mark suggestion as used",
-      });
-    }
-  };
-
   return {
     chats,
-    isLoading: isUserLoading || isChatsLoading || isSuggestionLoading,
-    error: chatsError || suggestionError,
+    isLoading: isUserLoading || isChatsLoading,
+    error: chatsError,
     refetch: refetchChats,
     getLatestPrompt,
-    markPromptAsUsed,
   };
 }
