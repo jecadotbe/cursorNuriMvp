@@ -1151,6 +1151,64 @@ const handleSubmit = async (e: React.FormEvent) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* List View */}
+      {showListView && (
+        <div className="fixed inset-0 bg-white z-40 overflow-auto pt-20 px-4">
+          <ScrollArea className="h-[calc(100vh-100px)]">
+            <div className="space-y-4 mb-20">
+              {[1, 2, 3, 4, 5].map((circle) => (
+                <div key={circle}>
+                  <h3 className="text-lg font-semibold mb-2">Circle {circle}</h3>
+                  <div className="space-y-2">
+                    {members
+                      .filter((member) => member.circle === circle)
+                      .map((member) => (
+                        <div
+                          key={member.id}
+                          className="flex items-center justify-between bg-white p-3 rounded-lg border"
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{
+                                backgroundColor: member.category ? CATEGORY_COLORS[member.category] : "#6b7280",
+                              }}
+                            />
+                            <span>{member.name}</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => {
+                                setSelectedMember(member);
+                                setIsMemoryDialogOpen(true);
+                              }}
+                              className="p-1.5 hover:bg-gray-100 rounded-full"
+                            >
+                              <BookMarked className="w-4 h-4 text-purple-500" />
+                            </button>
+                            <button
+                              onClick={() => handleEdit(member)}
+                              className="p-1.5 hover:bg-gray-100 rounded-full"
+                            >
+                              <Edit2 className="w-4 h-4 text-gray-500" />
+                            </button>
+                            <button
+                              onClick={() => setMemberToDelete(member)}
+                              className="p-1.5 hover:bg-gray-100 rounded-full"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
+      )}
+
       {/* Memories Dialog */}
       <Sheet open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
         <SheetContent side="bottom" className="h-[90vh] overflow-y-auto pb-20">
