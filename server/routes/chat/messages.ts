@@ -9,8 +9,6 @@ import type { User } from "../../auth";
 import { getVillageContext } from "../village";
 
 export function setupChatRoutes(router: Router) {
-  // Previous routes remain unchanged
-
   // Handle chat messages
   router.post("/", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
@@ -62,26 +60,36 @@ ${profile.onboardingData.childProfiles
 Primary Concerns: ${profile.primaryConcerns?.join(", ") || "None specified"}
 ` : "";
 
+      // Format memories by type
+      const onboardingMemories = relevantMemories
+        .filter(m => m.metadata?.category === "user_onboarding")
+        .map(m => m.content);
+
+      const chatMemories = relevantMemories
+        .filter(m => m.metadata?.category === "chat_history")
+        .map(m => m.content);
+
       // Build comprehensive system prompt
       const systemPrompt = `${process.env.NURI_SYSTEM_PROMPT}
 
 Current Context:
 ${profileContext}
 
+User Background:
+${onboardingMemories.length > 0 ? onboardingMemories.join("\n") : "No background information available"}
+
 Village Context:
 ${villageContextString || "No village context available"}
 
-Recent Relevant Memories:
-${relevantMemories.length > 0 ? relevantMemories
-  .map(memory => `- ${memory.content}`)
-  .join("\n") : "No relevant memory context available"}
+Recent Chat History:
+${chatMemories.length > 0 ? chatMemories.map(m => `- ${m}`).join("\n") : "No relevant chat history available"}
 
 Retrieved Knowledge:
 ${mergedRAG || "No relevant knowledge base content available"}
 
 Remember to:
 1. Use the provided context to personalize responses
-2. Reference children by name when relevant
+2. Reference children by name when relevant (Jeroen and Lynn)
 3. Consider family dynamics and support network
 4. Address specific concerns from user profile
 `;
@@ -137,7 +145,7 @@ Remember to:
     }
   });
 
-    router.get("/:chatId", async (req, res) => {
+  router.get("/:chatId", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).send("Not authenticated");
     }
@@ -162,7 +170,6 @@ Remember to:
 
     res.json(chat);
   });
-
 
   return router;
 }

@@ -19,7 +19,7 @@ export interface Memory {
 
 export class MemoryService {
   private static instance: MemoryService;
-  private readonly RELEVANCE_THRESHOLD = 0.4;
+  private readonly RELEVANCE_THRESHOLD = 0.3; // Lowered threshold to capture onboarding memories
   private memoryCache: Map<string, {value: string, expires: number}> = new Map();
 
   private constructor() {}
@@ -67,13 +67,12 @@ export class MemoryService {
           source: metadata?.source || 'nuri-chat',
           type: metadata?.type || 'conversation',
           category: metadata?.category || 'chat_history',
-          timestamp: new Date().toISOString() // Add timestamp for better context matching
+          timestamp: new Date().toISOString()
         }
       });
 
       console.log('Memory creation result:', result);
 
-      // According to mem0ai docs, result is an array of memories
       const memoryId = Array.isArray(result) ? result[0]?.id : result.id;
 
       return {
@@ -111,54 +110,51 @@ export class MemoryService {
 
       console.log('[Memory Service] Fetching memories from mem0ai');
 
-      // Removed restrictive metadata filters
-      const memories = await client.search(currentContext, {
+      // First try to get onboarding memories
+      const onboardingMemories = await client.search("", {
         user_id: userId.toString(),
+        metadata: {
+          category: "user_onboarding"
+        }
+      });
+
+      // Then get conversation memories
+      const conversationMemories = await client.search(currentContext, {
+        user_id: userId.toString(),
+        metadata: {
+          category: "chat_history"
+        },
         options: {
-          limit: 10, // Increased from 5
+          limit: 5,
           minRelevance: this.RELEVANCE_THRESHOLD
         }
       });
+
+      // Combine both types of memories
+      const memories = [...(onboardingMemories || []), ...(conversationMemories || [])];
 
       console.log(`[Memory Service] Raw memories response:`, JSON.stringify(memories, null, 2));
 
       if (!Array.isArray(memories) || memories.length === 0) {
         console.log('[Memory Service] No memories found');
-
-        // Fallback search without context
-        console.log('[Memory Service] Attempting fallback search without context');
-        const fallbackMemories = await client.search("", {
-          user_id: userId.toString(),
-          options: {
-            limit: 5,
-            minRelevance: 0.1 // Very low threshold for fallback
-          }
-        });
-
-        if (!Array.isArray(fallbackMemories) || fallbackMemories.length === 0) {
-          console.log('[Memory Service] No fallback memories found');
-          return [];
-        }
-        memories.push(...fallbackMemories);
+        return [];
       }
 
       const validMemories = memories
         .filter(memory => 
-          memory?.relevance >= this.RELEVANCE_THRESHOLD && 
-          (memory?.content || memory?.memory)
+          memory?.memory || memory?.content
         )
         .map(memory => ({
           id: memory.id,
-          content: Array.isArray(memory.content) ? 
+          content: memory.memory || (Array.isArray(memory.content) ? 
             memory.content[0]?.content : 
-            (memory.memory || memory.content),
+            memory.content),
           metadata: memory.metadata,
           createdAt: new Date(memory.created_at || new Date()),
-          relevance: memory.relevance
+          relevance: memory.score || memory.relevance || 0
         }))
         .filter(memory => memory.content)
-        .sort((a, b) => (b.relevance || 0) - (a.relevance || 0))
-        .slice(0, 5);
+        .sort((a, b) => (b.relevance || 0) - (a.relevance || 0));
 
       console.log(`[Memory Service] Processed ${validMemories.length} valid memories:`, JSON.stringify(validMemories, null, 2));
 
@@ -167,49 +163,6 @@ export class MemoryService {
     } catch (error) {
       console.error('[Memory Service] Error getting relevant memories:', error);
       return [];
-    }
-  }
-
-  async searchMemories(userId: number, query: string): Promise<Memory[]> {
-    try {
-      const memories = await client.search(query, {
-        user_id: userId.toString(),
-        metadata: {
-          source: 'nuri-chat',
-          type: 'conversation',
-          category: 'chat_history'
-        },
-        options: {
-          minRelevance: this.RELEVANCE_THRESHOLD
-        }
-      });
-
-      return memories
-        .filter(memory => memory.relevance >= this.RELEVANCE_THRESHOLD)
-        .map(memory => ({
-          id: memory.id,
-          content: Array.isArray(memory.content) ? 
-            memory.content[0].content : 
-            (memory.memory || memory.content),
-          metadata: memory.metadata,
-          createdAt: new Date(memory.created_at || new Date()),
-          relevance: memory.relevance
-        }));
-    } catch (error) {
-      console.error('Error searching memories:', error);
-      return [];
-    }
-  }
-
-  async deleteMemory(memoryId: string): Promise<void> {
-    try {
-      console.log('Deleting memory from mem0:', memoryId);
-      await client.delete(memoryId);
-      console.log('Memory deleted successfully from mem0');
-    } catch (error) {
-      console.error('Error deleting memory from mem0:', error);
-      // Continue with database deletion even if mem0 fails
-      console.log('Continuing with database deletion...');
     }
   }
 }
