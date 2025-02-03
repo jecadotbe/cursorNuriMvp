@@ -18,7 +18,8 @@ export interface Memory {
 
 export class MemoryService {
   private static instance: MemoryService;
-  private readonly RELEVANCE_THRESHOLD = 0.3;
+  private readonly CHAT_RELEVANCE_THRESHOLD = 0.15;
+  private readonly SUGGESTION_RELEVANCE_THRESHOLD = 0.3;
   private memoryCache: Map<string, {value: string, expires: number}> = new Map();
 
   private constructor() {}
@@ -90,7 +91,7 @@ export class MemoryService {
     }
   }
 
-  async getRelevantMemories(userId: number, currentContext: string): Promise<Memory[]> {
+  async getRelevantMemories(userId: number, currentContext: string, type: 'chat' | 'suggestion' = 'chat'): Promise<Memory[]> {
     try {
       if (!currentContext?.trim()) {
         console.log('[Memory Service] Empty context provided, returning empty array');
@@ -98,8 +99,9 @@ export class MemoryService {
       }
 
       console.log(`[Memory Service] Searching memories for user ${userId} with context: "${currentContext.substring(0, 100)}..."`);
+      console.log(`[Memory Service] Search type: ${type}`);
 
-      const cacheKey = `relevantMemories:${userId}:${currentContext}`;
+      const cacheKey = `relevantMemories:${userId}:${currentContext}:${type}`;
       const cachedMemories = await this.getCachedMemories(cacheKey);
       if (cachedMemories) {
         console.log('[Memory Service] Retrieved memories from cache');
@@ -108,6 +110,8 @@ export class MemoryService {
 
       console.log('[Memory Service] Fetching memories from mem0ai');
 
+      const threshold = type === 'chat' ? this.CHAT_RELEVANCE_THRESHOLD : this.SUGGESTION_RELEVANCE_THRESHOLD;
+
       // Get onboarding memories using user profile keywords
       const onboardingMemories = await client.search("profile children parents family onboarding", {
         user_id: userId.toString(),
@@ -115,7 +119,7 @@ export class MemoryService {
           category: "user_onboarding"
         },
         options: {
-          minRelevance: 0.1
+          minRelevance: threshold / 2
         }
       });
 
@@ -126,8 +130,8 @@ export class MemoryService {
           category: "chat_history"
         },
         options: {
-          limit: 5,
-          minRelevance: this.RELEVANCE_THRESHOLD
+          limit: type === 'chat' ? 8 : 5,
+          minRelevance: threshold
         }
       });
 

@@ -17,7 +17,13 @@ export function setupChatRoutes(router: Router) {
 
     try {
       const user = req.user as User;
-      const lastMessage = req.body.messages[req.body.messages.length - 1].content;
+      const messages = req.body.messages;
+      const lastMessage = messages[messages.length - 1].content;
+
+      // Get recent context by combining last 2 messages if available
+      const contextWindow = messages.slice(-3)
+        .map(m => m.content)
+        .join(" ");
 
       // Get parent profile for context
       const profile = await db.query.parentProfiles.findFirst({
@@ -27,10 +33,11 @@ export function setupChatRoutes(router: Router) {
       console.log('[Chat Route] User profile:', profile);
 
       // Get relevant memories with enhanced logging
-      console.log('[Chat Route] Fetching relevant memories for context:', lastMessage);
+      console.log('[Chat Route] Fetching relevant memories for context:', contextWindow);
       const relevantMemories = await memoryService.getRelevantMemories(
         user.id,
-        lastMessage
+        contextWindow,
+        'chat' // Specify this is for chat context
       );
       console.log(`[Chat Route] Found ${relevantMemories.length} relevant memories:`, 
         JSON.stringify(relevantMemories, null, 2));
