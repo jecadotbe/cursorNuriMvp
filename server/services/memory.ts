@@ -4,7 +4,6 @@ if (!process.env.MEM0_API_KEY) {
   throw new Error("MEM0_API_KEY environment variable is required");
 }
 
-// Initialize the memory client according to documentation
 const client = new MemoryClient({ 
   apiKey: process.env.MEM0_API_KEY,
 });
@@ -19,7 +18,7 @@ export interface Memory {
 
 export class MemoryService {
   private static instance: MemoryService;
-  private readonly RELEVANCE_THRESHOLD = 0.3; // Lowered threshold to capture onboarding memories
+  private readonly RELEVANCE_THRESHOLD = 0.3;
   private memoryCache: Map<string, {value: string, expires: number}> = new Map();
 
   private constructor() {}
@@ -49,10 +48,9 @@ export class MemoryService {
   async createMemory(userId: number, content: string, metadata?: Record<string, any>): Promise<Memory> {
     try {
       console.log('Creating memory for user:', userId);
-      console.log('Content:', content.substring(0, 100) + '...');
+      console.log('Content:', content);
       console.log('Metadata:', JSON.stringify(metadata, null, 2));
 
-      // Format message array according to mem0ai docs
       const messages = [{
         role: metadata?.role || "user",
         content: content
@@ -110,15 +108,18 @@ export class MemoryService {
 
       console.log('[Memory Service] Fetching memories from mem0ai');
 
-      // First try to get onboarding memories
-      const onboardingMemories = await client.search("", {
+      // Get onboarding memories using user profile keywords
+      const onboardingMemories = await client.search("profile children parents family onboarding", {
         user_id: userId.toString(),
         metadata: {
           category: "user_onboarding"
+        },
+        options: {
+          minRelevance: 0.1
         }
       });
 
-      // Then get conversation memories
+      // Get conversation memories with the actual context
       const conversationMemories = await client.search(currentContext, {
         user_id: userId.toString(),
         metadata: {
@@ -168,29 +169,3 @@ export class MemoryService {
 }
 
 export const memoryService = MemoryService.getInstance();
-
-export async function addVillageMember(userId: number, memberData: any) {
-  try {
-    const response = await fetch('/api/village', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        ...memberData,
-        userId,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Failed to add village member:', error);
-      throw new Error(error.message);
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error('Village member creation failed:', error);
-    throw error;
-  }
-}
