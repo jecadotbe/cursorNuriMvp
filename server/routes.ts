@@ -319,26 +319,30 @@ Name: ${name}
 Experience Level: ${experienceLevel}
 Stress Level: ${stressLevel}
 ${finalData.stressAssessment?.primaryConcerns ? `Primary Concerns: ${finalData.stressAssessment.primaryConcerns.join(", ")}` : ""}
-${validatedChildProfiles.length > 0
+${
+  validatedChildProfiles.length > 0
     ? `Children:
 ${validatedChildProfiles
-      .map(
-        (child) =>
-          `- ${child.name} (Age: ${child.age})${
-            child.specialNeeds.length
-              ? `, Special needs: ${child.specialNeeds.join(", ")}`
-              : ""
-          }`,
-      )
-      .join("\n")}`
-    : "No children profiles specified"}
-${finalData.goals
+  .map(
+    (child) =>
+      `- ${child.name} (Age: ${child.age})${
+        child.specialNeeds.length
+          ? `, Special needs: ${child.specialNeeds.join(", ")}`
+          : ""
+      }`,
+  )
+  .join("\n")}`
+    : "No children profiles specified"
+}
+${
+  finalData.goals
     ? `
 Goals:
 ${finalData.goals.shortTerm?.length ? `Short term: ${finalData.goals.shortTerm.join(", ")}` : ""}
 ${finalData.goals.longTerm?.length ? `Long term: ${finalData.goals.longTerm.join(", ")}` : ""}
 `
-    : ""}
+    : ""
+}
         `;
           await memoryService.createMemory(user.id, onboardingContent, {
             type: "onboarding_profile",
@@ -357,13 +361,17 @@ ${finalData.goals.longTerm?.length ? `Long term: ${finalData.goals.longTerm.join
               // Determine member type and circle based on the name
               let type = "family";
               let circle = 2;
-              let category: "informeel" | "formeel" | "inspiratie" = "informeel";
+              let category: "informeel" | "formeel" | "inspiratie" =
+                "informeel";
 
               if (member.toLowerCase().includes("school")) {
                 type = "professional";
                 circle = 3;
                 category = "formeel";
-              } else if (member.toLowerCase().includes("oma") || member.toLowerCase().includes("opa")) {
+              } else if (
+                member.toLowerCase().includes("oma") ||
+                member.toLowerCase().includes("opa")
+              ) {
                 type = "family";
                 circle = 1;
                 category = "informeel";
@@ -375,7 +383,8 @@ ${finalData.goals.longTerm?.length ? `Long term: ${finalData.goals.longTerm.join
                 type,
                 circle,
                 category,
-                role: type === "family" ? "Family Support" : "Professional Support",
+                role:
+                  type === "family" ? "Family Support" : "Professional Support",
                 positionAngle: (Math.random() * 2 * Math.PI).toString(),
                 contactFrequency: "M" as const,
               };
@@ -528,8 +537,10 @@ ${finalData.goals.longTerm?.length ? `Long term: ${finalData.goals.longTerm.join
         user.id,
         lastMessage,
       );
+      // console.log("relevantMemories :\n", relevantMemories);
+      // console.log("end relevanteMemories");
       const memoryContext = relevantMemories
-        .filter((m) => m.relevance && m.relevance >= 0.6)
+        .filter((m) => m.relevance && m.relevance >= 0.3)
         .map((m) => m.content)
         .join("\n\n");
       // Compose prompt for Anthropic.
@@ -545,6 +556,9 @@ CONTEXT:
 2. Conversation History: ${memoryContext || "No relevant conversation history"}
 3. Retrieved Content: ${mergedRAG || "No relevant content available"}
       `;
+      // console.log("start main prompt");
+      // console.log(mainPrompt);
+      // console.log("end main prompt");
       const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 512,
