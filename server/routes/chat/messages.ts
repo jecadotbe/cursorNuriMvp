@@ -52,20 +52,25 @@ export function setupChatRoutes(router: Router) {
       });
 
       // Get relevant memories with higher relevance threshold
+      console.log('[Chat Route] Fetching relevant memories for context');
       const relevantMemories = await memoryService.getRelevantMemories(
         user.id,
         lastMessage
       );
+      console.log(`[Chat Route] Found ${relevantMemories.length} relevant memories`);
 
       // Get village context
+       console.log('[Chat Route] Fetching village context');
       const villageContextString = await getVillageContext(user.id);
 
       // Get RAG context
+      console.log('[Chat Route] Fetching RAG context');
       const ragContext = await searchBooks(lastMessage, 2);
       const ragContent = ragContext.map((document) => document.pageContent);
       const mergedRAG = ragContent.join("\n\n");
 
       // Format profile context
+      console.log('[Chat Route] Formatting profile context');
       const profileContext = profile ? `
 User Profile:
 Name: ${profile.name}
@@ -105,7 +110,7 @@ Remember to:
 4. Address specific concerns from user profile
 `;
 
-      console.log('Using system prompt with context:', systemPrompt);
+      console.log('[Chat Route] Final system prompt:', systemPrompt);
 
       const response = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",

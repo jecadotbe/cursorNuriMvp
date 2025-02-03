@@ -96,16 +96,20 @@ export class MemoryService {
   async getRelevantMemories(userId: number, currentContext: string): Promise<Memory[]> {
     try {
       if (!currentContext?.trim()) {
+        console.log('[Memory Service] Empty context provided, returning empty array');
         return [];
       }
+
+      console.log(`[Memory Service] Searching memories for user ${userId} with context: "${currentContext.substring(0, 100)}..."`);
 
       const cacheKey = `relevantMemories:${userId}:${currentContext}`;
       const cachedMemories = await this.getCachedMemories(cacheKey);
       if (cachedMemories) {
-        console.log('Retrieved relevant memories from cache');
+        console.log('[Memory Service] Retrieved memories from cache');
         return JSON.parse(cachedMemories);
       }
 
+      console.log('[Memory Service] Fetching memories from mem0ai');
       const memories = await client.search(currentContext, {
         user_id: userId.toString(),
         metadata: {
@@ -119,7 +123,10 @@ export class MemoryService {
         }
       });
 
+      console.log(`[Memory Service] Raw memories response:`, JSON.stringify(memories, null, 2));
+
       if (!Array.isArray(memories) || memories.length === 0) {
+        console.log('[Memory Service] No memories found');
         return [];
       }
 
@@ -137,15 +144,16 @@ export class MemoryService {
           createdAt: new Date(memory.created_at || new Date()),
           relevance: memory.relevance
         }))
-        .filter(memory => memory.content) // Remove entries with empty content
+        .filter(memory => memory.content)
         .sort((a, b) => (b.relevance || 0) - (a.relevance || 0))
         .slice(0, 3);
 
-      await this.cacheMemories(cacheKey, JSON.stringify(validMemories), 60); // Cache for 60 seconds
+      console.log(`[Memory Service] Processed ${validMemories.length} valid memories:`, JSON.stringify(validMemories, null, 2));
 
+      await this.cacheMemories(cacheKey, JSON.stringify(validMemories), 60);
       return validMemories;
     } catch (error) {
-      console.error('Error getting relevant memories:', error);
+      console.error('[Memory Service] Error getting relevant memories:', error);
       return [];
     }
   }
