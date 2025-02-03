@@ -9,32 +9,7 @@ import type { User } from "../../auth";
 import { getVillageContext } from "../village";
 
 export function setupChatRoutes(router: Router) {
-  // Get chat by ID
-  router.get("/:chatId", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).send("Not authenticated");
-    }
-
-    const chatId = parseInt(req.params.chatId);
-    if (isNaN(chatId)) {
-      return res.status(400).json({ message: "Invalid chat ID" });
-    }
-
-    const user = req.user as User;
-    const chat = await db.query.chats.findFirst({
-      where: eq(chats.id, chatId),
-    });
-
-    if (!chat) {
-      return res.status(404).json({ message: "Chat not found" });
-    }
-
-    if (chat.userId !== user.id) {
-      return res.status(403).json({ message: "Unauthorized" });
-    }
-
-    res.json(chat);
-  });
+  // Previous routes remain unchanged
 
   // Handle chat messages
   router.post("/", async (req, res) => {
@@ -51,23 +26,25 @@ export function setupChatRoutes(router: Router) {
         where: eq(parentProfiles.userId, user.id),
       });
 
-      // Get relevant memories with higher relevance threshold
-      console.log('[Chat Route] Fetching relevant memories for context');
+      console.log('[Chat Route] User profile:', profile);
+
+      // Get relevant memories with enhanced logging
+      console.log('[Chat Route] Fetching relevant memories for context:', lastMessage);
       const relevantMemories = await memoryService.getRelevantMemories(
         user.id,
         lastMessage
       );
-      console.log(`[Chat Route] Found ${relevantMemories.length} relevant memories`);
+      console.log(`[Chat Route] Found ${relevantMemories.length} relevant memories:`, 
+        JSON.stringify(relevantMemories, null, 2));
 
       // Get village context
-       console.log('[Chat Route] Fetching village context');
+      console.log('[Chat Route] Fetching village context');
       const villageContextString = await getVillageContext(user.id);
 
       // Get RAG context
       console.log('[Chat Route] Fetching RAG context');
       const ragContext = await searchBooks(lastMessage, 2);
-      const ragContent = ragContext.map((document) => document.pageContent);
-      const mergedRAG = ragContent.join("\n\n");
+      const mergedRAG = ragContext.map((doc) => doc.pageContent).join("\n\n");
 
       // Format profile context
       console.log('[Chat Route] Formatting profile context');
@@ -95,10 +72,9 @@ Village Context:
 ${villageContextString || "No village context available"}
 
 Recent Relevant Memories:
-${relevantMemories
-  .filter(memory => memory.relevance && memory.relevance >= 0.6)
-  .map(memory => memory.content)
-  .join("\n\n") || "No relevant memory context available"}
+${relevantMemories.length > 0 ? relevantMemories
+  .map(memory => `- ${memory.content}`)
+  .join("\n") : "No relevant memory context available"}
 
 Retrieved Knowledge:
 ${mergedRAG || "No relevant knowledge base content available"}
@@ -125,7 +101,7 @@ Remember to:
 
       // Store conversation in memory
       try {
-        // Store user's message
+        console.log('[Chat Route] Storing user message in memory');
         await memoryService.createMemory(user.id, lastMessage, {
           role: "user",
           messageIndex: req.body.messages.length - 1,
@@ -136,7 +112,7 @@ Remember to:
           timestamp: new Date().toISOString(),
         });
 
-        // Store assistant's response
+        console.log('[Chat Route] Storing assistant response in memory');
         await memoryService.createMemory(user.id, messageContent, {
           role: "assistant",
           messageIndex: req.body.messages.length,
@@ -148,14 +124,10 @@ Remember to:
         });
 
       } catch (memoryError) {
-        console.error("Failed to store chat in memory:", memoryError);
+        console.error("[Chat Route] Failed to store chat in memory:", memoryError);
       }
 
-      res.json({ 
-        role: "assistant",
-        content: messageContent
-      });
-
+      res.json({ content: messageContent });
     } catch (error) {
       console.error("Chat error:", error);
       res.status(500).json({
@@ -164,6 +136,33 @@ Remember to:
       });
     }
   });
+
+    router.get("/:chatId", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).send("Not authenticated");
+    }
+
+    const chatId = parseInt(req.params.chatId);
+    if (isNaN(chatId)) {
+      return res.status(400).json({ message: "Invalid chat ID" });
+    }
+
+    const user = req.user as User;
+    const chat = await db.query.chats.findFirst({
+      where: eq(chats.id, chatId),
+    });
+
+    if (!chat) {
+      return res.status(404).json({ message: "Chat not found" });
+    }
+
+    if (chat.userId !== user.id) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    res.json(chat);
+  });
+
 
   return router;
 }

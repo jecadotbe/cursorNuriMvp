@@ -19,7 +19,7 @@ export interface Memory {
 
 export class MemoryService {
   private static instance: MemoryService;
-  private readonly RELEVANCE_THRESHOLD = 0.6;
+  private readonly RELEVANCE_THRESHOLD = 0.4;
   private memoryCache: Map<string, {value: string, expires: number}> = new Map();
 
   private constructor() {}
@@ -110,15 +110,12 @@ export class MemoryService {
       }
 
       console.log('[Memory Service] Fetching memories from mem0ai');
+
+      // Removed restrictive metadata filters
       const memories = await client.search(currentContext, {
         user_id: userId.toString(),
-        metadata: {
-          source: 'nuri-chat',
-          type: 'conversation',
-          category: 'chat_history'
-        },
         options: {
-          limit: 5,
+          limit: 10, // Increased from 5
           minRelevance: this.RELEVANCE_THRESHOLD
         }
       });
@@ -127,7 +124,22 @@ export class MemoryService {
 
       if (!Array.isArray(memories) || memories.length === 0) {
         console.log('[Memory Service] No memories found');
-        return [];
+
+        // Fallback search without context
+        console.log('[Memory Service] Attempting fallback search without context');
+        const fallbackMemories = await client.search("", {
+          user_id: userId.toString(),
+          options: {
+            limit: 5,
+            minRelevance: 0.1 // Very low threshold for fallback
+          }
+        });
+
+        if (!Array.isArray(fallbackMemories) || fallbackMemories.length === 0) {
+          console.log('[Memory Service] No fallback memories found');
+          return [];
+        }
+        memories.push(...fallbackMemories);
       }
 
       const validMemories = memories
@@ -146,7 +158,7 @@ export class MemoryService {
         }))
         .filter(memory => memory.content)
         .sort((a, b) => (b.relevance || 0) - (a.relevance || 0))
-        .slice(0, 3);
+        .slice(0, 5);
 
       console.log(`[Memory Service] Processed ${validMemories.length} valid memories:`, JSON.stringify(validMemories, null, 2));
 
