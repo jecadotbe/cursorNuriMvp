@@ -74,9 +74,12 @@ interface Memory {
 interface Insight {
   id: number;
   type: string;
-  text: string; // Added text property
-  context: string; // Added context property
-  relevance: number; // Added relevance property
+  title: string;
+  description: string;
+  suggestedAction?: string;
+  priority: number;
+  status: string;
+  dismissed: boolean;
 }
 
 interface MemberContentProps {
@@ -245,12 +248,12 @@ export default function VillageView() {
     tags: [] as string[],
     date: format(new Date(), "yyyy-MM-dd")
   });
+    // Update the suggestions hook usage to include refetch
   const {
     suggestions,
     isLoading: isSuggestionsLoading,
     refetch: refetchSuggestions,
-    markAsUsed,
-    error: suggestionsError
+    markAsUsed
   } = useVillageSuggestions({
     autoRefresh: false,
     maxSuggestions: 5,
@@ -775,6 +778,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 
       {/* Village suggestions dialog */}
       <Sheet open={isSuggestionsOpen} onOpenChange={setIsSuggestionsOpen}>
+      {/* Update the suggestions dialog content */}
         <SheetContent side="bottom" className="h-[90vh]">
           <SheetHeader>
             <SheetTitle>Dorpsuggesties</SheetTitle>
@@ -801,13 +805,6 @@ const handleSubmit = async (e: React.FormEvent) => {
               <div className="text-center py-8">
                 <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
                 <p className="mt-2 text-gray-600">Laden...</p>
-              </div>
-            ) : suggestionsError ? (
-              <div className="text-center py-8 px-4">
-                <X className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                <p className="text-red-600">
-                  Er is een fout opgetreden bij het ophalen van suggesties. Probeer het later opnieuw.
-                </p>
               </div>
             ) : !suggestions || !suggestions.length ? (
               <div className="text-center py-8 px-4">

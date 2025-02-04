@@ -91,7 +91,7 @@ export default function HomeView() {
   } = useVillageSuggestions({
     autoRefresh: false,
     maxSuggestions: 5,
-    filterByType: ['network_growth', 'network_expansion', 'village_maintenance']
+    filterByType: ['village_maintenance', 'network_growth', 'network_expansion']
   });
 
   // Debug logging
