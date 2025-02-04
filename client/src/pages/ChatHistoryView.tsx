@@ -27,9 +27,9 @@ const replaceTemplateVariables = (content: string) => {
 
 const formatMessagePreview = (content: string) => {
   const processedContent = replaceTemplateVariables(content);
-  // Strip HTML tags for preview
-  const strippedContent = processedContent.replace(/<[^>]+>/g, '');
-  return strippedContent;
+  // Render markdown content
+  const renderedContent = renderMarkdown(processedContent);
+  return renderedContent;
 };
 
 export default function ChatHistoryView() {
