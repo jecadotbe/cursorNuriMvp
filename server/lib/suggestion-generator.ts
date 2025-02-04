@@ -77,7 +77,6 @@ Format each suggestion with:
 - Text: The actual suggestion in natural language
 `;
 
-    console.log('Generating suggestions with prompt:', prompt);
     const response = await anthropic.messages.create({
       messages: [{ role: "user", content: prompt }],
       model: "claude-3-opus-20240229",
@@ -85,17 +84,8 @@ Format each suggestion with:
       temperature: 0.7
     });
 
-    if (!response.content || !response.content[0] || !response.content[0].text) {
-      console.error('Invalid response from Claude:', response);
-      throw new Error('Invalid response format from Claude');
-    }
-
     const suggestionsText = response.content[0].text;
-    console.log('Raw suggestions from Claude:', suggestionsText);
-    
-    const parsedSuggestions = suggestionsText.split('\n\n')
-      .filter(block => block.trim())
-      .map(block => {
+    const parsedSuggestions = suggestionsText.split('\n\n').map(block => {
       const [type, relevanceStr, text] = block.split('\n');
       return {
         userId,
