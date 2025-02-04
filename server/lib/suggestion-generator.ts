@@ -62,20 +62,22 @@ Recent Conversations: ${chatContext}
 Relevant Past Interactions: ${memories.map(m => m.content).join('. ')}
 
 Parent Profile:
-- Stress Level: ${context.parentProfile.stress_level}
+- Stress Level: ${context.parentProfile.stressLevel}
 - Primary Challenges: ${context.challenges.map(c => c.category).join(', ')}
 
-Generate 3 specific, actionable suggestions for strengthening their village network. Each suggestion should:
-1. Address a specific gap or opportunity
-2. Be concrete and implementable
-3. Consider their current stress level and challenges
-4. Build on existing relationships where possible
+Generate 3 specific, actionable suggestions for strengthening their village network. Format each suggestion as follows:
 
-Format each suggestion with:
-- Type: "network_growth", "network_expansion", or "village_maintenance"
-- Relevance: 1-10 score
-- Text: The actual suggestion in natural language
-`;
+1. Type: network_growth
+Relevance: 8
+Suggestion: [Your first suggestion text]
+
+2. Type: network_expansion
+Relevance: 7
+Suggestion: [Your second suggestion text]
+
+3. Type: village_maintenance
+Relevance: 6
+Suggestion: [Your third suggestion text]`;
 
     console.log('Generating suggestions with prompt:', prompt);
     const response = await anthropic.messages.create({
@@ -85,25 +87,31 @@ Format each suggestion with:
       temperature: 0.7
     });
 
-    if (!response.content || !response.content[0] || !response.content[0].text) {
+    if (!response.content || response.content.length === 0) {
       console.error('Invalid response from Claude:', response);
       throw new Error('Invalid response format from Claude');
     }
 
-    const suggestionsText = response.content[0].text;
+    const suggestionsText = response.content[0].value;
     console.log('Raw suggestions from Claude:', suggestionsText);
-    
-    const parsedSuggestions = suggestionsText.split('\n\n')
-      .filter(block => block.trim())
-      .map(block => {
-      const [type, relevanceStr, text] = block.split('\n');
+
+    const suggestionBlocks = suggestionsText.split(/\d+\.\s+/).filter(block => block.trim());
+    const parsedSuggestions = suggestionBlocks.map(block => {
+      const lines = block.split('\n').filter(line => line.trim());
+      const typeMatch = lines[0].match(/Type:\s*(network_growth|network_expansion|village_maintenance)/i);
+      const relevanceMatch = lines[1].match(/Relevance:\s*(\d+)/);
+      const suggestionText = lines[2].replace(/^Suggestion:\s*/i, '').trim();
+
+      if (!typeMatch || !relevanceMatch || !suggestionText) {
+        console.error('Failed to parse suggestion block:', block);
+        return null;
+      }
+
       return {
         userId,
-        type: type.toLowerCase().includes('growth') ? 'network_growth' :
-              type.toLowerCase().includes('expansion') ? 'network_expansion' : 
-              'village_maintenance',
-        relevance: parseInt(relevanceStr.match(/\d+/)?.[0] || '5'),
-        text: text.trim(),
+        type: typeMatch[1].toLowerCase(),
+        relevance: parseInt(relevanceMatch[1]),
+        text: suggestionText,
         context: 'village',
         relatedChatId: null,
         relatedChatTitle: null,
@@ -111,15 +119,17 @@ Format each suggestion with:
         expiresAt,
         createdAt: now
       };
-    });
+    }).filter((suggestion): suggestion is Omit<PromptSuggestion, 'id'> => suggestion !== null);
 
+    console.log('Parsed suggestions:', parsedSuggestions);
     return parsedSuggestions;
 
   } catch (error) {
     console.error('Error generating village suggestions:', error);
+    // Return a default suggestion if generation fails
     return [{
       userId,
-      text: 'Consider reaching out to someone in your village today to strengthen your support network.',
+      text: 'Neem contact op met iemand uit je village om je steunnetwerk te versterken.',
       type: 'village_maintenance',
       context: 'village',
       relevance: 5,

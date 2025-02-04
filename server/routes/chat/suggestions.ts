@@ -72,12 +72,8 @@ export function setupSuggestionsRoutes(router: Router) {
           messages: Array.isArray(chat.messages) ? chat.messages : []
         })),
         parentProfile,
-        childProfiles: Array.isArray(parentProfile?.onboardingData?.childProfiles) 
-          ? parentProfile.onboardingData.childProfiles 
-          : [],
-        challenges: Array.isArray(parentProfile?.onboardingData?.stressAssessment?.primaryConcerns)
-          ? parentProfile.onboardingData.stressAssessment.primaryConcerns
-          : [],
+        childProfiles: parentProfile.onboardingData?.childProfiles || [],
+        challenges: parentProfile.onboardingData?.stressAssessment?.primaryConcerns || [],
         memories: []
       };
 
@@ -125,23 +121,12 @@ export function setupSuggestionsRoutes(router: Router) {
       }
 
       return res.json(existingVillageSuggestions);
-
-            console.log(`Generated and inserted ${inserted.length} new suggestions`);
-            return res.json([...existingVillageSuggestions, ...inserted]);
-          }
-        } catch (error) {
-          console.error('Error generating new suggestions:', error);
-          return res.json(existingVillageSuggestions);
-        }
-      }
-
-      return res.json(existingVillageSuggestions);
     } catch (error) {
-      next(error); // Pass to error handler
+      next(error);
     }
   });
 
-  // Regular suggestions endpoint with proper error handling
+  // Regular suggestions endpoint
   router.get("/suggestions", async (req, res, next) => {
     try {
       if (!req.isAuthenticated() || !req.user) {
@@ -162,11 +147,11 @@ export function setupSuggestionsRoutes(router: Router) {
 
       res.json(suggestions);
     } catch (error) {
-      next(error); // Pass to error handler
+      next(error);
     }
   });
 
-  // Mark suggestion as used with proper error handling
+  // Mark suggestion as used
   router.post("/suggestions/:id/use", async (req, res, next) => {
     try {
       if (!req.isAuthenticated() || !req.user) {
@@ -199,7 +184,7 @@ export function setupSuggestionsRoutes(router: Router) {
 
       res.json(updated);
     } catch (error) {
-      next(error); // Pass to error handler
+      next(error);
     }
   });
 
