@@ -26,16 +26,28 @@ export async function generateVillageSuggestions(
   context: VillageContext,
   memoryService: MemoryService
 ): Promise<Omit<PromptSuggestion, 'id'>[]> {
+  console.log('Starting village suggestion generation with context:', {
+    userId,
+    memberCount: members.length,
+    hasParentProfile: !!context.parentProfile,
+    chatCount: context.recentChats.length,
+    childProfileCount: context.childProfiles.length,
+    challengeCount: context.challenges.length
+  });
+
   const suggestions: Omit<PromptSuggestion, 'id'>[] = [];
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
   try {
-    console.log('Starting village suggestion generation for user:', userId);
-
     // 1. Analyze village structure and gaps
+    console.log('Analyzing village gaps for members:', members);
     const gaps = analyzeVillageGaps(members);
     const circlesMap = gaps.circles || new Map();
+    console.log('Village analysis results:', {
+      gaps,
+      circleMembers: Object.fromEntries(circlesMap)
+    });
 
     // 2. Get recent chat context
     const chatContext = context.recentChats
@@ -44,9 +56,12 @@ export async function generateVillageSuggestions(
       .filter(msg => msg.role === 'user')
       .map(msg => msg.content)
       .join(' ');
+    console.log('Processed chat context length:', chatContext.length);
 
     // 3. Get relevant memories
+    console.log('Fetching relevant memories for user:', userId);
     const memories = await memoryService.getRelevantMemories(userId, chatContext);
+    console.log('Retrieved memory count:', memories.length);
 
     // 4. Generate suggestions using Claude
     const prompt = `Generate personalized village support network suggestions based on this context:
@@ -62,8 +77,8 @@ Recent Conversations: ${chatContext}
 Relevant Past Interactions: ${memories.map(m => m.content).join('. ')}
 
 Parent Profile:
-- Stress Level: ${context.parentProfile.stressLevel}
-- Primary Challenges: ${context.challenges.map(c => c.category).join(', ')}
+- Stress Level: ${context.parentProfile?.stressLevel || 'Unknown'}
+- Primary Challenges: ${context.challenges?.map(c => c.category).join(', ') || 'None specified'}
 
 Generate 3 specific, actionable suggestions for strengthening their village network. Format each suggestion as follows:
 
@@ -79,25 +94,36 @@ Suggestion: [Your second suggestion text]
 Relevance: 6
 Suggestion: [Your third suggestion text]`;
 
-    console.log('Generating suggestions with prompt:', prompt);
+    console.log('Sending prompt to Claude, length:', prompt.length);
     const response = await anthropic.messages.create({
       messages: [{ role: "user", content: prompt }],
       model: "claude-3-opus-20240229",
       max_tokens: 1000,
       temperature: 0.7
     });
+    console.log('Received response from Claude');
 
     if (!response.content || response.content.length === 0) {
       console.error('Invalid response from Claude:', response);
       throw new Error('Invalid response format from Claude');
     }
 
-    const suggestionsText = response.content[0].value;
+    const content = response.content[0];
+    if (!content || typeof content.text !== 'string') {
+      console.error('Invalid content format from Claude:', content);
+      throw new Error('Invalid content format from Claude');
+    }
+
+    const suggestionsText = content.text;
     console.log('Raw suggestions from Claude:', suggestionsText);
 
     const suggestionBlocks = suggestionsText.split(/\d+\.\s+/).filter(block => block.trim());
+    console.log('Parsed suggestion blocks:', suggestionBlocks.length);
+
     const parsedSuggestions = suggestionBlocks.map(block => {
       const lines = block.split('\n').filter(line => line.trim());
+      console.log('Processing suggestion block:', lines);
+
       const typeMatch = lines[0].match(/Type:\s*(network_growth|network_expansion|village_maintenance)/i);
       const relevanceMatch = lines[1].match(/Relevance:\s*(\d+)/);
       const suggestionText = lines[2].replace(/^Suggestion:\s*/i, '').trim();
@@ -121,7 +147,7 @@ Suggestion: [Your third suggestion text]`;
       };
     }).filter((suggestion): suggestion is Omit<PromptSuggestion, 'id'> => suggestion !== null);
 
-    console.log('Parsed suggestions:', parsedSuggestions);
+    console.log('Successfully parsed suggestions:', parsedSuggestions);
     return parsedSuggestions;
 
   } catch (error) {
