@@ -15,18 +15,19 @@ async function fetchVillageSuggestions(): Promise<PromptSuggestion[]> {
     const response = await fetch('/api/suggestions/village', {
       credentials: 'include',
       headers: {
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
       }
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
+      const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
       console.error('Village suggestions response not OK:', {
         status: response.status,
         statusText: response.statusText,
-        error: errorText
+        error: errorData
       });
-      throw new Error(`Failed to fetch suggestions: ${response.status} ${errorText}`);
+      throw new Error(errorData.message || `Failed to fetch suggestions: ${response.status}`);
     }
 
     const data = await response.json();
@@ -75,7 +76,15 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
       filtered = filtered.filter(s => !s.usedAt);
       return filtered.slice(0, maxSuggestions);
     },
-    retry: 1
+    retry: 1,
+    onError: (error: Error) => {
+      console.error('Village suggestions query error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to load village suggestions"
+      });
+    }
   });
 
   const markAsUsed = async (suggestionId: number) => {
@@ -83,6 +92,10 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
       const response = await fetch(`/api/suggestions/${suggestionId}/use`, {
         method: 'POST',
         credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
       });
 
       if (!response.ok) {

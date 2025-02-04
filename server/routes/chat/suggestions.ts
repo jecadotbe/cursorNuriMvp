@@ -23,7 +23,7 @@ export function setupSuggestionsRoutes(router: Router) {
   });
 
   // Dedicated endpoint for village suggestions
-  router.get("/suggestions/village", async (req, res, next) => {
+  router.get("/suggestions/village", async (req, res) => {
     try {
       if (!req.isAuthenticated() || !req.user) {
         return res.status(401).json({ error: "Not authenticated" });
@@ -39,7 +39,7 @@ export function setupSuggestionsRoutes(router: Router) {
         where: eq(villageMembers.userId, user.id),
       }).catch(error => {
         console.error('Error fetching village members:', error);
-        return [];
+        throw new Error('Failed to fetch village members');
       });
 
       // 2. Get parent profile with error handling
@@ -47,7 +47,7 @@ export function setupSuggestionsRoutes(router: Router) {
         where: eq(parentProfiles.userId, user.id),
       }).catch(error => {
         console.error('Error fetching parent profile:', error);
-        return null;
+        throw new Error('Failed to fetch parent profile');
       });
 
       if (!parentProfile) {
@@ -62,7 +62,7 @@ export function setupSuggestionsRoutes(router: Router) {
         limit: 3
       }).catch(error => {
         console.error('Error fetching recent chats:', error);
-        return [];
+        throw new Error('Failed to fetch recent chats');
       });
 
       // 4. Prepare context object with safe defaults
@@ -88,7 +88,7 @@ export function setupSuggestionsRoutes(router: Router) {
         orderBy: desc(promptSuggestions.createdAt),
       }).catch(error => {
         console.error('Error fetching existing village suggestions:', error);
-        return [];
+        throw new Error('Failed to fetch existing suggestions');
       });
 
       console.log(`Found ${existingVillageSuggestions.length} existing village suggestions`);
@@ -116,18 +116,25 @@ export function setupSuggestionsRoutes(router: Router) {
           }
         } catch (error) {
           console.error('Error generating/inserting suggestions:', error);
-          return res.json(existingVillageSuggestions);
+          return res.status(500).json({ 
+            error: "Failed to generate suggestions",
+            message: error instanceof Error ? error.message : "Unknown error"
+          });
         }
       }
 
       return res.json(existingVillageSuggestions);
     } catch (error) {
-      next(error);
+      console.error('Caught error in village suggestions route:', error);
+      return res.status(500).json({ 
+        error: "Internal server error", 
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
   // Regular suggestions endpoint
-  router.get("/suggestions", async (req, res, next) => {
+  router.get("/suggestions", async (req, res) => {
     try {
       if (!req.isAuthenticated() || !req.user) {
         return res.status(401).json({ error: "Not authenticated" });
@@ -147,12 +154,16 @@ export function setupSuggestionsRoutes(router: Router) {
 
       res.json(suggestions);
     } catch (error) {
-      next(error);
+      console.error('Error fetching suggestions:', error);
+      res.status(500).json({ 
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
   // Mark suggestion as used
-  router.post("/suggestions/:id/use", async (req, res, next) => {
+  router.post("/suggestions/:id/use", async (req, res) => {
     try {
       if (!req.isAuthenticated() || !req.user) {
         return res.status(401).json({ error: "Not authenticated" });
@@ -184,7 +195,11 @@ export function setupSuggestionsRoutes(router: Router) {
 
       res.json(updated);
     } catch (error) {
-      next(error);
+      console.error('Error marking suggestion as used:', error);
+      res.status(500).json({ 
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
