@@ -105,13 +105,13 @@ export default function GoalsStep({ onComplete, initialData }: GoalsStepProps) {
           name="shortTerm"
           render={() => (
             <FormItem>
-              <FormLabel>Short-term Parenting Goals</FormLabel>
+              <FormLabel>Korte termijn opvoeddoelen</FormLabel>
               <div className="space-y-2">
                 <div className="flex gap-2">
                   <Input
                     value={newShortTerm}
                     onChange={(e) => setNewShortTerm(e.target.value)}
-                    placeholder="Add a short-term goal"
+                    placeholder="Voeg een korte termijn doel toe"
                     onKeyPress={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -120,7 +120,7 @@ export default function GoalsStep({ onComplete, initialData }: GoalsStepProps) {
                     }}
                   />
                   <Button type="button" onClick={addShortTerm}>
-                    Add
+                    Toevoegen
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -148,13 +148,13 @@ export default function GoalsStep({ onComplete, initialData }: GoalsStepProps) {
           name="longTerm"
           render={() => (
             <FormItem>
-              <FormLabel>Long-term Parenting Goals</FormLabel>
+              <FormLabel>Lange termijn opvoeddoelen</FormLabel>
               <div className="space-y-2">
                 <div className="flex gap-2">
                   <Input
                     value={newLongTerm}
                     onChange={(e) => setNewLongTerm(e.target.value)}
-                    placeholder="Add a long-term goal"
+                    placeholder="Voeg een lange termijn doel toe"
                     onKeyPress={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -191,13 +191,13 @@ export default function GoalsStep({ onComplete, initialData }: GoalsStepProps) {
           name="supportAreas"
           render={() => (
             <FormItem>
-              <FormLabel>Areas Needing Support</FormLabel>
+              <FormLabel>Gebieden waar je steun nodig hebt</FormLabel>
               <div className="space-y-2">
                 <div className="flex gap-2">
                   <Input
                     value={newSupportArea}
                     onChange={(e) => setNewSupportArea(e.target.value)}
-                    placeholder="Add an area where you need support"
+                    placeholder="Voeg een gebied toe waar je steun nodig hebt"
                     onKeyPress={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -230,7 +230,7 @@ export default function GoalsStep({ onComplete, initialData }: GoalsStepProps) {
         />
 
         <Button type="submit" className="w-full">
-          Complete Onboarding
+          Afronden
         </Button>
       </form>
     </Form>

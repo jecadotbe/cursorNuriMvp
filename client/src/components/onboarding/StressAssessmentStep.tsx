@@ -92,23 +92,23 @@ export default function StressAssessmentStep({ onComplete, initialData }: Stress
           name="stressLevel"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Current Stress Level</FormLabel>
+              <FormLabel>Huidig stressniveau</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select your stress level" />
+                    <SelectValue placeholder="Selecteer je stressniveau" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="low">Low - I'm managing well</SelectItem>
+                  <SelectItem value="low">Laag - Ik kan het goed aan</SelectItem>
                   <SelectItem value="moderate">
-                    Moderate - Some challenges but coping
+                    Matig - Enkele uitdagingen maar ik kan ermee omgaan
                   </SelectItem>
                   <SelectItem value="high">
-                    High - Feeling overwhelmed often
+                    Hoog - Vaak overweldigd
                   </SelectItem>
                   <SelectItem value="very_high">
-                    Very High - Need significant support
+                    Zeer hoog - Veel ondersteuning nodig
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -122,13 +122,13 @@ export default function StressAssessmentStep({ onComplete, initialData }: Stress
           name="primaryConcerns"
           render={() => (
             <FormItem>
-              <FormLabel>Primary Parenting Concerns</FormLabel>
+              <FormLabel>Belangrijkste opvoedingszorgen</FormLabel>
               <div className="space-y-2">
                 <div className="flex gap-2">
                   <Input
                     value={newConcern}
                     onChange={(e) => setNewConcern(e.target.value)}
-                    placeholder="Enter a concern"
+                    placeholder="Voer een zorg in"
                     onKeyPress={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -165,13 +165,13 @@ export default function StressAssessmentStep({ onComplete, initialData }: Stress
           name="supportNetwork"
           render={() => (
             <FormItem>
-              <FormLabel>Support Network (My Village)</FormLabel>
+              <FormLabel>Steunnetwerk (Mijn Village)</FormLabel>
               <div className="space-y-2">
                 <div className="flex gap-2">
                   <Input
                     value={newSupport}
                     onChange={(e) => setNewSupport(e.target.value)}
-                    placeholder="Add family, friends, or professionals"
+                    placeholder="Voeg familie, vrienden of professionals toe"
                     onKeyPress={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -204,7 +204,7 @@ export default function StressAssessmentStep({ onComplete, initialData }: Stress
         />
 
         <Button type="submit" className="w-full">
-          Continue
+          Verder
         </Button>
       </form>
     </Form>
