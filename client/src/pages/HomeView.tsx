@@ -9,6 +9,7 @@ import { MessageSquare, Users, Clock, ChevronRight, Wind, Heart, MessageCircle, 
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
+import { renderMarkdown } from '@/lib/markdown';
 import { SuggestionFeedback } from "@/components/SuggestionFeedback";
 import { useBackgroundRefresh } from "@/hooks/use-background-refresh";
 
@@ -341,7 +342,12 @@ export default function HomeView() {
                         )}
                       </div>
                     </div>
-                    <p className="text-lg pr-8">{suggestion.text}</p>
+                    <div 
+                      className="text-lg pr-8"
+                      dangerouslySetInnerHTML={{ 
+                        __html: renderMarkdown(suggestion.text)
+                      }}
+                    />
                     {suggestion.context === "existing" && suggestion.relatedChatTitle && (
                       <div className="mt-2 text-sm text-gray-500 flex items-center gap-2">
                         <MessageSquare className="w-4 h-4" />
