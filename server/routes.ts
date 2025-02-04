@@ -1035,44 +1035,62 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
   });
 
   app.get("/api/suggestions/village", ensureAuthenticated, async (req, res) => {
-    const now = new Date();
-    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    
-    // Return dummy suggestions array
-    res.json([
-      {
-        id: 1,
-        userId: req.user?.id || 1,
-        title: "Strengthen Inner Circle",
-        text: "Consider reaching out to close family members to strengthen your support network",
-        type: "network_growth",
-        category: "village",
-        context: "village",
-        relevance: 8,
+    try {
+      const user = req.user as User;
+      const now = new Date();
+
+      // Get village members
+      const members = await db.query.villageMembers.findMany({
+        where: eq(villageMembers.userId, user.id),
+      });
+
+      // Get parent profile
+      const parentProfile = await db.query.parentProfiles.findFirst({
+        where: eq(parentProfiles.userId, user.id),
+      });
+
+      // Get recent chats
+      const recentChats = await db.query.chats.findMany({
+        where: eq(chats.userId, user.id),
+        orderBy: desc(chats.updatedAt),
+        limit: 3
+      });
+
+      // Prepare context object
+      const villageContext = {
+        recentChats: recentChats.map(chat => ({
+          ...chat,
+          messages: Array.isArray(chat.messages) ? chat.messages : []
+        })),
+        parentProfile,
+        childProfiles: parentProfile?.onboardingData?.childProfiles || [],
+        challenges: parentProfile?.onboardingData?.stressAssessment?.primaryConcerns || [],
+        memories: []
+      };
+
+      // Generate new suggestions
+      const suggestions = await generateVillageSuggestions(
+        user.id,
+        members,
+        villageContext,
+        memoryService
+      );
+
+      // Return only the first 3 suggestions without storing them
+      res.json(suggestions.slice(0, 3).map((s, i) => ({
+        ...s,
+        id: i + 1, // Assign temporary IDs
         createdAt: now,
-        updatedAt: now,
-        expiresAt: tomorrow,
-        usedAt: null,
-        relatedChatId: null,
-        relatedChatTitle: null
-      },
-      {
-        id: 2,
-        userId: req.user?.id || 1,
-        title: "Add Professional Support",
-        text: "Think about adding a childcare professional to your village",
-        type: "network_expansion",
-        category: "village",
-        context: "village",
-        relevance: 7,
-        createdAt: now,
-        updatedAt: now,
-        expiresAt: tomorrow,
-        usedAt: null,
-        relatedChatId: null,
-        relatedChatTitle: null
-      }
-    ]);
+        updatedAt: now
+      })));
+
+    } catch (error) {
+      console.error('Error generating village suggestions:', error);
+      res.status(500).json({ 
+        error: "Failed to generate suggestions",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
   });
 
   app.post(
