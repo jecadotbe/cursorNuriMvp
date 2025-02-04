@@ -163,7 +163,7 @@ export default function GoalsStep({ onComplete, initialData }: GoalsStepProps) {
                     }}
                   />
                   <Button type="button" onClick={addLongTerm}>
-                    Add
+                    Toevoegen
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -206,7 +206,7 @@ export default function GoalsStep({ onComplete, initialData }: GoalsStepProps) {
                     }}
                   />
                   <Button type="button" onClick={addSupportArea}>
-                    Add
+                    Toevoegen
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -230,7 +230,7 @@ export default function GoalsStep({ onComplete, initialData }: GoalsStepProps) {
         />
 
         <Button type="submit" className="w-full">
-          Afronden
+          Onboarding afronden
         </Button>
       </form>
     </Form>

@@ -1359,7 +1359,7 @@ export default function VillageView() {
       <Sheet open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
         <SheetContent side="bottom" className="h-[90vh] overflow-y-auto pb-20">
           <SheetHeader>
-            <SheetTitle>Herinneringen met {selectedMember?.name}</SheetTitle>
+            <SheetTitle className="font-baskerville">Herinneringen met {selectedMember?.name}</SheetTitle>
             <span className="text-sm text-muted-foreground">
               Bekijk of voeg herinneringen toe
             </span>
@@ -1367,8 +1367,8 @@ export default function VillageView() {
           <div className="flex flex-col h-[calc(90vh-120px)] gap-4 mt-4 overflow-hidden">
             <Tabs defaultValue="view">
               <TabsList>
-                <TabsTrigger value="view">View Memories</TabsTrigger>
-                <TabsTrigger value="add">Add Memory</TabsTrigger>
+                <TabsTrigger value="view">Bekijk Herinneringen</TabsTrigger>
+                <TabsTrigger value="add">Voe herinnering toe</TabsTrigger>
               </TabsList>
               <TabsContent value="view" className="flex-1">
                 {selectedMember && (
