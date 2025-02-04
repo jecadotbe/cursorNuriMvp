@@ -1,6 +1,7 @@
 import { Chat, VillageMember, PromptSuggestion, ParentProfile, ChildProfile, ParentingChallenge } from "@db/schema";
 import { VILLAGE_RULES, analyzeVillageGaps } from "./village-rules";
 import { MemoryService } from "../services/memory";
+import { anthropic } from "../anthropic";
 
 interface Message {
   content: string;
@@ -16,7 +17,7 @@ interface VillageContext {
   parentProfile: ParentProfile;
   childProfiles: ChildProfile[];
   challenges: ParentingChallenge[];
-  memories: any[]; // Memory service response type
+  memories: any[];
 }
 
 export async function generateVillageSuggestions(
@@ -27,7 +28,7 @@ export async function generateVillageSuggestions(
 ): Promise<Omit<PromptSuggestion, 'id'>[]> {
   const suggestions: Omit<PromptSuggestion, 'id'>[] = [];
   const now = new Date();
-  const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+  const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
   try {
     console.log('Starting village suggestion generation for user:', userId);
@@ -46,123 +47,66 @@ export async function generateVillageSuggestions(
 
     // 3. Get relevant memories
     const memories = await memoryService.getRelevantMemories(userId, chatContext);
-    console.log(`Found ${memories.length} relevant memories`);
 
-    // Generate different types of suggestions:
+    // 4. Generate suggestions using Claude
+    const prompt = `Generate personalized village support network suggestions based on this context:
 
-    // A. Network Growth Suggestions (Inner Circle)
-    if (circlesMap.get(1) === undefined || circlesMap.get(1) < (VILLAGE_RULES.CIRCLE_MINIMUMS[1] || 3)) {
-      suggestions.push({
-        userId,
-        text: `Based on your village structure, you could benefit from strengthening your inner circle relationships. Consider dedicating more quality time with ${
-          members.filter(m => m.circle === 2)[0]?.name || 'someone you trust'
-        } to build a deeper connection.`,
-        type: 'network_growth',
-        context: 'village',
-        relevance: 9,
-        relatedChatId: null,
-        relatedChatTitle: null,
-        usedAt: null,
-        expiresAt,
-        createdAt: now
-      });
-    }
+Village Network Analysis:
+- Inner circle members: ${circlesMap.get(1) || 0}
+- Support circle members: ${circlesMap.get(2) || 0}
+- Extended circle members: ${circlesMap.get(3) || 0}
+- Community circle members: ${circlesMap.get(4) || 0}
 
-    // B. Support Network Expansion (Outer Circle)
-    if (circlesMap.get(4) === undefined || circlesMap.get(4) < (VILLAGE_RULES.CIRCLE_MINIMUMS[4] || 5)) {
-      const challengeBasedSuggestion = context.challenges.length > 0 
-        ? `especially someone with experience in ${context.challenges[0].category}`
-        : 'who can offer different perspectives';
+Recent Conversations: ${chatContext}
 
-      suggestions.push({
-        userId,
-        text: `Your support network could benefit from more diversity. Consider connecting with other parents ${challengeBasedSuggestion}.`,
-        type: 'network_expansion',
-        context: 'village',
-        relevance: 7,
-        relatedChatId: null,
-        relatedChatTitle: null,
-        usedAt: null,
-        expiresAt,
-        createdAt: now
-      });
-    }
+Relevant Past Interactions: ${memories.map(m => m.content).join('. ')}
 
-    // C. Child Development Based Suggestions
-    context.childProfiles.forEach(child => {
-      const childAge = child.age;
-      suggestions.push({
-        userId,
-        text: `For ${child.name}'s development stage (age ${childAge}), consider connecting with parents who have children of similar age. This can provide valuable insights and support.`,
-        type: 'village_maintenance',
-        context: 'village',
-        relevance: 8,
-        relatedChatId: null,
-        relatedChatTitle: null,
-        usedAt: null,
-        expiresAt,
-        createdAt: now
-      });
+Parent Profile:
+- Stress Level: ${context.parentProfile.stress_level}
+- Primary Challenges: ${context.challenges.map(c => c.category).join(', ')}
+
+Generate 3 specific, actionable suggestions for strengthening their village network. Each suggestion should:
+1. Address a specific gap or opportunity
+2. Be concrete and implementable
+3. Consider their current stress level and challenges
+4. Build on existing relationships where possible
+
+Format each suggestion with:
+- Type: "network_growth", "network_expansion", or "village_maintenance"
+- Relevance: 1-10 score
+- Text: The actual suggestion in natural language
+`;
+
+    const response = await anthropic.messages.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "claude-3-opus-20240229",
+      max_tokens: 1000,
+      temperature: 0.7
     });
 
-    // D. Memory-Based Reconnection Suggestions
-    if (memories.length > 0) {
-      suggestions.push({
+    const suggestionsText = response.content[0].text;
+    const parsedSuggestions = suggestionsText.split('\n\n').map(block => {
+      const [type, relevanceStr, text] = block.split('\n');
+      return {
         userId,
-        text: 'Recent interactions suggest it might be valuable to reconnect with members of your village who provided support during challenging moments.',
-        type: 'village_maintenance',
+        type: type.toLowerCase().includes('growth') ? 'network_growth' :
+              type.toLowerCase().includes('expansion') ? 'network_expansion' : 
+              'village_maintenance',
+        relevance: parseInt(relevanceStr.match(/\d+/)?.[0] || '5'),
+        text: text.trim(),
         context: 'village',
-        relevance: 6,
-        relatedChatId: context.recentChats[0]?.id || null,
-        relatedChatTitle: context.recentChats[0]?.title || null,
-        usedAt: null,
-        expiresAt,
-        createdAt: now
-      });
-    }
-
-    // E. Stress-Level Based Suggestions
-    if (context.parentProfile.stress_level === 'high') {
-      suggestions.push({
-        userId,
-        text: 'Your recent stress levels indicate you might benefit from reaching out to your closest support circle. Consider scheduling a casual meet-up or chat with someone who helps you feel more relaxed.',
-        type: 'village_maintenance',
-        context: 'village',
-        relevance: 9,
         relatedChatId: null,
         relatedChatTitle: null,
         usedAt: null,
         expiresAt,
         createdAt: now
-      });
-    }
-
-    // F. Inactive Member Engagement
-    const inactiveMembers = members
-      .filter(m => m.circle <= 2)
-      .slice(0, 2);
-
-    inactiveMembers.forEach(member => {
-      suggestions.push({
-        userId,
-        text: `It's been a while since you connected with ${member.name}. Strong village relationships benefit from regular contact - consider reaching out for a quick check-in.`,
-        type: 'village_maintenance',
-        context: 'village',
-        relevance: 7,
-        relatedChatId: null,
-        relatedChatTitle: null,
-        usedAt: null,
-        expiresAt,
-        createdAt: now
-      });
+      };
     });
 
-    console.log(`Generated ${suggestions.length} village suggestions`);
-    return suggestions.sort((a, b) => b.relevance - a.relevance);
+    return parsedSuggestions;
 
   } catch (error) {
     console.error('Error generating village suggestions:', error);
-    // Return a default suggestion in case of error
     return [{
       userId,
       text: 'Consider reaching out to someone in your village today to strengthen your support network.',

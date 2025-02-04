@@ -7,7 +7,7 @@ interface VillageSuggestionOptions {
   autoRefresh?: boolean;
   refreshInterval?: number;
   maxSuggestions?: number;
-  filterByType?: string[];
+  filterByType?: Array<'network_growth' | 'network_expansion' | 'village_maintenance'>;
 }
 
 async function fetchVillageSuggestions(): Promise<PromptSuggestion[]> {
