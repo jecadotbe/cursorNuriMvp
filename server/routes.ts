@@ -1034,6 +1034,13 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
     }
   });
 
+  app.get("/api/suggestions/village", ensureAuthenticated, async (req, res) => {
+    // return a json with some information
+    res.json({
+      message: "This is a dummy village suggestion",
+    });
+  });
+
   app.post(
     "/api/suggestions/:id/dismiss",
     ensureAuthenticated,
