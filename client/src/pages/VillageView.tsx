@@ -1358,7 +1358,7 @@ export default function VillageView() {
       {/* Memories Dialog */}
       <Sheet open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
         <SheetContent side="bottom" className="h-[90vh] overflow-y-auto pb-20">
-          <SheetHeader>
+          <SheetHeader className="text-left">
             <SheetTitle className="font-baskerville">Herinneringen met {selectedMember?.name}</SheetTitle>
             <span className="text-sm text-muted-foreground">
               Bekijk of voeg herinneringen toe
