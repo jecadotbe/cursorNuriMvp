@@ -1,4 +1,11 @@
-import { Chat, VillageMember, PromptSuggestion, ParentProfile, ChildProfile, ParentingChallenge } from "@db/schema";
+import {
+  Chat,
+  VillageMember,
+  PromptSuggestion,
+  ParentProfile,
+  ChildProfile,
+  ParentingChallenge,
+} from "@db/schema";
 import { VILLAGE_RULES, analyzeVillageGaps } from "./village-rules";
 import { MemoryService } from "../services/memory";
 import { anthropic } from "../anthropic";
@@ -24,44 +31,48 @@ export async function generateVillageSuggestions(
   userId: number,
   members: VillageMember[],
   context: VillageContext,
-  memoryService: MemoryService
-): Promise<Omit<PromptSuggestion, 'id'>[]> {
-  console.log('Starting village suggestion generation with context:', {
+  memoryService: MemoryService,
+): Promise<Omit<PromptSuggestion, "id">[]> {
+  console.log("Starting village suggestion generation with context:", {
     userId,
     memberCount: members.length,
     hasParentProfile: !!context.parentProfile,
     chatCount: context.recentChats.length,
     childProfileCount: context.childProfiles.length,
-    challengeCount: context.challenges.length
+    challengeCount: context.challenges.length,
   });
 
-  const suggestions: Omit<PromptSuggestion, 'id'>[] = [];
+  const suggestions: Omit<PromptSuggestion, "id">[] = [];
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
   try {
+    throw new Error("This is a test error");
     // 1. Analyze village structure and gaps
-    console.log('Analyzing village gaps for members:', members);
+    console.log("Analyzing village gaps for members:", members);
     const gaps = analyzeVillageGaps(members);
     const circlesMap = gaps.circles || new Map();
-    console.log('Village analysis results:', {
+    console.log("Village analysis results:", {
       gaps,
-      circleMembers: Object.fromEntries(circlesMap)
+      circleMembers: Object.fromEntries(circlesMap),
     });
 
     // 2. Get recent chat context
     const chatContext = context.recentChats
       .slice(0, 3)
-      .flatMap(chat => chat.messages)
-      .filter(msg => msg.role === 'user')
-      .map(msg => msg.content)
-      .join(' ');
-    console.log('Processed chat context length:', chatContext.length);
+      .flatMap((chat) => chat.messages)
+      .filter((msg) => msg.role === "user")
+      .map((msg) => msg.content)
+      .join(" ");
+    console.log("Processed chat context length:", chatContext.length);
 
     // 3. Get relevant memories
-    console.log('Fetching relevant memories for user:', userId);
-    const memories = await memoryService.getRelevantMemories(userId, chatContext);
-    console.log('Retrieved memory count:', memories.length);
+    console.log("Fetching relevant memories for user:", userId);
+    const memories = await memoryService.getRelevantMemories(
+      userId,
+      chatContext,
+    );
+    console.log("Retrieved memory count:", memories.length);
 
     // 4. Generate suggestions using Claude
     const prompt = `Generate personalized village support network suggestions based on this context:
@@ -74,96 +85,102 @@ Village Network Analysis:
 
 Recent Conversations: ${chatContext}
 
-Relevant Past Interactions: ${memories.map(m => m.content).join('. ')}
+Relevant Past Interactions: ${memories.map((m) => m.content).join(". ")}
 
 Parent Profile:
-- Stress Level: ${context.parentProfile?.stressLevel || 'Unknown'}
-- Primary Challenges: ${context.challenges?.map(c => c.category).join(', ') || 'None specified'}
+- Stress Level: ${context.parentProfile?.stressLevel || "Unknown"}
+- Primary Challenges: ${context.challenges?.map((c) => c.category).join(", ") || "None specified"}
 
-Generate 3 specific, actionable suggestions for strengthening their village network. Format each suggestion as follows:
+Generate 3 specific, actionable suggestions for strengthening their village network. Each suggestion has to be maximum 2 liner, The output needs to be in a json format as follows:
 
-1. Type: network_growth
-Relevance: 8
-Suggestion: [Your first suggestion text]
+[
+  {
+  "text" : "here you add suggestion 1 in dutch",
+  "type" : "network_growth"
+  },
+  {
+  "text" : "here you add suggestion 2 in dutch",
+  "type" : "network_expansion"
+  },
+  {
+  "text" : "here you add suggestion 3 in dutch",
+  "type" : "village_maintenance"
+  }
+]`;
 
-2. Type: network_expansion
-Relevance: 7
-Suggestion: [Your second suggestion text]
-
-3. Type: village_maintenance
-Relevance: 6
-Suggestion: [Your third suggestion text]`;
-
-    console.log('Sending prompt to Claude, length:', prompt.length);
+    console.log("Generating suggestions with prompt:\n", prompt);
+    console.log("Sending prompt to Claude, length:", prompt.length);
     const response = await anthropic.messages.create({
       messages: [{ role: "user", content: prompt }],
-      model: "claude-3-opus-20240229",
+      model: "claude-3-5-sonnet-20241022",
       max_tokens: 1000,
-      temperature: 0.7
+      temperature: 0.7,
     });
-    console.log('Received response from Claude');
+    console.log("Received response from Claude");
 
     if (!response.content || response.content.length === 0) {
-      console.error('Invalid response from Claude:', response);
-      throw new Error('Invalid response format from Claude');
+      console.error("Invalid response from Claude:", response);
+      throw new Error("Invalid response format from Claude");
     }
 
-    const content = response.content[0];
-    if (!content || typeof content.text !== 'string') {
-      console.error('Invalid content format from Claude:', content);
-      throw new Error('Invalid content format from Claude');
-    }
-
-    const suggestionsText = content.text;
-    console.log('Raw suggestions from Claude:', suggestionsText);
-
-    const suggestionBlocks = suggestionsText.split(/\d+\.\s+/).filter(block => block.trim());
-    console.log('Parsed suggestion blocks:', suggestionBlocks.length);
-
-    const parsedSuggestions = suggestionBlocks.map(block => {
-      const lines = block.split('\n').filter(line => line.trim());
-      console.log('Processing suggestion block:', lines);
-
-      const typeMatch = lines[0].match(/Type:\s*(network_growth|network_expansion|village_maintenance)/i);
-      const relevanceMatch = lines[1].match(/Relevance:\s*(\d+)/);
-      const suggestionText = lines[2].replace(/^Suggestion:\s*/i, '').trim();
-
-      if (!typeMatch || !relevanceMatch || !suggestionText) {
-        console.error('Failed to parse suggestion block:', block);
-        return null;
-      }
-
-      return {
+    const suggestionsText = response.content[0].text;
+    console.log("Raw suggestions from Claude:", suggestionsText);
+    // 5. Parse suggestions from Claude
+    const suggestionsData = JSON.parse(suggestionsText);
+    return [
+      {
         userId,
-        type: typeMatch[1].toLowerCase(),
-        relevance: parseInt(relevanceMatch[1]),
-        text: suggestionText,
-        context: 'village',
+        text: suggestionsData[0].text,
+        type: suggestionsData[0].type,
+        context: "village",
+        relevance: 5,
         relatedChatId: null,
         relatedChatTitle: null,
         usedAt: null,
         expiresAt,
-        createdAt: now
-      };
-    }).filter((suggestion): suggestion is Omit<PromptSuggestion, 'id'> => suggestion !== null);
-
-    console.log('Successfully parsed suggestions:', parsedSuggestions);
-    return parsedSuggestions;
-
+        createdAt: now,
+      },
+      {
+        userId,
+        text: suggestionsData[1].text,
+        type: suggestionsData[1].type,
+        context: "village",
+        relevance: 5,
+        relatedChatId: null,
+        relatedChatTitle: null,
+        usedAt: null,
+        expiresAt,
+        createdAt: now,
+      },
+      {
+        userId,
+        text: suggestionsData[2].text,
+        type: suggestionsData[2].type,
+        context: "village",
+        relevance: 5,
+        relatedChatId: null,
+        relatedChatTitle: null,
+        usedAt: null,
+        expiresAt,
+        createdAt: now,
+      },
+    ];
   } catch (error) {
-    console.error('Error generating village suggestions:', error);
+    console.error("Error generating village suggestions:", error);
     // Return a default suggestion if generation fails
-    return [{
-      userId,
-      text: 'Neem contact op met iemand uit je village om je steunnetwerk te versterken.',
-      type: 'village_maintenance',
-      context: 'village',
-      relevance: 5,
-      relatedChatId: null,
-      relatedChatTitle: null,
-      usedAt: null,
-      expiresAt,
-      createdAt: now
-    }];
+    return [
+      {
+        userId,
+        text: "Als nieuwe gebruiker gids ik je graag door de opzet van je Village!.",
+        type: "village_maintenance",
+        context: "village",
+        relevance: 5,
+        relatedChatId: null,
+        relatedChatTitle: null,
+        usedAt: null,
+        expiresAt,
+        createdAt: now,
+      },
+    ];
   }
 }

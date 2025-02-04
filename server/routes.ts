@@ -23,6 +23,7 @@ import type { User } from "./auth";
 import { memoryService } from "./services/memory";
 import { villageRouter } from "./routes/village";
 import { searchBooks } from "./rag";
+import { generateVillageSuggestions } from "./lib/suggestion-generator";
 
 // Suggestion categories constant
 const SUGGESTION_CATEGORIES = {
@@ -1053,19 +1054,21 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
       const recentChats = await db.query.chats.findMany({
         where: eq(chats.userId, user.id),
         orderBy: desc(chats.updatedAt),
-        limit: 3
+        limit: 3,
       });
 
       // Prepare context object
       const villageContext = {
-        recentChats: recentChats.map(chat => ({
+        recentChats: recentChats.map((chat) => ({
           ...chat,
-          messages: Array.isArray(chat.messages) ? chat.messages : []
+          messages: Array.isArray(chat.messages) ? chat.messages : [],
         })),
         parentProfile,
         childProfiles: parentProfile?.onboardingData?.childProfiles || [],
-        challenges: parentProfile?.onboardingData?.stressAssessment?.primaryConcerns || [],
-        memories: []
+        challenges:
+          parentProfile?.onboardingData?.stressAssessment?.primaryConcerns ||
+          [],
+        memories: [],
       };
 
       // Generate new suggestions
@@ -1073,22 +1076,23 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
         user.id,
         members,
         villageContext,
-        memoryService
+        memoryService,
       );
 
       // Return only the first 3 suggestions without storing them
-      res.json(suggestions.slice(0, 3).map((s, i) => ({
-        ...s,
-        id: i + 1, // Assign temporary IDs
-        createdAt: now,
-        updatedAt: now
-      })));
-
+      res.json(
+        suggestions.slice(0, 3).map((s, i) => ({
+          ...s,
+          id: i + 1, // Assign temporary IDs
+          createdAt: now,
+          updatedAt: now,
+        })),
+      );
     } catch (error) {
-      console.error('Error generating village suggestions:', error);
-      res.status(500).json({ 
+      console.error("Error generating village suggestions:", error);
+      res.status(500).json({
         error: "Failed to generate suggestions",
-        message: error instanceof Error ? error.message : "Unknown error"
+        message: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });

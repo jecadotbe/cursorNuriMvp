@@ -5,7 +5,7 @@ import { ScrollingTicker } from "@/components/ScrollingTicker";
 import { useUser } from "@/hooks/use-user";
 import { useSuggestion } from "@/hooks/use-suggestion";
 import { useVillageSuggestions } from "@/hooks/use-village-suggestions";
-import { MessageSquare, Users, Clock, ChevronRight, Wind, Heart, MessageCircle, X, RefreshCw, Check } from "lucide-react";
+import { MessageSquare, Users, Clock, ChevronRight, Wind, Heart, MessageCircle, X, RefreshCw, Check, Wand } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
@@ -151,7 +151,7 @@ export default function HomeView() {
       icon: <Wind className="w-4 h-4" />,
     },
     {
-      text: "Ik wil het hebben over mijn village",
+      text: "Village vraagje",
       icon: <Heart className="w-4 h-4" />,
     },
     {
@@ -366,8 +366,8 @@ export default function HomeView() {
               disabled={isLoading || suggestionLoading || !suggestions?.length}
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span>Toon andere suggestie ({suggestions?.length || 0})</span>
-              <ChevronRight className="w-4 h-4" />
+              <span>Volgende suggestie</span>
+              <Wand className="w-4 h-4" />
             </button>
           </div>
         )}
@@ -407,18 +407,10 @@ export default function HomeView() {
               <img src="/images/VillageIcon.svg" alt="Village" className="w-6 h-6" />
               <h2 className="text-2xl font-baskerville">Mijn Village</h2>
             </div>
-            {!villageLoading && villageSuggestions?.length > 0 && (
-              <button
-                onClick={() => refetchVillageSuggestions()}
-                className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1"
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span>Vernieuw suggesties</span>
-              </button>
-            )}
+        
           </div>
-          <h3 className="text-l mb-4">Laat je Village bloeien</h3>
-
+          <h3 className="text-l mb-4">I takes a Village to raise a child</h3> 
+          
           <div className="mt-4 space-y-4">
             {/* Village suggestions */}
             <div className="grid grid-cols-1 gap-3">
@@ -483,17 +475,7 @@ export default function HomeView() {
                       </div>
                       <p className="text-gray-700 mb-2">{suggestion.text}</p>
                       <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => {
-                            if (suggestion) {
-                              markVillageSuggestionAsUsed(suggestion.id);
-                            }
-                          }}
-                          className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gray-100 text-sm text-gray-600 hover:bg-gray-200 transition-colors"
-                        >
-                          <Check className="w-4 h-4" />
-                          <span>Voltooid</span>
-                        </button>
+                        
                       </div>
                     </CardContent>
                   </Card>
@@ -503,7 +485,7 @@ export default function HomeView() {
 
             <div className="flex justify-end">
               <Link href="/village">
-                <div className="bg-white rounded-full px-4 py-2 shadow-sm inline-flex items-center gap-2 cursor-pointer hover:shadow-md transition-shadow">
+                <div className="px-4 py-2 shadow-sm inline-flex items-center gap-2 cursor-pointer hover:shadow-md transition-shadow">
                   <span>Bekijk je Village</span>
                   <ChevronRight className="w-4 h-4" />
                 </div>

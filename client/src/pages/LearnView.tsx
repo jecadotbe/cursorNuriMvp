@@ -48,21 +48,21 @@ export default function LearnView() {
   const podcasts = [
     {
       number: 5,
-      title: "Episode 5: Valuing fathers #2",
+      title: "OuderKracht: de zachte kracht van ouderschap",
       type: "PODCAST",
       spotifyUrl:
         "https://open.spotify.com/episode/1dEWkaM6CMbAHBTn52BH71?si=adcd330bdbcf4df7",
       artworkUrl:
-        "https://i.scdn.co/image/ab67656300005f1ff5a9f4fc0c63332807b0ce61",
+        "/images/podcastcover.png",
     },
     {
       number: 4,
-      title: "Episode 4: Our inner work",
+      title: "OuderKracht: thuisblijfouder vs. carrièreouder",
       type: "PODCAST",
       spotifyUrl:
         "https://open.spotify.com/episode/1dEWkaM6CMbAHBTn52BH71?si=adcd330bdbcf4df7",
       artworkUrl:
-        "https://i.scdn.co/image/ab67656300005f1ff5a9f4fc0c63332807b0ce61",
+        "/images/podcastcover.png",
     },
   ];
 
