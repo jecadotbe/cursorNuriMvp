@@ -1035,10 +1035,44 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
   });
 
   app.get("/api/suggestions/village", ensureAuthenticated, async (req, res) => {
-    // return a json with some information
-    res.json({
-      message: "This is a dummy village suggestion",
-    });
+    const now = new Date();
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    
+    // Return dummy suggestions array
+    res.json([
+      {
+        id: 1,
+        userId: req.user?.id || 1,
+        title: "Strengthen Inner Circle",
+        text: "Consider reaching out to close family members to strengthen your support network",
+        type: "network_growth",
+        category: "village",
+        context: "village",
+        relevance: 8,
+        createdAt: now,
+        updatedAt: now,
+        expiresAt: tomorrow,
+        usedAt: null,
+        relatedChatId: null,
+        relatedChatTitle: null
+      },
+      {
+        id: 2,
+        userId: req.user?.id || 1,
+        title: "Add Professional Support",
+        text: "Think about adding a childcare professional to your village",
+        type: "network_expansion",
+        category: "village",
+        context: "village",
+        relevance: 7,
+        createdAt: now,
+        updatedAt: now,
+        expiresAt: tomorrow,
+        usedAt: null,
+        relatedChatId: null,
+        relatedChatTitle: null
+      }
+    ]);
   });
 
   app.post(
