@@ -94,9 +94,17 @@ export function setupSuggestionsRoutes(router: Router) {
       console.log(`Found ${existingVillageSuggestions.length} existing village suggestions`);
 
       // Generate new suggestions if we don't have enough
+      console.log('Existing village suggestions count:', existingVillageSuggestions.length);
+      
       if (existingVillageSuggestions.length < 3) {
         console.log('Generating new village suggestions');
         try {
+          console.log('Context for generation:', {
+            userId: user.id,
+            memberCount: members.length,
+            parentProfile: !!parentProfile
+          });
+          
           const newSuggestions = await generateVillageSuggestions(
             user.id,
             members,
