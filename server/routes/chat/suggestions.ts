@@ -123,6 +123,7 @@ export function setupSuggestionsRoutes(router: Router) {
         }
       }
 
+      console.log('Returning village suggestions:', existingVillageSuggestions);
       return res.json(existingVillageSuggestions);
     } catch (error) {
       console.error('Caught error in village suggestions route:', error);
