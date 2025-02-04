@@ -1,3 +1,4 @@
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { PromptSuggestion } from "@db/schema";
 import { useToast } from "./use-toast";
@@ -54,19 +55,13 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
     staleTime: refreshInterval,
     refetchInterval: autoRefresh ? refreshInterval : false,
     select: (data) => {
-      console.log('Processing village suggestions:', data);
       let filtered = data;
 
       if (filterByType.length > 0) {
-        console.log('Before type filtering:', data);
-        console.log('Filtering by types:', filterByType);
         filtered = data.filter(s => filterByType.includes(s.type));
-        console.log('After type filtering:', filtered);
       }
 
       filtered = filtered.filter(s => !s.usedAt);
-      console.log('Filtered unused suggestions:', filtered);
-
       return filtered.slice(0, maxSuggestions);
     }
   });
