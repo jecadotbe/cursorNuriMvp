@@ -158,9 +158,10 @@ export default function ChildProfileStep({ onComplete, initialData = [] }: Child
                           <Input
                             type="number"
                             {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                             min={0}
                             max={18}
+                            placeholder="0"
                             className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none touch-manipulation"
                             inputMode="numeric"
                             pattern="[0-9]*"
