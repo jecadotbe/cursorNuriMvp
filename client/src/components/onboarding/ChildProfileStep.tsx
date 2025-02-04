@@ -154,13 +154,48 @@ export default function ChildProfileStep({ onComplete, initialData = [] }: Child
                     <FormItem>
                       <FormLabel>Leeftijd</FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                          min={0}
-                          max={18}
-                        />
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            min={0}
+                            max={18}
+                            className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none touch-manipulation"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                          />
+                          <div className="flex flex-col gap-1">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                const currentValue = field.value || 0;
+                                if (currentValue < 18) {
+                                  field.onChange(currentValue + 1);
+                                }
+                              }}
+                            >
+                              +
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                const currentValue = field.value || 0;
+                                if (currentValue > 0) {
+                                  field.onChange(currentValue - 1);
+                                }
+                              }}
+                            >
+                              -
+                            </Button>
+                          </div>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
