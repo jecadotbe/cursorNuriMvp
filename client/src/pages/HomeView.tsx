@@ -91,7 +91,7 @@ export default function HomeView() {
   } = useVillageSuggestions({
     autoRefresh: false,
     maxSuggestions: 5,
-    filterByType: ['network_growth', 'network_expansion', 'village_maintenance']
+    filterByType: ['network_growth', 'network_expansion', 'village_maintenance'] as const
   });
 
   // Debug logging
@@ -103,7 +103,7 @@ export default function HomeView() {
     });
   }, [villageSuggestions, villageLoading, villageError]);
 
-   // Handle suggestion errors
+  // Handle suggestion errors
   useEffect(() => {
     if (suggestionError) {
       toast({
@@ -242,7 +242,7 @@ export default function HomeView() {
     setCurrentSuggestionId(null);
   };
 
-    const handleImageLoad = (imageName: string) => {
+  const handleImageLoad = (imageName: string) => {
     console.log(`Successfully loaded image: ${imageName}`);
   };
 

@@ -1,4 +1,3 @@
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { PromptSuggestion } from "@db/schema";
 import { useToast } from "./use-toast";
@@ -7,7 +6,7 @@ interface VillageSuggestionOptions {
   autoRefresh?: boolean;
   refreshInterval?: number;
   maxSuggestions?: number;
-  filterByType?: Array<'network_growth' | 'network_expansion' | 'village_maintenance'>;
+  filterByType?: ReadonlyArray<'network_growth' | 'network_expansion' | 'village_maintenance'>;
 }
 
 async function fetchVillageSuggestions(): Promise<PromptSuggestion[]> {
@@ -32,16 +31,16 @@ async function fetchVillageSuggestions(): Promise<PromptSuggestion[]> {
 
     const data = await response.json();
     console.log('Fetched village suggestions:', data);
-    
+
     if (!Array.isArray(data)) {
       console.error('Invalid suggestions data format:', data);
       throw new Error('Invalid suggestions data format');
     }
-    
+
     return data;
   } catch (error) {
     console.error('Error fetching village suggestions:', error);
-    return [];
+    throw error; // Let the query handle the error
   }
 }
 
@@ -70,12 +69,13 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
       let filtered = data;
 
       if (filterByType.length > 0) {
-        filtered = data.filter(s => filterByType.includes(s.type));
+        filtered = data.filter(s => filterByType.includes(s.type as any));
       }
 
       filtered = filtered.filter(s => !s.usedAt);
       return filtered.slice(0, maxSuggestions);
-    }
+    },
+    retry: 1
   });
 
   const markAsUsed = async (suggestionId: number) => {
