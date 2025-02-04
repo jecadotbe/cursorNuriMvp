@@ -159,6 +159,7 @@ export default function ChildProfileStep({ onComplete, initialData = [] }: Child
                             type="number"
                             {...field}
                             onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                            onFocus={(e) => e.target.value === '0' && e.target.value === ''}
                             min={0}
                             max={18}
                             placeholder="0"
