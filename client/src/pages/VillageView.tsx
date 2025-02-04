@@ -1357,7 +1357,7 @@ export default function VillageView() {
 
       {/* Memories Dialog */}
       <Sheet open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
-        <SheetContent side="bottom" className="h-[90vh] overflow-y-auto pb-20" style={{background: 'linear-gradient(135deg, #F7E0AA 0%, #ffffff 100%)'}}>
+        <SheetContent side="bottom" className="h-[90vh] overflow-y-auto pb-20">
           <SheetHeader className="text-left">
             <SheetTitle className="font-baskerville">Herinneringen met {selectedMember?.name}</SheetTitle>
             <span className="text-sm text-muted-foreground">
