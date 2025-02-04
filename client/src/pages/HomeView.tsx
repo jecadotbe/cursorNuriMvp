@@ -299,7 +299,7 @@ export default function HomeView() {
         ) : suggestion ? (
           <div onClick={handlePromptClick} className="transition-opacity duration-300 ease-in-out animate-fade-in">
             <Card className="hover:shadow-md transition-shadow cursor-pointer mb-3 animate-border rounded-2xl shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)]">
-              <CardContent className="p-4 prose prose-sm dark:prose-invert">
+              <CardContent className="p-4">
                 <div className="flex items-center justify-between relative">
                   <button 
                     onClick={(e) => {
@@ -407,10 +407,10 @@ export default function HomeView() {
               <img src="/images/VillageIcon.svg" alt="Village" className="w-6 h-6" />
               <h2 className="text-2xl font-baskerville">Mijn Village</h2>
             </div>
-
+        
           </div>
           <h3 className="text-l mb-4">I takes a Village to raise a child</h3> 
-
+          
           <div className="mt-4 space-y-4">
             {/* Village suggestions */}
             <div className="grid grid-cols-1 gap-3">
@@ -475,7 +475,7 @@ export default function HomeView() {
                       </div>
                       <p className="text-gray-700 mb-2">{suggestion.text}</p>
                       <div className="flex justify-end gap-2">
-
+                        
                       </div>
                     </CardContent>
                   </Card>
