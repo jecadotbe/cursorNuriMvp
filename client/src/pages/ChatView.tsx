@@ -247,7 +247,7 @@ export default function ChatView() {
               </div>
             </div>
             {message.role === 'assistant' && message.content.includes('Helan kinderopvang') && (
-              <div className="flex-1 mt-2">
+              <div className="ml-10">
                 <CustomerResults trigger="Helan kinderopvang" />
               </div>
             )}
