@@ -13,28 +13,28 @@ import { ChevronRight, Edit2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 
-type OnboardingData = {
-  basicInfo?: {
-    name: string;
-    email: string;
-    experienceLevel: string;
-  };
-  stressAssessment?: {
-    stressLevel: string;
-    primaryConcerns: string[];
-    supportNetwork: string[];
-  };
-  childProfiles?: Array<{
+type ProfileData = {
+  id: number;
+  userId: number;
+  name: string;
+  experienceLevel: "first_time" | "experienced" | "multiple_children";
+  stressLevel: "low" | "moderate" | "high" | "very_high";
+  primaryConcerns: string[];
+  supportNetwork: string[];
+  childProfiles: Array<{
     name: string;
     age: number;
     specialNeeds: string[];
   }>;
-  goals?: {
+  goals: {
     shortTerm: string[];
     longTerm: string[];
     supportAreas: string[];
-    communicationPreference: string;
   };
+  bio?: string;
+  preferredLanguage?: string;
+  communicationPreference?: string;
+  completedOnboarding?: boolean;
 };
 
 export default function ProfileView() {
@@ -42,8 +42,17 @@ export default function ProfileView() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  const { data: profile } = useQuery({
-    queryKey: ['/api/onboarding/progress'],
+  const { data: profile } = useQuery<ProfileData>({
+    queryKey: ['/api/profile'],
+    queryFn: async () => {
+      const response = await fetch('/api/profile', {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch profile');
+      }
+      return response.json();
+    }
   });
 
   const handleLogout = async () => {
@@ -77,8 +86,6 @@ export default function ProfileView() {
     },
   ];
 
-  const onboardingData = profile?.onboardingData as OnboardingData;
-
   return (
     <div className="min-h-screen space-y-6 bg-[#F2F0E5] pb-20">
       <div className="w-full bg-gradient-to-r from-[#F8DD9F] to-[#F2F0E5] via-[#F2F0E5] via-35%">
@@ -90,7 +97,7 @@ export default function ProfileView() {
                   <AvatarImage src={user.profilePicture} alt="Profile picture" />
                 ) : (
                   <AvatarFallback className="text-2xl">
-                    {user?.username[0]}
+                    {profile?.name?.[0] || user?.username?.[0]}
                   </AvatarFallback>
                 )}
               </Avatar>
@@ -102,7 +109,7 @@ export default function ProfileView() {
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
-                  
+
                   if (file.size > 2 * 1024 * 1024) {
                     toast({
                       variant: "destructive",
@@ -130,16 +137,12 @@ export default function ProfileView() {
                     }
 
                     const data = await response.json();
-                    
-                    if (!response.ok) {
-                      throw new Error(data.message || 'Upload failed');
-                    }
 
                     toast({
                       title: "Success",
                       description: "Profile picture updated successfully"
                     });
-                    
+
                     window.location.reload();
                   } catch (error) {
                     console.error('Upload error:', error);
@@ -160,7 +163,7 @@ export default function ProfileView() {
             </div>
             <div className="space-y-1">
               <h1 className="text-2xl text-[#2F4644] font-baskerville">
-                Dag {onboardingData?.basicInfo?.name || user?.username},
+                Dag {profile?.name || user?.username},
               </h1>
               <p className="text-xl text-[#2F4644]">
                 Pas instellingen aan
@@ -169,8 +172,6 @@ export default function ProfileView() {
           </div>
         </div>
       </div>
-
-      
 
       {sections.map((section) => (
         <Card key={section.title} className="mx-4">
