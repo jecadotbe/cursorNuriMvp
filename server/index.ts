@@ -66,9 +66,18 @@ app.use((req, res, next) => {
     // ALWAYS serve the app on port 5000
     // this serves both the API and the client
     const PORT = 5000;
+    const isDev = process.env.NODE_ENV === 'development';
+
     server.listen(PORT, "0.0.0.0", () => {
-      log(`serving on port ${PORT}`);
+      log(`serving on port ${PORT} (${isDev ? 'development' : 'production'} mode)`);
+      if (isDev) {
+        log('Note: Please accept the self-signed certificate in your browser if prompted');
+      }
     });
+
+    // Handle SSL/TLS errors
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 
     // Cleanup on exit - simplified because memoryService is removed
     process.on('SIGTERM', () => {
