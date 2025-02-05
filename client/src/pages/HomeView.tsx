@@ -12,6 +12,30 @@ import { format } from 'date-fns';
 import { renderMarkdown } from '@/lib/markdown';
 import { SuggestionFeedback } from "@/components/SuggestionFeedback";
 import { useBackgroundRefresh } from "@/hooks/use-background-refresh";
+import { useQuery } from "@tanstack/react-query";
+
+type ProfileData = {
+  id: number;
+  userId: number;
+  name: string;
+  experienceLevel: "first_time" | "experienced" | "multiple_children";
+  stressLevel: "low" | "moderate" | "high" | "very_high";
+  primaryConcerns: string[];
+  supportNetwork: string[];
+  childProfiles: Array<{
+    name: string;
+    age: number;
+    specialNeeds: string[];
+  }>;
+  goals: {
+    shortTerm: string[];
+    longTerm: string[];
+    supportAreas: string[];
+  };
+  bio?: string;
+  preferredLanguage?: string;
+  communicationPreference?: string;
+};
 
 const WelcomeView = () => {
   const greetings = [
@@ -61,8 +85,22 @@ export default function HomeView() {
   const { user, isLoading: userLoading } = useUser();
   useBackgroundRefresh();
 
+  const { data: profile, isLoading: profileLoading } = useQuery<ProfileData>({
+    queryKey: ['/api/profile'],
+    enabled: !!user, // Only fetch profile when user is logged in
+    queryFn: async () => {
+      const response = await fetch('/api/profile', {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch profile');
+      }
+      return response.json();
+    }
+  });
+
   // Wait for user state to be determined before rendering
-  if (userLoading) {
+  if (userLoading || profileLoading) {
     return <div className="flex items-center justify-center min-h-screen">
       <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900"></div>
     </div>;
@@ -271,7 +309,7 @@ export default function HomeView() {
             </div>
             <div className="space-y-1 homebottom">
               <h1 className="text-2xl font-baskerville">
-                Dag {user?.username},
+                Dag {profile?.name || user?.username},
               </h1>
               <p className="text-xl">
                 Fijn je weer te zien.
@@ -413,10 +451,8 @@ export default function HomeView() {
               <img src="/images/VillageIcon.svg" alt="Village" className="w-6 h-6" />
               <h2 className="text-2xl font-baskerville">Mijn Village</h2>
             </div>
-        
           </div>
           <h3 className="text-l mb-4">I takes a Village to raise a child</h3> 
-          
           <div className="mt-4 space-y-4">
             {/* Village suggestions */}
             <div className="grid grid-cols-1 gap-3">
