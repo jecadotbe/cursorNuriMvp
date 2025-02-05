@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useChatHistory } from "@/hooks/use-chat-history";
@@ -11,7 +11,7 @@ import type { Chat } from "@db/schema";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { renderMarkdown } from "@/lib/markdown";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 // Add proper typing for the chat messages
 interface ChatMessage {
@@ -162,97 +162,127 @@ export default function ChatHistoryView() {
                 transition={{ duration: 0.2 }}
               >
                 <Card className="hover:shadow-md transition-all bg-white rounded-2xl shadow-sm border-0">
-                <CardContent className="p-5">
-                  <div className="flex flex-col">
-                    <div className="flex items-center justify-between">
-                      <Link href={`/chat/${chat.id}`} className="flex-1 min-w-0">
-                        <h3 className="font-medium truncate font-baskerville">{chat.title || "Gesprek"}</h3>
-                      </Link>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <button 
-                            className="text-xs text-gray-500 hover:text-gray-700 flex-shrink-0 ml-2"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            Edit
-                          </button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[425px]">
-                          <DialogHeader>
-                            <DialogTitle>Titel aanpassen</DialogTitle>
-                          </DialogHeader>
-                          <div className="grid gap-4 py-4">
-                            <Input
-                              id="title"
-                              defaultValue={chat.title || ''}
-                            />
-                          </div>
-                          <div className="flex justify-end mt-4">
-                            <Button
-                              onClick={() => {
-                                const newTitle = (document.getElementById('title') as HTMLInputElement).value;
-                                if (newTitle && newTitle !== chat.title) {
-                                  fetch(`/api/chats/${chat.id}`, {
-                                    method: 'PATCH',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ title: newTitle })
-                                  }).then(() => window.location.reload());
-                                }
-                              }}
+                  <CardContent className="p-5">
+                    <div className="flex flex-col">
+                      <div className="flex items-center justify-between">
+                        <Link href={`/chat/${chat.id}`} className="flex-1 min-w-0">
+                          <h3 className="font-medium truncate font-baskerville">{chat.title || "Gesprek"}</h3>
+                        </Link>
+                        <Dialog asChild data-dialog={`${chat.id}`}>
+                          <DialogTrigger asChild>
+                            <button 
+                              className="text-xs text-gray-500 hover:text-gray-700 flex-shrink-0 ml-2"
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              Opslaan
-                            </Button>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                    <div className="prose prose-sm text-gray-500 line-clamp-2 mt-1 mb-2 break-words font-baskerville">
-                      {lastMessage?.content ? (
-                        <div dangerouslySetInnerHTML={{ 
-                          __html: formatMessagePreview(lastMessage.content)
-                        }} />
-                      ) : (
-                        "Geen berichten"
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="text-xs text-gray-500">
-                        {format(chatDate, "d MMM yyyy")}
+                              Edit
+                            </button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                              <DialogTitle>Titel aanpassen</DialogTitle>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                              <Input
+                                id={`title-${chat.id}`}
+                                defaultValue={chat.title || ''}
+                              />
+                            </div>
+                            <div className="flex justify-end mt-4">
+                              <Button
+                                onClick={async () => {
+                                  const newTitle = (document.getElementById(`title-${chat.id}`) as HTMLInputElement).value;
+                                  if (newTitle && newTitle !== chat.title) {
+                                    try {
+                                      const response = await fetch(`/api/chats/${chat.id}`, {
+                                        method: 'PATCH',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        credentials: 'include',
+                                        body: JSON.stringify({ title: newTitle })
+                                      });
+
+                                      if (!response.ok) throw new Error('Failed to update title');
+
+                                      // Update local cache
+                                      queryClient.setQueryData(['chats'], (old: Chat[] | undefined) => {
+                                        if (!old) return old;
+                                        return old.map(c => 
+                                          c.id === chat.id ? { ...c, title: newTitle } : c
+                                        );
+                                      });
+
+                                      toast({
+                                        title: "Success",
+                                        description: "Title updated successfully"
+                                      });
+
+                                      // Close the dialog
+                                      const closeButton = document.querySelector(`[data-dialog-${chat.id}] button[data-state="open"]`);
+                                      if (closeButton instanceof HTMLButtonElement) {
+                                        closeButton.click();
+                                      }
+                                    } catch (error) {
+                                      toast({
+                                        variant: "destructive",
+                                        title: "Error",
+                                        description: "Failed to update title"
+                                      });
+                                    }
+                                  }
+                                }}
+                              >
+                                Opslaan
+                              </Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
                       </div>
-                      <button
-                        onClick={async (e) => {
-                          e.preventDefault();
-                          if (confirm("Are you sure you want to delete this conversation? This action cannot be undone.")) {
-                            try {
-                              await fetch(`/api/chats/${chat.id}`, {
-                                method: 'DELETE'
-                              });
+                      <div className="prose prose-sm text-gray-500 line-clamp-2 mt-1 mb-2 break-words font-baskerville">
+                        {lastMessage?.content ? (
+                          <div dangerouslySetInnerHTML={{ 
+                            __html: formatMessagePreview(lastMessage.content)
+                          }} />
+                        ) : (
+                          "Geen berichten"
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs text-gray-500">
+                          {format(chatDate, "d MMM yyyy")}
+                        </div>
+                        <button
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            if (confirm("Are you sure you want to delete this conversation? This action cannot be undone.")) {
+                              try {
+                                await fetch(`/api/chats/${chat.id}`, {
+                                  method: 'DELETE'
+                                });
 
-                              // Update local cache
-                              const newChats = chats.filter(c => c.id !== chat.id);
-                              queryClient.setQueryData(['chats'], newChats);
+                                // Update local cache
+                                const newChats = chats.filter(c => c.id !== chat.id);
+                                queryClient.setQueryData(['chats'], newChats);
 
-                              toast({
-                                title: "Success",
-                                description: "Conversation deleted successfully"
-                              });
-                            } catch (error) {
-                              toast({
-                                variant: "destructive",
-                                title: "Error",
-                                description: "Failed to delete conversation"
-                              });
+                                toast({
+                                  title: "Success",
+                                  description: "Conversation deleted successfully"
+                                });
+                              } catch (error) {
+                                toast({
+                                  variant: "destructive",
+                                  title: "Error",
+                                  description: "Failed to delete conversation"
+                                });
+                              }
                             }
-                          }
-                        }}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <Trash className="w-4 h-4" />
-                      </button>
+                          }}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <Trash className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
               </motion.div>
             );
             return acc;
