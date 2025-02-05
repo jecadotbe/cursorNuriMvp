@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
 import { useVoiceInput } from "@/hooks/use-voice-input";
 import { MicrophoneVisualizer } from "@/components/MicrophoneVisualizer";
+import { CustomerResults } from "@/components/CustomerResults"; // Added import
 
 import { renderMarkdown } from "@/lib/markdown";
 
@@ -30,8 +31,6 @@ const theme = {
     muted: 'text-gray-500'
   }
 };
-
-
 
 
 export default function ChatView() {
@@ -287,7 +286,7 @@ export default function ChatView() {
                 </button>
               </div>
             </div>
-            
+
           </div>
         </div>
       </div>
@@ -332,11 +331,16 @@ const replaceTemplateVariables = (content: string) => {
 
 const formatMessageContent = (content: string) => {
   const processedContent = replaceTemplateVariables(content);
+  const hasTriggerWord = content.includes('Helan kinderopvang');
+
   return (
-    <div
-      className="prose prose-sm max-w-none dark:prose-invert"
-      dangerouslySetInnerHTML={{ __html: renderMarkdown(processedContent) }}
-    />
+    <>
+      <div
+        className="prose prose-sm max-w-none dark:prose-invert"
+        dangerouslySetInnerHTML={{ __html: renderMarkdown(processedContent) }}
+      />
+      <CustomerResults trigger={hasTriggerWord ? 'Helan kinderopvang' : ''} />
+    </>
   );
 };
 
