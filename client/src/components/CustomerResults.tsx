@@ -13,12 +13,15 @@ export const CustomerResults = ({ trigger }: CustomerResultsProps) => {
   }
 
   return (
-    <div className="mt-4 bg-white rounded-lg p-4 shadow-sm">
-      <div className="flex items-center gap-4">
-        <img src="/attached_assets/image_1738770335551.png" alt="Helan Logo" className="h-8" />
+    <div className="mt-4">
+      <div className="bg-white rounded-2xl p-4 shadow-sm flex flex-col space-y-2">
+        <div className="flex items-center gap-3">
+          <img src="/images/helan.png" alt="Helan Logo" className="h-6" />
+          <p className="text-gray-900 font-baskerville">Wist je dat Helan 3 kinderdagverblijven heeft in Gent?</p>
+        </div>
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="link" className="text-[#629785] hover:text-[#4A7566]">
+            <Button variant="link" className="text-[#629785] hover:text-[#4A7566] -ml-3">
               Toon alle opties
             </Button>
           </SheetTrigger>
