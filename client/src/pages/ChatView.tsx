@@ -31,23 +31,7 @@ const theme = {
   }
 };
 
-// Added ScrollingTicker component
-const ScrollingTicker = ({ items, className, speed }: { items: { id: string; text: string }[], className: string, speed: number }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentIndex((prevIndex) => (prevIndex + 1) % items.length);
-    }, speed);
-    return () => clearInterval(interval);
-  }, [items, speed]);
-
-  return (
-    <div className={className}>
-      {items[currentIndex].text}
-    </div>
-  );
-};
 
 
 export default function ChatView() {
@@ -303,8 +287,7 @@ export default function ChatView() {
                 </button>
               </div>
             </div>
-            {/* Added ScrollingTicker */}
-            <ScrollingTicker items={suggestionChips.map((text, index) => ({ id: index.toString(), text }))} className="w-full" speed={2000} />
+            
           </div>
         </div>
       </div>
