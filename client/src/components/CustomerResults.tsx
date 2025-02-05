@@ -1,6 +1,5 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 
 interface CustomerResultsProps {
@@ -13,16 +12,13 @@ export const CustomerResults = ({ trigger }: CustomerResultsProps) => {
   }
 
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm flex flex-col space-y-2">
-      <div className="flex items-center gap-3">
-        <img src="/images/helan.png" alt="Helan Logo" className="h-6" />
-        <p className="text-gray-900 font-baskerville">Wist je dat Helan 3 kinderdagverblijven heeft in Gent?</p>
-      </div>
+    <div className="bg-white rounded-2xl p-4 shadow-sm">
       <Sheet>
         <SheetTrigger asChild>
-          <Button variant="link" className="text-[#629785] hover:text-[#4A7566] -ml-3">
-            Toon alle opties
-          </Button>
+          <div className="bg-[#EAEDF8] rounded-full py-3 px-4 hover:bg-[#DFE3F4] transition-colors cursor-pointer flex items-center gap-2">
+            <img src="/images/helan.png" alt="Helan Logo" className="h-6" />
+            <span className="text-[#1A1A1A]">Helan heeft 3 kinderdagverblijven in Gent</span>
+          </div>
         </SheetTrigger>
         <SheetContent side="bottom" className="h-[80vh]">
           <SheetHeader>
