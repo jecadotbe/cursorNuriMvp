@@ -33,6 +33,16 @@ const theme = {
 };
 
 
+const formatMessageContent = (content: string) => {
+  const processedContent = replaceTemplateVariables(content);
+  return (
+    <div
+      className="prose prose-sm max-w-none dark:prose-invert"
+      dangerouslySetInnerHTML={{ __html: renderMarkdown(processedContent) }}
+    />
+  );
+};
+
 export default function ChatView() {
   const { messages, sendMessage, isLoading, chatId } = useChat();
   const [inputText, setInputText] = useState('');
@@ -200,44 +210,50 @@ export default function ChatView() {
 
       <div className="flex-1 overflow-y-auto p-4 pt-24 pb-16 space-y-4 z-0">
         {messages.map((message, index) => (
-          <div
-            key={index}
-            className={`flex items-start space-x-2 ${
-              message.role === 'user' ? 'flex-row-reverse space-x-reverse' : 'flex-row'
-            }`}
-          >
-            <Avatar sender={message.role} />
-            <div className="flex flex-col">
-              <div
-                className={`px-4 py-3 rounded-2xl  max-w-[280px] chat-message ${
-                  message.role === 'user'
-                    ? `${theme.primary} ${theme.text.primary}`
-                    : `${theme.secondary} ${theme.text.secondary}`
-                }`}
-              >
-                {message.role === 'assistant' ? (
-                  <>
-                    <div>
+          <div key={index}>
+            <div
+              className={`flex items-start space-x-2 ${
+                message.role === 'user' ? 'flex-row-reverse space-x-reverse' : 'flex-row'
+              }`}
+            >
+              <Avatar sender={message.role} />
+              <div className="flex flex-col">
+                <div
+                  className={`px-4 py-3 rounded-2xl max-w-[280px] chat-message ${
+                    message.role === 'user'
+                      ? `${theme.primary} ${theme.text.primary}`
+                      : `${theme.secondary} ${theme.text.secondary}`
+                  }`}
+                >
+                  {message.role === 'assistant' ? (
+                    <>
                       {formatMessageContent(message.content)}
-                    </div>
-                    {message.role === 'assistant' &&
-                      index === messages.findLastIndex(m => m.role === 'assistant') && (
+                      {index === messages.findLastIndex(m => m.role === 'assistant') && (
                         <p className="text-xs text-gray-400 mt-2 italic">Nuri kan fouten maken. Controleer de antwoorden.</p>
                       )}
-                  </>
-                ) : (
-                  <p>{message.content}</p>
-                )}
-                {message.role === 'assistant' && (
-                  <MessageFeedback
-                    messageId={`${chatId}-${index}`}
-                    onFeedback={(feedback) => {
-                      console.log(`Feedback for message ${index}: ${feedback}`);
-                    }}
-                  />
-                )}
+                    </>
+                  ) : (
+                    <p>{message.content}</p>
+                  )}
+                  {message.role === 'assistant' && (
+                    <MessageFeedback
+                      messageId={`${chatId}-${index}`}
+                      onFeedback={(feedback) => {
+                        console.log(`Feedback for message ${index}: ${feedback}`);
+                      }}
+                    />
+                  )}
+                </div>
               </div>
             </div>
+            {message.role === 'assistant' && message.content.includes('Helan kinderopvang') && (
+              <div className="flex items-start space-x-2 mt-2">
+                <Avatar sender="assistant" />
+                <div className="flex-1">
+                  <CustomerResults trigger="Helan kinderopvang" />
+                </div>
+              </div>
+            )}
           </div>
         ))}
         {isLoading && (
@@ -329,20 +345,6 @@ const replaceTemplateVariables = (content: string) => {
   return content.replace(/{{currentDateTime}}/g, formattedDateTime);
 };
 
-const formatMessageContent = (content: string) => {
-  const processedContent = replaceTemplateVariables(content);
-  const hasTriggerWord = content.includes('Helan kinderopvang');
-
-  return (
-    <>
-      <div
-        className="prose prose-sm max-w-none dark:prose-invert"
-        dangerouslySetInnerHTML={{ __html: renderMarkdown(processedContent) }}
-      />
-      <CustomerResults trigger={hasTriggerWord ? 'Helan kinderopvang' : ''} />
-    </>
-  );
-};
 
 const TypingIndicator = () => (
   <div className="flex space-x-2 p-3 bg-gray-100 rounded-2xl w-16">
