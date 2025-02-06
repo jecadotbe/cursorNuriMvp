@@ -6,25 +6,85 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocation } from "wouter";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
+
+const loginSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+const registerSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
+type RegisterFormData = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const { login, register } = useUser();
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
-  const handleSubmit = async (action: "login" | "register") => {
+  const loginForm = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+    },
+  });
+
+  const registerForm = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      username: "",
+      email: "",
+      password: "",
+    },
+  });
+
+  const handleLogin = async (data: LoginFormData) => {
     setIsSubmitting(true);
     try {
-      if (action === "login") {
-        await login({ username, password });
-      } else {
-        await register({ username, email, password });
-        // After successful registration, redirect to onboarding
-        setLocation("/onboarding");
-      }
+      await login(data);
+      toast({
+        title: "Success",
+        description: "Successfully logged in!",
+      });
+      loginForm.reset();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Login failed",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRegister = async (data: RegisterFormData) => {
+    setIsSubmitting(true);
+    try {
+      await register(data);
+      toast({
+        title: "Success",
+        description: "Successfully registered! Redirecting to onboarding...",
+      });
+      registerForm.reset();
+      setLocation("/onboarding");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Registration failed",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -46,10 +106,7 @@ export default function AuthPage() {
 
             <TabsContent value="login">
               <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSubmit("login");
-                }}
+                onSubmit={loginForm.handleSubmit(handleLogin)}
                 className="space-y-4"
               >
                 <div className="space-y-2">
@@ -57,37 +114,49 @@ export default function AuthPage() {
                   <Input
                     id="username-login"
                     type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
+                    {...loginForm.register("username")}
+                    aria-invalid={!!loginForm.formState.errors.username}
                   />
+                  {loginForm.formState.errors.username && (
+                    <p className="text-sm text-destructive">
+                      {loginForm.formState.errors.username.message}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password-login">Password</Label>
                   <Input
                     id="password-login"
                     type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
+                    {...loginForm.register("password")}
+                    aria-invalid={!!loginForm.formState.errors.password}
                   />
+                  {loginForm.formState.errors.password && (
+                    <p className="text-sm text-destructive">
+                      {loginForm.formState.errors.password.message}
+                    </p>
+                  )}
                 </div>
                 <Button
                   type="submit"
                   className="w-full"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Loading..." : "Login"}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    "Login"
+                  )}
                 </Button>
               </form>
             </TabsContent>
 
             <TabsContent value="register">
               <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSubmit("register");
-                }}
+                onSubmit={registerForm.handleSubmit(handleRegister)}
                 className="space-y-4"
               >
                 <div className="space-y-2">
@@ -95,37 +164,56 @@ export default function AuthPage() {
                   <Input
                     id="username-register"
                     type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
+                    {...registerForm.register("username")}
+                    aria-invalid={!!registerForm.formState.errors.username}
                   />
+                  {registerForm.formState.errors.username && (
+                    <p className="text-sm text-destructive">
+                      {registerForm.formState.errors.username.message}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email-register">Email</Label>
                   <Input
                     id="email-register"
                     type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
+                    {...registerForm.register("email")}
+                    aria-invalid={!!registerForm.formState.errors.email}
                   />
+                  {registerForm.formState.errors.email && (
+                    <p className="text-sm text-destructive">
+                      {registerForm.formState.errors.email.message}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password-register">Password</Label>
                   <Input
                     id="password-register"
                     type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
+                    {...registerForm.register("password")}
+                    aria-invalid={!!registerForm.formState.errors.password}
                   />
+                  {registerForm.formState.errors.password && (
+                    <p className="text-sm text-destructive">
+                      {registerForm.formState.errors.password.message}
+                    </p>
+                  )}
                 </div>
                 <Button
                   type="submit"
                   className="w-full"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Loading..." : "Register"}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    "Register"
+                  )}
                 </Button>
               </form>
             </TabsContent>
