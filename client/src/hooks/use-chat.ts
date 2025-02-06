@@ -119,7 +119,8 @@ export function useChat() {
     relevance: number;
   } | null>(null);
 
-  // Generate contextual prompt with error handling
+  // Temporarily commented out contextual prompt generation
+  /*
   const generateContextualPrompt = useCallback(async () => {
     if (messages.length > 0) {
       try {
@@ -152,6 +153,7 @@ export function useChat() {
     // Only generate on initial load
     generateContextualPrompt();
   }, []); // Empty dependency array
+  */
 
   return {
     messages,
