@@ -266,7 +266,7 @@ export default function ChatView() {
                 onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
                 placeholder="Typ een boodschap..."
-                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#629785] focus:border-transparent resize-none transition-all duration-200 ease-in-out chat-message text-left text-base touch-auto`}
+                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#629785] focus:border-transparent resize-none transition-all duration-200 ease-in-out chat-message text-left text-base touch-manipulation`}
                 style={{
                   lineHeight: '1.5rem',
                   minHeight: '40px',
@@ -274,12 +274,22 @@ export default function ChatView() {
                   height: 'auto',
                   overflowY: 'auto',
                   WebkitOverflowScrolling: 'touch',
-                  msOverflowStyle: '-ms-autohiding-scrollbar'
+                  msOverflowStyle: '-ms-autohiding-scrollbar',
+                  WebkitAppearance: 'none',
+                  userSelect: 'text',
+                  touchAction: 'pan-y',
                 }}
+                onTouchStart={(e) => e.stopPropagation()}
                 onInput={(e) => {
                   const target = e.target as HTMLTextAreaElement;
                   target.style.height = 'auto';
                   target.style.height = `${Math.min(target.scrollHeight, 200)}px`;
+                }}
+                onTouchMove={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  if (target.scrollHeight > target.clientHeight) {
+                    e.stopPropagation();
+                  }
                 }}
               />
               <div className="flex items-center justify-between space-x-2">
