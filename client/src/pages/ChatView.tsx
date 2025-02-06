@@ -127,7 +127,6 @@ export default function ChatView() {
       }
       const text = inputText.trim();
       setInputText('');
-      setIsExpanded(false);
       await sendMessage(text);
     }
   };
@@ -295,7 +294,7 @@ export default function ChatView() {
                 >
                   <ArrowUpCircle className="w-6 h-6 text-[#629785]" />
                 </button>
-                
+
               </div>
               </div>
             </div>
