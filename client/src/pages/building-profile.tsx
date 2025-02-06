@@ -9,10 +9,10 @@ export default function BuildingProfilePage() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    // Redirect to home after 3 seconds
+    // Redirect to home after 6 seconds
     const timer = setTimeout(() => {
       setLocation("/");
-    }, 3000);
+    }, 6000);
 
     return () => clearTimeout(timer);
   }, [setLocation]);
