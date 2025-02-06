@@ -91,48 +91,6 @@ export class MemoryService {
     }
   }
 
-  async createProfileMemory(
-    userId: number,
-    profile: any,
-    type: 'update' | 'create' = 'update'
-  ): Promise<Memory> {
-    try {
-      const content = `
-Profile ${type === 'update' ? 'Update' : 'Creation'}:
-Name: ${profile.name}
-Experience Level: ${profile.experienceLevel}
-Stress Level: ${profile.stressLevel}
-${profile.primaryConcerns?.length ? `Primary Concerns: ${profile.primaryConcerns.join(", ")}` : ""}
-${profile.supportNetwork?.length ? `Support Network: ${profile.supportNetwork.join(", ")}` : ""}
-${profile.bio ? `Bio: ${profile.bio}` : ""}
-${profile.preferredLanguage ? `Preferred Language: ${profile.preferredLanguage}` : ""}
-${profile.communicationPreference ? `Communication Preference: ${profile.communicationPreference}` : ""}
-${Array.isArray(profile.childProfiles) && profile.childProfiles.length > 0 ? `
-Children:
-${profile.childProfiles.map((child: any) => 
-  `- ${child.name} (Age: ${child.age})${
-    child.specialNeeds?.length ? 
-    `, Special needs: ${child.specialNeeds.join(", ")}` : 
-    ""
-  }`
-).join("\n")}` : ""}
-      `.trim();
-
-      return await this.createMemory(userId, content, {
-        type: `profile_${type}`,
-        category: "user_profile",
-        source: "profile_management",
-        metadata: {
-          profileId: profile.id,
-          timestamp: new Date().toISOString(),
-        },
-      });
-    } catch (error) {
-      console.error(`Error creating profile ${type} memory:`, error);
-      throw error;
-    }
-  }
-
   async getRelevantMemories(userId: number, currentContext: string, type: 'chat' | 'suggestion' = 'chat'): Promise<Memory[]> {
     try {
       if (!currentContext?.trim()) {

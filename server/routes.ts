@@ -152,40 +152,40 @@ export function registerRoutes(app: Express): Server {
         const stepContent = `
 Onboarding Step ${step} Progress:
 ${
-          data.basicInfo
-            ? `
+  data.basicInfo
+    ? `
 Basic Information:
 Name: ${data.basicInfo.name}
 Email: ${data.basicInfo.email}
 Experience Level: ${data.basicInfo.experienceLevel}`
-            : ""
-        }
+    : ""
+}
 ${
-          data.stressAssessment
-            ? `
+  data.stressAssessment
+    ? `
 Stress Assessment:
 Stress Level: ${data.stressAssessment.stressLevel}
 Primary Concerns: ${data.stressAssessment.primaryConcerns?.join(", ") || "None"}
 Support Network: ${data.stressAssessment.supportNetwork?.join(", ") || "None"}`
-            : ""
-        }
+    : ""
+}
 ${
-          data.childProfiles
-            ? `
+  data.childProfiles
+    ? `
 Child Profiles:
 ${childProfilesString}`
-            : ""
-        }
+    : ""
+}
 ${
-          data.goals
-            ? `
+  data.goals
+    ? `
 Goals:
 Short Term: ${data.goals.shortTerm?.join(", ") || "None"}
 Long Term: ${data.goals.longTerm?.join(", ") || "None"}
 Support Areas: ${data.goals.supportAreas?.join(", ") || "None"}
 Communication Preference: ${data.goals.communicationPreference || "Not specified"}`
-            : ""
-        }
+    : ""
+}
         `;
         // Save memory (noncritical—log error and continue if fails)
         try {
@@ -321,29 +321,29 @@ Experience Level: ${experienceLevel}
 Stress Level: ${stressLevel}
 ${finalData.stressAssessment?.primaryConcerns ? `Primary Concerns: ${finalData.stressAssessment.primaryConcerns.join(", ")}` : ""}
 ${
-            validatedChildProfiles.length > 0
-              ? `Children:
+  validatedChildProfiles.length > 0
+    ? `Children:
 ${validatedChildProfiles
-              .map(
-                (child) =>
-                  `- ${child.name} (Age: ${child.age})${
-                    child.specialNeeds.length
-                      ? `, Special needs: ${child.specialNeeds.join(", ")}`
-                      : ""
-                  }`,
-              )
-              .join("\n")}`
-              : "No children profiles specified"
-          }
+  .map(
+    (child) =>
+      `- ${child.name} (Age: ${child.age})${
+        child.specialNeeds.length
+          ? `, Special needs: ${child.specialNeeds.join(", ")}`
+          : ""
+      }`,
+  )
+  .join("\n")}`
+    : "No children profiles specified"
+}
 ${
-            finalData.goals
-              ? `
+  finalData.goals
+    ? `
 Goals:
 ${finalData.goals.shortTerm?.length ? `Short term: ${finalData.goals.shortTerm.join(", ")}` : ""}
 ${finalData.goals.longTerm?.length ? `Long term: ${finalData.goals.longTerm.join(", ")}` : ""}
 `
-              : ""
-          }
+    : ""
+}
         `;
           await memoryService.createMemory(user.id, onboardingContent, {
             type: "onboarding_profile",
@@ -441,94 +441,57 @@ ${finalData.goals.longTerm?.length ? `Long term: ${finalData.goals.longTerm.join
   );
 
   // ========================================
-  // Profile Management Endpoints
+  // Profile Endpoints
   // ========================================
-
-  app.get("/api/profile", ensureAuthenticated, async (req, res) => {
+  app.post("/api/profile/picture", ensureAuthenticated, async (req, res) => {
     try {
       const user = req.user as User;
-      const profile = await db.query.parentProfiles.findFirst({
-        where: eq(parentProfiles.userId, user.id),
-      });
-
-      if (!profile) {
-        return res.status(404).json({ message: "Profile not found" });
+      const file = req.files?.profilePicture;
+      if (!file || Array.isArray(file)) {
+        return res.status(400).json({ message: "No file uploaded" });
       }
-
-      res.json(profile);
+      const allowedTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+      ];
+      if (!allowedTypes.includes(file.mimetype)) {
+        return res.status(400).json({
+          message:
+            "Invalid file type. Only JPEG, PNG, GIF and WebP images are allowed",
+        });
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        return res
+          .status(400)
+          .json({ message: "File size must be less than 2MB" });
+      }
+      const fileName = `profile-${user.id}-${Date.now()}${path.extname(file.name)}`;
+      const uploadDir = path.join(process.cwd(), "public", "uploads");
+      const filePath = path.join(uploadDir, fileName);
+      await fs.mkdir(uploadDir, { recursive: true });
+      await file.mv(filePath);
+      await db
+        .update(users)
+        .set({ profilePicture: `/uploads/${fileName}` })
+        .where(eq(users.id, user.id));
+      res.json({ profilePicture: `/uploads/${fileName}` });
     } catch (error) {
-      handleRouteError(res, error, "Failed to fetch profile");
+      handleRouteError(res, error, "Error uploading profile picture");
     }
   });
 
-  app.patch("/api/profile", ensureAuthenticated, async (req, res) => {
+  app.post("/api/profile/update", ensureAuthenticated, async (req, res) => {
     try {
       const user = req.user as User;
-      const {
-        name,
-        stressLevel,
-        experienceLevel,
-        primaryConcerns,
-        supportNetwork,
-        bio,
-        preferredLanguage,
-        communicationPreference,
-        childProfiles,
-      } = req.body;
-
-      // Store profile memory before update
-      try {
-        const profileUpdateContent = `
-Profile Update:
-Name: ${name}
-Experience Level: ${experienceLevel}
-Stress Level: ${stressLevel}
-${primaryConcerns ? `Primary Concerns: ${primaryConcerns.join(", ")}` : ""}
-${supportNetwork ? `Support Network: ${supportNetwork.join(", ")}` : ""}
-${childProfiles ? `
-Children:
-${childProfiles.map((child: any) => 
-  `- ${child.name} (Age: ${child.age})${
-    child.specialNeeds?.length ? 
-    `, Special needs: ${child.specialNeeds.join(", ")}` : 
-    ""
-  }`
-).join("\n")}` : ""}
-`;
-        await memoryService.createMemory(user.id, profileUpdateContent, {
-          type: "profile_update",
-          category: "user_profile",
-          source: "profile_management",
-        });
-      } catch (memoryError) {
-        console.error("Memory storage error:", memoryError);
-      }
-
-      // Update profile
-      const [updatedProfile] = await db
+      const profileData = req.body;
+      const [profile] = await db
         .update(parentProfiles)
-        .set({
-          name,
-          stressLevel,
-          experienceLevel,
-          primaryConcerns,
-          supportNetwork,
-          bio,
-          preferredLanguage,
-          communicationPreference,
-          onboardingData: {
-            ...req.body,
-            childProfiles: Array.isArray(childProfiles) ? childProfiles : [],
-          },
-          updatedAt: new Date(),
-        })
+        .set({ onboardingData: profileData, updatedAt: new Date() })
         .where(eq(parentProfiles.userId, user.id))
         .returning();
-
-      res.json({ 
-        message: "Profile updated successfully", 
-        profile: updatedProfile 
-      });
+      res.json({ status: "success", data: profile });
     } catch (error) {
       handleRouteError(res, error, "Failed to update profile");
     }
@@ -979,15 +942,15 @@ Parent's Profile:
 - Stress Level: ${profile.onboardingData.stressAssessment?.stressLevel || "Not specified"}
 - Primary Concerns: ${profile.onboardingData.stressAssessment?.primaryConcerns?.join(", ") || "None specified"}
 ${
-          childProfiles.length > 0
-            ? childProfiles
-                .map(
-                  (child: any) =>
-                    `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
-                )
-                .join("\n")
-            : "No children profiles specified"
-        }
+  childProfiles.length > 0
+    ? childProfiles
+        .map(
+          (child: any) =>
+            `Child: ${child.name}, Age: ${child.age}${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`,
+        )
+        .join("\n")
+    : "No children profiles specified"
+}
 Goals:
 ${profile.onboardingData.goals?.shortTerm?.length ? `- Short term goals: ${profile.onboardingData.goals.shortTerm.join(", ")}` : ""}
 ${profile.onboardingData.goals?.longTerm?.length ? `- Long term goals: ${profile.onboardingData.goals.longTerm.join(", ")}` : ""}

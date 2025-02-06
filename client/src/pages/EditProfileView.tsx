@@ -10,12 +10,16 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Loader2, X, Plus } from "lucide-react";
 
-type ProfileData = {
-  name: string;
-  experienceLevel: "first_time" | "experienced" | "multiple_children";
-  stressLevel: "low" | "moderate" | "high" | "very_high";
-  primaryConcerns: string[];
-  supportNetwork: string[];
+type OnboardingData = {
+  basicInfo: {
+    name: string;
+    experienceLevel: "first_time" | "experienced" | "multiple_children";
+  };
+  stressAssessment: {
+    stressLevel: "low" | "moderate" | "high" | "very_high";
+    primaryConcerns: string[];
+    supportNetwork: string[];
+  };
   childProfiles: Array<{
     name: string;
     age: number;
@@ -26,22 +30,36 @@ type ProfileData = {
     longTerm: string[];
     supportAreas: string[];
   };
-  bio?: string;
-  preferredLanguage?: string;
-  communicationPreference?: string;
 };
 
-const defaultFormData: ProfileData = {
-  name: "",
-  experienceLevel: "first_time",
-  stressLevel: "low",
-  primaryConcerns: [],
-  supportNetwork: [],
+type ProfileResponse = {
+  onboardingData: OnboardingData;
+};
+
+const defaultFormData: OnboardingData = {
+  basicInfo: {
+    name: "",
+    experienceLevel: "first_time",
+  },
+  stressAssessment: {
+    stressLevel: "low",
+    primaryConcerns: [],
+    supportNetwork: [],
+  },
   childProfiles: [],
   goals: {
     shortTerm: [],
     longTerm: [],
     supportAreas: [],
+  },
+};
+
+const isValidJson = (text: string): boolean => {
+  try {
+    JSON.parse(text);
+    return true;
+  } catch {
+    return false;
   }
 };
 
@@ -49,7 +67,7 @@ export default function EditProfileView() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [formData, setFormData] = useState<ProfileData>(defaultFormData);
+  const [formData, setFormData] = useState<OnboardingData>(defaultFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newConcern, setNewConcern] = useState("");
   const [newSupport, setNewSupport] = useState("");
@@ -59,51 +77,48 @@ export default function EditProfileView() {
   const [newSpecialNeed, setNewSpecialNeed] = useState("");
 
   const { data: profile, isLoading } = useQuery({
-    queryKey: ['/api/profile'],
+    queryKey: ['/api/onboarding/progress'],
     retry: false,
     queryFn: async () => {
-      const response = await fetch('/api/profile', {
-        credentials: 'include',
-      });
+      try {
+        const response = await fetch('/api/onboarding/progress', {
+          credentials: 'include',
+        });
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch profile data: ${await response.text()}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch profile data: ${await response.text()}`);
+        }
+
+        const data = await response.json();
+        console.log('Fetched profile data:', data); 
+        return data;
+      } catch (error) {
+        console.error('Profile fetch error:', error);
+        throw error;
       }
-
-      return response.json();
     },
   });
 
   useEffect(() => {
-    if (profile) {
-      // Transform profile data to match our form structure
-      setFormData({
-        name: profile.name || "",
-        experienceLevel: profile.experienceLevel || "first_time",
-        stressLevel: profile.stressLevel || "low",
-        primaryConcerns: profile.primaryConcerns || [],
-        supportNetwork: profile.supportNetwork || [],
-        childProfiles: profile.childProfiles || [], //Simplified childProfiles access
-        goals: profile.goals || {
-          shortTerm: [],
-          longTerm: [],
-          supportAreas: [],
-        },
-        bio: profile.bio,
-        preferredLanguage: profile.preferredLanguage,
-        communicationPreference: profile.communicationPreference
-      });
+    if (profile?.onboardingData) {
+      console.log('Setting form data from profile:', profile.onboardingData); 
+      setFormData(profile.onboardingData);
     }
   }, [profile]);
 
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: ProfileData) => {
-      const response = await fetch("/api/profile", {
-        method: "PATCH",
+    mutationFn: async (data: OnboardingData) => {
+      console.log('Sending profile update:', data);
+
+      const response = await fetch("/api/onboarding/progress", {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          step: 4,
+          data: data
+        }),
         credentials: 'include'
       });
 
@@ -117,14 +132,17 @@ export default function EditProfileView() {
         }
       }
 
-      return response.json();
+      const result = await response.json();
+      console.log('Profile update response:', result); 
+      return result;
     },
     onSuccess: () => {
       toast({
         title: "Success",
         description: "Je profiel is bijgewerkt",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/profile'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/onboarding/progress'] });
+      queryClient.refetchQueries({ queryKey: ['/api/onboarding/progress'] });
       setLocation("/profile");
     },
     onError: (error: Error) => {
@@ -141,6 +159,7 @@ export default function EditProfileView() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      console.log('Submitting form data:', formData); 
       await updateProfileMutation.mutateAsync(formData);
     } finally {
       setIsSubmitting(false);
@@ -151,7 +170,10 @@ export default function EditProfileView() {
     if (newConcern.trim()) {
       setFormData({
         ...formData,
-        primaryConcerns: [...formData.primaryConcerns, newConcern.trim()]
+        stressAssessment: {
+          ...formData.stressAssessment,
+          primaryConcerns: [...formData.stressAssessment.primaryConcerns, newConcern.trim()]
+        }
       });
       setNewConcern("");
     }
@@ -160,7 +182,10 @@ export default function EditProfileView() {
   const removeConcern = (index: number) => {
     setFormData({
       ...formData,
-      primaryConcerns: formData.primaryConcerns.filter((_, i) => i !== index)
+      stressAssessment: {
+        ...formData.stressAssessment,
+        primaryConcerns: formData.stressAssessment.primaryConcerns.filter((_, i) => i !== index)
+      }
     });
   };
 
@@ -168,7 +193,10 @@ export default function EditProfileView() {
     if (newSupport.trim()) {
       setFormData({
         ...formData,
-        supportNetwork: [...formData.supportNetwork, newSupport.trim()]
+        stressAssessment: {
+          ...formData.stressAssessment,
+          supportNetwork: [...formData.stressAssessment.supportNetwork, newSupport.trim()]
+        }
       });
       setNewSupport("");
     }
@@ -177,7 +205,10 @@ export default function EditProfileView() {
   const removeSupport = (index: number) => {
     setFormData({
       ...formData,
-      supportNetwork: formData.supportNetwork.filter((_, i) => i !== index)
+      stressAssessment: {
+        ...formData.stressAssessment,
+        supportNetwork: formData.stressAssessment.supportNetwork.filter((_, i) => i !== index)
+      }
     });
   };
 
@@ -298,11 +329,14 @@ export default function EditProfileView() {
               <Label htmlFor="name">Naam</Label>
               <Input
                 id="name"
-                value={formData.name}
+                value={formData.basicInfo.name}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    name: e.target.value,
+                    basicInfo: {
+                      ...formData.basicInfo,
+                      name: e.target.value,
+                    },
                   })
                 }
               />
@@ -311,11 +345,14 @@ export default function EditProfileView() {
             <div className="space-y-2">
               <Label htmlFor="experienceLevel">Ervaring niveau</Label>
               <Select
-                value={formData.experienceLevel}
+                value={formData.basicInfo.experienceLevel}
                 onValueChange={(value: "first_time" | "experienced" | "multiple_children") =>
                   setFormData({
                     ...formData,
-                    experienceLevel: value,
+                    basicInfo: {
+                      ...formData.basicInfo,
+                      experienceLevel: value,
+                    },
                   })
                 }
               >
@@ -340,11 +377,14 @@ export default function EditProfileView() {
             <div className="space-y-2">
               <Label htmlFor="stressLevel">Stress niveau</Label>
               <Select
-                value={formData.stressLevel}
+                value={formData.stressAssessment.stressLevel}
                 onValueChange={(value: "low" | "moderate" | "high" | "very_high") =>
                   setFormData({
                     ...formData,
-                    stressLevel: value,
+                    stressAssessment: {
+                      ...formData.stressAssessment,
+                      stressLevel: value,
+                    },
                   })
                 }
               >
@@ -379,7 +419,7 @@ export default function EditProfileView() {
                 </Button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {formData.primaryConcerns.map((concern, index) => (
+                {formData.stressAssessment.primaryConcerns.map((concern, index) => (
                   <Badge key={index} variant="secondary">
                     {concern}
                     <button
@@ -413,7 +453,7 @@ export default function EditProfileView() {
                 </Button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {formData.supportNetwork.map((support, index) => (
+                {formData.stressAssessment.supportNetwork.map((support, index) => (
                   <Badge key={index} variant="secondary">
                     {support}
                     <button

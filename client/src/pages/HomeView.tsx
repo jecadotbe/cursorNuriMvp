@@ -12,30 +12,6 @@ import { format } from 'date-fns';
 import { renderMarkdown } from '@/lib/markdown';
 import { SuggestionFeedback } from "@/components/SuggestionFeedback";
 import { useBackgroundRefresh } from "@/hooks/use-background-refresh";
-import { useQuery } from "@tanstack/react-query";
-
-type ProfileData = {
-  id: number;
-  userId: number;
-  name: string;
-  experienceLevel: "first_time" | "experienced" | "multiple_children";
-  stressLevel: "low" | "moderate" | "high" | "very_high";
-  primaryConcerns: string[];
-  supportNetwork: string[];
-  childProfiles: Array<{
-    name: string;
-    age: number;
-    specialNeeds: string[];
-  }>;
-  goals: {
-    shortTerm: string[];
-    longTerm: string[];
-    supportAreas: string[];
-  };
-  bio?: string;
-  preferredLanguage?: string;
-  communicationPreference?: string;
-};
 
 const WelcomeView = () => {
   const greetings = [
@@ -82,30 +58,19 @@ const WelcomeView = () => {
 
 
 export default function HomeView() {
-  // Call all hooks at the top level
   const { user, isLoading: userLoading } = useUser();
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [showSkeleton, setShowSkeleton] = useState(true);
-  const [hasSuggestions, setHasSuggestions] = useState(false);
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [currentSuggestionId, setCurrentSuggestionId] = useState<number | null>(null);
-  const [, navigate] = useLocation();
   useBackgroundRefresh();
 
-  const { data: profile, isLoading: profileLoading } = useQuery<ProfileData>({
-    queryKey: ['/api/profile'],
-    enabled: !!user,
-    queryFn: async () => {
-      const response = await fetch('/api/profile', {
-        credentials: 'include'
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch profile');
-      }
-      return response.json();
-    }
-  });
+  // Wait for user state to be determined before rendering
+  if (userLoading) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900"></div>
+    </div>;
+  }
+
+  if (!user) {
+    return <WelcomeView />;
+  }
 
   const {
     suggestion,
@@ -130,19 +95,56 @@ export default function HomeView() {
     filterByType: ['network_growth', 'network_expansion', 'village_maintenance'] as const
   });
 
-  // Wait for user state to be determined before rendering
-  if (userLoading || profileLoading) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900"></div>
-    </div>;
-  }
+  // Debug logging
+  useEffect(() => {
+    console.log('Village suggestions state:', {
+      suggestions: villageSuggestions,
+      loading: villageLoading,
+      error: villageError
+    });
+  }, [villageSuggestions, villageLoading, villageError]);
 
-  if (!user) {
-    return <WelcomeView />;
-  }
+  // Handle suggestion errors
+  useEffect(() => {
+    if (suggestionError) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load suggestions. Please try again.",
+      });
+    }
+  }, [suggestionError]);
 
-  // Rest of the component implementation remains unchanged, just update the profile name reference
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSkeleton, setShowSkeleton] = useState(true);
+  const [hasSuggestions, setHasSuggestions] = useState(false);
+
+  // Effect to handle suggestion loading state
+  useEffect(() => {
+    if (!suggestionLoading && suggestions?.length > 0) {
+      // Force re-render when suggestions are available
+      setHasSuggestions(true);
+      setShowSkeleton(false);
+    } else if (!suggestionLoading && suggestions?.length === 0) {
+      // Handle case when no suggestions are available
+      setHasSuggestions(false);
+      setShowSkeleton(false);
+    }
+  }, [suggestionLoading, suggestions]);
+
+  // Effect to refresh suggestions if needed
+  useEffect(() => {
+    if (!hasSuggestions && !suggestionLoading) {
+      refetch().catch(console.error);
+    }
+  }, [hasSuggestions, suggestionLoading, refetch]);
+
   const shouldShowSkeleton = showSkeleton || suggestionLoading || (!hasSuggestions && !suggestion);
+
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [currentSuggestionId, setCurrentSuggestionId] = useState<number | null>(null);
+  const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const actionChips = [
     {
@@ -269,7 +271,7 @@ export default function HomeView() {
             </div>
             <div className="space-y-1 homebottom">
               <h1 className="text-2xl font-baskerville">
-                Dag {profile?.name || user?.username},
+                Dag {user?.username},
               </h1>
               <p className="text-xl">
                 Fijn je weer te zien.
@@ -300,7 +302,7 @@ export default function HomeView() {
             <Card className="hover:shadow-md transition-shadow cursor-pointer mb-3 animate-border rounded-2xl shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)]">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between relative">
-                  <button
+                  <button 
                     onClick={(e) => {
                       e.stopPropagation();
                       if (suggestion) {
@@ -340,9 +342,9 @@ export default function HomeView() {
                         )}
                       </div>
                     </div>
-                    <div
+                    <div 
                       className="text-lg pr-8"
-                      dangerouslySetInnerHTML={{
+                      dangerouslySetInnerHTML={{ 
                         __html: renderMarkdown(suggestion.text)
                       }}
                     />
@@ -411,8 +413,10 @@ export default function HomeView() {
               <img src="/images/VillageIcon.svg" alt="Village" className="w-6 h-6" />
               <h2 className="text-2xl font-baskerville">Mijn Village</h2>
             </div>
+        
           </div>
-          <h3 className="text-l mb-4">I takes a Village to raise a child</h3>
+          <h3 className="text-l mb-4">I takes a Village to raise a child</h3> 
+          
           <div className="mt-4 space-y-4">
             {/* Village suggestions */}
             <div className="grid grid-cols-1 gap-3">
@@ -446,38 +450,38 @@ export default function HomeView() {
                 </Card>
               ) : (
                 villageSuggestions?.map((suggestion) => (
-                  <Card
-                    key={suggestion.id}
+                  <Card 
+                    key={suggestion.id} 
                     className="bg-white hover:shadow-md transition-shadow"
                   >
                     <CardContent className="p-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <div
-                          className="w-2 h-2 rounded-full"
+                        <div 
+                          className="w-2 h-2 rounded-full" 
                           style={{
-                            backgroundColor:
+                            backgroundColor: 
                               suggestion.type === 'network_growth' ? '#10B981' :
                               suggestion.type === 'network_expansion' ? '#3B82F6' :
                               '#F59E0B' // village_maintenance
                           }}
                         />
-                        <span
+                        <span 
                           className="text-sm font-medium"
                           style={{
-                            color:
+                            color: 
                               suggestion.type === 'network_growth' ? '#10B981' :
                               suggestion.type === 'network_expansion' ? '#3B82F6' :
                               '#F59E0B'
                           }}
                         >
                           {suggestion.type === 'network_growth' ? 'Versterk je village' :
-                            suggestion.type === 'network_expansion' ? 'Breidt je village uit' :
-                            'Onderhoud je village'}
+                           suggestion.type === 'network_expansion' ? 'Breidt je village uit' :
+                           'Onderhoud je village'}
                         </span>
                       </div>
                       <p className="text-gray-700 mb-2">{suggestion.text}</p>
                       <div className="flex justify-end gap-2">
-
+                        
                       </div>
                     </CardContent>
                   </Card>
@@ -614,109 +618,3 @@ const OneCard = [
     image: "/images/alexander-dummer-ncyGJJ0TSLM-unsplash (1).jpg",
   },
 ];
-
-const actionChips = [
-  {
-    text: "Ik wil ventileren",
-    icon: <Wind className="w-4 h-4" />,
-  },
-  {
-    text: "Village vraagje",
-    icon: <Heart className="w-4 h-4" />,
-  },
-  {
-    text: "Gewoon chatten",
-    icon: <MessageCircle className="w-4 h-4" />,
-  },
-];
-
-const handleChipClick = async (topic: string) => {
-  try {
-    const response = await fetch('/api/chats', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
-        messages: [{
-          role: 'assistant',
-          content: `Ik begrijp dat je ${topic.toLowerCase()}. Waar wil je het over hebben?`
-        }],
-      }),
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to create new chat');
-    }
-
-    const newChat = await response.json();
-    navigate(`/chat/${newChat.id}`);
-  } catch (error) {
-    console.error('Error creating chat:', error);
-    toast({
-      variant: "destructive",
-      title: "Error",
-      description: "Could not start the conversation. Please try again.",
-    });
-  }
-};
-
-const handlePromptClick = async () => {
-  if (!suggestion) return;
-
-  try {
-    await markAsUsed(suggestion.id);
-    setCurrentSuggestionId(suggestion.id);
-
-    if (suggestion.context === "existing" && suggestion.relatedChatId) {
-      navigate(`/chat/${suggestion.relatedChatId}`);
-    } else {
-      const response = await fetch('/api/chats', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
-          messages: [{
-            role: 'assistant',
-            content: suggestion.text
-          }],
-        }),
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create new chat');
-      }
-
-      const newChat = await response.json();
-      navigate(`/chat/${newChat.id}`);
-    }
-
-    setShowFeedback(true);
-  } catch (error) {
-    console.error('Error handling prompt:', error);
-    toast({
-      variant: "destructive",
-      title: "Error",
-      description: "Could not process the prompt. Please try again.",
-    });
-  }
-};
-
-const handleFeedbackClose = () => {
-  setShowFeedback(false);
-  setCurrentSuggestionId(null);
-};
-
-const handleImageLoad = (imageName: string) => {
-  console.log(`Successfully loaded image: ${imageName}`);
-};
-
-const handleImageError = (imageName: string, error: any) => {
-  console.error(`Failed to load image: ${imageName}`, error);
-  console.log('Image path attempted:', `/images/${imageName}`);
-};
