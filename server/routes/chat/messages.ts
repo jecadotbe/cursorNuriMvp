@@ -49,7 +49,10 @@ export function setupChatRoutes(router: Router) {
       // Get RAG context
       console.log('[Chat Route] Fetching RAG context');
       const ragContext = await searchBooks(lastMessage, 2);
+      console.log('[Chat Route] Retrieved RAG documents:', 
+        JSON.stringify(ragContext, null, 2));
       const mergedRAG = ragContext.map((doc) => doc.pageContent).join("\n\n");
+      console.log('[Chat Route] Merged RAG content:', mergedRAG);
 
       // Format profile context
       console.log('[Chat Route] Formatting profile context');
