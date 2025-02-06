@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useLocation } from "wouter";
 
 type OnboardingStep = {
   id: string;
@@ -57,20 +58,25 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage("onboarding-completed", false);
   const [isActive, setIsActive] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [location] = useLocation();
 
   useEffect(() => {
-    if (!hasCompletedOnboarding) {
+    // Only auto-start onboarding on the homepage for new users
+    if (!hasCompletedOnboarding && location === "/" && !isActive) {
       // Auto-start onboarding for new users after a short delay
       const timer = setTimeout(() => {
         setIsActive(true);
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [hasCompletedOnboarding]);
+  }, [hasCompletedOnboarding, location, isActive]);
 
   const start = () => {
-    setIsActive(true);
-    setCurrentStep(0);
+    // Only allow starting onboarding on the homepage
+    if (location === "/") {
+      setIsActive(true);
+      setCurrentStep(0);
+    }
   };
 
   const next = () => {
