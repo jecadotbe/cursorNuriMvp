@@ -11,7 +11,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
-import { X } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 
@@ -24,9 +24,10 @@ const formSchema = z.object({
 type GoalsStepProps = {
   onComplete: (data: z.infer<typeof formSchema>) => void;
   initialData?: z.infer<typeof formSchema>;
+  isSubmitting?: boolean;
 };
 
-export default function GoalsStep({ onComplete, initialData }: GoalsStepProps) {
+export default function GoalsStep({ onComplete, initialData, isSubmitting }: GoalsStepProps) {
   const [newShortTerm, setNewShortTerm] = useState("");
   const [newLongTerm, setNewLongTerm] = useState("");
   const [newSupportArea, setNewSupportArea] = useState("");
@@ -229,8 +230,19 @@ export default function GoalsStep({ onComplete, initialData }: GoalsStepProps) {
           )}
         />
 
-        <Button type="submit" className="w-full">
-          Onboarding afronden
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Opslaan...
+            </>
+          ) : (
+            "Onboarding afronden"
+          )}
         </Button>
       </form>
     </Form>

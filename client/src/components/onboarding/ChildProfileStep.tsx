@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus } from "lucide-react";
+import { X, Plus, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -27,9 +27,10 @@ type Child = z.infer<typeof childSchema>;
 type ChildProfileStepProps = {
   onComplete: (children: Child[]) => void;
   initialData?: Child[];
+  isSubmitting?: boolean;
 };
 
-export default function ChildProfileStep({ onComplete, initialData = [] }: ChildProfileStepProps) {
+export default function ChildProfileStep({ onComplete, initialData = [], isSubmitting = false }: ChildProfileStepProps) {
   const [newSpecialNeed, setNewSpecialNeed] = useState("");
   const [activeChildIndex, setActiveChildIndex] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -241,8 +242,19 @@ export default function ChildProfileStep({ onComplete, initialData = [] }: Child
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full">
-                  Kind Opslaan
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Opslaan...
+                    </>
+                  ) : (
+                    "Kind Opslaan"
+                  )}
                 </Button>
               </form>
             </Form>
@@ -251,8 +263,19 @@ export default function ChildProfileStep({ onComplete, initialData = [] }: Child
       )}
 
       {children.length > 0 && (
-        <Button onClick={handleContinue} className="w-full">
-          Doorgaan
+        <Button
+          onClick={handleContinue}
+          className="w-full"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Doorgaan...
+            </>
+          ) : (
+            "Doorgaan"
+          )}
         </Button>
       )}
     </div>

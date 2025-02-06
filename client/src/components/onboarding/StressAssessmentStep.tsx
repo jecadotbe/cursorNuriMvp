@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   stressLevel: z.enum(["low", "moderate", "high", "very_high"], {
@@ -33,9 +34,10 @@ const formSchema = z.object({
 type StressAssessmentStepProps = {
   onComplete: (data: z.infer<typeof formSchema>) => void;
   initialData?: z.infer<typeof formSchema>;
+  isSubmitting?: boolean;
 };
 
-export default function StressAssessmentStep({ onComplete, initialData }: StressAssessmentStepProps) {
+export default function StressAssessmentStep({ onComplete, initialData, isSubmitting }: StressAssessmentStepProps) {
   const [newConcern, setNewConcern] = useState("");
   const [newSupport, setNewSupport] = useState("");
 
@@ -203,8 +205,19 @@ export default function StressAssessmentStep({ onComplete, initialData }: Stress
           )}
         />
 
-        <Button type="submit" className="w-full">
-          Verder
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Opslaan...
+            </>
+          ) : (
+            "Verder"
+          )}
         </Button>
       </form>
     </Form>

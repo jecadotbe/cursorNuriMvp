@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -29,9 +30,10 @@ const formSchema = z.object({
 type BasicInfoStepProps = {
   onComplete: (data: z.infer<typeof formSchema>) => void;
   initialData?: z.infer<typeof formSchema>;
+  isSubmitting?: boolean;
 };
 
-export default function BasicInfoStep({ onComplete, initialData }: BasicInfoStepProps) {
+export default function BasicInfoStep({ onComplete, initialData, isSubmitting }: BasicInfoStepProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData || {
@@ -90,8 +92,19 @@ export default function BasicInfoStep({ onComplete, initialData }: BasicInfoStep
           )}
         />
 
-        <Button type="submit" className="w-full">
-          Volgende
+        <Button 
+          type="submit" 
+          className="w-full" 
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Opslaan...
+            </>
+          ) : (
+            "Volgende"
+          )}
         </Button>
       </form>
     </Form>

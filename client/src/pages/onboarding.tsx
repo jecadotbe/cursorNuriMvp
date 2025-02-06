@@ -60,6 +60,7 @@ export default function OnboardingPage() {
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({
     childProfiles: []
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -167,6 +168,9 @@ export default function OnboardingPage() {
   });
 
   const handleStepComplete = async (stepData: Partial<OnboardingData>) => {
+    if (isSubmitting) return; // Prevent double submission
+
+    setIsSubmitting(true);
     const updatedData = {
       ...onboardingData,
       ...stepData,
@@ -177,34 +181,15 @@ export default function OnboardingPage() {
     setOnboardingData(updatedData);
 
     try {
-      toast({
-        title: "Saving progress...",
-        description: "Please wait while we save your information.",
-      });
-
       await saveProgressMutation.mutateAsync({
         step,
         data: updatedData,
       });
 
-      toast({
-        title: "Progress saved",
-        description: "Your information has been saved successfully.",
-      });
-
       if (step < totalSteps) {
         setStep(step + 1);
       } else {
-        // Show loading toast for final completion
-        toast({
-          title: "Completing onboarding...",
-          description: "Setting up your profile and village. Please wait.",
-        });
-
-        // First complete onboarding
         await completeOnboardingMutation.mutateAsync(updatedData);
-
-        // Only redirect after successful completion
         setLocation("/building-profile");
       }
     } catch (error) {
@@ -214,6 +199,8 @@ export default function OnboardingPage() {
         title: "Error",
         description: error instanceof Error ? error.message : "An error occurred while saving your progress.",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -253,24 +240,28 @@ export default function OnboardingPage() {
               <BasicInfoStep
                 onComplete={(data) => handleStepComplete({ basicInfo: data })}
                 initialData={onboardingData.basicInfo}
+                isSubmitting={isSubmitting}
               />
             )}
             {step === 2 && (
               <StressAssessmentStep
                 onComplete={(data) => handleStepComplete({ stressAssessment: data })}
                 initialData={onboardingData.stressAssessment}
+                isSubmitting={isSubmitting}
               />
             )}
             {step === 3 && (
               <ChildProfileStep
                 onComplete={(profiles) => handleStepComplete({ childProfiles: profiles })}
                 initialData={onboardingData.childProfiles}
+                isSubmitting={isSubmitting}
               />
             )}
             {step === 4 && (
               <GoalsStep
                 onComplete={(data) => handleStepComplete({ goals: data })}
                 initialData={onboardingData.goals}
+                isSubmitting={isSubmitting}
               />
             )}
           </CardContent>
