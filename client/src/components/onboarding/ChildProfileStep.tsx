@@ -57,6 +57,12 @@ export default function ChildProfileStep({ onComplete, initialData = [], isSubmi
     setActiveChildIndex(null);
     setShowForm(false);
     form.reset({ name: "", age: 0, specialNeeds: [] });
+
+    // If we removed the last child, we should hide any lingering form
+    if (newChildren.length === 0) {
+      setShowForm(false);
+      setActiveChildIndex(null);
+    }
   };
 
   const editChild = (index: number) => {
@@ -113,6 +119,7 @@ export default function ChildProfileStep({ onComplete, initialData = [], isSubmi
             <X
               className="h-4 w-4 hover:text-destructive"
               onClick={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 removeChild(index);
               }}
