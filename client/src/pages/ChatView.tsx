@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useChat } from "@/hooks/use-chat";
 import { TextareaAutosize } from "@/components/ui/textarea-autosize";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, Plus, Mic, ArrowUpCircle, Expand, Circle } from "lucide-react";
+import { ArrowLeft, Plus, Mic, ArrowUpCircle, Circle } from "lucide-react";
 import { format } from "date-fns";
 import { MessageFeedback } from "@/components/MessageFeedback";
 import {
@@ -47,7 +47,6 @@ const formatMessageContent = (content: string) => {
 export default function ChatView() {
   const { messages, sendMessage, isLoading, chatId } = useChat();
   const [inputText, setInputText] = useState('');
-  const [isExpanded, setIsExpanded] = useState(false);
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -296,12 +295,7 @@ export default function ChatView() {
                 >
                   <ArrowUpCircle className="w-6 h-6 text-[#629785]" />
                 </button>
-                <button
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  className={`p-2 hover:bg-gray-100 rounded-full ${isExpanded ? 'bg-gray-100' : ''}`}
-                >
-                  <Expand className={`w-6 h-6 text-[#629785] transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                </button>
+                
               </div>
               </div>
             </div>
