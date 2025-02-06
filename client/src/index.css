@@ -79,7 +79,7 @@
   }
 
   .chat-message {
-    @apply font-baskerville;
+    @apply font-baskerville text-base;
   }
 
   .homegreeting {
