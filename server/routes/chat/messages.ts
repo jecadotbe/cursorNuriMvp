@@ -92,7 +92,11 @@ Recent Chat History:
 ${chatMemories.length > 0 ? chatMemories.map(m => `- ${m}`).join("\n") : "No relevant chat history available"}
 
 Retrieved Knowledge:
-${mergedRAG || "No relevant knowledge base content available"}
+${mergedRAG ? `Relevant content from knowledge base:\n${mergedRAG}` : "No relevant knowledge base content available"}
+
+Instructions:
+- Use the retrieved knowledge above to inform and enrich your responses
+- When citing information from the knowledge base, be specific about the source
 
 Remember to:
 1. Use the provided context to personalize responses
