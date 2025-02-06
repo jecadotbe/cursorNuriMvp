@@ -304,9 +304,9 @@ export default function ChatView() {
       <AlertDialog open={showNewChatDialog} onOpenChange={setShowNewChatDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Start a New Conversation?</AlertDialogTitle>
+            <AlertDialogTitle>Nieuw gesprek starten?</AlertDialogTitle>
             <AlertDialogDescription>
-              Your current conversation will be saved and you can access it later from the history tab.
+              Je kan start een nieuw gesprek, je huidige gesprek kan je raadplegen via de chat historiek.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -314,10 +314,10 @@ export default function ChatView() {
               variant="outline"
               onClick={() => setShowNewChatDialog(false)}
             >
-              Cancel
+              Annuleren
             </Button>
             <Button onClick={startNewChat}>
-              Start New Chat
+              Start nieuwe chat
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
