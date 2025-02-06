@@ -191,12 +191,7 @@ export default function ChatView() {
           >
             <ArrowLeft className="w-6 h-6 text-gray-600" />
           </button>
-          <Link href="/chat">
-            <button className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200">
-              <Circle className="w-4 h-4" />
-              <span>Overzicht</span>
-            </button>
-          </Link>
+          
         </div>
         <div className="flex items-center gap-2">
           <button
