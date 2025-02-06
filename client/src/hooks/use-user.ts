@@ -1,26 +1,31 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { InsertUser, User } from "@db/schema";
+import type { User } from "@db/schema";
 import { useToast } from '@/hooks/use-toast';
 
+type LoginData = {
+  username: string;
+  password: string;
+};
+
+type RegisterData = LoginData & {
+  email: string;
+};
+
 type RequestResult = {
-  ok: true;
-  message?: string;
-} | {
-  ok: false;
+  user?: User;
   message: string;
 };
 
 async function handleRequest(
   url: string,
   method: string,
-  body?: InsertUser
+  body?: LoginData | RegisterData
 ): Promise<RequestResult> {
   try {
     const response = await fetch(url, {
       method,
       headers: {
         ...(body ? { "Content-Type": "application/json" } : {}),
-        // Add cache control headers
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
         'Expires': '0'
@@ -29,40 +34,44 @@ async function handleRequest(
       credentials: "include",
     });
 
-    if (!response.ok) {
-      if (response.status >= 500) {
-        return { ok: false, message: response.statusText };
-      }
+    const data = await response.json();
 
-      const message = await response.text();
-      return { ok: false, message };
+    if (!response.ok) {
+      throw new Error(data.message || response.statusText);
     }
 
-    const data = await response.json();
-    return { ok: true, message: data.message };
-  } catch (e: any) {
-    return { ok: false, message: e.toString() };
+    return {
+      user: data.user,
+      message: data.message
+    };
+  } catch (error) {
+    throw error instanceof Error ? error : new Error('An unexpected error occurred');
   }
 }
 
 async function fetchUser(): Promise<User | null> {
-  const response = await fetch('/api/user', {
-    credentials: 'include',
-    headers: {
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0'
-    }
-  });
+  try {
+    const response = await fetch('/api/user', {
+      credentials: 'include',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
 
-  if (!response.ok) {
-    if (response.status === 401) {
-      return null;
+    if (!response.ok) {
+      if (response.status === 401) {
+        return null;
+      }
+      throw new Error(`${response.status}: ${await response.text()}`);
     }
-    throw new Error(`${response.status}: ${await response.text()}`);
+
+    return response.json();
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    return null;
   }
-
-  return response.json();
 }
 
 export function useUser() {
@@ -72,69 +81,66 @@ export function useUser() {
   const { data: user, error, isLoading } = useQuery<User | null, Error>({
     queryKey: ['user'],
     queryFn: fetchUser,
-    staleTime: 0, // Always refetch
-    cacheTime: 0, // Don't cache
+    staleTime: 0,
+    gcTime: 0,
     retry: false
   });
 
-  const loginMutation = useMutation<RequestResult, Error, InsertUser>({
+  const loginMutation = useMutation<RequestResult, Error, LoginData>({
     mutationFn: (userData) => handleRequest('/api/login', 'POST', userData),
     onSuccess: (result) => {
-      if (result.ok) {
-        queryClient.invalidateQueries({ queryKey: ['user'] });
-        toast({
-          title: "Success",
-          description: result.message,
-        });
-      }
+      queryClient.invalidateQueries({ queryKey: ['user'] });
+      toast({
+        title: "Success",
+        description: result.message || "Successfully logged in!",
+      });
     },
     onError: (error) => {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: error.message,
+        title: "Login Failed",
+        description: error.message || "Invalid username or password",
       });
+      throw error;
     }
   });
 
   const logoutMutation = useMutation<RequestResult, Error>({
     mutationFn: () => handleRequest('/api/logout', 'POST'),
     onSuccess: (result) => {
-      if (result.ok) {
-        queryClient.clear(); // Clear all queries
-        queryClient.invalidateQueries({ queryKey: ['user'] });
-        toast({
-          title: "Success",
-          description: result.message,
-        });
-      }
+      queryClient.clear();
+      queryClient.invalidateQueries({ queryKey: ['user'] });
+      toast({
+        title: "Success",
+        description: result.message || "Successfully logged out!",
+      });
     },
     onError: (error) => {
       toast({
         variant: "destructive",
-        title: "Error",
+        title: "Logout Failed",
         description: error.message,
       });
+      throw error;
     }
   });
 
-  const registerMutation = useMutation<RequestResult, Error, InsertUser>({
+  const registerMutation = useMutation<RequestResult, Error, RegisterData>({
     mutationFn: (userData) => handleRequest('/api/register', 'POST', userData),
     onSuccess: (result) => {
-      if (result.ok) {
-        queryClient.invalidateQueries({ queryKey: ['user'] });
-        toast({
-          title: "Success",
-          description: result.message,
-        });
-      }
+      queryClient.invalidateQueries({ queryKey: ['user'] });
+      toast({
+        title: "Success",
+        description: result.message || "Registration successful!",
+      });
     },
     onError: (error) => {
       toast({
         variant: "destructive",
-        title: "Error",
+        title: "Registration Failed",
         description: error.message,
       });
+      throw error;
     }
   });
 
