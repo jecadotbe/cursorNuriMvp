@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useChat } from "@/hooks/use-chat";
+import { TextareaAutosize } from "@/components/ui/textarea-autosize";
 import { Link, useLocation } from "wouter";
 import { ArrowLeft, Plus, Mic, ArrowUpCircle, Expand, Circle } from "lucide-react";
 import { format } from "date-fns";
