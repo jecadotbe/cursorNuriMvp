@@ -270,13 +270,12 @@ export default function ChatView() {
                 onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
                 placeholder="Typ een boodschap..."
-                className={`flex-1 px-4 py-2 border border-gray-300 ${isExpanded ? 'rounded-lg' : 'rounded-full'} focus:outline-none focus:ring-2 focus:ring-[#629785] focus:border-transparent resize-none transition-all duration-200 ease-in-out chat-message text-left text-base`}
+                className={`flex-1 px-4 py-2 border border-gray-300 ${isExpanded ? 'rounded-lg' : 'rounded-full'} focus:outline-none focus:ring-2 focus:ring-[#629785] focus:border-transparent resize-none transition-all duration-200 ease-in-out chat-message text-left text-base ${
+                  isExpanded ? 'h-24 !text-left' : 'h-10'
+                }`}
                 style={{
                   lineHeight: '1.5rem',
-                  minHeight: '40px',
-                  maxHeight: '120px', // 5 lines * 1.5rem line height + padding
-                  height: 'auto',
-                  overflowY: 'auto',
+                  overflowY: isExpanded ? 'auto' : 'hidden',
                 }}
               />
               <div className="flex-shrink-0 flex items-center space-x-2">
