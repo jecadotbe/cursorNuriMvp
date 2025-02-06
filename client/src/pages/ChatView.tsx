@@ -265,7 +265,12 @@ export default function ChatView() {
               <TextareaAutosize
                 value={inputText}
                 onChange={handleInputChange}
-                onKeyPress={handleKeyPress}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
                 placeholder="Typ een boodschap..."
                 maxHeight={200}
                 className="resize-none transition-all duration-200 ease-in-out chat-message text-left"

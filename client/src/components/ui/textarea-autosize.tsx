@@ -30,6 +30,12 @@ export const TextareaAutosize = React.forwardRef<HTMLTextAreaElement, TextareaAu
       return () => window.removeEventListener('resize', updateHeight);
     }, [maxHeight]);
 
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === 'Enter' && !e.shiftKey && props.onKeyPress) {
+        props.onKeyPress(e);
+      }
+    };
+
     return (
       <textarea
         {...props}
@@ -38,15 +44,21 @@ export const TextareaAutosize = React.forwardRef<HTMLTextAreaElement, TextareaAu
           updateHeight();
           props.onChange?.(e);
         }}
+        onKeyDown={handleKeyDown}
         className={cn(
           "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#629785] focus:border-transparent text-base",
-          "overscroll-none touch-pan-y",
+          "overscroll-none touch-pan-y overflow-y-auto",
+          "min-h-[40px] resize-none",
           className
         )}
         style={{
           ...props.style,
-          overflowY: textareaRef.current?.scrollHeight > maxHeight ? 'auto' : 'hidden',
           WebkitOverflowScrolling: 'touch',
+          WebkitAppearance: 'none',
+          msOverflowStyle: '-ms-autohiding-scrollbar',
+          touchAction: 'manipulation pan-y',
+          caretColor: '#629785',
+          overflowY: textareaRef.current?.scrollHeight > maxHeight ? 'auto' : 'hidden',
         }}
       />
     );
