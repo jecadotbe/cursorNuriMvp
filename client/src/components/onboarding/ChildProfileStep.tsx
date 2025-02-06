@@ -1,5 +1,6 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +14,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { X, Plus, Loader2 } from "lucide-react";
-import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 
 const childSchema = z.object({
@@ -57,12 +57,6 @@ export default function ChildProfileStep({ onComplete, initialData = [], isSubmi
     setActiveChildIndex(null);
     setShowForm(false);
     form.reset({ name: "", age: 0, specialNeeds: [] });
-
-    // If we removed the last child, we should hide any lingering form
-    if (newChildren.length === 0) {
-      setShowForm(false);
-      setActiveChildIndex(null);
-    }
   };
 
   const editChild = (index: number) => {
@@ -99,7 +93,6 @@ export default function ChildProfileStep({ onComplete, initialData = [], isSubmi
   };
 
   const handleContinue = () => {
-    // Only proceed if we have at least one child saved
     if (children.some(child => child.name && child.age >= 0)) {
       onComplete(children);
     }
@@ -109,22 +102,22 @@ export default function ChildProfileStep({ onComplete, initialData = [], isSubmi
     <div className="space-y-6 bg-transparent">
       <div className="flex gap-2 mb-4 flex-wrap">
         {children.map((child, index) => (
-          <Button
-            key={index}
-            variant={activeChildIndex === index ? "default" : "outline"}
-            onClick={() => editChild(index)}
-            className="flex items-center gap-2"
-          >
-            {child.name || `Kind ${index + 1}`}
-            <X
-              className="h-4 w-4 hover:text-destructive"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                removeChild(index);
-              }}
-            />
-          </Button>
+          <div key={index} className="flex items-center gap-1">
+            <Button
+              variant={activeChildIndex === index ? "default" : "outline"}
+              onClick={() => editChild(index)}
+            >
+              {child.name || `Kind ${index + 1}`}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 p-0"
+              onClick={() => removeChild(index)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         ))}
         <Button
           variant="outline"
