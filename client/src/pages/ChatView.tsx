@@ -260,27 +260,25 @@ export default function ChatView() {
       <div className="w-full border-t border-gray-200 bg-[#F2F0E5] fixed bottom-0 left-0 z-50">
         <div className="max-w-screen-lg mx-auto px-4 py-6">
           <div className="flex flex-col space-y-">
-            <div className="flex flex-col space-y-2 w-full">
+            <div className="flex items-start space-x-2">
+              <MicrophoneVisualizer
+                isRecording={isRecording}
+                onToggle={() => isRecording ? stopRecording() : startRecording()}
+              />
               <textarea
                 value={inputText}
                 onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
                 placeholder="Typ een boodschap..."
-                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#629785] focus:border-transparent resize-none transition-all duration-200 ease-in-out chat-message text-left text-base`}
+                className={`flex-1 px-4 py-2 border border-gray-300 ${isExpanded ? 'rounded-lg' : 'rounded-full'} focus:outline-none focus:ring-2 focus:ring-[#629785] focus:border-transparent resize-none transition-all duration-200 ease-in-out chat-message text-left text-base ${
+                  isExpanded ? 'h-24 !text-left' : 'h-10'
+                }`}
                 style={{
                   lineHeight: '1.5rem',
-                  minHeight: '40px',
-                  maxHeight: '200px', // approximately 8 lines of text
-                  height: 'auto',
-                  overflowY: 'auto',
+                  overflowY: isExpanded ? 'auto' : 'hidden',
                 }}
               />
-              <div className="flex items-center justify-between space-x-2">
-                <MicrophoneVisualizer
-                  isRecording={isRecording}
-                  onToggle={() => isRecording ? stopRecording() : startRecording()}
-                />
-                <div className="flex-shrink-0 flex items-center space-x-2">
+              <div className="flex-shrink-0 flex items-center space-x-2">
                 <button
                   onClick={handleSend}
                   disabled={isLoading || !inputText.trim()}
@@ -295,8 +293,8 @@ export default function ChatView() {
                   <Expand className={`w-6 h-6 text-[#629785] transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                 </button>
               </div>
-              </div>
             </div>
+
           </div>
         </div>
       </div>
