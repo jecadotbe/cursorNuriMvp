@@ -47,7 +47,7 @@ export async function generateVillageSuggestions(
   const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
   try {
-    // throw new Error("This is a test error");
+    throw new Error("This is a test error");
     // 1. Analyze village structure and gaps
     console.log("Analyzing village gaps for members:", members);
     const gaps = analyzeVillageGaps(members);
