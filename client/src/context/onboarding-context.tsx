@@ -60,20 +60,28 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   const [currentStep, setCurrentStep] = useState(0);
   const [location] = useLocation();
 
+  // Check if we're in the onboarding flow
+  const isInOnboardingFlow = location.includes('/onboarding') || location === '/building-profile';
+
   useEffect(() => {
-    // Only auto-start onboarding on the homepage for new users
-    if (!hasCompletedOnboarding && location === "/" && !isActive) {
-      // Auto-start onboarding for new users after a short delay
+    // Only show tooltips on homepage when not in onboarding flow
+    if (!hasCompletedOnboarding && location === "/" && !isActive && !isInOnboardingFlow) {
+      // Auto-start onboarding tooltips for new users after a short delay
       const timer = setTimeout(() => {
         setIsActive(true);
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [hasCompletedOnboarding, location, isActive]);
+
+    // Deactivate tooltips if we enter onboarding flow
+    if (isInOnboardingFlow && isActive) {
+      setIsActive(false);
+    }
+  }, [hasCompletedOnboarding, location, isActive, isInOnboardingFlow]);
 
   const start = () => {
-    // Only allow starting onboarding on the homepage
-    if (location === "/") {
+    // Only allow starting onboarding tooltips on the homepage and when not in onboarding flow
+    if (location === "/" && !isInOnboardingFlow) {
       setIsActive(true);
       setCurrentStep(0);
     }
