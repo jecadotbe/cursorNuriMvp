@@ -126,11 +126,11 @@ export default function LearnDetailView() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/60 pointer-events-none" />
 
           {/* Top Bar */}
-          <div className="fixed top-0 left-0 right-0 p-4 flex items-center bg-white shadow-sm z-[100] pointer-events-auto">
+          <div className="fixed top-0 left-0 right-0 p-4 flex items-center z-[100] pointer-events-auto">
             <Button
               variant="ghost"
               size="lg"
-              className="text-gray-800 hover:bg-gray-100 rounded-xl p-3 flex items-center gap-2"
+              className="text-white hover:bg-black/30 rounded-xl p-3 flex items-center gap-2"
               onClick={handleBackClick}
             >
               <ArrowLeft className="h-6 w-6" />
