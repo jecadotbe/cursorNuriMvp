@@ -36,12 +36,9 @@ export default function LearnDetailView() {
 
   // Navigate back using wouter's hook.
   const handleBackClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
-    if (window.history.length > 1) {
-      window.history.back();
-    } else {
-      setLocation("/learn");
-    }
+    setLocation("/learn");
   }, [setLocation]);
 
   const handlePlayPause = useCallback(() => {
