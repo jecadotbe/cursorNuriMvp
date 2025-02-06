@@ -191,7 +191,7 @@ export default function ChatView() {
           >
             <ArrowLeft className="w-6 h-6 text-gray-600" />
           </button>
-          
+
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -261,35 +261,16 @@ export default function ChatView() {
         <div className="max-w-screen-lg mx-auto px-4 py-6">
           <div className="flex flex-col space-y-">
             <div className="flex flex-col space-y-2 w-full">
-              <textarea
+              <TextareaAutosize
                 value={inputText}
                 onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
                 placeholder="Typ een boodschap..."
-                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#629785] focus:border-transparent resize-none transition-all duration-200 ease-in-out chat-message text-left text-base touch-manipulation`}
+                maxHeight={200}
+                className="resize-none transition-all duration-200 ease-in-out chat-message text-left"
                 style={{
                   lineHeight: '1.5rem',
                   minHeight: '40px',
-                  maxHeight: '200px',
-                  height: 'auto',
-                  overflowY: 'auto',
-                  WebkitOverflowScrolling: 'touch',
-                  msOverflowStyle: '-ms-autohiding-scrollbar',
-                  WebkitAppearance: 'none',
-                  userSelect: 'text',
-                  touchAction: 'pan-y',
-                }}
-                onTouchStart={(e) => e.stopPropagation()}
-                onInput={(e) => {
-                  const target = e.target as HTMLTextAreaElement;
-                  target.style.height = 'auto';
-                  target.style.height = `${Math.min(target.scrollHeight, 200)}px`;
-                }}
-                onTouchMove={(e) => {
-                  const target = e.target as HTMLTextAreaElement;
-                  if (target.scrollHeight > target.clientHeight) {
-                    e.stopPropagation();
-                  }
                 }}
               />
               <div className="flex items-center justify-between space-x-2">
