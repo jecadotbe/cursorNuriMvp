@@ -32,10 +32,17 @@ export const TextareaAutosize = React.forwardRef<HTMLTextAreaElement, TextareaAu
       return () => window.removeEventListener('resize', updateHeight);
     }, [maxHeight]);
 
+    const resetHeight = () => {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+      textarea.style.height = '44px';
+    };
+
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === 'Enter' && !e.shiftKey && props.onKeyPress) {
         e.preventDefault();
         props.onKeyPress(e);
+        resetHeight();
       }
     };
 

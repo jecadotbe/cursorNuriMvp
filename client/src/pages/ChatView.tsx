@@ -286,7 +286,11 @@ export default function ChatView() {
                 />
                 <div className="flex-shrink-0 flex items-center space-x-2">
                 <button
-                  onClick={handleSend}
+                  onClick={() => {
+                    handleSend();
+                    const textarea = document.querySelector('textarea');
+                    if (textarea) textarea.style.height = '44px';
+                  }}
                   disabled={isLoading || !inputText.trim()}
                   className="p-2 hover:bg-gray-100 rounded-full disabled:opacity-50"
                 >
