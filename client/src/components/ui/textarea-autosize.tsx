@@ -7,7 +7,7 @@ interface TextareaAutosizeProps extends React.TextareaHTMLAttributes<HTMLTextAre
 }
 
 export const TextareaAutosize = React.forwardRef<HTMLTextAreaElement, TextareaAutosizeProps>(
-  ({ className, maxHeight = 200, ...props }, ref) => {
+  ({ className, maxHeight = 150, ...props }, ref) => {
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const combinedRef = (node: HTMLTextAreaElement) => {
       textareaRef.current = node;
@@ -19,9 +19,11 @@ export const TextareaAutosize = React.forwardRef<HTMLTextAreaElement, TextareaAu
       const textarea = textareaRef.current;
       if (!textarea) return;
       
-      textarea.style.height = 'auto';
+      const currentScroll = textarea.scrollTop;
+      textarea.style.height = '44px'; // Reset to minimum height
       const newHeight = Math.min(textarea.scrollHeight, maxHeight);
       textarea.style.height = `${newHeight}px`;
+      textarea.scrollTop = currentScroll; // Restore scroll position
     };
 
     useEffect(() => {
@@ -32,8 +34,17 @@ export const TextareaAutosize = React.forwardRef<HTMLTextAreaElement, TextareaAu
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === 'Enter' && !e.shiftKey && props.onKeyPress) {
+        e.preventDefault();
         props.onKeyPress(e);
       }
+    };
+
+    const handleTouchStart = (e: React.TouchEvent<HTMLTextAreaElement>) => {
+      const textarea = textareaRef.current;
+      if (!textarea || textarea.scrollHeight <= textarea.clientHeight) {
+        return;
+      }
+      e.stopPropagation();
     };
 
     return (
@@ -45,10 +56,11 @@ export const TextareaAutosize = React.forwardRef<HTMLTextAreaElement, TextareaAu
           props.onChange?.(e);
         }}
         onKeyDown={handleKeyDown}
+        onTouchStart={handleTouchStart}
         className={cn(
           "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#629785] focus:border-transparent text-base",
-          "overscroll-none touch-pan-y overflow-y-auto",
-          "min-h-[40px] resize-none",
+          "overscroll-behavior-y-contain touch-pan-y",
+          "min-h-[44px] resize-none",
           className
         )}
         style={{
@@ -56,9 +68,11 @@ export const TextareaAutosize = React.forwardRef<HTMLTextAreaElement, TextareaAu
           WebkitOverflowScrolling: 'touch',
           WebkitAppearance: 'none',
           msOverflowStyle: '-ms-autohiding-scrollbar',
-          touchAction: 'manipulation pan-y',
+          touchAction: 'pan-y pinch-zoom',
           caretColor: '#629785',
-          overflowY: textareaRef.current?.scrollHeight > maxHeight ? 'auto' : 'hidden',
+          overflowY: 'auto',
+          overscrollBehavior: 'contain',
+          isolation: 'isolate',
         }}
       />
     );

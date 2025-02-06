@@ -258,9 +258,9 @@ export default function ChatView() {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="w-full border-t border-gray-200 bg-[#F2F0E5] fixed bottom-0 left-0 z-50">
+      <div className="w-full border-t border-gray-200 bg-[#F2F0E5] fixed bottom-0 left-0 z-50" style={{ isolation: 'isolate' }}>
         <div className="max-w-screen-lg mx-auto px-4 py-6">
-          <div className="flex flex-col space-y-">
+          <div className="flex flex-col space-y-2 isolate">
             <div className="flex flex-col space-y-2 w-full">
               <TextareaAutosize
                 value={inputText}
