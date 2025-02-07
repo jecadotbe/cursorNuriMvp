@@ -13,6 +13,7 @@ import { ChevronLeft, Loader2, X, Plus } from "lucide-react";
 type OnboardingData = {
   basicInfo: {
     name: string;
+    parentType: "mom" | "dad" | "other";
     experienceLevel: "first_time" | "experienced" | "multiple_children";
   };
   stressAssessment: {
@@ -32,13 +33,10 @@ type OnboardingData = {
   };
 };
 
-type ProfileResponse = {
-  onboardingData: OnboardingData;
-};
-
 const defaultFormData: OnboardingData = {
   basicInfo: {
     name: "",
+    parentType: "mom",
     experienceLevel: "first_time",
   },
   stressAssessment: {
@@ -90,7 +88,7 @@ export default function EditProfileView() {
         }
 
         const data = await response.json();
-        console.log('Fetched profile data:', data); 
+        console.log('Fetched profile data:', data);
         return data;
       } catch (error) {
         console.error('Profile fetch error:', error);
@@ -101,7 +99,7 @@ export default function EditProfileView() {
 
   useEffect(() => {
     if (profile?.onboardingData) {
-      console.log('Setting form data from profile:', profile.onboardingData); 
+      console.log('Setting form data from profile:', profile.onboardingData);
       setFormData(profile.onboardingData);
     }
   }, [profile]);
@@ -133,7 +131,7 @@ export default function EditProfileView() {
       }
 
       const result = await response.json();
-      console.log('Profile update response:', result); 
+      console.log('Profile update response:', result);
       return result;
     },
     onSuccess: () => {
@@ -159,7 +157,7 @@ export default function EditProfileView() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      console.log('Submitting form data:', formData); 
+      console.log('Submitting form data:', formData);
       await updateProfileMutation.mutateAsync(formData);
     } finally {
       setIsSubmitting(false);
@@ -340,6 +338,31 @@ export default function EditProfileView() {
                   })
                 }
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="parentType">Ouderrol</Label>
+              <Select
+                value={formData.basicInfo.parentType}
+                onValueChange={(value: "mom" | "dad" | "other") =>
+                  setFormData({
+                    ...formData,
+                    basicInfo: {
+                      ...formData.basicInfo,
+                      parentType: value,
+                    },
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecteer je ouderrol" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mom">Moeder</SelectItem>
+                  <SelectItem value="dad">Vader</SelectItem>
+                  <SelectItem value="other">Anders</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">

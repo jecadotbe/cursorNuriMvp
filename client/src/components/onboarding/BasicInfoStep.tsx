@@ -22,6 +22,9 @@ import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
+  parentType: z.enum(["mom", "dad", "other"], {
+    required_error: "Please select your parent type",
+  }),
   experienceLevel: z.enum(["first_time", "experienced"], {
     required_error: "Please select your parenting experience",
   }),
@@ -38,6 +41,7 @@ export default function BasicInfoStep({ onComplete, initialData, isSubmitting }:
     resolver: zodResolver(formSchema),
     defaultValues: initialData || {
       name: "",
+      parentType: undefined,
       experienceLevel: undefined,
     },
   });
@@ -58,6 +62,38 @@ export default function BasicInfoStep({ onComplete, initialData, isSubmitting }:
               <FormControl>
                 <Input placeholder="Vul jouwn naam in" {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="parentType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Ouderrol</FormLabel>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecteer je ouderrol" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="mom">
+                    Moeder
+                  </SelectItem>
+                  <SelectItem value="dad">
+                    Vader
+                  </SelectItem>
+                  <SelectItem value="other">
+                    Anders
+                  </SelectItem>
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}

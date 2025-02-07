@@ -13,7 +13,8 @@ import { Loader2 } from "lucide-react";
 export type OnboardingData = {
   basicInfo?: {
     name: string;
-    experienceLevel: "first_time" | "experienced" | "multiple_children";
+    parentType: "mom" | "dad" | "other";
+    experienceLevel: "first_time" | "experienced";
   };
   stressAssessment?: {
     stressLevel: "low" | "moderate" | "high" | "very_high";
