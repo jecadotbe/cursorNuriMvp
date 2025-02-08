@@ -54,6 +54,8 @@
     "@types/jest": "^29.5.14",
     "@types/marked": "^5.0.2",
     "@types/supertest": "^6.0.2",
+    "autoevals": "^0.0.119",
+    "braintrust": "^0.0.184",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
