@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { renderMarkdown } from '@/lib/markdown';
 import { SuggestionFeedback } from "@/components/SuggestionFeedback";
 import { useBackgroundRefresh } from "@/hooks/use-background-refresh";
+import { VillageSuggestionCards } from "@/components/VillageSuggestionCards";
 
 const WelcomeView = () => {
   const greetings = [
@@ -90,7 +91,7 @@ export default function HomeView() {
     markAsUsed: markVillageSuggestionAsUsed,
     refetch: refetchVillageSuggestions,
     invalidateSuggestions: invalidateVillageSuggestions,
-    forceRefresh: forceVillageRefresh
+    forceVillageRefresh
   } = useVillageSuggestions({
     autoRefresh: false,
     maxSuggestions: 5,
@@ -440,72 +441,23 @@ export default function HomeView() {
           <div className="mt-4 space-y-4">
             {/* Village suggestions */}
             <div className="grid grid-cols-1 gap-3">
-              {villageLoading ? (
-                // Loading skeleton
-                Array.from({ length: 3 }).map((_, i) => (
-                  <Card key={`skeleton-${i}`} className="bg-white">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-2 h-2 rounded-full bg-gray-200"></div>
-                        <div className="h-4 bg-gray-200 rounded w-40 animate-pulse"></div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
-                        <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              ) : villageError ? (
+              {villageError ? (
                 <Card className="bg-white">
                   <CardContent className="p-4 text-center text-red-500">
                     Er ging iets mis bij het ophalen van de suggesties
                   </CardContent>
                 </Card>
-              ) : villageSuggestions?.length === 0 ? (
-                <Card className="bg-white">
-                  <CardContent className="p-4 text-center text-gray-500">
-                    Geen suggesties beschikbaar op dit moment
-                  </CardContent>
-                </Card>
               ) : (
-                villageSuggestions?.map((suggestion) => (
-                  <Card
-                    key={suggestion.id}
-                    className="bg-white hover:shadow-md transition-shadow"
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div
-                          className="w-2 h-2 rounded-full"
-                          style={{
-                            backgroundColor:
-                              suggestion.type === 'network_growth' ? '#10B981' :
-                              suggestion.type === 'network_expansion' ? '#3B82F6' :
-                              '#F59E0B' // village_maintenance
-                          }}
-                        />
-                        <span
-                          className="text-sm font-medium"
-                          style={{
-                            color:
-                              suggestion.type === 'network_growth' ? '#10B981' :
-                              suggestion.type === 'network_expansion' ? '#3B82F6' :
-                              '#F59E0B'
-                          }}
-                        >
-                          {suggestion.type === 'network_growth' ? 'Versterk je village' :
-                            suggestion.type === 'network_expansion' ? 'Breidt je village uit' :
-                            'Onderhoud je village'}
-                        </span>
-                      </div>
-                      <p className="text-gray-700 mb-2">{suggestion.text}</p>
-                      <div className="flex justify-end gap-2">
-
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
+                <VillageSuggestionCards
+                  suggestions={villageSuggestions || []}
+                  onDismiss={(id) => {
+                    markVillageSuggestionAsUsed(id);
+                  }}
+                  onNext={() => {
+                    forceVillageRefresh();
+                  }}
+                  isLoading={villageLoading}
+                />
               )}
             </div>
 
