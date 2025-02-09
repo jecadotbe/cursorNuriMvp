@@ -34,20 +34,10 @@ export function VillageSuggestionCards({
     const threshold = 100;
     if (Math.abs(info.offset.x) > threshold && suggestions[currentIndex]) {
       setExitX(info.offset.x);
-      try {
-        onDismiss(suggestions[currentIndex].id);
-        setTimeout(() => {
-          setCurrentIndex(prev => prev + 1);
-          setExitX(0);
-          onNext();
-          if (onRefresh) {
-            onRefresh();
-          }
-        }, 200);
-      } catch (error) {
-        console.error('Error dismissing suggestion:', error);
-        setExitX(0); // Reset swipe animation
-      }
+      setTimeout(() => {
+        setCurrentIndex((prev) => (prev + 1) % suggestions.length);
+        setExitX(0);
+      }, 200);
     }
   };
 
@@ -105,11 +95,7 @@ export function VillageSuggestionCards({
                   variant="ghost"
                   size="icon"
                   onClick={() => {
-                    onDismiss(currentSuggestion.id);
-                    onNext();
-                    if (onRefresh) {
-                      onRefresh(); // Call onRefresh if available
-                    }
+                    setCurrentIndex((prev) => (prev + 1) % suggestions.length);
                   }}
                   className="text-gray-400 hover:text-gray-600"
                 >
