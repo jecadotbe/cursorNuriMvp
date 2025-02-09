@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { PromptSuggestion } from "@db/schema";
 import { useToast } from "./use-toast";
+import { useChatHistory } from "./use-chat-history";
 
 interface VillageSuggestionOptions {
   autoRefresh?: boolean;
@@ -9,10 +10,15 @@ interface VillageSuggestionOptions {
   filterByType?: ReadonlyArray<'network_growth' | 'network_expansion' | 'village_maintenance'>;
 }
 
-async function fetchVillageSuggestions(): Promise<PromptSuggestion[]> {
+async function fetchVillageSuggestions(chatContext?: string): Promise<PromptSuggestion[]> {
   try {
-    console.log('Fetching village suggestions...');
-    const response = await fetch('/api/suggestions/village', {
+    console.log('Fetching village suggestions with context:', chatContext);
+    const url = new URL('/api/suggestions/village', window.location.origin);
+    if (chatContext) {
+      url.searchParams.append('context', chatContext);
+    }
+
+    const response = await fetch(url, {
       credentials: 'include',
       headers: {
         'Accept': 'application/json',
@@ -55,6 +61,10 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { chats } = useChatHistory();
+
+  // Get latest chat context
+  const latestChatContext = chats?.[0]?.id ? `chat_${chats[0].id}` : undefined;
 
   const {
     data: suggestions = [],
@@ -62,9 +72,9 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
     error,
     refetch
   } = useQuery({
-    queryKey: ['village-suggestions'],
-    queryFn: fetchVillageSuggestions,
-    staleTime: autoRefresh ? refreshInterval : 0, // Set to 0 to allow immediate refetch
+    queryKey: ['village-suggestions', latestChatContext],
+    queryFn: () => fetchVillageSuggestions(latestChatContext),
+    staleTime: autoRefresh ? refreshInterval : 0,
     gcTime: refreshInterval * 2,
     refetchInterval: autoRefresh ? refreshInterval : false,
     select: (data) => {
@@ -100,7 +110,7 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
       }
 
       // Update cache immediately
-      queryClient.setQueryData(['village-suggestions'], 
+      queryClient.setQueryData(['village-suggestions', latestChatContext], 
         (old: PromptSuggestion[] | undefined) => 
           old?.map(s => s.id === suggestionId ? {...s, usedAt: new Date()} : s) || []
       );
