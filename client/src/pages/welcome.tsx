@@ -2,6 +2,7 @@
 import { useUser } from "@/hooks/use-user";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
+import { LucideChat, LucideUsers, LucideBook } from "lucide-react";
 
 export default function WelcomePage() {
   const { user } = useUser();
