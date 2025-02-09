@@ -32,22 +32,36 @@ export function setupSuggestionsRoutes(router: Router) {
       const user = req.user as User;
       const now = new Date();
 
-      console.log('Fetching village suggestions for user:', user.id);
+      // Get recent chats to use as context
+      const recentChats = await db.query.chats.findMany({
+        where: eq(chats.userId, user.id),
+        orderBy: desc(chats.updatedAt),
+        limit: 3
+      });
+
+      let chatContext = '';
+      if (recentChats.length > 0) {
+        // Combine recent chat messages into context
+        chatContext = recentChats
+          .map(chat => {
+            const messages = Array.isArray(chat.messages) ? chat.messages : [];
+            return messages
+              .map((m: any) => m.content)
+              .join(' ');
+          })
+          .join('\n');
+      }
+
+      console.log('Chat context for suggestions:', chatContext || 'No recent chat context');
 
       // 1. Get village members with error handling
       const members = await db.query.villageMembers.findMany({
         where: eq(villageMembers.userId, user.id),
-      }).catch(error => {
-        console.error('Error fetching village members:', error);
-        throw new Error('Failed to fetch village members');
       });
 
       // 2. Get parent profile with error handling
       const parentProfile = await db.query.parentProfiles.findFirst({
         where: eq(parentProfiles.userId, user.id),
-      }).catch(error => {
-        console.error('Error fetching parent profile:', error);
-        throw new Error('Failed to fetch parent profile');
       });
 
       if (!parentProfile) {
@@ -55,17 +69,7 @@ export function setupSuggestionsRoutes(router: Router) {
         return res.json([]);
       }
 
-      // 3. Get recent chats with error handling
-      const recentChats = await db.query.chats.findMany({
-        where: eq(chats.userId, user.id),
-        orderBy: desc(chats.updatedAt),
-        limit: 3
-      }).catch(error => {
-        console.error('Error fetching recent chats:', error);
-        throw new Error('Failed to fetch recent chats');
-      });
-
-      // 4. Prepare context object with safe defaults
+      // 3. Prepare context object
       const villageContext = {
         recentChats: recentChats.map(chat => ({
           ...chat,
@@ -77,49 +81,37 @@ export function setupSuggestionsRoutes(router: Router) {
         memories: []
       };
 
-      // 5. Get existing village suggestions with type filtering
+      // 4. Get existing suggestions
       const existingVillageSuggestions = await db.query.promptSuggestions.findMany({
         where: and(
           eq(promptSuggestions.userId, user.id),
           isNull(promptSuggestions.usedAt),
-          gte(promptSuggestions.expiresAt, now),
-          eq(promptSuggestions.context, 'village')
+          gte(promptSuggestions.expiresAt, now)
         ),
         orderBy: desc(promptSuggestions.createdAt),
-      }).catch(error => {
-        console.error('Error fetching existing village suggestions:', error);
-        throw new Error('Failed to fetch existing suggestions');
       });
 
       console.log(`Found ${existingVillageSuggestions.length} existing village suggestions`);
 
-      // Generate new suggestions if we don't have enough
-      console.log('Existing village suggestions count:', existingVillageSuggestions.length);
-      
       if (existingVillageSuggestions.length < 3) {
         console.log('Generating new village suggestions');
         try {
-          console.log('Context for generation:', {
-            userId: user.id,
-            memberCount: members.length,
-            parentProfile: !!parentProfile
-          });
-          
+          // Pass the chat context to the suggestion generator
           const newSuggestions = await generateVillageSuggestions(
             user.id,
             members,
-            villageContext,
+            {
+              ...villageContext,
+              chatContext // Add chat context to village context
+            },
             memoryService
           );
-
-          console.log('Generated suggestions:', newSuggestions);
 
           if (newSuggestions && newSuggestions.length > 0) {
             const inserted = await db.insert(promptSuggestions)
               .values(newSuggestions)
               .returning();
 
-            console.log('Inserted suggestions:', inserted);
             return res.json([...existingVillageSuggestions, ...inserted]);
           }
         } catch (error) {
@@ -131,7 +123,6 @@ export function setupSuggestionsRoutes(router: Router) {
         }
       }
 
-      console.log('Returning village suggestions:', existingVillageSuggestions);
       return res.json(existingVillageSuggestions);
     } catch (error) {
       console.error('Caught error in village suggestions route:', error);

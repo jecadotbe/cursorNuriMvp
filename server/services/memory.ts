@@ -91,27 +91,15 @@ export class MemoryService {
 
   async getRelevantMemories(userId: number, currentContext: string, type: 'chat' | 'suggestion' = 'chat'): Promise<Memory[]> {
     try {
-      if (!currentContext?.trim()) {
-        console.log('[Memory Service] Empty context provided, returning empty array');
-        return [];
-      }
-
-      console.log(`[Memory Service] Searching memories for user ${userId} with context: "${currentContext.substring(0, 100)}..."`);
+      // Always search for recent memories even if context is empty
+      const searchContext = currentContext?.trim() || "recent conversations parenting children family";
+      console.log(`[Memory Service] Searching memories for user ${userId} with context: "${searchContext.substring(0, 100)}..."`);
       console.log(`[Memory Service] Search type: ${type}`);
-
-      const cacheKey = `relevantMemories:${userId}:${currentContext}:${type}`;
-      const cachedMemories = await this.getCachedMemories(cacheKey);
-      if (cachedMemories) {
-        console.log('[Memory Service] Retrieved memories from cache');
-        return JSON.parse(cachedMemories);
-      }
-
-      console.log('[Memory Service] Fetching memories from mem0ai');
 
       const threshold = type === 'chat' ? this.CHAT_RELEVANCE_THRESHOLD : this.SUGGESTION_RELEVANCE_THRESHOLD;
 
       // Get recent chat history first
-      const recentChatMemories = await client.search(currentContext, {
+      const recentChatMemories = await client.search(searchContext, {
         user_id: userId.toString(),
         metadata: {
           category: "chat_history",
