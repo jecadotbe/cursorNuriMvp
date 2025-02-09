@@ -1,8 +1,8 @@
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { X } from "lucide-react";
 import { useState } from "react";
 
 interface Suggestion {
@@ -27,16 +27,18 @@ export function VillageSuggestionCards({
   isLoading = false,
 }: VillageSuggestionCardsProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [exitX, setExitX] = useState(0);
 
-  const showNext = () => {
-    if (currentIndex < suggestions.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-    }
-  };
-
-  const showPrevious = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(prev => prev - 1);
+  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    const threshold = 100;
+    if (Math.abs(info.offset.x) > threshold) {
+      setExitX(info.offset.x);
+      onDismiss(suggestions[currentIndex].id);
+      setTimeout(() => {
+        setCurrentIndex(prev => prev + 1);
+        setExitX(0);
+        onNext();
+      }, 200);
     }
   };
 
@@ -59,15 +61,19 @@ export function VillageSuggestionCards({
   const currentSuggestion = suggestions[currentIndex];
 
   return (
-    <div className="relative">
+    <div className="relative h-[300px] touch-none">
       <AnimatePresence mode="wait">
         <motion.div
           key={currentSuggestion.id}
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -50 }}
+          exit={{ opacity: 0, x: exitX }}
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          onDragEnd={handleDragEnd}
+          whileDrag={{ scale: 1.02 }}
           transition={{ duration: 0.2 }}
-          className="relative"
+          className="absolute w-full cursor-grab active:cursor-grabbing"
         >
           <Card className="bg-white/80 backdrop-blur-sm shadow-sm border border-gray-100">
             <CardContent className="p-6">
@@ -103,36 +109,15 @@ export function VillageSuggestionCards({
         </motion.div>
       </AnimatePresence>
 
-      {/* Navigation Controls */}
-      <div className="flex justify-between mt-4">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={showPrevious}
-          disabled={currentIndex === 0}
-          className="bg-white"
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </Button>
-        <div className="flex gap-1">
-          {suggestions.map((_, index) => (
-            <div
-              key={index}
-              className={`w-2 h-2 rounded-full ${
-                index === currentIndex ? "bg-primary" : "bg-gray-300"
-              }`}
-            />
-          ))}
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={showNext}
-          disabled={currentIndex === suggestions.length - 1}
-          className="bg-white"
-        >
-          <ChevronRight className="w-4 h-4" />
-        </Button>
+      <div className="absolute bottom-0 left-0 right-0 flex justify-center gap-1 pb-4">
+        {suggestions.map((_, index) => (
+          <div
+            key={index}
+            className={`w-2 h-2 rounded-full transition-colors ${
+              index === currentIndex ? "bg-primary" : "bg-gray-300"
+            }`}
+          />
+        ))}
       </div>
     </div>
   );
