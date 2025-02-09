@@ -79,7 +79,7 @@ export default function HomeView() {
     markAsUsed,
     nextSuggestion,
     dismissSuggestion,
-    refetch,
+    refetch: refetchSuggestions,
     error: suggestionError
   } = useSuggestion();
 
@@ -88,7 +88,9 @@ export default function HomeView() {
     isLoading: villageLoading,
     error: villageError,
     markAsUsed: markVillageSuggestionAsUsed,
-    refetch: refetchVillageSuggestions
+    refetch: refetchVillageSuggestions,
+    invalidateSuggestions: invalidateVillageSuggestions,
+    forceRefresh: forceVillageRefresh
   } = useVillageSuggestions({
     autoRefresh: false,
     maxSuggestions: 5,
@@ -122,11 +124,9 @@ export default function HomeView() {
   // Effect to handle suggestion loading state
   useEffect(() => {
     if (!suggestionLoading && suggestions?.length > 0) {
-      // Force re-render when suggestions are available
       setHasSuggestions(true);
       setShowSkeleton(false);
     } else if (!suggestionLoading && suggestions?.length === 0) {
-      // Handle case when no suggestions are available
       setHasSuggestions(false);
       setShowSkeleton(false);
     }
@@ -135,9 +135,20 @@ export default function HomeView() {
   // Effect to refresh suggestions if needed
   useEffect(() => {
     if (!hasSuggestions && !suggestionLoading) {
-      refetch().catch(console.error);
+      refetchSuggestions().catch(console.error);
     }
-  }, [hasSuggestions, suggestionLoading, refetch]);
+  }, [hasSuggestions, suggestionLoading, refetchSuggestions]);
+
+  // Effect to refresh suggestions after chat sessions
+  useEffect(() => {
+    const refreshAfterChat = () => {
+      invalidateVillageSuggestions();
+      forceVillageRefresh();
+    };
+
+    window.addEventListener('chatSessionEnd', refreshAfterChat);
+    return () => window.removeEventListener('chatSessionEnd', refreshAfterChat);
+  }, [invalidateVillageSuggestions, forceVillageRefresh]);
 
   const shouldShowSkeleton = showSkeleton || suggestionLoading || (!hasSuggestions && !suggestion);
 
@@ -302,7 +313,7 @@ export default function HomeView() {
             <Card className="hover:shadow-md transition-shadow cursor-pointer mb-3 animate-border rounded-2xl shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)]">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between relative">
-                  <button 
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
                       if (suggestion) {
@@ -342,9 +353,9 @@ export default function HomeView() {
                         )}
                       </div>
                     </div>
-                    <div 
+                    <div
                       className="text-lg pr-8"
-                      dangerouslySetInnerHTML={{ 
+                      dangerouslySetInnerHTML={{
                         __html: renderMarkdown(suggestion.text)
                       }}
                     />
@@ -413,10 +424,19 @@ export default function HomeView() {
               <img src="/images/VillageIcon.svg" alt="Village" className="w-6 h-6" />
               <h2 className="text-2xl font-baskerville">Mijn Village</h2>
             </div>
-        
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={forceVillageRefresh}
+              disabled={villageLoading}
+              className="hover:bg-white/20"
+            >
+              <RefreshCw className={`w-4 h-4 ${villageLoading ? 'animate-spin' : ''}`} />
+            </Button>
           </div>
-          <h3 className="text-l mb-4">I takes a Village to raise a child</h3> 
-          
+
+          <h3 className="text-l mb-4">I takes a Village to raise a child</h3>
+
           <div className="mt-4 space-y-4">
             {/* Village suggestions */}
             <div className="grid grid-cols-1 gap-3">
@@ -450,38 +470,38 @@ export default function HomeView() {
                 </Card>
               ) : (
                 villageSuggestions?.map((suggestion) => (
-                  <Card 
-                    key={suggestion.id} 
+                  <Card
+                    key={suggestion.id}
                     className="bg-white hover:shadow-md transition-shadow"
                   >
                     <CardContent className="p-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <div 
-                          className="w-2 h-2 rounded-full" 
+                        <div
+                          className="w-2 h-2 rounded-full"
                           style={{
-                            backgroundColor: 
+                            backgroundColor:
                               suggestion.type === 'network_growth' ? '#10B981' :
                               suggestion.type === 'network_expansion' ? '#3B82F6' :
                               '#F59E0B' // village_maintenance
                           }}
                         />
-                        <span 
+                        <span
                           className="text-sm font-medium"
                           style={{
-                            color: 
+                            color:
                               suggestion.type === 'network_growth' ? '#10B981' :
                               suggestion.type === 'network_expansion' ? '#3B82F6' :
                               '#F59E0B'
                           }}
                         >
                           {suggestion.type === 'network_growth' ? 'Versterk je village' :
-                           suggestion.type === 'network_expansion' ? 'Breidt je village uit' :
-                           'Onderhoud je village'}
+                            suggestion.type === 'network_expansion' ? 'Breidt je village uit' :
+                            'Onderhoud je village'}
                         </span>
                       </div>
                       <p className="text-gray-700 mb-2">{suggestion.text}</p>
                       <div className="flex justify-end gap-2">
-                        
+
                       </div>
                     </CardContent>
                   </Card>

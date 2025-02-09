@@ -41,7 +41,7 @@ async function fetchVillageSuggestions(): Promise<PromptSuggestion[]> {
     return data;
   } catch (error) {
     console.error('Error fetching village suggestions:', error);
-    throw error; // Let the query handle the error
+    throw error;
   }
 }
 
@@ -64,7 +64,8 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
   } = useQuery({
     queryKey: ['village-suggestions'],
     queryFn: fetchVillageSuggestions,
-    staleTime: refreshInterval,
+    staleTime: autoRefresh ? refreshInterval : 0, // Set to 0 to allow immediate refetch
+    gcTime: refreshInterval * 2,
     refetchInterval: autoRefresh ? refreshInterval : false,
     select: (data) => {
       let filtered = data;
@@ -76,16 +77,12 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
       filtered = filtered.filter(s => !s.usedAt);
       return filtered.slice(0, maxSuggestions);
     },
-    retry: 1,
-    onError: (error: Error) => {
-      console.error('Village suggestions query error:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to load village suggestions"
-      });
-    }
+    retry: 1
   });
+
+  const invalidateSuggestions = () => {
+    queryClient.invalidateQueries({ queryKey: ['village-suggestions'] });
+  };
 
   const markAsUsed = async (suggestionId: number) => {
     try {
@@ -102,10 +99,14 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
         throw new Error('Failed to mark suggestion as used');
       }
 
+      // Update cache immediately
       queryClient.setQueryData(['village-suggestions'], 
         (old: PromptSuggestion[] | undefined) => 
           old?.map(s => s.id === suggestionId ? {...s, usedAt: new Date()} : s) || []
       );
+
+      // Invalidate cache to trigger refresh
+      invalidateSuggestions();
     } catch (error) {
       console.error('Error marking suggestion as used:', error);
       toast({
@@ -116,11 +117,27 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
     }
   };
 
+  // Force refresh suggestions
+  const forceRefresh = async () => {
+    try {
+      await refetch();
+    } catch (error) {
+      console.error('Error forcing refresh:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to refresh suggestions"
+      });
+    }
+  };
+
   return {
     suggestions,
     isLoading,
     error,
     refetch,
-    markAsUsed
+    markAsUsed,
+    invalidateSuggestions,
+    forceRefresh
   };
 }
