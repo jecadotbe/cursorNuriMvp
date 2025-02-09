@@ -454,8 +454,9 @@ export default function HomeView() {
                     markVillageSuggestionAsUsed(id);
                   }}
                   onNext={() => {
-                    forceVillageRefresh();
+                    refetchVillageSuggestions();
                   }}
+                  onRefresh={refetchVillageSuggestions}
                   isLoading={villageLoading}
                 />
               )}

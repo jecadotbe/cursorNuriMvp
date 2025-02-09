@@ -1,4 +1,3 @@
-
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +16,7 @@ interface VillageSuggestionCardsProps {
   suggestions: Suggestion[];
   onDismiss: (id: number) => void;
   onNext: () => void;
+  onRefresh?: () => void; // Added onRefresh prop
   isLoading?: boolean;
 }
 
@@ -24,6 +24,7 @@ export function VillageSuggestionCards({
   suggestions,
   onDismiss,
   onNext,
+  onRefresh, // Added onRefresh prop
   isLoading = false,
 }: VillageSuggestionCardsProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -38,6 +39,9 @@ export function VillageSuggestionCards({
         setCurrentIndex(prev => prev + 1);
         setExitX(0);
         onNext();
+        if (onRefresh) {
+          onRefresh(); // Call onRefresh if available
+        }
       }, 200);
     }
   };
@@ -98,6 +102,9 @@ export function VillageSuggestionCards({
                   onClick={() => {
                     onDismiss(currentSuggestion.id);
                     onNext();
+                    if (onRefresh) {
+                      onRefresh(); // Call onRefresh if available
+                    }
                   }}
                   className="text-gray-400 hover:text-gray-600"
                 >
