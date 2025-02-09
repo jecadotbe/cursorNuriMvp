@@ -76,7 +76,7 @@ export default function AuthPage() {
     try {
       await register(data);
       registerForm.reset();
-      setLocation("/onboarding");
+      setLocation("/welcome");
     } catch (error) {
       // Error handling is done in useUser hook via toast
     } finally {
