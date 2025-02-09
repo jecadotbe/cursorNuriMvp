@@ -6,7 +6,6 @@ import { anthropic } from "../../anthropic";
 import { memoryService } from "../../services/memory";
 import { searchBooks } from "../../rag";
 import type { User } from "../../auth";
-import { getVillageContext } from "../village";
 
 export function setupChatRoutes(router: Router) {
   // Handle chat messages
@@ -19,6 +18,7 @@ export function setupChatRoutes(router: Router) {
       const user = req.user as User;
       const messages = req.body.messages;
       const lastMessage = messages[messages.length - 1].content;
+      const chatId = req.body.chatId;
 
       // Get recent context by combining last 2 messages if available
       const contextWindow = messages.slice(-3)
@@ -37,25 +37,17 @@ export function setupChatRoutes(router: Router) {
       const relevantMemories = await memoryService.getRelevantMemories(
         user.id,
         contextWindow,
-        'chat' // Specify this is for chat context
+        'chat'
       );
       console.log(`[Chat Route] Found ${relevantMemories.length} relevant memories:`, 
         JSON.stringify(relevantMemories, null, 2));
 
-      // Get village context
-      console.log('[Chat Route] Fetching village context');
-      const villageContextString = await getVillageContext(user.id);
-
       // Get RAG context
       console.log('[Chat Route] Fetching RAG context');
       const ragContext = await searchBooks(lastMessage, 2);
-      console.log('[Chat Route] Retrieved RAG documents:', 
-        JSON.stringify(ragContext, null, 2));
       const mergedRAG = ragContext.map((doc) => doc.pageContent).join("\n\n");
-      console.log('[Chat Route] Merged RAG content:', mergedRAG);
 
       // Format profile context
-      console.log('[Chat Route] Formatting profile context');
       const profileContext = profile ? `
 User Profile:
 Name: ${profile.name}
@@ -88,9 +80,6 @@ ${profileContext}
 User Background:
 ${onboardingMemories.length > 0 ? onboardingMemories.join("\n") : "No background information available"}
 
-Village Context:
-${villageContextString || "No village context available"}
-
 Recent Chat History:
 ${chatMemories.length > 0 ? chatMemories.map(m => `- ${m}`).join("\n") : "No relevant chat history available"}
 
@@ -103,7 +92,7 @@ Instructions:
 
 Remember to:
 1. Use the provided context to personalize responses
-2. Reference children by name when relevant (Jeroen and Lynn)
+2. Reference children by name when mentioned
 3. Consider family dynamics and support network
 4. Address specific concerns from user profile
 `;
@@ -127,7 +116,7 @@ Remember to:
         await memoryService.createMemory(user.id, lastMessage, {
           role: "user",
           messageIndex: req.body.messages.length - 1,
-          chatId: req.body.chatId || "new",
+          chatId: chatId || "new",
           source: "nuri-chat",
           type: "conversation",
           category: "chat_history",
@@ -138,12 +127,15 @@ Remember to:
         await memoryService.createMemory(user.id, messageContent, {
           role: "assistant",
           messageIndex: req.body.messages.length,
-          chatId: req.body.chatId || "new",
+          chatId: chatId || "new",
           source: "nuri-chat",
           type: "conversation",
           category: "chat_history",
           timestamp: new Date().toISOString(),
         });
+
+        // Dispatch event to refresh suggestions
+        res.set('X-Event-Refresh-Suggestions', 'true');
 
       } catch (memoryError) {
         console.error("[Chat Route] Failed to store chat in memory:", memoryError);

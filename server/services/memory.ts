@@ -72,10 +72,8 @@ export class MemoryService {
 
       console.log('Memory creation result:', result);
 
-      const memoryId = Array.isArray(result) ? result[0]?.id : result.id;
-
       return {
-        id: memoryId,
+        id: Array.isArray(result) ? result[0]?.id : result.id,
         content,
         metadata: {
           ...metadata,
@@ -112,56 +110,54 @@ export class MemoryService {
 
       const threshold = type === 'chat' ? this.CHAT_RELEVANCE_THRESHOLD : this.SUGGESTION_RELEVANCE_THRESHOLD;
 
-      // Get onboarding memories using user profile keywords
+      // Get recent chat history first
+      const recentChatMemories = await client.search(currentContext, {
+        user_id: userId.toString(),
+        metadata: {
+          category: "chat_history",
+          type: "conversation"
+        },
+        limit: type === 'chat' ? 10 : 5,
+        min_relevance: threshold
+      });
+
+      // Then get onboarding memories for context
       const onboardingMemories = await client.search("profile children parents family onboarding", {
         user_id: userId.toString(),
         metadata: {
           category: "user_onboarding"
         },
-        options: {
-          minRelevance: threshold / 2
-        }
-      });
-
-      // Get conversation memories with the actual context
-      const conversationMemories = await client.search(currentContext, {
-        user_id: userId.toString(),
-        metadata: {
-          category: "chat_history"
-        },
-        options: {
-          limit: type === 'chat' ? 8 : 5,
-          minRelevance: threshold
-        }
+        limit: 5,
+        min_relevance: threshold / 2
       });
 
       // Combine both types of memories
-      const memories = [...(onboardingMemories || []), ...(conversationMemories || [])];
+      const memories = [...(recentChatMemories || []), ...(onboardingMemories || [])];
 
       console.log(`[Memory Service] Raw memories response:`, JSON.stringify(memories, null, 2));
 
-      if (!Array.isArray(memories) || memories.length === 0) {
+      if (!memories || memories.length === 0) {
         console.log('[Memory Service] No memories found');
         return [];
       }
 
       const validMemories = memories
-        .filter(memory => 
-          memory?.memory || memory?.content
-        )
+        .filter(memory => memory?.content || memory?.memory)
         .map(memory => ({
           id: memory.id,
-          content: memory.memory || (Array.isArray(memory.content) ? 
-            memory.content[0]?.content : 
-            memory.content),
+          content: memory.content?.[0]?.content || memory.memory || memory.content,
           metadata: memory.metadata,
-          createdAt: new Date(memory.created_at || new Date()),
+          createdAt: new Date(memory.created_at || memory.timestamp || new Date()),
           relevance: memory.score || memory.relevance || 0
         }))
-        .filter(memory => memory.content)
+        .filter(memory => memory.content && typeof memory.content === 'string')
         .sort((a, b) => (b.relevance || 0) - (a.relevance || 0));
 
-      console.log(`[Memory Service] Processed ${validMemories.length} valid memories:`, JSON.stringify(validMemories, null, 2));
+      console.log(`[Memory Service] Processed ${validMemories.length} valid memories:`, 
+        JSON.stringify(validMemories.map(m => ({ 
+          content: m.content.substring(0, 100), 
+          relevance: m.relevance 
+        })), null, 2));
 
       await this.cacheMemories(cacheKey, JSON.stringify(validMemories), 60);
       return validMemories;
