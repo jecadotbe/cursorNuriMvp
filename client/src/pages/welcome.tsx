@@ -32,9 +32,18 @@ export default function WelcomePage() {
           </p>
 
           <div className="space-y-2 pt-4">
-            <p>Chat met Nuri.</p>
-            <p>Bouw je persoonlijke netwerk</p>
-            <p>Leer op je eigen tempo</p>
+            <p>
+              <LucideChat className="inline-block mr-2" />
+              Chat met Nuri.
+            </p>
+            <p>
+              <LucideUsers className="inline-block mr-2" />
+              Bouw je persoonlijke netwerk
+            </p>
+            <p>
+              <LucideBook className="inline-block mr-2" />
+              Leer op je eigen tempo
+            </p>
           </div>
         </div>
 
