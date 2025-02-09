@@ -43,8 +43,9 @@ export function VillageSuggestionCards({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-6">
+      <div className="flex flex-col items-center justify-center p-6 gap-2">
         <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+        <span className="text-sm text-gray-500">Village suggesties laden</span>
       </div>
     );
   }
