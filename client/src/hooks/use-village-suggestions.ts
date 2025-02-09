@@ -106,6 +106,13 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
       });
 
       if (!response.ok) {
+        const error = await response.json();
+        console.error('Error marking suggestion as used:', error);
+        // Continue with UI update even if backend fails
+        return;
+      }
+
+      if (!response.ok) {
         throw new Error('Failed to mark suggestion as used');
       }
 

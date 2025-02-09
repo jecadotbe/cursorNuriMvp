@@ -32,17 +32,22 @@ export function VillageSuggestionCards({
 
   const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     const threshold = 100;
-    if (Math.abs(info.offset.x) > threshold) {
+    if (Math.abs(info.offset.x) > threshold && suggestions[currentIndex]) {
       setExitX(info.offset.x);
-      onDismiss(suggestions[currentIndex].id);
-      setTimeout(() => {
-        setCurrentIndex(prev => prev + 1);
-        setExitX(0);
-        onNext();
-        if (onRefresh) {
-          onRefresh(); // Call onRefresh if available
-        }
-      }, 200);
+      try {
+        onDismiss(suggestions[currentIndex].id);
+        setTimeout(() => {
+          setCurrentIndex(prev => prev + 1);
+          setExitX(0);
+          onNext();
+          if (onRefresh) {
+            onRefresh();
+          }
+        }, 200);
+      } catch (error) {
+        console.error('Error dismissing suggestion:', error);
+        setExitX(0); // Reset swipe animation
+      }
     }
   };
 
