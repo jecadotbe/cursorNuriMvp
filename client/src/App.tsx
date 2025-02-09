@@ -20,6 +20,8 @@ import OnboardingTooltip from "@/components/OnboardingTooltip";
 import LearnDetailView from "./pages/LearnDetailView";
 import OnboardingPage from "@/pages/onboarding";
 import BuildingProfilePage from "@/pages/building-profile";
+import WelcomePage from "./pages/welcome"; // Added import for WelcomePage
+
 
 function Router() {
   const { user, isLoading } = useUser();
@@ -30,7 +32,7 @@ function Router() {
     window.scrollTo(0, 0);
   }, [location]);
 
-  const showNavigation = !location.startsWith('/learn/') && !location.startsWith('/onboarding');
+  const showNavigation = !location.startsWith('/learn/') && !location.startsWith('/onboarding') && !location.startsWith('/welcome');
 
   if (isLoading) {
     return (
@@ -49,6 +51,7 @@ function Router() {
     <div className="flex flex-col min-h-screen">
       <div className={`flex-1 ${showNavigation ? 'pb-16' : ''}`}>
         <Switch>
+          <Route path="/welcome" component={WelcomePage} /> {/* Added WelcomePage route */}
           <Route path="/onboarding" component={OnboardingPage} />
           <Route path="/building-profile" component={BuildingProfilePage} />
           <Route path="/" component={HomeView} />

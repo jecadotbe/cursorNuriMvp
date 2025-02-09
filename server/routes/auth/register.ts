@@ -55,6 +55,7 @@ export function setupRegisterRoute(router: Router) {
             email: newUser.email,
             profilePicture: newUser.profilePicture
           },
+          redirect: "/welcome"
         });
       });
     } catch (error) {
