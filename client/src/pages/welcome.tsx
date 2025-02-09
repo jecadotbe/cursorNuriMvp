@@ -2,7 +2,7 @@
 import { useUser } from "@/hooks/use-user";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
-import { LucideChat, LucideUsers, LucideBook } from "lucide-react";
+import { MessageCircle, Users, BookOpen } from "lucide-react";
 
 export default function WelcomePage() {
   const { user } = useUser();
@@ -34,15 +34,15 @@ export default function WelcomePage() {
 
           <div className="space-y-2 pt-4">
             <p>
-              <LucideChat className="inline-block mr-2" />
+              <MessageCircle className="inline-block mr-2" />
               Chat met Nuri.
             </p>
             <p>
-              <LucideUsers className="inline-block mr-2" />
+              <Users className="inline-block mr-2" />
               Bouw je persoonlijke netwerk
             </p>
             <p>
-              <LucideBook className="inline-block mr-2" />
+              <BookOpen className="inline-block mr-2" />
               Leer op je eigen tempo
             </p>
           </div>
