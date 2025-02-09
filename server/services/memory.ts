@@ -98,6 +98,15 @@ export class MemoryService {
 
       const threshold = type === 'chat' ? this.CHAT_RELEVANCE_THRESHOLD : this.SUGGESTION_RELEVANCE_THRESHOLD;
 
+      // Generate a cache key based on userId and searchContext
+      const cacheKey = `memories_${userId}_${Buffer.from(searchContext).toString('base64')}`;
+
+      // Check cache first
+      const cachedResult = await this.getCachedMemories(cacheKey);
+      if (cachedResult) {
+        return JSON.parse(cachedResult);
+      }
+
       // Get recent chat history first
       const recentChatMemories = await client.search(searchContext, {
         user_id: userId.toString(),
@@ -147,6 +156,7 @@ export class MemoryService {
           relevance: m.relevance 
         })), null, 2));
 
+      // Cache the results
       await this.cacheMemories(cacheKey, JSON.stringify(validMemories), 60);
       return validMemories;
     } catch (error) {
