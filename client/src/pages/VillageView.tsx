@@ -73,6 +73,7 @@ import { VillageMemberMemories } from "@/components/VillageMemberMemories";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InsightsPanel from "@/components/InsightsPanel";
 import type { VillageMember } from "@db/schema";
+import { VillageSuggestionCards } from "@/components/VillageSuggestionCards"; // Added import
 
 const CATEGORY_COLORS = {
   informeel: "#3C9439", // Green
@@ -305,7 +306,6 @@ export default function VillageView() {
   } = useVillageSuggestions({
     autoRefresh: false,
     maxSuggestions: 5,
-
   });
 
   const { addMemory } = useVillageMemories(selectedMember?.id || 0);
@@ -901,13 +901,8 @@ export default function VillageView() {
               </Button>
             </div>
           </SheetHeader>
-          <div className="space-y-4 mt-4">
-            {isSuggestionsLoading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
-                <p className="mt-2 text-gray-600">Laden...</p>
-              </div>
-            ) : suggestionsError ? (
+          <div className="p-4">
+            {suggestionsError ? (
               <div className="text-center py-8 px-4">
                 <X className="w-12 h-12 text-red-500 mx-auto mb-4" />
                 <p className="text-red-600">
@@ -915,49 +910,13 @@ export default function VillageView() {
                   Probeer het later opnieuw.
                 </p>
               </div>
-            ) : !suggestions || !suggestions.length ? (
-              <div className="text-center py-8 px-4">
-                <Lightbulb className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">
-                  Geen suggesties beschikbaar. Klik op ververs om nieuwe
-                  suggesties op te halen.
-                </p>
-              </div>
             ) : (
-              suggestions.map((suggestion) => (
-                <Card key={suggestion.id}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-start gap-4">
-                      <div className="flex-1">
-                        <h3 className="font-semibold mb-1">
-                          {suggestion.text}
-                        </h3>
-                        <p className="text-sm text-gray-600 mt-2 italic">
-                          Context: {suggestion.context}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Badge
-                          variant={
-                            suggestion.relevance > 3 ? "default" : "secondary"
-                          }
-                        >
-                          Prioriteit {suggestion.relevance}
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          onClick={() => {
-                            dismissSuggestion(suggestion.id);
-                            nextSuggestion();
-                          }}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+              <VillageSuggestionCards
+                suggestions={suggestions}
+                onDismiss={dismissSuggestion}
+                onNext={nextSuggestion}
+                isLoading={isSuggestionsLoading}
+              />
             )}
           </div>
         </SheetContent>
@@ -1001,7 +960,7 @@ export default function VillageView() {
                 >
                   <div className="relative group">
                     <motion.div
-                      whileHover={{ scale: 1.1 }}
+                      whileHover={{ scale: 1.1}}
                       whileTap={{ scale: 0.95 }}
                       className="animate-pulse"
                     >
