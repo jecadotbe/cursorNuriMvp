@@ -99,10 +99,44 @@ export default function EditProfileView() {
 
   useEffect(() => {
     if (profile?.onboardingData) {
-      console.log('Setting form data from profile:', profile.onboardingData);
-      setFormData(profile.onboardingData);
+      try {
+        let parsedData: OnboardingData;
+
+        if (typeof profile.onboardingData === 'string') {
+          // Handle string JSON data
+          parsedData = isValidJson(profile.onboardingData) 
+            ? JSON.parse(profile.onboardingData)
+            : defaultFormData;
+        } else {
+          // Handle object data
+          parsedData = profile.onboardingData;
+        }
+
+        // Ensure basicInfo exists and has required fields
+        const updatedData = {
+          ...defaultFormData,
+          ...parsedData,
+          basicInfo: {
+            ...defaultFormData.basicInfo,
+            ...(parsedData.basicInfo || {}),
+            // If name is missing in basicInfo, try to get it from profile data
+            name: parsedData.basicInfo?.name || profile.name || "",
+          },
+        };
+
+        console.log('Setting form data from profile:', updatedData);
+        setFormData(updatedData);
+      } catch (error) {
+        console.error('Error parsing onboarding data:', error);
+        setFormData(defaultFormData);
+        toast({
+          title: "Warning",
+          description: "Some profile data could not be loaded. Using default values.",
+          variant: "destructive",
+        });
+      }
     }
-  }, [profile]);
+  }, [profile, toast]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: OnboardingData) => {
