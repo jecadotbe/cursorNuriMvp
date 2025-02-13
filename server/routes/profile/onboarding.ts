@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db } from "@db";
+import { db } from "../../db";
 import { users } from "@db/schema";
 import { eq } from "drizzle-orm";
 
@@ -7,12 +7,12 @@ export function setupOnboardingRoutes(router: Router) {
   // Get onboarding progress
   router.get("/onboarding/progress", async (req, res) => {
     try {
-      if (!req.user?.id) {
+      if (!req.session.userId) {
         return res.status(401).json({ message: "Not authenticated" });
       }
 
       const user = await db.query.users.findFirst({
-        where: eq(users.id, req.user.id),
+        where: eq(users.id, req.session.userId),
       });
 
       if (!user) {
@@ -32,7 +32,7 @@ export function setupOnboardingRoutes(router: Router) {
   // Update onboarding progress
   router.post("/onboarding/progress", async (req, res) => {
     try {
-      if (!req.user?.id) {
+      if (!req.session.userId) {
         return res.status(401).json({ message: "Not authenticated" });
       }
 
@@ -49,7 +49,7 @@ export function setupOnboardingRoutes(router: Router) {
           onboardingStep: step,
           updatedAt: new Date(),
         })
-        .where(eq(users.id, req.user.id))
+        .where(eq(users.id, req.session.userId))
         .returning();
 
       if (!updatedUser || updatedUser.length === 0) {
@@ -65,6 +65,4 @@ export function setupOnboardingRoutes(router: Router) {
       return res.status(500).json({ message: "Failed to update profile" });
     }
   });
-
-  return router;
 }
