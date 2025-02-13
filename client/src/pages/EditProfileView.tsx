@@ -77,6 +77,8 @@ export default function EditProfileView() {
   const { data: profile, isLoading } = useQuery({
     queryKey: ['/api/onboarding/progress'],
     retry: false,
+    staleTime: 0, // Always fetch fresh data
+    cacheTime: 0, // Don't cache the data
     queryFn: async () => {
       try {
         const response = await fetch('/api/onboarding/progress', {
@@ -103,24 +105,29 @@ export default function EditProfileView() {
         let parsedData: OnboardingData;
 
         if (typeof profile.onboardingData === 'string') {
-          // Handle string JSON data
-          parsedData = isValidJson(profile.onboardingData) 
+          parsedData = isValidJson(profile.onboardingData)
             ? JSON.parse(profile.onboardingData)
             : defaultFormData;
         } else {
-          // Handle object data
           parsedData = profile.onboardingData;
         }
 
-        // Ensure basicInfo exists and has required fields
         const updatedData = {
           ...defaultFormData,
           ...parsedData,
           basicInfo: {
             ...defaultFormData.basicInfo,
             ...(parsedData.basicInfo || {}),
-            // If name is missing in basicInfo, try to get it from profile data
             name: parsedData.basicInfo?.name || profile.name || "",
+          },
+          stressAssessment: {
+            ...defaultFormData.stressAssessment,
+            ...(parsedData.stressAssessment || {}),
+          },
+          childProfiles: parsedData.childProfiles || [],
+          goals: {
+            ...defaultFormData.goals,
+            ...(parsedData.goals || {}),
           },
         };
 
@@ -164,9 +171,7 @@ export default function EditProfileView() {
         }
       }
 
-      const result = await response.json();
-      console.log('Profile update response:', result);
-      return result;
+      return await response.json();
     },
     onSuccess: () => {
       toast({
