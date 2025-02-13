@@ -1,17 +1,17 @@
 import { Router } from "express";
-import { db } from "../../db";
+import { db } from "@db";
 import { parentProfiles } from "@db/schema";
 import { eq } from "drizzle-orm";
 
 export function setupChildProfileRoutes(router: Router) {
   router.get("/", async (req, res) => {
     try {
-      if (!req.session.userId) {
+      if (!req.user?.id) {
         return res.status(401).json({ message: "Not authenticated" });
       }
 
       const parentProfile = await db.query.parentProfiles.findFirst({
-        where: eq(parentProfiles.userId, req.session.userId),
+        where: eq(parentProfiles.userId, req.user.id),
       });
 
       if (!parentProfile?.onboardingData?.childProfiles) {
