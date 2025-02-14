@@ -8,6 +8,7 @@ import { promisify } from "util";
 import { users } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
+import { loginRateLimiter, clearLoginAttempts } from "./middleware/rate-limit";
 
 const scryptAsync = promisify(scrypt);
 const crypto = {
@@ -192,7 +193,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", (req, res, next) => {
+  app.post("/api/login", loginRateLimiter, (req, res, next) => {
     if (!req.body.username || !req.body.password) {
       return res.status(400).json({ message: "Username and password are required" });
     }
@@ -206,12 +207,15 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: info.message ?? "Login failed" });
       }
 
+      // Clear rate limiting on successful login
+      clearLoginAttempts(req.ip);
+
       // Handle remember me functionality
       if (req.body.rememberMe) {
         req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
       }
 
-      req.session.checkSuggestions = true; // Add flag to check suggestions on successful login
+      req.session.checkSuggestions = true;
 
       req.logIn(user, (err) => {
         if (err) {
