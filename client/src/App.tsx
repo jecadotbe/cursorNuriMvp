@@ -20,14 +20,14 @@ import OnboardingTooltip from "@/components/OnboardingTooltip";
 import LearnDetailView from "./pages/LearnDetailView";
 import OnboardingPage from "@/pages/onboarding";
 import BuildingProfilePage from "@/pages/building-profile";
-import WelcomePage from "./pages/welcome"; // Added import for WelcomePage
-
+import WelcomePage from "./pages/welcome";
+import ResetPasswordPage from "@/pages/reset-password";
+import ResetPasswordTokenPage from "@/pages/reset-password/[token]";
 
 function Router() {
   const { user, isLoading } = useUser();
   const [location, setLocation] = useLocation();
 
-  // Only scroll to top when location changes
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location]);
@@ -42,16 +42,22 @@ function Router() {
     );
   }
 
-  // Show auth page for unauthenticated users
+  // Add public routes that don't require authentication
   if (!user) {
-    return <AuthPage />;
+    return (
+      <Switch>
+        <Route path="/reset-password" component={ResetPasswordPage} />
+        <Route path="/reset-password/:token" component={ResetPasswordTokenPage} />
+        <Route component={AuthPage} />
+      </Switch>
+    );
   }
 
   return (
     <div className="flex flex-col min-h-screen">
       <div className={`flex-1 ${showNavigation ? 'pb-16' : ''}`}>
         <Switch>
-          <Route path="/welcome" component={WelcomePage} /> {/* Added WelcomePage route */}
+          <Route path="/welcome" component={WelcomePage} />
           <Route path="/onboarding" component={OnboardingPage} />
           <Route path="/building-profile" component={BuildingProfilePage} />
           <Route path="/" component={HomeView} />
