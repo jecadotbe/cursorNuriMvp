@@ -18,17 +18,25 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Info } from "lucide-react";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+
+const passwordSchema = z.string()
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+  .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+  .regex(/[0-9]/, "Password must contain at least one number")
+  .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character");
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: passwordSchema,
 });
 
 const registerSchema = z.object({
   username: z.string().min(1, "Username is required"),
   email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: passwordSchema,
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -123,7 +131,24 @@ export default function AuthPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Password</FormLabel>
+                        <div className="flex items-center justify-between">
+                          <FormLabel>Password</FormLabel>
+                          <HoverCard>
+                            <HoverCardTrigger>
+                              <Info className="h-4 w-4 text-muted-foreground" />
+                            </HoverCardTrigger>
+                            <HoverCardContent>
+                              <p>Password must contain:</p>
+                              <ul className="list-disc pl-4 text-sm">
+                                <li>At least 8 characters</li>
+                                <li>One uppercase letter</li>
+                                <li>One lowercase letter</li>
+                                <li>One number</li>
+                                <li>One special character</li>
+                              </ul>
+                            </HoverCardContent>
+                          </HoverCard>
+                        </div>
                         <FormControl>
                           <Input 
                             {...field} 
@@ -195,7 +220,24 @@ export default function AuthPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Password</FormLabel>
+                        <div className="flex items-center justify-between">
+                          <FormLabel>Password</FormLabel>
+                          <HoverCard>
+                            <HoverCardTrigger>
+                              <Info className="h-4 w-4 text-muted-foreground" />
+                            </HoverCardTrigger>
+                            <HoverCardContent>
+                              <p>Password must contain:</p>
+                              <ul className="list-disc pl-4 text-sm">
+                                <li>At least 8 characters</li>
+                                <li>One uppercase letter</li>
+                                <li>One lowercase letter</li>
+                                <li>One number</li>
+                                <li>One special character</li>
+                              </ul>
+                            </HoverCardContent>
+                          </HoverCard>
+                        </div>
                         <FormControl>
                           <Input 
                             {...field} 
