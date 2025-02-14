@@ -20,6 +20,7 @@ import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Info } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Link } from "wouter";
 
 const passwordSchema = z.string()
   .min(8, "Password must be at least 8 characters")
@@ -157,6 +158,9 @@ export default function AuthPage() {
                           />
                         </FormControl>
                         <FormMessage className="text-sm text-destructive" />
+                        <Link href="/reset-password" className="text-sm text-primary hover:underline block mt-2">
+                          Forgot password?
+                        </Link>
                       </FormItem>
                     )}
                   />

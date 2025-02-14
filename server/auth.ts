@@ -9,6 +9,8 @@ import { users } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
 import { loginRateLimiter, clearLoginAttempts } from "./middleware/rate-limit";
+import nodemailer from "nodemailer";
+
 
 const scryptAsync = promisify(scrypt);
 const crypto = {
@@ -96,7 +98,7 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
 
   app.use((req, res, next) => {
-    if (req.path.startsWith('/api/') && !req.path.startsWith('/api/login') && !req.path.startsWith('/api/register')) {
+    if (req.path.startsWith('/api/') && !req.path.startsWith('/api/login') && !req.path.startsWith('/api/register') && !req.path.startsWith('/api/reset-password') && !req.path.startsWith('/api/reset-password/')) {
       if (!req.session || !req.session.passport) {
         if (req.xhr || req.path.startsWith('/api/')) {
           return res.status(401).json({ message: "Session expired" });
@@ -180,8 +182,8 @@ export function setupAuth(app: Express) {
         }
         return res.json({
           message: "Registration successful",
-          user: { 
-            id: newUser.id, 
+          user: {
+            id: newUser.id,
             username: newUser.username,
             email: newUser.email,
             profilePicture: newUser.profilePicture
@@ -224,8 +226,8 @@ export function setupAuth(app: Express) {
 
         return res.json({
           message: "Login successful",
-          user: { 
-            id: user.id, 
+          user: {
+            id: user.id,
             username: user.username,
             email: user.email,
             profilePicture: user.profilePicture
@@ -264,5 +266,91 @@ export function setupAuth(app: Express) {
       return res.json(req.user);
     }
     res.status(401).json({ message: "Not logged in" });
+  });
+
+  // Setup email transporter
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    port: parseInt(process.env.SMTP_PORT || "587"),
+    secure: false,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+
+  // Store reset tokens (in production, this should be in the database)
+  const passwordResetTokens = new Map<string, { email: string; expires: Date }>();
+
+  app.post("/api/reset-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      // Check if user exists
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
+
+      if (!user) {
+        // For security, still return success even if email doesn't exist
+        return res.json({ message: "If an account exists with this email, you will receive reset instructions." });
+      }
+
+      // Generate reset token
+      const token = randomBytes(32).toString("hex");
+      const expires = new Date(Date.now() + 3600000); // 1 hour expiry
+
+      // Store token (in production, store in database)
+      passwordResetTokens.set(token, { email, expires });
+
+      // Send reset email
+      const resetUrl = `${req.protocol}://${req.get("host")}/reset-password/${token}`;
+
+      await transporter.sendMail({
+        from: process.env.SMTP_FROM || "noreply@nuri.app",
+        to: email,
+        subject: "Reset your Nuri password",
+        html: `
+          <h1>Reset Your Password</h1>
+          <p>Click the link below to reset your password. This link will expire in 1 hour.</p>
+          <a href="${resetUrl}">Reset Password</a>
+          <p>If you didn't request this, please ignore this email.</p>
+        `,
+      });
+
+      res.json({ message: "If an account exists with this email, you will receive reset instructions." });
+    } catch (error) {
+      console.error("Password reset error:", error);
+      res.status(500).json({ message: "Failed to process password reset request" });
+    }
+  });
+
+  app.post("/api/reset-password/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { password } = req.body;
+
+      const resetData = passwordResetTokens.get(token);
+      if (!resetData || resetData.expires < new Date()) {
+        return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+
+      // Update user's password
+      const hashedPassword = await crypto.hash(password);
+      await db
+        .update(users)
+        .set({ password: hashedPassword })
+        .where(eq(users.email, resetData.email));
+
+      // Remove used token
+      passwordResetTokens.delete(token);
+
+      res.json({ message: "Password successfully reset" });
+    } catch (error) {
+      console.error("Password reset error:", error);
+      res.status(500).json({ message: "Failed to reset password" });
+    }
   });
 }
