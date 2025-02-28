@@ -73,6 +73,8 @@ export default function AuthPage() {
     try {
       await login(data);
       loginForm.reset();
+      // Redirect to the home page after successful login
+      setLocation("/");
     } catch (error) {
       // Error handling is done in useUser hook via toast
     } finally {
