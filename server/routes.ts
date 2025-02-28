@@ -30,60 +30,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication - this includes session setup and passport initialization
   setupAuth(app);
   
-  // Add test endpoint for mem0
-  app.get("/api/test-mem0", async (req: Request, res: Response) => {
+  // Register API routes
+  setupRoutes(apiRouter);
+  app.use("/api", apiRouter);
+  
+  // Add test endpoint for mem0 (no authentication required)
+  app.get("/mem0-test", async (_req: Request, res: Response) => {
     try {
-      const { MemoryClient } = await import('mem0ai');
-      const { memoryService } = await import('./services/memory');
+      const { mem0Service } = await import('./services/mem0');
       
-      console.log("Testing mem0 integration directly...");
+      console.log("Testing mem0 integration...");
       
-      // Test if the API key is available
-      if (!process.env.MEM0_API_KEY) {
+      // Get service status
+      const serviceStatus = mem0Service.getStatus();
+      
+      if (!serviceStatus.ready) {
         return res.status(500).json({ 
-          error: "MEM0_API_KEY not available",
+          error: "Mem0 service not ready: " + (serviceStatus.error || "Unknown error"),
           success: false
         });
       }
       
-      console.log("Creating direct mem0 client for testing");
-      const directClient = new MemoryClient({ 
-        apiKey: process.env.MEM0_API_KEY 
+      // Try to create a test memory entry for test user ID 999
+      console.log("Testing mem0 service by creating a test memory...");
+      
+      const testContent = "This is a test memory entry created at " + new Date().toISOString();
+      
+      const storeResult = await mem0Service.storeMemory(999, testContent, {
+        source: 'test-endpoint',
+        type: 'test',
+        category: 'test',
+        role: 'system'
       });
       
-      console.log("Testing client connection...");
+      console.log("Test memory creation result:", storeResult);
       
-      // Try to create a test memory entry
-      const testMessages = [{
-        role: "system",
-        content: "This is a test memory entry created at " + new Date().toISOString()
-      }];
+      // Also test creating a user
+      const userResult = await mem0Service.createUser(999, "test-user", "test@example.com");
+      console.log("Test user creation result:", userResult);
       
-      // Try to add a memory for user_id 999 (test user)
-      const result = await directClient.add(testMessages, {
-        user_id: "999",
-        metadata: {
-          source: 'test',
-          type: 'test',
-          category: 'test',
-          timestamp: new Date().toISOString()
+      // Test storing an onboarding step
+      const stepResult = await mem0Service.storeOnboardingStep(999, 0, {
+        basicInfo: {
+          name: "Test User",
+          parentType: "mom",
+          experienceLevel: "first_time"
         }
       });
-      
-      console.log("Direct mem0 test result:", result);
-      
-      // Also test using our memory service
-      const serviceResult = await memoryService.createMemory(999, "Test memory from service", {
-        source: 'test-service',
-        type: 'test',
-        category: 'test'
-      });
-      
-      console.log("Memory service test result:", serviceResult);
+      console.log("Test onboarding step result:", stepResult);
       
       res.json({ 
-        directResult: result,
-        serviceResult,
+        service_status: serviceStatus,
+        memory_test: storeResult,
+        user_test: userResult,
+        onboarding_test: stepResult,
         success: true
       });
     } catch (error) {
@@ -95,10 +95,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
-  // Register API routes
-  setupRoutes(apiRouter);
-  app.use("/api", apiRouter);
   
   // Health check endpoint
   app.get("/health", (req, res) => {

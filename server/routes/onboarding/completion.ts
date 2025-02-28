@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@db";
 import { parentProfiles, villageMembers } from "@db/schema";
-import { memoryService } from "../../services/memory";
+import { mem0Service } from "../../services/mem0";
 import { handleRouteError } from "../utils/error-handler";
 import { ensureAuthenticated } from "../middleware/auth";
 import { AuthenticatedRequest, ChildProfile } from "../types";
@@ -15,9 +15,10 @@ export function setupCompletionRoutes(router: Router) {
       
       const finalData = req.body;
       
-      // Set session flag for suggestion refresh.
-      if (req.session) {
-        req.session.checkSuggestions = true;
+      // Set session flag for suggestion refresh if property exists
+      if (req.session && typeof req.session === 'object') {
+        // Using type assertion to avoid TypeScript error
+        (req.session as any).checkSuggestions = true;
         await req.session.save();
       }
 
@@ -59,53 +60,23 @@ export function setupCompletionRoutes(router: Router) {
         });
       }
       
-      // Store profile memory.
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // slight delay
-        const onboardingContent = `
-Parent Profile:
-Name: ${name}
-Experience Level: ${experienceLevel}
-Stress Level: ${stressLevel}
-${finalData.stressAssessment?.primaryConcerns ? `Primary Concerns: ${finalData.stressAssessment.primaryConcerns.join(", ")}` : ""}
-${
-  validatedChildProfiles.length > 0
-    ? `Children:
-${validatedChildProfiles
-  .map(
-    (child) =>
-      `- ${child.name} (Age: ${child.age})${
-        child.specialNeeds.length
-          ? `, Special needs: ${child.specialNeeds.join(", ")}`
-          : ""
-      }`,
-  )
-  .join("\n")}`
-    : "No children profiles specified"
-}
-${
-  finalData.goals
-    ? `
-Goals:
-${finalData.goals.shortTerm?.length ? `Short term: ${finalData.goals.shortTerm.join(", ")}` : ""}
-${finalData.goals.longTerm?.length ? `Long term: ${finalData.goals.longTerm.join(", ")}` : ""}
-`
-    : ""
-}
-        `;
-        // We don't need to await this - if it fails, the onboarding should continue
-        memoryService.createMemory(user.id, onboardingContent, {
-          type: "onboarding_profile",
-          category: "user_profile",
-          source: "onboarding",
-        }).catch(memoryError => {
-          console.error("Memory storage error:", memoryError);
-          // We continue the onboarding process even if memory storage fails
-        });
-      } catch (memoryError) {
-        console.error("Memory storage preparation error:", memoryError);
-        // We continue the onboarding process even if memory storage fails
-      }
+      // Store onboarding completion in mem0 (non-blocking)
+      Promise.resolve().then(async () => {
+        try {
+          const success = await mem0Service.storeOnboardingCompletion(user.id, {
+            ...finalData,
+            childProfiles: validatedChildProfiles
+          });
+          
+          if (success) {
+            console.log(`Onboarding completion successfully stored in mem0 for user ${user.id}`);
+          } else {
+            console.warn(`Failed to store onboarding completion in mem0 for user ${user.id}`);
+          }
+        } catch (memError) {
+          console.error(`Error storing onboarding completion in mem0:`, memError);
+        }
+      });
 
       // Create village members from support network
       if (finalData.stressAssessment?.supportNetwork?.length) {
@@ -174,7 +145,7 @@ ${finalData.goals.longTerm?.length ? `Long term: ${finalData.goals.longTerm.join
             stressLevel,
             experienceLevel,
             onboardingData: {
-              ...finalData,
+              ...(typeof finalData === 'object' ? finalData : {}),
               childProfiles: validatedChildProfiles,
             },
             completedOnboarding: true,
