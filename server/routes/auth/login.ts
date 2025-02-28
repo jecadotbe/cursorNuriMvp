@@ -1,4 +1,4 @@
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import passport from "passport";
 import { IVerifyOptions } from "passport-local";
 import { User } from "@db/schema";
@@ -9,7 +9,7 @@ import { incrementLoginAttempts, clearLoginAttempts, loginRateLimiter } from "..
  * @param router Express router to attach routes to
  */
 export function setupLoginRoute(router: Router) {
-  router.post("/login", loginRateLimiter, (req: Request, res: Response) => {
+  router.post("/login", loginRateLimiter, (req: Request, res: Response, next: NextFunction) => {
     passport.authenticate("local", (err: any, user: User | false, info: IVerifyOptions) => {
       // Handle authentication errors
       if (err) {
@@ -20,9 +20,10 @@ export function setupLoginRoute(router: Router) {
       // If authentication failed
       if (!user) {
         // Increment failed login attempts for rate limiting
-        incrementLoginAttempts(req.ip);
+        const ip = req.ip || "unknown";
+        incrementLoginAttempts(ip);
         
-        return res.status(401).json({ message: info.message || "Invalid credentials" });
+        return res.status(401).json({ message: info?.message || "Invalid credentials" });
       }
       
       // If authentication successful, log in the user
@@ -33,10 +34,12 @@ export function setupLoginRoute(router: Router) {
         }
         
         // Clear failed attempts counter for this IP
-        clearLoginAttempts(req.ip);
+        const ip = req.ip || "unknown";
+        clearLoginAttempts(ip);
         
         // Initialize suggestion checks
         if (req.session) {
+          // @ts-ignore - Adding custom property to session
           req.session.checkSuggestions = true;
         }
         
@@ -52,6 +55,6 @@ export function setupLoginRoute(router: Router) {
           }
         });
       });
-    })(req, res);
+    })(req, res, next);
   });
 }

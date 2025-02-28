@@ -41,25 +41,29 @@ export function setupRoutes(app: Router) {
   app.use("/village", localVillageRouter);
   app.use("/onboarding", onboardingRouter);
 
-  // Add direct route forwarding for frontend compatibility
+  // Direct route handlers for backwards compatibility with frontend
   app.post("/login", (req, res, next) => {
-    req.url = "/auth/login";
-    app.handle(req, res, next);
+    // Forward the request to the login route handler
+    req.url = "/login";  // Set the URL to match the route in the auth router
+    authRouter(req, res, next);  // Pass the request to the auth router
   });
   
   app.post("/logout", (req, res, next) => {
-    req.url = "/auth/logout";
-    app.handle(req, res, next);
+    // Forward the request to the logout route handler
+    req.url = "/logout";
+    authRouter(req, res, next);
   });
   
   app.post("/register", (req, res, next) => {
-    req.url = "/auth/register";
-    app.handle(req, res, next);
+    // Forward the request to the register route handler
+    req.url = "/register";
+    authRouter(req, res, next);
   });
 
   app.get("/user", (req, res, next) => {
-    req.url = "/auth/user";
-    app.handle(req, res, next);
+    // Forward the request to the user route handler
+    req.url = "/user";
+    authRouter(req, res, next);
   });
 
   // General error fallback
