@@ -45,7 +45,7 @@ export default function ChatHistoryView() {
 
   const startNewChat = async () => {
     try {
-      const response = await fetch('/api/chat/chat', {
+      const response = await fetch('/api/chats', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -70,7 +70,7 @@ export default function ChatHistoryView() {
       }
 
       // Force query invalidation to refresh data
-      queryClient.invalidateQueries(["chats"]);
+      queryClient.invalidateQueries({ queryKey: ["chats"] });
       
       // Navigate to the new chat
       navigate(`/chat/${newChat.id}`);
