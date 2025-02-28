@@ -1,0 +1,120 @@
+Authentication Route Refactoring Plan
+I'll help you refactor your authentication routes to fix the conflict and organize your code better. Here's a comprehensive approach:
+1. Choose One Routing Approach
+Let's consolidate on a router-based approach, which will keep your code more organized as your app grows.
+2. Refactored Implementation
+Create a dedicated auth router file server/routes/auth.ts:
+javascriptCopyimport { Router } from "express";
+import passport from "passport";
+import { loginRateLimiter, incrementLoginAttempts, clearLoginAttempts } from "../middleware/rate-limit";
+import { scrypt, randomBytes } from "crypto";
+import { db } from "db";
+import { users } from "@db/schema";
+import { eq, or } from "drizzle-orm";
+
+const authRouter = Router();
+
+// LOGIN endpoint
+authRouter.post("/login", loginRateLimiter, (req, res, next) => {
+  passport.authenticate("local", (err, user, info) => {
+    if (err) {
+      console.error("Login error:", err);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+    
+    if (!user) {
+      const ip = req.ip || req.socket.remoteAddress || "unknown";
+      incrementLoginAttempts(ip);
+      return res.status(401).json({ message: info?.message || "Invalid credentials" });
+    }
+    
+    req.logIn(user, (err) => {
+      if (err) {
+        console.error("Session error:", err);
+        return res.status(500).json({ message: "Error establishing session" });
+      }
+      
+      const ip = req.ip || req.socket.remoteAddress || "unknown";
+      clearLoginAttempts(ip);
+      
+      if (req.session) {
+        // @ts-ignore - Adding custom property to session
+        req.session.checkSuggestions = true;
+      }
+      
+      return res.json({
+        message: "Login successful",
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          profilePicture: user.profilePicture,
+          createdAt: user.createdAt
+        }
+      });
+    });
+  })(req, res, next); // This is critical - pass req, res, next to the authenticate function
+});
+
+// LOGOUT endpoint
+authRouter.post("/logout", (req, res) => {
+  // Logout logic here (same as your current implementation)
+});
+
+// USER INFO endpoint
+authRouter.get("/user", (req, res) => {
+  // User info logic here (same as your current implementation)
+});
+
+// REGISTER endpoint
+authRouter.post("/register", async (req, res) => {
+  // Registration logic here (same as your current implementation)
+});
+
+export default authRouter;
+3. Update Main Routes File
+Modify your routes/index.ts to use this auth router:
+javascriptCopyimport { Router } from "express";
+import authRouter from "./auth";
+// Import other routers as needed
+
+export function setupRoutes(apiRouter: Router) {
+  // Mount the auth router
+  apiRouter.use("/auth", authRouter);
+  
+  // Mount other routers as needed
+  // apiRouter.use("/users", usersRouter);
+  // apiRouter.use("/content", contentRouter);
+}
+4. Remove Duplicate Routes
+Finally, modify your main routes.ts file to remove the direct endpoint definitions:
+javascriptCopyexport async function registerRoutes(app: Express): Promise<Server> {
+  // Keep all your middleware setup code...
+  
+  // Register API routes
+  setupRoutes(apiRouter);
+  app.use("/api", apiRouter);
+  
+  // Remove the direct /api/login, /api/logout, /api/user, and /api/register routes
+  // Those are now handled by the auth router
+  
+  // Keep your health check endpoint
+  app.get("/health", (req, res) => {
+    res.status(200).send({ status: "ok" });
+  });
+  
+  // Create HTTP server as before
+  const { createServer } = await import('node:http');
+  const server = createServer(app);
+  
+  return server;
+}
+5. Update Frontend URLs
+Make sure your frontend is using the new URL structure:
+
+/api/login → /api/auth/login
+/api/logout → /api/auth/logout
+/api/user → /api/auth/user
+/api/register → /api/auth/register
+
+This should resolve the routing conflict while keeping your code well-organized. Let me know if you need any clarification or help with any part of this refactoring!
