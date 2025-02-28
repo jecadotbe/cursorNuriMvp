@@ -57,6 +57,14 @@ export function useSuggestion() {
     gcTime: 2 * 60 * 60 * 1000, // Cache for 2 hours
     refetchOnMount: false,
     refetchOnWindowFocus: false,
+    select: (data) => {
+      // Ensure any type of suggestion, including 'follow_up', is included
+      if (data && Array.isArray(data)) {
+        // Filter out used suggestions
+        return data.filter(s => !s.usedAt);
+      }
+      return data;
+    },
     retry: 1,
     retryDelay: 1000,
     enabled: true
