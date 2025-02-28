@@ -41,43 +41,18 @@ type OnboardingProgressResponse = {
 };
 
 const handleApiResponse = async (response: Response) => {
+  const responseText = await response.text();
   try {
-    const contentType = response.headers.get('content-type');
-    
-    // Check if response is JSON
-    if (contentType && contentType.includes('application/json')) {
-      const responseText = await response.text();
-      try {
-        const data = JSON.parse(responseText);
-        if (!response.ok) {
-          throw new Error(data.message || `HTTP error! status: ${response.status}`);
-        }
-        return data;
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        throw new Error("Invalid JSON response from server");
-      }
-    } else {
-      // Handle non-JSON responses
-      const text = await response.text();
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}, response: ${text.substring(0, 100)}`);
-      }
-      console.warn('Response is not JSON:', text.substring(0, 100));
-      // Try to convert to a compatible format
-      return {
-        message: "Data received but not in expected format",
-        currentOnboardingStep: 1,
-        completedOnboarding: false,
-        onboardingData: { childProfiles: [] }
-      };
+    const data = JSON.parse(responseText);
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP error! status: ${response.status}`);
     }
-  } catch (error) {
-    console.error('API response handling error:', error);
-    throw error;
+    return data;
+  } catch (parseError) {
+    if (!response.ok) {
+      throw new Error(responseText || `HTTP error! status: ${response.status}`);
+    }
+    throw new Error("Invalid server response");
   }
 };
 

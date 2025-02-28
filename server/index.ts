@@ -2,7 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
-import { setupAdminServer } from "./admin"; // Import admin server setup function
+import "./admin"; // Import admin server
 
 const app = express();
 
@@ -46,11 +46,7 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    // Set up routes (async)
-    const server = await registerRoutes(app);
-    
-    // Set up admin server if needed
-    const adminServer = setupAdminServer();
+    const server = registerRoutes(app);
 
     // Error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -68,29 +64,11 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    // Use the PORT environment variable for Replit compatibility
-    // Default to 5000 which is expected by Replit workflows
-    const PORT = parseInt(process.env.PORT || '5000', 10);
-    
+    // ALWAYS serve the app on port 5000
+    // this serves both the API and the client
+    const PORT = 5000;
     server.listen(PORT, "0.0.0.0", () => {
-      log(`Server running on port ${PORT}`);
-    }).on('error', (e: any) => {
-      console.error('Server startup error:', e);
-      
-      // If port is in use and we're not already using a fallback port
-      if (e.code === 'EADDRINUSE' && PORT === 5000) {
-        const FALLBACK_PORT = 3000;
-        console.log(`Port ${PORT} is in use, trying fallback port ${FALLBACK_PORT}`);
-        
-        server.listen(FALLBACK_PORT, "0.0.0.0", () => {
-          log(`Server running on fallback port ${FALLBACK_PORT}`);
-        }).on('error', (fallbackError: any) => {
-          console.error('Fallback port also failed:', fallbackError);
-          process.exit(1);
-        });
-      } else {
-        process.exit(1);
-      }
+      log(`serving on port ${PORT}`);
     });
 
     // Cleanup on exit - simplified because memoryService is removed

@@ -80,24 +80,11 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
     select: (data) => {
       let filtered = data;
 
-      // Only filter by type if we have types to filter by and suggestions exist
-      if (filterByType.length > 0 && filtered.length > 0) {
-        // First try with exact type matches
-        const exactMatches = filtered.filter(s => filterByType.includes(s.type as any));
-        
-        // If we found exact matches, use those
-        if (exactMatches.length > 0) {
-          filtered = exactMatches;
-        } 
-        // Otherwise, consider all suggestions valid (especially follow_up type)
-        // This ensures we don't discard valid suggestions just because their type 
-        // doesn't exactly match our filter
+      if (filterByType.length > 0) {
+        filtered = data.filter(s => filterByType.includes(s.type as any));
       }
 
-      // Remove used suggestions
       filtered = filtered.filter(s => !s.usedAt);
-      
-      // Limit to max suggestions
       return filtered.slice(0, maxSuggestions);
     },
     retry: 1

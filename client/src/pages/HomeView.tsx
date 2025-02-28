@@ -60,8 +60,7 @@ const WelcomeView = () => {
 
 export default function HomeView() {
   const { user, isLoading: userLoading } = useUser();
-  // Disable background refresh to avoid excessive API calls
-  useBackgroundRefresh(undefined, true);
+  useBackgroundRefresh();
 
   // Wait for user state to be determined before rendering
   if (userLoading) {
@@ -92,7 +91,7 @@ export default function HomeView() {
     markAsUsed: markVillageSuggestionAsUsed,
     refetch: refetchVillageSuggestions,
     invalidateSuggestions: invalidateVillageSuggestions,
-    forceRefresh: forceVillageRefresh
+    forceVillageRefresh
   } = useVillageSuggestions({
     autoRefresh: false,
     maxSuggestions: 5,
@@ -125,25 +124,19 @@ export default function HomeView() {
 
   // Effect to handle suggestion loading state
   useEffect(() => {
-    if (!suggestionLoading && suggestions && suggestions.length > 0) {
+    if (!suggestionLoading && suggestions?.length > 0) {
       setHasSuggestions(true);
       setShowSkeleton(false);
-    } else if (!suggestionLoading && (!suggestions || suggestions.length === 0)) {
+    } else if (!suggestionLoading && suggestions?.length === 0) {
       setHasSuggestions(false);
       setShowSkeleton(false);
     }
   }, [suggestionLoading, suggestions]);
 
-  // Effect to refresh suggestions if needed - with request throttling
+  // Effect to refresh suggestions if needed
   useEffect(() => {
-    const now = Date.now();
-    const lastRefreshTime = parseInt(localStorage.getItem('lastSuggestionRefresh') || '0');
-    const timeSinceLastRefresh = now - lastRefreshTime;
-    
-    // Only refresh if more than 30 seconds have passed since last refresh
-    if (!hasSuggestions && !suggestionLoading && timeSinceLastRefresh > 30000) {
+    if (!hasSuggestions && !suggestionLoading) {
       refetchSuggestions().catch(console.error);
-      localStorage.setItem('lastSuggestionRefresh', now.toString());
     }
   }, [hasSuggestions, suggestionLoading, refetchSuggestions]);
 
@@ -336,34 +329,29 @@ export default function HomeView() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-2 h-2 rounded-full" style={{
-                        backgroundColor: 
-                          suggestion.type === 'stress' ? '#EF4444' :
+                        backgroundColor: suggestion.type === 'stress' ? '#EF4444' :
                           suggestion.type === 'learning' ? '#3B82F6' :
                           suggestion.type === 'village' ? '#10B981' :
                           suggestion.type === 'child_development' ? '#8B5CF6' :
                           suggestion.type === 'personal_growth' ? '#F59E0B' :
-                          suggestion.type === 'follow_up' ? '#9333EA' : // Purple for follow_up type
                           '#6B7280'
                       }}></div>
                       <div className="text-sm font-semibold tracking-wide uppercase" style={{
-                        color: 
-                          suggestion.type === 'stress' ? '#EF4444' :
+                        color: suggestion.type === 'stress' ? '#EF4444' :
                           suggestion.type === 'learning' ? '#3B82F6' :
                           suggestion.type === 'village' ? '#10B981' :
                           suggestion.type === 'child_development' ? '#8B5CF6' :
                           suggestion.type === 'personal_growth' ? '#F59E0B' :
-                          suggestion.type === 'follow_up' ? '#9333EA' : // Purple for follow_up type
                           '#6B7280'
                       }}>
-                        {
+                        {suggestion.title || (
                           suggestion.type === 'stress' ? 'Stress Management' :
                           suggestion.type === 'learning' ? 'Leren & Ontwikkeling' :
                           suggestion.type === 'village' ? 'Je Village' :
                           suggestion.type === 'child_development' ? 'Kind Ontwikkeling' :
                           suggestion.type === 'personal_growth' ? 'Persoonlijke Groei' :
-                          suggestion.type === 'follow_up' ? 'Vervolggesprek' : // Label for follow_up type
                           'Op basis van onze gesprekken'
-                        }
+                        )}
                       </div>
                     </div>
                     <div

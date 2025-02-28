@@ -51,28 +51,21 @@ export default function ChatHistoryView() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: `Chat ${format(new Date(), 'd/M/yyyy')}`,
+          title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
+          messages: [],
         }),
         credentials: 'include',
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Server error:', errorText);
-        throw new Error(`Failed to create new chat: ${response.status} ${response.statusText}`);
+        throw new Error('Failed to create new chat');
       }
 
       const newChat = await response.json();
-      console.log("New chat created:", newChat);
-      
       if (!newChat.id) {
         throw new Error('No chat ID received from server');
       }
 
-      // Force query invalidation to refresh data
-      queryClient.invalidateQueries({ queryKey: ["chats"] });
-      
-      // Navigate to the new chat
       navigate(`/chat/${newChat.id}`);
     } catch (error) {
       console.error('Error creating new chat:', error);

@@ -5,13 +5,10 @@ import { useToast } from '@/hooks/use-toast';
 type LoginData = {
   username: string;
   password: string;
-  rememberMe?: boolean;
 };
 
-type RegisterData = {
-  username: string;
+type RegisterData = LoginData & {
   email: string;
-  password: string;
 };
 
 type RequestResult = {
@@ -29,10 +26,12 @@ async function handleRequest(
       method,
       headers: {
         ...(body ? { "Content-Type": "application/json" } : {}),
-        // Remove cache headers to ensure we're not fighting with the server's cache policy
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
       },
       body: body ? JSON.stringify(body) : undefined,
-      credentials: "include", // Important! Ensures cookies are sent with the request
+      credentials: "include",
     });
 
     const data = await response.json();
@@ -52,25 +51,23 @@ async function handleRequest(
 
 async function fetchUser(): Promise<User | null> {
   try {
-    console.log("Fetching user data...");
     const response = await fetch('/api/user', {
-      credentials: 'include', // Critical for session cookies
-      cache: 'no-cache', // Ensure fresh data
+      credentials: 'include',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
     });
 
     if (!response.ok) {
       if (response.status === 401) {
-        console.log("User not authenticated");
         return null;
       }
-      
-      console.error(`Error fetching user: ${response.status}`);
       throw new Error(`${response.status}: ${await response.text()}`);
     }
 
-    const data = await response.json();
-    console.log("User data fetched successfully:", data);
-    return data; // The API directly returns the user object
+    return response.json();
   } catch (error) {
     console.error('Error fetching user:', error);
     return null;
@@ -80,34 +77,23 @@ async function fetchUser(): Promise<User | null> {
 export function useUser() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
-  // More aggressive data fetching strategy
-  const { data: user, error, isLoading, refetch } = useQuery<User | null, Error>({
+
+  const { data: user, error, isLoading } = useQuery<User | null, Error>({
     queryKey: ['user'],
     queryFn: fetchUser,
-    staleTime: 5 * 60 * 1000, // Consider stale after 5 minutes
-    retry: 1,
-    refetchOnWindowFocus: true,
+    staleTime: 0,
+    gcTime: 0,
+    retry: false
   });
 
   const loginMutation = useMutation<RequestResult, Error, LoginData>({
     mutationFn: (userData) => handleRequest('/api/login', 'POST', userData),
-    onSuccess: async (result) => {
-      // Force a refetch of user data after successful login
-      await queryClient.invalidateQueries({ queryKey: ['user'] });
-      
-      // Wait a small amount of time to ensure the invalidation and refetch completes
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Manually trigger a refetch to ensure we have the latest data
-      await refetch();
-      
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['user'] });
       toast({
         title: "Success",
         description: result.message || "Successfully logged in!",
       });
-      
-      return result;
     },
     onError: (error) => {
       toast({
@@ -122,9 +108,8 @@ export function useUser() {
   const logoutMutation = useMutation<RequestResult, Error>({
     mutationFn: () => handleRequest('/api/logout', 'POST'),
     onSuccess: (result) => {
-      // Clear all queries to ensure clean state
       queryClient.clear();
-      
+      queryClient.invalidateQueries({ queryKey: ['user'] });
       toast({
         title: "Success",
         description: result.message || "Successfully logged out!",
@@ -142,22 +127,12 @@ export function useUser() {
 
   const registerMutation = useMutation<RequestResult, Error, RegisterData>({
     mutationFn: (userData) => handleRequest('/api/register', 'POST', userData),
-    onSuccess: async (result) => {
-      // Force a refetch of user data after successful registration
-      await queryClient.invalidateQueries({ queryKey: ['user'] });
-      
-      // Wait a small amount of time to ensure the invalidation and refetch completes
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Manually trigger a refetch to ensure we have the latest data
-      await refetch();
-      
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['user'] });
       toast({
         title: "Success",
         description: result.message || "Registration successful!",
       });
-      
-      return result;
     },
     onError: (error) => {
       toast({
@@ -176,6 +151,5 @@ export function useUser() {
     login: loginMutation.mutateAsync,
     logout: logoutMutation.mutateAsync,
     register: registerMutation.mutateAsync,
-    refetch, // Expose refetch to allow forced refreshes
   };
 }

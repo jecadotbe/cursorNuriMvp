@@ -9,14 +9,8 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: async ({ queryKey }) => {
-        // Add cache control headers to prevent browser caching
         const res = await fetch(queryKey[0] as string, {
           credentials: "include",
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
-          }
         });
 
         if (!res.ok) {
@@ -32,12 +26,9 @@ export const queryClient = new QueryClient({
 
         return res.json();
       },
-      refetchInterval: false, 
+      refetchInterval: false,
       refetchOnWindowFocus: false,
-      refetchOnMount: false,
-      refetchOnReconnect: false,
       staleTime: Infinity,
-      gcTime: Infinity,
       retry: (failureCount, error) => {
         // Retry up to 3 times for server errors (500s) and overloaded states (529)
         if (error instanceof Error && 
