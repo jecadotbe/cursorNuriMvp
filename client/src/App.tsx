@@ -80,12 +80,10 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <OnboardingProvider>
-        <Router />
-        <Toaster />
-      </OnboardingProvider>
-    </QueryClientProvider>
+    <OnboardingProvider>
+      <Router />
+      <Toaster />
+    </OnboardingProvider>
   );
 }
 

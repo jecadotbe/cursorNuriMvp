@@ -55,7 +55,7 @@ export default function LoginPage() {
   const onLoginSubmit = async (data: LoginFormData) => {
     setIsSubmitting(true);
     try {
-      const success = await login(data.username, data.password, data.rememberMe);
+      const success = await login(data.username, data.password);
       if (success) {
         console.log("Login successful! Redirecting to home page");
         // Small delay to ensure state updates

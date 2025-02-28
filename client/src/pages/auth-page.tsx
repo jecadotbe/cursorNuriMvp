@@ -72,7 +72,7 @@ export default function AuthPage() {
     setIsSubmitting(true);
     try {
       // Use explicit username and password for the login function
-      const success = await login(data.username, data.password, false);
+      const success = await login(data.username, data.password);
       console.log("Login attempt result:", success);
       loginForm.reset();
       
