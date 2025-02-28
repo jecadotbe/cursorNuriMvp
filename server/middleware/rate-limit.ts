@@ -79,5 +79,6 @@ export const loginRateLimiter = (
 
 export const clearLoginAttempts = (ip: string) => {
   const key = `rateLimit:${ip}`;
-  store.del(key);
+  // Using store.set with null to effectively clear the entry
+  store.set(key, null);
 };

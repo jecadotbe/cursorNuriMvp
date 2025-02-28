@@ -18,8 +18,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Info } from "lucide-react";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Loader2 } from "lucide-react";
 import { Link } from "wouter";
 
 // Simplified password schema for development
@@ -129,24 +128,7 @@ export default function AuthPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <div className="flex items-center justify-between">
-                          <FormLabel>Password</FormLabel>
-                          <HoverCard>
-                            <HoverCardTrigger>
-                              <Info className="h-4 w-4 text-muted-foreground" />
-                            </HoverCardTrigger>
-                            <HoverCardContent>
-                              <p>Password must contain:</p>
-                              <ul className="list-disc pl-4 text-sm">
-                                <li>At least 8 characters</li>
-                                <li>One uppercase letter</li>
-                                <li>One lowercase letter</li>
-                                <li>One number</li>
-                                <li>One special character</li>
-                              </ul>
-                            </HoverCardContent>
-                          </HoverCard>
-                        </div>
+                        <FormLabel>Password</FormLabel>
                         <FormControl>
                           <Input 
                             {...field} 
@@ -221,24 +203,7 @@ export default function AuthPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <div className="flex items-center justify-between">
-                          <FormLabel>Password</FormLabel>
-                          <HoverCard>
-                            <HoverCardTrigger>
-                              <Info className="h-4 w-4 text-muted-foreground" />
-                            </HoverCardTrigger>
-                            <HoverCardContent>
-                              <p>Password must contain:</p>
-                              <ul className="list-disc pl-4 text-sm">
-                                <li>At least 8 characters</li>
-                                <li>One uppercase letter</li>
-                                <li>One lowercase letter</li>
-                                <li>One number</li>
-                                <li>One special character</li>
-                              </ul>
-                            </HoverCardContent>
-                          </HoverCard>
-                        </div>
+                        <FormLabel>Password</FormLabel>
                         <FormControl>
                           <Input 
                             {...field} 
