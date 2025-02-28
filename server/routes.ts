@@ -55,6 +55,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupRoutes(apiRouter);
   app.use("/api", apiRouter);
   
+  // Add direct root-level API endpoints for compatibility
+  app.use("/api/login", (req, res, next) => {
+    req.url = "/login";
+    apiRouter(req, res, next);
+  });
+  
+  app.use("/api/logout", (req, res, next) => {
+    req.url = "/logout";
+    apiRouter(req, res, next);
+  });
+  
+  app.use("/api/register", (req, res, next) => {
+    req.url = "/register";
+    apiRouter(req, res, next);
+  });
+  
+  app.use("/api/user", (req, res, next) => {
+    req.url = "/user";
+    apiRouter(req, res, next);
+  });
+  
   // Health check endpoint
   app.get("/health", (req, res) => {
     res.status(200).send({ status: "ok" });
