@@ -64,10 +64,31 @@ async function fetchUser(): Promise<User | null> {
       if (response.status === 401) {
         return null;
       }
+      
+      // Handle throttling/rate limiting
+      if (response.status === 429) {
+        // If rate limited, use cached value if available or return null
+        if (typeof window !== 'undefined') {
+          const cachedUser = sessionStorage.getItem('cachedUser');
+          if (cachedUser) {
+            try {
+              return JSON.parse(cachedUser);
+            } catch (e) {
+              // Invalid JSON in cache
+              console.error('Invalid cached user data');
+            }
+          }
+        }
+        // Log the rate limit but don't throw an error, just return null
+        console.warn('Rate limited when fetching user. Using cached or null value.');
+        return null;
+      }
+      
       throw new Error(`${response.status}: ${await response.text()}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    return data.user || null;
   } catch (error) {
     console.error('Error fetching user:', error);
     return null;
