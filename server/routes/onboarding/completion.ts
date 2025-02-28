@@ -93,13 +93,18 @@ ${finalData.goals.longTerm?.length ? `Long term: ${finalData.goals.longTerm.join
     : ""
 }
         `;
-        await memoryService.createMemory(user.id, onboardingContent, {
+        // We don't need to await this - if it fails, the onboarding should continue
+        memoryService.createMemory(user.id, onboardingContent, {
           type: "onboarding_profile",
           category: "user_profile",
           source: "onboarding",
+        }).catch(memoryError => {
+          console.error("Memory storage error:", memoryError);
+          // We continue the onboarding process even if memory storage fails
         });
       } catch (memoryError) {
-        console.error("Memory storage error:", memoryError);
+        console.error("Memory storage preparation error:", memoryError);
+        // We continue the onboarding process even if memory storage fails
       }
 
       // Create village members from support network
