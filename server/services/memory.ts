@@ -1,9 +1,15 @@
 import { MemoryClient } from 'mem0ai';
 
+// Additional debug information
+console.log("Memory service initializing...");
+console.log("MEM0_API_KEY exists:", !!process.env.MEM0_API_KEY);
+console.log("MEM0_API_KEY length:", process.env.MEM0_API_KEY ? process.env.MEM0_API_KEY.length : 0);
+
 // Initialize client only if API key is available
 let client: any = null;
 try {
   if (process.env.MEM0_API_KEY) {
+    console.log("Attempting to create MemoryClient with API key...");
     client = new MemoryClient({ 
       apiKey: process.env.MEM0_API_KEY,
     });
@@ -82,8 +88,33 @@ export class MemoryService {
       }];
 
       console.log('Adding memory with messages:', JSON.stringify(messages, null, 2));
+      console.log('Adding for user_id:', userId.toString());
 
       try {
+        console.log('Calling client.add with params:');
+        console.log('- Messages:', JSON.stringify(messages));
+        console.log('- Options:', JSON.stringify({
+          user_id: userId.toString(),
+          metadata: {
+            ...metadata,
+            source: metadata?.source || 'nuri-chat',
+            type: metadata?.type || 'conversation',
+            category: metadata?.category || 'chat_history',
+            timestamp: new Date().toISOString()
+          }
+        }, null, 2));
+        
+        // Try to access the add method directly to see if it's available
+        console.log('client.add exists:', typeof client.add === 'function');
+        
+        // Let's check the client object structure
+        console.log('Client object keys:', Object.keys(client));
+
+        // Check API documentation parameters for mem0ai client
+        console.log('Testing MemoryClient for proper initialization...');
+        
+        // Test create method directly according to mem0 API documentation
+        // This follows the structure in https://docs.mem0.ai/platform/quickstart
         const result = await client.add(messages, {
           user_id: userId.toString(),
           metadata: {
@@ -110,6 +141,9 @@ export class MemoryService {
         };
       } catch (memoryError) {
         console.error('Error adding memory to mem0ai:', memoryError);
+        console.error('Error details:', JSON.stringify(memoryError, Object.getOwnPropertyNames(memoryError), 2));
+        console.error('Error stack:', memoryError?.stack);
+        
         // Return a local memory object instead of failing
         return {
           id: `local-${Date.now()}`,
@@ -118,13 +152,17 @@ export class MemoryService {
             ...metadata,
             source: metadata?.source || 'nuri-chat',
             type: metadata?.type || 'conversation',
-            category: metadata?.category || 'chat_history'
+            category: metadata?.category || 'chat_history',
+            error: String(memoryError)
           },
           createdAt: new Date()
         };
       }
     } catch (error) {
       console.error('Error creating memory:', error);
+      console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+      console.error('Error stack:', error?.stack);
+      
       // Instead of throwing, return a local memory object
       return {
         id: `local-error-${Date.now()}`,
