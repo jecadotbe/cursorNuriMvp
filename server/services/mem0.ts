@@ -21,6 +21,15 @@ export class Mem0Service {
    */
   private initialize(): void {
     try {
+      console.log("Mem0Service initializing...");
+      
+      // Check if API key exists and log its status
+      const hasApiKey = !!process.env.MEM0_API_KEY;
+      const apiKeyLength = process.env.MEM0_API_KEY ? process.env.MEM0_API_KEY.length : 0;
+      
+      console.log(`MEM0_API_KEY exists: ${hasApiKey}`);
+      console.log(`MEM0_API_KEY length: ${apiKeyLength}`);
+      
       if (!process.env.MEM0_API_KEY) {
         console.warn("MEM0_API_KEY environment variable is missing - mem0 features will be disabled");
         this.isInitialized = false;
@@ -28,13 +37,29 @@ export class Mem0Service {
         return;
       }
 
-      console.log("Initializing mem0 client with API key...");
+      console.log("Attempting to create MemoryClient with API key...");
       this.client = new MemoryClient({ 
         apiKey: process.env.MEM0_API_KEY,
       });
       
+      // Perform a simple test to verify the client is working
+      this.client.add([{role: "system", content: "Service initialization test"}], {
+        user_id: "service_test",
+        metadata: {
+          source: 'initialization',
+          type: 'test',
+          timestamp: new Date().toISOString()
+        }
+      }).then(() => {
+        console.log("Mem0 service test successful - client is working properly");
+      }).catch(testError => {
+        console.error("Mem0 service test failed:", testError);
+        this.isInitialized = false;
+        this.initError = testError instanceof Error ? testError : new Error(String(testError));
+      });
+      
       this.isInitialized = true;
-      console.log("Mem0 client initialized successfully");
+      console.log("Memory client initialized successfully");
     } catch (error) {
       console.error("Failed to initialize mem0 client:", error);
       this.isInitialized = false;
@@ -278,27 +303,50 @@ Support Network: ${onboardingData.stressAssessment?.supportNetwork?.join(', ') |
 
     try {
       console.log(`Storing memory for user ${userId} in mem0...`);
+      console.log(`Memory content: "${content.substring(0, 100)}${content.length > 100 ? '...' : ''}"`);
+      console.log(`Metadata: ${JSON.stringify(metadata)}`);
       
       const messages = [{
         role: metadata.role || "user",
         content
       }];
 
-      const result = await this.client!.add(messages, {
-        user_id: userId.toString(),
-        metadata: {
-          ...metadata,
-          source: metadata.source || 'nuri-app',
-          type: metadata.type || 'general',
-          category: metadata.category || 'general',
-          timestamp: new Date().toISOString()
-        }
-      });
+      // Add debug logs
+      console.log(`Preparing to send to mem0 with user_id: ${userId.toString()}`);
+      console.log(`Using message role: ${metadata.role || "user"}`);
+      
+      try {
+        // Make the API call with detailed logging
+        const result = await this.client!.add(messages, {
+          user_id: userId.toString(),
+          metadata: {
+            ...metadata,
+            source: metadata.source || 'nuri-app',
+            type: metadata.type || 'general',
+            category: metadata.category || 'general',
+            timestamp: new Date().toISOString()
+          }
+        });
 
-      console.log(`Memory stored in mem0 successfully:`, result);
-      return true;
+        console.log(`Memory stored in mem0 successfully:`, result);
+        return true;
+      } catch (innerError) {
+        // More detailed error logging for the actual API call
+        console.error(`API call to mem0 failed:`, innerError);
+        console.error(`API call details - user_id: ${userId}, content length: ${content.length}`);
+        if (innerError instanceof Error) {
+          console.error(`Error name: ${innerError.name}, message: ${innerError.message}`);
+          console.error(`Stack trace: ${innerError.stack}`);
+        }
+        throw innerError; // Re-throw to be caught by outer try/catch
+      }
     } catch (error) {
       console.error(`Failed to store memory for user ${userId} in mem0:`, error);
+      if (error instanceof Error) {
+        console.error(`Error type: ${error.constructor.name}`);
+        console.error(`Error message: ${error.message}`);
+        console.error(`Stack trace: ${error.stack}`);
+      }
       return false;
     }
   }

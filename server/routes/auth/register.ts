@@ -24,6 +24,7 @@ async function hashPassword(password: string): Promise<string> {
 export function setupRegisterRoute(router: Router) {
   router.post("/register", async (req: Request, res: Response) => {
     try {
+      console.log("Registration request received");
       const { username, email, password } = req.body;
       
       // Validation
@@ -56,6 +57,8 @@ export function setupRegisterRoute(router: Router) {
       // Hash password
       const hashedPassword = await hashPassword(password);
       
+      console.log(`Creating user ${username} in database...`);
+      
       // Create user
       const result = await db
         .insert(users)
@@ -75,27 +78,39 @@ export function setupRegisterRoute(router: Router) {
       }
       
       const user = result[0];
+      console.log(`User ${user.id} (${username}) created successfully in database`);
       
-      // Create user in mem0 service (non-blocking)
-      Promise.resolve().then(async () => {
+      // Check mem0 service status
+      const serviceStatus = mem0Service.getStatus();
+      console.log(`Mem0 service status - Ready: ${serviceStatus.ready}, Error: ${serviceStatus.error || 'None'}`);
+      
+      if (!serviceStatus.ready) {
+        console.warn(`Mem0 service not ready - cannot create user in mem0: ${serviceStatus.error}`);
+      } else {
+        console.log(`Creating user ${user.id} (${username}) in mem0 service...`);
+        
+        // Create user in mem0 - directly await to catch any issues
         try {
           const success = await mem0Service.createUser(user.id, username, email);
           if (success) {
-            console.log(`User ${user.id} successfully created in mem0`);
+            console.log(`User ${user.id} (${username}) successfully created in mem0`);
           } else {
-            console.warn(`Failed to create user ${user.id} in mem0`);
+            console.warn(`Failed to create user ${user.id} (${username}) in mem0 - unknown error`);
           }
         } catch (memError) {
-          console.error(`Error creating user ${user.id} in mem0:`, memError);
+          console.error(`Error creating user ${user.id} (${username}) in mem0:`, memError);
         }
-      });
+      }
       
       // Log in the user automatically after registration
+      console.log(`Logging in user ${user.id} (${username}) after registration`);
       req.login(user, (err) => {
         if (err) {
           console.error("Error during login after registration:", err);
           return res.status(500).json({ message: "Error logging in after registration" });
         }
+        
+        console.log(`User ${user.id} (${username}) logged in successfully`);
         
         // Return success without sending password back
         return res.status(201).json({
