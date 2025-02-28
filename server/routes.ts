@@ -3,15 +3,7 @@ import { Server } from "http";
 import { setupRoutes } from "./routes/index";
 import cors from "cors";
 import bodyParser from "body-parser";
-import session from "express-session";
-import passport from "passport";
-import { IVerifyOptions } from "passport-local";
-import MemoryStore from "memorystore";
-import { scrypt, randomBytes } from "crypto";
-import { db } from "db";
-import { users } from "@db/schema";
-import { eq, or } from "drizzle-orm";
-import { loginRateLimiter, incrementLoginAttempts, clearLoginAttempts } from "./middleware/rate-limit";
+import { setupAuth } from "./auth";
 import { log } from "./vite";
 
 /**
@@ -22,12 +14,6 @@ import { log } from "./vite";
 export async function registerRoutes(app: Express): Promise<Server> {
   // Create main API router
   const apiRouter = Router();
-  
-  // Configure session store
-  const MemoryStoreSession = MemoryStore(session);
-  const sessionStore = new MemoryStoreSession({
-    checkPeriod: 86400000 // Prune expired sessions every 24h
-  });
   
   // Configure middlewares
   app.use(cors({
@@ -41,28 +27,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(bodyParser.json({ limit: "5mb" }));
   app.use(bodyParser.urlencoded({ extended: true }));
   
-  // Session configuration
-  app.use(session({
-    secret: process.env.SESSION_SECRET || "nuri-dev-secret",
-    resave: false,
-    saveUninitialized: false,
-    store: sessionStore,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 1000 * 60 * 60 * 24 // 24 hours
-    }
-  }));
-  
-  // Initialize Passport
-  app.use(passport.initialize());
-  app.use(passport.session());
+  // Setup authentication - this includes session setup and passport initialization
+  setupAuth(app);
   
   // Register API routes
   setupRoutes(apiRouter);
   app.use("/api", apiRouter);
-  
-  // Note: Auth endpoints are now handled by the router in server/routes/auth
-  // No direct API endpoints needed here as they're all managed by the router
   
   // Health check endpoint
   app.get("/health", (req, res) => {
