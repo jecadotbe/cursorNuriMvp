@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser } from "@/hooks/use-user";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -11,16 +11,17 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Info } from "lucide-react";
+import { Loader2, Info, AlertTriangle } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Link } from "wouter";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const passwordSchema = z.string()
   .min(8, "Password must be at least 8 characters")
@@ -32,6 +33,7 @@ const passwordSchema = z.string()
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
   password: passwordSchema,
+  rememberMe: z.boolean().optional().default(false),
 });
 
 const registerSchema = z.object({
@@ -46,8 +48,23 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 export default function AuthPage() {
   const { login, register } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
+  const [hasSessionExpired, setHasSessionExpired] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("login");
+
+  // Check if the user was redirected here due to an expired session
+  useEffect(() => {
+    // Parse the URL query parameters
+    const params = new URLSearchParams(window.location.search);
+    const sessionStatus = params.get('session');
+    
+    if (sessionStatus === 'expired') {
+      setHasSessionExpired(true);
+      // Clean up the URL without reloading the page
+      window.history.replaceState({}, document.title, '/auth');
+    }
+  }, []);
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -55,6 +72,7 @@ export default function AuthPage() {
     defaultValues: {
       username: "",
       password: "",
+      rememberMe: false,
     },
   });
 
@@ -71,13 +89,19 @@ export default function AuthPage() {
   const handleLogin = async (data: LoginFormData) => {
     setIsSubmitting(true);
     try {
-      // Use explicit username and password for the login function
-      const success = await login(data.username, data.password);
+      // Use username, password, and rememberMe flag
+      const success = await login({ 
+        username: data.username, 
+        password: data.password,
+        rememberMe: data.rememberMe 
+      });
+      
       console.log("Login attempt result:", success);
       loginForm.reset();
       
       if (success) {
         console.log("Login successful! Redirecting to home page");
+        setHasSessionExpired(false);
         
         // Small delay to ensure state updates properly
         await new Promise(resolve => setTimeout(resolve, 200));
@@ -96,8 +120,14 @@ export default function AuthPage() {
   const handleRegister = async (data: RegisterFormData) => {
     setIsSubmitting(true);
     try {
-      // Use explicit username, email, and password for the register function
-      const success = await register(data.username, data.email, data.password);
+      // Create register data object
+      const registerData = {
+        username: data.username,
+        email: data.email,
+        password: data.password
+      };
+      
+      const success = await register(registerData);
       console.log("Registration attempt result:", success);
       registerForm.reset();
       
@@ -124,9 +154,18 @@ export default function AuthPage() {
         <CardHeader>
           <img src="/images/nuri_logo_green.png" alt="Nuri Logo" className="mx-auto mb-4" style={{ maxWidth: '180px' }} />
           <CardTitle className="text-2xl text-center font-baskerville font-normal">Welkom.</CardTitle>
+          {hasSessionExpired && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Session Expired</AlertTitle>
+              <AlertDescription>
+                Your session has expired. Please log in again to continue.
+              </AlertDescription>
+            </Alert>
+          )}
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="login">
+          <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="register">Registreren</TabsTrigger>
@@ -186,6 +225,23 @@ export default function AuthPage() {
                         <Link href="/reset-password" className="text-sm text-primary hover:underline block mt-2">
                           Forgot password?
                         </Link>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={loginForm.control}
+                    name="rememberMe"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>Remember me</FormLabel>
+                        </div>
                       </FormItem>
                     )}
                   />
