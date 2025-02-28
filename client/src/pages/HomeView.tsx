@@ -60,7 +60,8 @@ const WelcomeView = () => {
 
 export default function HomeView() {
   const { user, isLoading: userLoading } = useUser();
-  useBackgroundRefresh();
+  // Disable background refresh to avoid excessive API calls
+  useBackgroundRefresh(undefined, true);
 
   // Wait for user state to be determined before rendering
   if (userLoading) {
