@@ -141,6 +141,9 @@ export function useUser() {
         title: "Success",
         description: result.message || "Successfully logged in!",
       });
+      
+      // Return the result so we can check if login was successful in the component
+      return result;
     },
     onError: (error) => {
       toast({

@@ -71,11 +71,20 @@ export default function AuthPage() {
   const handleLogin = async (data: LoginFormData) => {
     setIsSubmitting(true);
     try {
-      await login(data);
+      const result = await login(data);
+      console.log("Login successful:", result);
       loginForm.reset();
-      // Redirect to the home page after successful login
-      setLocation("/");
+      
+      // Force user data refresh and redirect to home page
+      if (result && result.user) {
+        // Add a small delay to allow state to update
+        setTimeout(() => {
+          console.log("Redirecting to home page");
+          window.location.href = "/";
+        }, 500);
+      }
     } catch (error) {
+      console.error("Login error:", error);
       // Error handling is done in useUser hook via toast
     } finally {
       setIsSubmitting(false);
