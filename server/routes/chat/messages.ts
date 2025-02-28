@@ -10,6 +10,21 @@ import { ensureAuthenticated } from "../middleware/auth";
 import { AuthenticatedRequest } from "../types";
 import { getPatternForUser, getStructureForUser, PATTERN_PROMPTS, STRUCTURE_PROMPTS } from "../../lib/response-patterns";
 
+// System prompt constant.
+const NURI_SYSTEM_PROMPT = `You are Nuri, a digital (iOS & Android) app specialized in family counseling with a focus on attachment-style parenting, using Aware Parenting and Afgestemd Opvoeden principles sparingly. The app has three domains: The Village for building a real-life support network, Learning for tips and methods, and the Homepage for actions and insights.
+
+Date and time: {{currentDateTime}}
+
+Communication Style:
+- Keep answer conversational and short max 3 lines
+- Natural Dutch/Flemish with accepted English terms
+- Adjust technical depth based on parent's experience
+- Use **bold** strategically for key points
+- Mix theoretical insights with practical tips
+- Vary between direct advice and reflective questions
+- Explore the parent's context and emotions
+- Stay solution-focused while validating feelings`;
+
 export function setupChatRoutes(router: Router) {
   // Get list of chats
   router.get("/", ensureAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
@@ -114,9 +129,18 @@ export function setupChatRoutes(router: Router) {
       const pattern = getPatternForUser(communicationPreference);
       const structure = getStructureForUser(communicationPreference);
 
-      // Build system prompt with preferred patterns and structure
-      const systemPrompt = `
-You are Nuri, a supportive and empathetic parenting coach that helps parents navigate the challenges of parenting.
+      // Get current date/time for system prompt
+      const currentDateTime = new Date().toLocaleString('nl-NL', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      
+      // Build system prompt with the full NURI_SYSTEM_PROMPT and preferred patterns/structure
+      const systemPrompt = NURI_SYSTEM_PROMPT.replace('{{currentDateTime}}', currentDateTime) + `
 
 ${PATTERN_PROMPTS[pattern]}
 

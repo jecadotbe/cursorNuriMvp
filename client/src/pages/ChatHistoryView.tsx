@@ -51,13 +51,14 @@ export default function ChatHistoryView() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: `Chat ${format(new Date(), 'M/d/yyyy')}`,
-          messages: [],
+          title: `Chat ${format(new Date(), 'd/M/yyyy')}`,
         }),
         credentials: 'include',
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server error:', errorText);
         throw new Error('Failed to create new chat');
       }
 
