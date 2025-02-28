@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -60,7 +59,7 @@ export default function LoginPage() {
       if (success) {
         console.log("Login successful! Redirecting to home page");
         // Explicitly redirect to home page after successful login
-        setLocation("/");
+        window.location.href = "/";
       }
     } finally {
       setIsSubmitting(false);
@@ -74,7 +73,7 @@ export default function LoginPage() {
       if (success) {
         console.log("Registration successful! Redirecting to home page");
         // Explicitly redirect to home page after successful registration
-        setLocation("/");
+        window.location.href = "/";
       }
     } finally {
       setIsSubmitting(false);

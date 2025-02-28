@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext } from "react";
 import { useToast } from "./use-toast";
 
@@ -30,7 +29,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const response = await fetch("/api/user", {
         credentials: "include",
       });
-      
+
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
@@ -63,12 +62,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
 
       if (response.ok) {
-        setUser(data.user);
+        setUser(data.user); // Directly update user state here
         toast({
           title: "Success",
           description: "Login successful",
         });
-        // Return true to indicate success - caller should handle redirection
         return true;
       } else {
         toast({

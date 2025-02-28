@@ -1,4 +1,3 @@
-
 import { Route, Switch } from "wouter";
 import AuthPage from "./pages/auth-page";
 import LoginPage from "./pages/LoginPage";
@@ -16,8 +15,12 @@ export function Routes() {
     <Switch>
       <Route path="/auth" component={AuthPage} />
       <Route path="/login" component={LoginPage} />
-      <Route path="/" component={HomeView} />
-      
+      <Route path="/">
+        <ProtectedRoute>
+          <HomeView />
+        </ProtectedRoute>
+      </Route>
+
       <Route path="/chat/:id">
         {(params) => (
           <ProtectedRoute>
@@ -25,31 +28,31 @@ export function Routes() {
           </ProtectedRoute>
         )}
       </Route>
-      
+
       <Route path="/village">
         <ProtectedRoute>
           <VillageView />
         </ProtectedRoute>
       </Route>
-      
+
       <Route path="/learn">
         <ProtectedRoute>
           <LearnView />
         </ProtectedRoute>
       </Route>
-      
+
       <Route path="/profile">
         <ProtectedRoute>
           <ProfileView />
         </ProtectedRoute>
       </Route>
-      
+
       <Route path="/settings">
         <ProtectedRoute>
           <SettingsView />
         </ProtectedRoute>
       </Route>
-      
+
       <Route component={NotFoundView} />
     </Switch>
   );
