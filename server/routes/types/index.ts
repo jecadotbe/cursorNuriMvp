@@ -21,10 +21,10 @@ export type ChildProfile = {
  * Suggestion categories constant
  */
 export const SUGGESTION_CATEGORIES = {
-  LEARNING: "learning",
   VILLAGE: "village",
   CHILD_DEVELOPMENT: "child_development",
-  STRESS: "stress",
+  STRESS: "stress", 
+  LEARNING: "learning",
   PERSONAL_GROWTH: "personal_growth",
 } as const;
 

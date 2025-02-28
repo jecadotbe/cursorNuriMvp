@@ -9,12 +9,20 @@ import { Response } from "express";
  */
 export function handleRouteError(
   res: Response,
-  error: any,
-  contextMessage = "An error occurred",
-) {
+  error: unknown,
+  contextMessage: string = "An error occurred"
+): void {
   console.error(`${contextMessage}:`, error);
-  res.status(500).json({
-    message: contextMessage,
-    error: error instanceof Error ? error.message : "Unknown error",
-  });
+  
+  if (error instanceof Error) {
+    const statusCode = error.message.includes("not found") ? 404 : 500;
+    res.status(statusCode).json({
+      message: `${contextMessage}: ${error.message}`,
+    });
+  } else {
+    res.status(500).json({
+      message: contextMessage,
+      error: typeof error === "object" ? JSON.stringify(error) : String(error),
+    });
+  }
 }

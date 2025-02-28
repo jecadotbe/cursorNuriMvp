@@ -2,10 +2,9 @@ import { Router } from "express";
 import { db } from "@db";
 import { parentProfiles } from "@db/schema";
 import { eq } from "drizzle-orm";
-import { memoryService } from "../../services/memory";
 import { handleRouteError } from "../utils/error-handler";
 import { ensureAuthenticated } from "../middleware/auth";
-import { AuthenticatedRequest, ChildProfile } from "../types";
+import { AuthenticatedRequest } from "../types";
 
 export function setupProgressRoutes(router: Router) {
   // Get onboarding progress
@@ -13,20 +12,41 @@ export function setupProgressRoutes(router: Router) {
     try {
       const user = req.user;
       if (!user) return res.status(401).json({ message: "Not authenticated" });
-      
+
       const profile = await db.query.parentProfiles.findFirst({
         where: eq(parentProfiles.userId, user.id),
-        columns: {
-          currentOnboardingStep: true,
-          completedOnboarding: true,
-          onboardingData: true,
-        },
       });
-      
+
+      if (!profile) {
+        // If no profile exists, create an initial one
+        const newProfile = await db
+          .insert(parentProfiles)
+          .values({
+            userId: user.id,
+            name: "",
+            stressLevel: "moderate",
+            experienceLevel: "first_time",
+            completedOnboarding: false,
+            currentOnboardingStep: 0,
+            onboardingData: {
+              childProfiles: [],
+            },
+          })
+          .returning();
+
+        return res.json({
+          currentOnboardingStep: 0,
+          completedOnboarding: false,
+          onboardingData: {
+            childProfiles: [],
+          },
+        });
+      }
+
       res.json({
-        currentOnboardingStep: profile?.currentOnboardingStep || 1,
-        completedOnboarding: profile?.completedOnboarding || false,
-        onboardingData: profile?.onboardingData || {},
+        currentOnboardingStep: profile.currentOnboardingStep || 0,
+        completedOnboarding: profile.completedOnboarding || false,
+        onboardingData: profile.onboardingData || { childProfiles: [] },
       });
     } catch (error) {
       handleRouteError(res, error, "Failed to fetch onboarding progress");
@@ -38,138 +58,89 @@ export function setupProgressRoutes(router: Router) {
     try {
       const user = req.user;
       if (!user) return res.status(401).json({ message: "Not authenticated" });
-      
+
       const { step, data } = req.body;
-      
-      // Build a textual representation for memory storage.
-      const childProfilesString = Array.isArray(data.childProfiles)
-        ? data.childProfiles
-            .map(
-              (child: any) =>
-                `- ${child.name} (Age: ${child.age}) ${
-                  child.specialNeeds?.length
-                    ? `Special needs: ${child.specialNeeds.join(", ")}`
-                    : "No special needs"
-                }`,
-            )
-            .join("\n")
-        : "No children profiles added";
-        
-      const stepContent = `
-Onboarding Step ${step} Progress:
-${
-  data.basicInfo
-    ? `
-Basic Information:
-Name: ${data.basicInfo.name}
-Email: ${data.basicInfo.email}
-Experience Level: ${data.basicInfo.experienceLevel}`
-    : ""
-}
-${
-  data.stressAssessment
-    ? `
-Stress Assessment:
-Stress Level: ${data.stressAssessment.stressLevel}
-Primary Concerns: ${data.stressAssessment.primaryConcerns?.join(", ") || "None"}
-Support Network: ${data.stressAssessment.supportNetwork?.join(", ") || "None"}`
-    : ""
-}
-${
-  data.childProfiles
-    ? `
-Child Profiles:
-${childProfilesString}`
-    : ""
-}
-${
-  data.goals
-    ? `
-Goals:
-Short Term: ${data.goals.shortTerm?.join(", ") || "None"}
-Long Term: ${data.goals.longTerm?.join(", ") || "None"}
-Support Areas: ${data.goals.supportAreas?.join(", ") || "None"}
-Communication Preference: ${data.goals.communicationPreference || "Not specified"}`
-    : ""
-}
-      `;
-      
-      // Save memory (noncritical—log error and continue if fails)
-      try {
-        await memoryService.createMemory(user.id, stepContent, {
-          type: "onboarding_progress",
-          category: "user_onboarding",
-          step,
-          isComplete: false,
-          source: "onboarding_form",
-          timestamp: new Date().toISOString(),
-          metadata: { stepData: data, progressPercentage: (step / 4) * 100 },
-        });
-      } catch (memoryError) {
-        console.error("Memory storage failed:", memoryError);
+      if (typeof step !== "number" || step < 0 || step > 4) {
+        return res.status(400).json({ message: "Invalid step number" });
       }
-      
-      // Upsert the profile if required data exists.
-      if (step >= 2 && data.basicInfo?.name && data.basicInfo?.email) {
-        const [profile] = await db
+
+      if (!data) {
+        return res.status(400).json({ message: "Onboarding data is required" });
+      }
+
+      // Validate child profiles if present
+      if (data.childProfiles) {
+        if (!Array.isArray(data.childProfiles)) {
+          return res.status(400).json({ message: "Child profiles must be an array" });
+        }
+
+        // Basic validation for each child profile
+        for (const child of data.childProfiles) {
+          if (!child.name || typeof child.name !== "string") {
+            return res.status(400).json({ message: "Each child must have a valid name" });
+          }
+          
+          if (typeof child.age !== "number" || child.age < 0 || child.age > 18) {
+            return res.status(400).json({ 
+              message: `Invalid age for child ${child.name}: ${child.age}. Age must be a number between 0 and 18` 
+            });
+          }
+          
+          if (!Array.isArray(child.specialNeeds)) {
+            return res.status(400).json({ 
+              message: `Special needs for child ${child.name} must be an array` 
+            });
+          }
+        }
+      }
+
+      // Get existing profile or create new one
+      const existingProfile = await db.query.parentProfiles.findFirst({
+        where: eq(parentProfiles.userId, user.id),
+      });
+
+      if (existingProfile) {
+        // Update existing profile
+        const updatedProfile = await db
+          .update(parentProfiles)
+          .set({
+            currentOnboardingStep: step,
+            completedOnboarding: step === 4 ? true : false,
+            onboardingData: {
+              ...existingProfile.onboardingData,
+              ...data,
+            },
+            updatedAt: new Date(),
+          })
+          .where(eq(parentProfiles.userId, user.id))
+          .returning();
+
+        return res.json({
+          message: "Onboarding progress updated",
+          profile: updatedProfile[0],
+        });
+      } else {
+        // Create new profile
+        const newProfile = await db
           .insert(parentProfiles)
           .values({
             userId: user.id,
-            name: data.basicInfo.name,
-            email: data.basicInfo.email,
+            name: data.basicInfo?.name || "",
             stressLevel: data.stressAssessment?.stressLevel || "moderate",
-            experienceLevel: data.basicInfo.experienceLevel || "first_time",
+            experienceLevel: data.basicInfo?.experienceLevel || "first_time",
+            completedOnboarding: step === 4 ? true : false,
             currentOnboardingStep: step,
-            onboardingData: {
-              ...data,
-              childProfiles: Array.isArray(data.childProfiles)
-                ? data.childProfiles
-                : [],
-            },
-            completedOnboarding: false,
-            primaryConcerns: data.stressAssessment?.primaryConcerns || [],
-            supportNetwork: data.stressAssessment?.supportNetwork || [],
-          })
-          .onConflictDoUpdate({
-            target: parentProfiles.userId,
-            set: {
-              name: data.basicInfo.name,
-              email: data.basicInfo.email,
-              stressLevel: data.stressAssessment?.stressLevel,
-              experienceLevel: data.basicInfo.experienceLevel,
-              currentOnboardingStep: step,
-              onboardingData: {
-                ...data,
-                childProfiles: Array.isArray(data.childProfiles)
-                  ? data.childProfiles
-                  : [],
-              },
-              primaryConcerns: data.stressAssessment?.primaryConcerns,
-              supportNetwork: data.stressAssessment?.supportNetwork,
-              updatedAt: new Date(),
-            },
+            onboardingData: data,
           })
           .returning();
-          
+
         return res.json({
-          currentOnboardingStep: profile.currentOnboardingStep,
-          completedOnboarding: profile.completedOnboarding,
-          onboardingData: profile.onboardingData,
+          message: "Onboarding progress created",
+          profile: newProfile[0],
         });
       }
-      
-      res.json({
-        currentOnboardingStep: step,
-        completedOnboarding: false,
-        onboardingData: {
-          ...data,
-          childProfiles: Array.isArray(data.childProfiles)
-            ? data.childProfiles
-            : [],
-        },
-      });
     } catch (error) {
-      handleRouteError(res, error, "Failed to save onboarding progress");
+      handleRouteError(res, error, "Failed to update onboarding progress");
     }
   });
 
