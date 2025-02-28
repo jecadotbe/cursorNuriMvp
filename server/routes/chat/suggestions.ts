@@ -1,210 +1,98 @@
-import { Router } from "express";
+import { Router, Response } from "express";
 import { db } from "@db";
-import { promptSuggestions, suggestionFeedback, chats, villageMembers, parentProfiles } from "@db/schema";
-import { eq, desc, and, isNull, gte } from "drizzle-orm";
-import { generateVillageSuggestions } from "../../lib/suggestion-generator";
-import { memoryService } from "../../services/memory";
-import type { User } from "../../auth";
-
-// Error handler middleware for JSON responses
-const jsonErrorHandler = (err: any, req: any, res: any, next: any) => {
-  console.error('Error in suggestions route:', err);
-  res.status(500).json({
-    error: "Internal server error",
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
-};
+import { promptSuggestions } from "@db/schema";
+import { eq, and, isNull } from "drizzle-orm";
+import { anthropic } from "../../anthropic";
+import { handleRouteError } from "../utils/error-handler";
+import { ensureAuthenticated } from "../middleware/auth";
+import { AuthenticatedRequest } from "../types";
 
 export function setupSuggestionsRoutes(router: Router) {
-  // Ensure JSON content type for all responses in this router
-  router.use((req, res, next) => {
-    res.setHeader('Content-Type', 'application/json');
-    next();
-  });
-
-  // Dedicated endpoint for village suggestions
-  router.get("/suggestions/village", async (req, res) => {
+  // Get chat suggestions based on context
+  router.post("/suggestions", ensureAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      if (!req.isAuthenticated() || !req.user) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
+      const user = req.user;
+      if (!user) return res.status(401).json({ message: "Not authenticated" });
 
-      const user = req.user as User;
-      const now = new Date();
+      const { context } = req.body;
+      if (!context) return res.status(400).json({ message: "Context is required" });
 
-      // Get recent chats to use as context
-      const recentChats = await db.query.chats.findMany({
-        where: eq(chats.userId, user.id),
-        orderBy: desc(chats.updatedAt),
-        limit: 3
-      });
-
-      let chatContext = '';
-      if (recentChats.length > 0) {
-        // Combine recent chat messages into context
-        chatContext = recentChats
-          .map(chat => {
-            const messages = Array.isArray(chat.messages) ? chat.messages : [];
-            return messages
-              .map((m: any) => m.content)
-              .join(' ');
-          })
-          .join('\n');
-      }
-
-      console.log('Chat context for suggestions:', chatContext || 'No recent chat context');
-
-      // 1. Get village members with error handling
-      const members = await db.query.villageMembers.findMany({
-        where: eq(villageMembers.userId, user.id),
-      });
-
-      // 2. Get parent profile with error handling
-      const parentProfile = await db.query.parentProfiles.findFirst({
-        where: eq(parentProfiles.userId, user.id),
-      });
-
-      if (!parentProfile) {
-        console.log('No parent profile found for user:', user.id);
-        return res.json([]);
-      }
-
-      // 3. Prepare context object
-      const villageContext = {
-        recentChats: recentChats.map(chat => ({
-          ...chat,
-          messages: Array.isArray(chat.messages) ? chat.messages : []
-        })),
-        parentProfile,
-        childProfiles: parentProfile.onboardingData?.childProfiles || [],
-        challenges: parentProfile.onboardingData?.stressAssessment?.primaryConcerns || [],
-        memories: []
-      };
-
-      // 4. Get existing suggestions
-      const existingVillageSuggestions = await db.query.promptSuggestions.findMany({
+      // Get user's recent suggestions first
+      const existingSuggestions = await db.query.promptSuggestions.findMany({
         where: and(
           eq(promptSuggestions.userId, user.id),
           isNull(promptSuggestions.usedAt),
-          gte(promptSuggestions.expiresAt, now)
+          isNull(promptSuggestions.dismissedAt)
         ),
-        orderBy: desc(promptSuggestions.createdAt),
+        limit: 5,
       });
 
-      console.log(`Found ${existingVillageSuggestions.length} existing village suggestions`);
-
-      if (existingVillageSuggestions.length < 3) {
-        console.log('Generating new village suggestions');
-        try {
-          // Pass the chat context to the suggestion generator
-          const newSuggestions = await generateVillageSuggestions(
-            user.id,
-            members,
-            {
-              ...villageContext,
-              chatContext // Add chat context to village context
-            },
-            memoryService
-          );
-
-          if (newSuggestions && newSuggestions.length > 0) {
-            const inserted = await db.insert(promptSuggestions)
-              .values(newSuggestions)
-              .returning();
-
-            return res.json([...existingVillageSuggestions, ...inserted]);
-          }
-        } catch (error) {
-          console.error('Error generating/inserting suggestions:', error);
-          return res.status(500).json({ 
-            error: "Failed to generate suggestions",
-            message: error instanceof Error ? error.message : "Unknown error"
-          });
-        }
+      // If we have enough suggestions, return them
+      if (existingSuggestions.length >= 3) {
+        return res.json(existingSuggestions);
       }
 
-      return res.json(existingVillageSuggestions);
-    } catch (error) {
-      console.error('Caught error in village suggestions route:', error);
-      return res.status(500).json({ 
-        error: "Internal server error", 
-        message: error instanceof Error ? error.message : "Unknown error"
+      // Otherwise, generate new context-specific suggestions
+      const response = await anthropic.messages.create({
+        model: "claude-3-5-sonnet-20241022",
+        max_tokens: 300,
+        temperature: 0.7,
+        system: `You are a helpful AI assistant for a parenting app. 
+Generate 3 follow-up question suggestions based on the context of the current conversation.
+Each suggestion should be 60-100 characters and should be phrased as a question or prompt.
+The suggestions should be relevant to parenting, child development, or the user's specific situation.
+Make the suggestions diverse and cover different aspects of the topic at hand.`,
+        messages: [
+          {
+            role: "user",
+            content: `Here's the context of my conversation: ${context}
+
+Based on this, suggest 3 follow-up questions or topics I might want to ask about next.`,
+          },
+        ],
       });
-    }
-  });
 
-  // Regular suggestions endpoint
-  router.get("/suggestions", async (req, res) => {
-    try {
-      if (!req.isAuthenticated() || !req.user) {
-        return res.status(401).json({ error: "Not authenticated" });
+      // Extract suggestions from the response
+      let newSuggestions: string[] = [];
+      if (response.content[0].type === "text") {
+        newSuggestions = response.content[0].text
+          .split(/\d+\.\s+/)
+          .filter(s => s.trim().length > 0)
+          .map(s => s.trim())
+          .filter(s => s.length >= 10 && s.length <= 150);
       }
 
-      const user = req.user as User;
-      const now = new Date();
+      // Save new suggestions to database
+      const suggestionRecords = newSuggestions.map(text => ({
+        userId: user.id,
+        text,
+        category: "chat",
+        type: "context_based",
+        source: "ai_generated",
+        context: context.substring(0, 100) + "...",
+        relevance: 1.0,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      }));
 
-      const suggestions = await db.query.promptSuggestions.findMany({
+      if (suggestionRecords.length > 0) {
+        await db.insert(promptSuggestions).values(suggestionRecords);
+      }
+
+      // Get all active suggestions including newly created ones
+      const allSuggestions = await db.query.promptSuggestions.findMany({
         where: and(
           eq(promptSuggestions.userId, user.id),
           isNull(promptSuggestions.usedAt),
-          gte(promptSuggestions.expiresAt, now)
+          isNull(promptSuggestions.dismissedAt)
         ),
-        orderBy: desc(promptSuggestions.createdAt),
+        limit: 5,
       });
 
-      res.json(suggestions);
+      res.json(allSuggestions);
     } catch (error) {
-      console.error('Error fetching suggestions:', error);
-      res.status(500).json({ 
-        error: "Internal server error",
-        message: error instanceof Error ? error.message : "Unknown error"
-      });
+      handleRouteError(res, error, "Failed to fetch or generate chat suggestions");
     }
   });
-
-  // Mark suggestion as used
-  router.post("/suggestions/:id/use", async (req, res) => {
-    try {
-      if (!req.isAuthenticated() || !req.user) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const user = req.user as User;
-      const suggestionId = parseInt(req.params.id);
-
-      if (isNaN(suggestionId)) {
-        return res.status(400).json({ error: "Invalid suggestion ID" });
-      }
-
-      const [updated] = await db
-        .update(promptSuggestions)
-        .set({
-          usedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(promptSuggestions.id, suggestionId),
-            eq(promptSuggestions.userId, user.id),
-          ),
-        )
-        .returning();
-
-      if (!updated) {
-        return res.status(404).json({ error: "Suggestion not found" });
-      }
-
-      res.json(updated);
-    } catch (error) {
-      console.error('Error marking suggestion as used:', error);
-      res.status(500).json({ 
-        error: "Internal server error",
-        message: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
-  // Apply JSON error handler to all routes in this router
-  router.use(jsonErrorHandler);
 
   return router;
 }
