@@ -79,8 +79,17 @@ export default function AuthPage() {
       if (result && result.user) {
         console.log("Redirecting to home page");
         
-        // Direct navigation with replace to prevent back button issues
-        window.location.replace(window.location.origin + "/");
+        // Use setLocation from wouter for client-side navigation
+        setLocation("/");
+        
+        // If wouter navigation doesn't work, try direct window location as fallback
+        // after a small delay to give state changes time to propagate
+        setTimeout(() => {
+          if (window.location.pathname.includes('/auth')) {
+            console.log("Fallback redirect to home page");
+            window.location.href = "/";
+          }
+        }, 500);
       }
     } catch (error) {
       console.error("Login error:", error);
