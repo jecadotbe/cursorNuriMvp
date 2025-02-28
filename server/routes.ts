@@ -1,4 +1,4 @@
-import express, { Express, Router, Request, Response } from "express";
+import express, { Express, Router, Request, Response, NextFunction } from "express";
 import { Server } from "http";
 import { setupRoutes } from "./routes/index";
 import cors from "cors";
@@ -7,6 +7,10 @@ import session from "express-session";
 import passport from "passport";
 import { IVerifyOptions } from "passport-local";
 import MemoryStore from "memorystore";
+import { scrypt, randomBytes } from "crypto";
+import { db } from "db";
+import { users } from "@db/schema";
+import { eq, or } from "drizzle-orm";
 import { loginRateLimiter, incrementLoginAttempts, clearLoginAttempts } from "./middleware/rate-limit";
 import { log } from "./vite";
 
@@ -57,61 +61,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupRoutes(apiRouter);
   app.use("/api", apiRouter);
   
-  // Add direct root-level API endpoints for frontend compatibility
+  // Add direct API endpoints to match frontend expectations
   
-  // Direct login endpoint
-  app.post("/api/login", loginRateLimiter, (req: Request, res: Response) => {
-    passport.authenticate("local", (err: any, user: any, info: IVerifyOptions) => {
-      // Handle authentication errors
-      if (err) {
-        console.error("Login error:", err);
-        return res.status(500).json({ message: "Internal server error" });
-      }
-      
-      // If authentication failed
-      if (!user) {
-        // Increment failed login attempts for rate limiting
-        incrementLoginAttempts(req.ip || "unknown");
-        
-        return res.status(401).json({ message: info.message || "Invalid credentials" });
-      }
-      
-      // If authentication successful, log in the user
-      req.login(user, (err) => {
+  // Define standalone auth handlers that don't rely on router.handle() or redirects
+  
+  // LOGIN: Direct endpoint for authentication
+  app.post("/api/login", (req: Request, res: Response, next: NextFunction) => {
+    loginRateLimiter(req, res, () => {
+      passport.authenticate("local", (err: any, user: any, info: any) => {
         if (err) {
-          console.error("Session error:", err);
-          return res.status(500).json({ message: "Error establishing session" });
+          console.error("Login error:", err);
+          return res.status(500).json({ message: "Internal server error" });
         }
         
-        // Clear failed attempts counter for this IP
-        clearLoginAttempts(req.ip || "unknown");
+        if (!user) {
+          const ip = req.ip || req.socket.remoteAddress || "unknown";
+          incrementLoginAttempts(ip);
+          return res.status(401).json({ message: info?.message || "Invalid credentials" });
+        }
         
-        // Return user info without password
-        return res.json({
-          message: "Login successful",
-          user: {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            profilePicture: user.profilePicture,
-            createdAt: user.createdAt
+        req.logIn(user, (err) => {
+          if (err) {
+            console.error("Session error:", err);
+            return res.status(500).json({ message: "Error establishing session" });
           }
+          
+          const ip = req.ip || req.socket.remoteAddress || "unknown";
+          clearLoginAttempts(ip);
+          
+          // Set session checks for suggestions if needed
+          if (req.session) {
+            // @ts-ignore - Adding custom property to session
+            req.session.checkSuggestions = true;
+          }
+          
+          return res.json({
+            message: "Login successful",
+            user: {
+              id: user.id,
+              username: user.username,
+              email: user.email,
+              profilePicture: user.profilePicture,
+              createdAt: user.createdAt
+            }
+          });
         });
-      });
-    })(req, res);
-  });
-  
-  // Direct logout endpoint
-  app.post("/api/logout", (req: Request, res: Response) => {
-    req.logout(() => {
-      res.json({ message: "Logged out successfully" });
+      })(req, res, next);
     });
   });
   
-  // Direct user endpoint
+  // LOGOUT: Direct endpoint for logging out
+  app.post("/api/logout", (req: Request, res: Response) => {
+    // @ts-ignore - Typings for logout are incorrect
+    req.logout((err: any) => {
+      if (err) {
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      
+      // Clear session cookie
+      if (req.session) {
+        req.session.destroy((err) => {
+          if (err) {
+            console.error("Session destruction error:", err);
+          }
+          
+          res.clearCookie('nuri.session');
+          return res.json({ message: "Logged out successfully" });
+        });
+      } else {
+        return res.json({ message: "Logged out successfully" });
+      }
+    });
+  });
+  
+  // USER INFO: Direct endpoint for getting current user
   app.get("/api/user", (req: Request, res: Response) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Session expired" });
+    // @ts-ignore - TypeScript doesn't recognize Passport's isAuthenticated
+    if (!req.isAuthenticated || !req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
     }
     
     const user = req.user as any;
@@ -120,28 +147,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: user.id,
         username: user.username,
         email: user.email,
-        profilePicture: user.profilePicture
+        profilePicture: user.profilePicture,
+        createdAt: user.createdAt
       }
     });
   });
   
-  // Add direct register endpoint
-  app.post("/api/register", async (req: Request, res: Response) => {
+  // REGISTER: Direct endpoint for user registration
+  app.post("/api/register", async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // Forward to the auth router's register endpoint
-      const response = await fetch("http://localhost:5000/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(req.body),
+      // Get username, email, and password from request body
+      const { username, email, password } = req.body;
+      
+      if (!username || !email || !password) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      // Check if user already exists
+      const existingUser = await db.query.users.findFirst({
+        where: (users, { or, eq }) => 
+          or(eq(users.username, username), eq(users.email, email))
       });
       
-      const data = await response.json();
-      res.status(response.status).json(data);
+      if (existingUser) {
+        return res.status(409).json({ 
+          message: existingUser.username === username 
+            ? "Username already taken" 
+            : "Email already registered" 
+        });
+      }
+      
+      // Create password hash
+      const salt = randomBytes(16).toString('hex');
+      const hash = await scrypt(password, salt, 64) as Buffer;
+      const passwordHash = `${salt}:${hash.toString('hex')}`;
+      
+      // Create user
+      const result = await db.insert(users).values({
+        username,
+        email,
+        password: passwordHash,
+        createdAt: new Date()
+      }).returning();
+      
+      const newUser = result[0];
+      
+      if (!newUser) {
+        return res.status(500).json({ message: "Failed to create user" });
+      }
+      
+      return res.status(201).json({ 
+        message: "Registration successful",
+        user: {
+          id: newUser.id,
+          username: newUser.username,
+          email: newUser.email
+        }
+      });
     } catch (error) {
-      console.error("Register error:", error);
-      res.status(500).json({ message: "Internal server error during registration" });
+      console.error("Registration error:", error);
+      return res.status(500).json({ message: "Internal server error during registration" });
     }
   });
   
