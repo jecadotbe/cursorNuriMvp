@@ -71,20 +71,20 @@ export function setupAuth(app: Express) {
 
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || randomBytes(32).toString('hex'),
-    resave: false,
+    resave: true, // Changed to true to ensure session is saved on each request
     saveUninitialized: false,
     name: 'nuri.session',
     rolling: true,
     cookie: {
       secure: app.get("env") === "production",
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
       sameSite: 'lax',
       path: '/'
     },
     store: new MemoryStore({
-      checkPeriod: 86400000,
-      ttl: 24 * 60 * 60 * 1000
+      checkPeriod: 86400000, // 24 hours
+      ttl: 24 * 60 * 60 * 1000 // 24 hours
     }),
   };
 
@@ -98,14 +98,29 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
 
   app.use((req, res, next) => {
-    if (req.path.startsWith('/api/') && !req.path.startsWith('/api/login') && !req.path.startsWith('/api/register') && !req.path.startsWith('/api/reset-password') && !req.path.startsWith('/api/reset-password/')) {
-      if (!req.session || !req.session.passport) {
-        if (req.xhr || req.path.startsWith('/api/')) {
-          return res.status(401).json({ message: "Session expired" });
-        }
-        return res.redirect('/');
+    // Debug session info
+    console.log(`Path: ${req.path}, Authenticated: ${req.isAuthenticated()}, Session: ${req.session ? 'exists' : 'none'}`);
+    
+    // Allow these routes without authentication
+    if (req.path.startsWith('/api/login') || 
+        req.path.startsWith('/api/register') || 
+        req.path.startsWith('/api/reset-password') ||
+        req.path.startsWith('/api/reset-password/')) {
+      return next();
+    }
+    
+    // Check authentication for API routes
+    if (req.path.startsWith('/api/')) {
+      if (!req.isAuthenticated()) {
+        console.log('Session check failed - not authenticated', {
+          sessionExists: !!req.session,
+          passportExists: req.session && !!req.session.passport,
+          cookies: req.headers.cookie
+        });
+        return res.status(401).json({ message: "Session expired" });
       }
     }
+    
     next();
   });
 
@@ -196,16 +211,24 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", loginRateLimiter, (req, res, next) => {
+    console.log("Login attempt received", { 
+      username: req.body.username, 
+      hasPassword: !!req.body.password,
+      rememberMe: !!req.body.rememberMe 
+    });
+    
     if (!req.body.username || !req.body.password) {
       return res.status(400).json({ message: "Username and password are required" });
     }
 
     passport.authenticate("local", (err: any, user: User | false, info: IVerifyOptions) => {
       if (err) {
+        console.error("Login authentication error:", err);
         return next(err);
       }
 
       if (!user) {
+        console.log("Login failed - Invalid credentials", { message: info.message });
         return res.status(400).json({ message: info.message ?? "Login failed" });
       }
 
@@ -213,58 +236,143 @@ export function setupAuth(app: Express) {
       clearLoginAttempts(req.ip);
 
       // Handle remember me functionality
-      if (req.body.rememberMe) {
-        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+      const maxAge = req.body.rememberMe 
+        ? 30 * 24 * 60 * 60 * 1000  // 30 days
+        : 24 * 60 * 60 * 1000;      // 24 hours
+      
+      req.session.cookie.maxAge = maxAge;
+      
+      // Custom session data
+      if (!req.session.data) {
+        req.session.data = {};
       }
+      req.session.data.lastLogin = new Date().toISOString();
+      req.session.data.checkSuggestions = true;
 
-      req.session.checkSuggestions = true;
-
-      req.logIn(user, (err) => {
+      // Save session before login
+      req.session.save((err) => {
         if (err) {
+          console.error("Session save error before login:", err);
           return next(err);
         }
+        
+        req.logIn(user, (err) => {
+          if (err) {
+            console.error("Login error:", err);
+            return next(err);
+          }
 
-        return res.json({
-          message: "Login successful",
-          user: {
-            id: user.id,
+          // Debug successful login
+          console.log("Login successful", {
+            userId: user.id, 
             username: user.username,
-            email: user.email,
-            profilePicture: user.profilePicture
-          },
+            sessionID: req.sessionID,
+            authenticated: req.isAuthenticated(),
+            sessionExpiry: req.session.cookie.maxAge / (60 * 1000) + " minutes"
+          });
+
+          // Save session again after login
+          req.session.save((err) => {
+            if (err) {
+              console.error("Session save error after login:", err);
+              return next(err);
+            }
+
+            return res.json({
+              message: "Login successful",
+              user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                profilePicture: user.profilePicture
+              },
+            });
+          });
         });
       });
     })(req, res, next);
   });
 
   app.post("/api/logout", (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(400).json({ message: "Not logged in" });
-    }
+    console.log("Logout request received", { 
+      isAuthenticated: req.isAuthenticated(),
+      hasUser: !!req.user,
+      sessionID: req.sessionID
+    });
 
+    // Allow logout even if not authenticated to clean up any session state
     req.logout((err) => {
       if (err) {
+        console.error("Logout error:", err);
         return res.status(500).json({ message: "Logout failed" });
       }
-
-      res.clearCookie('nuri.session', {
-        path: '/',
-        httpOnly: true,
-        secure: app.get("env") === "production",
-        sameSite: 'lax'
-      });
-
-      res.json({ message: "Logout successful" });
+      
+      // Explicitly destroy the session
+      if (req.session) {
+        req.session.destroy((err) => {
+          if (err) {
+            console.error("Session destruction error:", err);
+          }
+          
+          // Clear the session cookie regardless
+          res.clearCookie('nuri.session', {
+            path: '/',
+            httpOnly: true,
+            secure: app.get("env") === "production",
+            sameSite: 'lax'
+          });
+          
+          console.log("Logout successful, session destroyed and cookie cleared");
+          
+          // Set cache-control headers to prevent caching
+          res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
+          
+          res.json({ message: "Logout successful" });
+        });
+      } else {
+        // No session exists, just clear the cookie to be safe
+        res.clearCookie('nuri.session', {
+          path: '/',
+          httpOnly: true,
+          secure: app.get("env") === "production",
+          sameSite: 'lax'
+        });
+        
+        // Set cache-control headers to prevent caching
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        
+        console.log("Logout completed (no session to destroy)");
+        res.json({ message: "Logout successful" });
+      }
     });
   });
 
   app.get("/api/user", (req, res) => {
-    if (req.isAuthenticated()) {
-      if (!req.session?.passport?.user) {
-        return res.status(401).json({ message: "Session expired" });
-      }
-      return res.json(req.user);
+    // Debug session information
+    console.log('GET /api/user request received', {
+      isAuthenticated: req.isAuthenticated(),
+      hasSession: !!req.session,
+      hasUser: !!req.user,
+      sessionID: req.sessionID,
+      cookies: req.headers.cookie,
+    });
+    
+    if (req.isAuthenticated() && req.user) {
+      // Always return the user if authenticated and user is present
+      console.log('Returning authenticated user:', req.user);
+      return res.json({
+        id: req.user.id,
+        username: req.user.username,
+        email: req.user.email,
+        profilePicture: req.user.profilePicture,
+        createdAt: req.user.createdAt
+      });
     }
+    
     res.status(401).json({ message: "Not logged in" });
   });
 

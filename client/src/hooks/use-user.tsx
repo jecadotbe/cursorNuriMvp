@@ -26,14 +26,24 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   async function fetchUser() {
     try {
+      console.log("Fetching current user data");
       const response = await fetch("/api/user", {
         credentials: "include",
+        headers: { 
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Pragma": "no-cache"
+        }
       });
+
+      console.log("User fetch response status:", response.status);
 
       if (response.ok) {
         const userData = await response.json();
+        console.log("User data received:", userData);
         setUser(userData);
       } else {
+        const errorText = await response.text();
+        console.log("User fetch failed:", response.status, errorText);
         setUser(null);
       }
     } catch (error) {
@@ -48,27 +58,52 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     fetchUser();
   }, []);
 
-  async function login(username: string, password: string) {
+  async function login(username: string, password: string, rememberMe: boolean = false) {
     try {
+      console.log("Attempting login", { username, rememberMe });
+      
       const response = await fetch("/api/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, password }),
-        credentials: "include",
+        body: JSON.stringify({ 
+          username, 
+          password, 
+          rememberMe 
+        }),
+        credentials: "include", // Important for cookies
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setUser(data.user); // Directly update user state here
+        console.log("Login successful", data.user);
+        setUser(data.user); // Update user state with the response data
+        
+        // Verify session by making another request
+        const sessionCheck = await fetch("/api/user", { 
+          credentials: "include",
+          // Add cache-busting to prevent cached responses
+          headers: { 
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache"
+          }
+        });
+        
+        console.log("Session check status:", sessionCheck.status);
+        
+        if (!sessionCheck.ok) {
+          console.warn("Session check failed after login");
+        }
+        
         toast({
           title: "Success",
           description: "Login successful",
         });
         return true;
       } else {
+        console.error("Login response error:", data.message);
         toast({
           variant: "destructive",
           title: "Error",
@@ -128,35 +163,75 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   async function logout() {
     try {
+      console.log("Attempting logout...");
+      
       const response = await fetch("/api/logout", {
         method: "POST",
         credentials: "include",
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Pragma": "no-cache"
+        }
       });
 
+      // Always clear the user state in the client
+      setUser(null);
+      
       if (response.ok) {
-        setUser(null);
+        console.log("Logout successful on server");
         toast({
           title: "Success",
           description: "Logout successful",
         });
+        
+        // Verify session cleared
+        try {
+          const verifyLogout = await fetch("/api/user", {
+            credentials: "include",
+            headers: {
+              "Cache-Control": "no-cache, no-store, must-revalidate",
+              "Pragma": "no-cache"
+            }
+          });
+          
+          console.log("Logout verification status:", verifyLogout.status);
+          
+          if (verifyLogout.status !== 401) {
+            console.warn("Session may not be fully cleared, but client state is reset");
+          }
+        } catch (verifyError) {
+          console.log("Logout verification error (expected):", verifyError);
+        }
+        
         return true;
       } else {
-        const data = await response.json();
+        let errorMessage = "Logout failed";
+        try {
+          const data = await response.json();
+          errorMessage = data.message || errorMessage;
+        } catch (e) {
+          // Response might not contain JSON
+          console.warn("Non-JSON response from logout endpoint");
+        }
+        
+        console.error("Logout error:", errorMessage);
         toast({
           variant: "destructive",
           title: "Error",
-          description: data.message || "Logout failed",
+          description: errorMessage
         });
         return false;
       }
     } catch (error) {
       console.error("Logout error:", error);
+      // Still clear local state even if server request fails
+      setUser(null);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred",
+        title: "Warning",
+        description: "Logged out locally, but server sync failed"
       });
-      return false;
+      return true; // Return true since we're logged out locally
     }
   }
 
