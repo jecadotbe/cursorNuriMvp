@@ -47,7 +47,7 @@ async function fetchAdminApiKey(): Promise<string> {
 
 async function fetchUsers(): Promise<User[]> {
   const apiKey = await fetchAdminApiKey();
-  const response = await fetch('http://localhost:5001/admin/users', {
+  const response = await fetch('/admin/users', {
     headers: {
       'x-api-key': apiKey
     }
@@ -62,7 +62,7 @@ async function fetchUsers(): Promise<User[]> {
 
 async function createAdminUser(user: { username: string; email: string; password: string }) {
   const apiKey = await fetchAdminApiKey();
-  const response = await fetch('http://localhost:5001/admin/users', {
+  const response = await fetch('/admin/users', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -81,7 +81,7 @@ async function createAdminUser(user: { username: string; email: string; password
 
 async function updateUserAdmin(userId: number, isAdmin: boolean) {
   const apiKey = await fetchAdminApiKey();
-  const response = await fetch(`http://localhost:5001/admin/users/${userId}`, {
+  const response = await fetch(`/admin/users/${userId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -100,7 +100,7 @@ async function updateUserAdmin(userId: number, isAdmin: boolean) {
 
 async function deleteUser(userId: number) {
   const apiKey = await fetchAdminApiKey();
-  const response = await fetch(`http://localhost:5001/admin/users/${userId}`, {
+  const response = await fetch(`/admin/users/${userId}`, {
     method: 'DELETE',
     headers: {
       'x-api-key': apiKey
