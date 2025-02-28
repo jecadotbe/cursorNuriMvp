@@ -1,9 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { Home, MessageSquare, Users, GraduationCap, User, Shield } from "lucide-react";
+import { Home, MessageSquare, Users, GraduationCap, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUser } from "@/hooks/use-user";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 export default function Navigation() {
@@ -37,33 +36,6 @@ export default function Navigation() {
             </button>
           </Link>
         ))}
-        
-        {user?.isAdmin && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link href="/admin">
-                  <button
-                    type="button"
-                    className={cn(
-                      "flex flex-col items-center gap-1 p-2",
-                      location === "/admin"
-                        ? "text-[#F18303]"
-                        : "text-muted-foreground hover:text-[#F18303]"
-                    )}
-                  >
-                    <Shield className="h-5 w-5" />
-                    <span className="text-xs">Admin</span>
-                  </button>
-                </Link>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Admin Dashboard</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-        
         <Link href="/profile">
           <button
             type="button"

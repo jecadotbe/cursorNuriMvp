@@ -23,7 +23,6 @@ import BuildingProfilePage from "@/pages/building-profile";
 import WelcomePage from "./pages/welcome";
 import ResetPasswordPage from "@/pages/reset-password";
 import ResetPasswordTokenPage from "@/pages/reset-password/[token]";
-import AdminDashboard from "@/pages/admin";
 
 function Router() {
   const { user, isLoading } = useUser();
@@ -70,7 +69,6 @@ function Router() {
           <Route path="/learn/:id" component={LearnDetailView} />
           <Route path="/profile" component={ProfileView} />
           <Route path="/profile/edit" component={EditProfileView} />
-          <Route path="/admin" component={AdminDashboard} />
           <Route component={NotFound} />
         </Switch>
       </div>

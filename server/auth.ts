@@ -38,7 +38,6 @@ export interface User {
   profilePicture: string | null;
   createdAt: Date;
   email: string;
-  isAdmin: boolean;
 }
 
 declare global {
@@ -49,7 +48,6 @@ declare global {
       profilePicture: string | null;
       createdAt: Date;
       email: string;
-      isAdmin: boolean;
     }
   }
 }
@@ -188,8 +186,7 @@ export function setupAuth(app: Express) {
             id: newUser.id,
             username: newUser.username,
             email: newUser.email,
-            profilePicture: newUser.profilePicture,
-            isAdmin: newUser.isAdmin
+            profilePicture: newUser.profilePicture
           },
         });
       });
@@ -233,8 +230,7 @@ export function setupAuth(app: Express) {
             id: user.id,
             username: user.username,
             email: user.email,
-            profilePicture: user.profilePicture,
-            isAdmin: user.isAdmin
+            profilePicture: user.profilePicture
           },
         });
       });

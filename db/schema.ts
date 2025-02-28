@@ -37,7 +37,6 @@ export const users = pgTable("users", {
   email: text("email").notNull(),
   password: text("password").notNull(),
   profilePicture: text("profile_picture"),
-  isAdmin: boolean("is_admin").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
