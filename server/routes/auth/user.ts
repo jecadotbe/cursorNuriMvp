@@ -1,23 +1,23 @@
 import { Router, Request, Response } from "express";
-import { ensureAuthenticated } from "../middleware/auth";
-import { handleRouteError } from "../utils/error-handler";
 
+/**
+ * Setup user info route 
+ * @param router Express router to attach routes to
+ */
 export function setupUserRoute(router: Router) {
-  // Get current user
   router.get("/user", (req: Request, res: Response) => {
-    try {
-      if (req.isAuthenticated() && req.user) {
-        // Return user info without password
-        const user = req.user as any;
-        const { password, ...userWithoutPassword } = user;
-        return res.json(userWithoutPassword);
-      }
-      
-      res.status(401).json({ message: "Session expired" });
-    } catch (error) {
-      handleRouteError(res, error, "Error retrieving user");
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Session expired" });
     }
+    
+    return res.json({
+      user: {
+        id: req.user.id,
+        username: req.user.username,
+        email: req.user.email,
+        profilePicture: req.user.profilePicture,
+        createdAt: req.user.createdAt
+      }
+    });
   });
-
-  return router;
 }
