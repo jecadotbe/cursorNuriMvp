@@ -77,11 +77,10 @@ export default function AuthPage() {
       
       // Force user data refresh and redirect to home page
       if (result && result.user) {
-        // Add a small delay to allow state to update
-        setTimeout(() => {
-          console.log("Redirecting to home page");
-          window.location.href = "/";
-        }, 500);
+        console.log("Redirecting to home page");
+        
+        // Direct navigation with replace to prevent back button issues
+        window.location.replace(window.location.origin + "/");
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -94,10 +93,14 @@ export default function AuthPage() {
   const handleRegister = async (data: RegisterFormData) => {
     setIsSubmitting(true);
     try {
-      await register(data);
+      const result = await register(data);
+      console.log("Registration successful:", result);
       registerForm.reset();
-      setLocation("/welcome");
+      
+      // Navigate to welcome page
+      window.location.replace(window.location.origin + "/welcome");
     } catch (error) {
+      console.error("Registration error:", error);
       // Error handling is done in useUser hook via toast
     } finally {
       setIsSubmitting(false);

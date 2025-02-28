@@ -60,10 +60,10 @@ function Router() {
           <Route path="/welcome" component={WelcomePage} />
           <Route path="/onboarding" component={OnboardingPage} />
           <Route path="/building-profile" component={BuildingProfilePage} />
-          <Route path="/" component={HomeView} />
-          <Route path="/chat" component={ChatHistoryView} />
-          <Route path="/chat/:id" component={ChatView} />
           <Route path="/chat/history" component={ChatHistoryView} />
+          <Route path="/chat/:id" component={ChatView} />
+          <Route path="/chat" component={ChatHistoryView} />
+          <Route path="/" component={HomeView} />
           <Route path="/village" component={VillageView} />
           <Route path="/learn" component={LearnView} />
           <Route path="/learn/:id" component={LearnDetailView} />
