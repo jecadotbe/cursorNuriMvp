@@ -45,7 +45,7 @@ export default function ChatHistoryView() {
 
   const startNewChat = async () => {
     try {
-      const response = await fetch('/api/chats', {
+      const response = await fetch('/api/chat/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -59,14 +59,20 @@ export default function ChatHistoryView() {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Server error:', errorText);
-        throw new Error('Failed to create new chat');
+        throw new Error(`Failed to create new chat: ${response.status} ${response.statusText}`);
       }
 
       const newChat = await response.json();
+      console.log("New chat created:", newChat);
+      
       if (!newChat.id) {
         throw new Error('No chat ID received from server');
       }
 
+      // Force query invalidation to refresh data
+      queryClient.invalidateQueries(["chats"]);
+      
+      // Navigate to the new chat
       navigate(`/chat/${newChat.id}`);
     } catch (error) {
       console.error('Error creating new chat:', error);
