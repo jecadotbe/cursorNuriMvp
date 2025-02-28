@@ -58,8 +58,10 @@ export default function LoginPage() {
       const success = await login(data.username, data.password, data.rememberMe);
       if (success) {
         console.log("Login successful! Redirecting to home page");
-        // Explicitly redirect to home page after successful login
-        window.location.href = "/";
+        // Small delay to ensure state updates
+        await new Promise(resolve => setTimeout(resolve, 100));
+        // Use React Router navigation instead of window.location
+        setLocation("/");
       }
     } finally {
       setIsSubmitting(false);
@@ -72,8 +74,10 @@ export default function LoginPage() {
       const success = await registerUser(data.username, data.email, data.password);
       if (success) {
         console.log("Registration successful! Redirecting to home page");
-        // Explicitly redirect to home page after successful registration
-        window.location.href = "/";
+        // Small delay to ensure state updates
+        await new Promise(resolve => setTimeout(resolve, 100));
+        // Use React Router navigation instead of window.location
+        setLocation("/");
       }
     } finally {
       setIsSubmitting(false);
