@@ -24,73 +24,79 @@ export function setupRegisterRoute(router: Router) {
   router.post("/register", async (req: Request, res: Response) => {
     try {
       const { username, email, password } = req.body;
-
-      // Validate inputs
+      
+      // Validation
       if (!username || !email || !password) {
-        return res.status(400).json({ 
-          message: "Username, email, and password are required" 
-        });
+        return res.status(400).json({ message: "All fields are required" });
       }
-
-      // Check if username already exists
-      const existingUserByUsername = await db
+      
+      // Check if username is already taken
+      const existingUsername = await db
         .select()
         .from(users)
         .where(eq(users.username, username))
         .limit(1);
-
-      if (existingUserByUsername.length > 0) {
-        return res.status(400).json({ 
-          message: "Username already in use" 
-        });
+      
+      if (existingUsername.length > 0) {
+        return res.status(400).json({ message: "Username already exists" });
       }
-
-      // Check if email already exists
-      const existingUserByEmail = await db
+      
+      // Check if email is already registered
+      const existingEmail = await db
         .select()
         .from(users)
         .where(eq(users.email, email))
         .limit(1);
-
-      if (existingUserByEmail.length > 0) {
-        return res.status(400).json({ 
-          message: "Email already in use" 
-        });
+      
+      if (existingEmail.length > 0) {
+        return res.status(400).json({ message: "Email already registered" });
       }
-
+      
       // Hash password
       const hashedPassword = await hashPassword(password);
-
-      // Create new user
-      const newUser = await db
+      
+      // Create user
+      const result = await db
         .insert(users)
         .values({
           username,
           email,
           password: hashedPassword,
-          createdAt: new Date(),
+          profilePicture: null,
+          createdAt: new Date()
         })
-        .returning();
-
-      // Log in the new user
-      req.login(newUser[0], (err) => {
+        .returning({ id: users.id, username: users.username, email: users.email, 
+                    password: users.password, profilePicture: users.profilePicture, 
+                    createdAt: users.createdAt });
+      
+      if (!result || result.length === 0) {
+        return res.status(500).json({ message: "Error creating user" });
+      }
+      
+      const user = result[0];
+      
+      // Log in the user automatically after registration
+      req.login(user, (err) => {
         if (err) {
-          console.error("Login error after registration:", err);
-          return res.status(500).json({ message: "Error during login after registration" });
+          console.error("Error during login after registration:", err);
+          return res.status(500).json({ message: "Error logging in after registration" });
         }
-
+        
+        // Return success without sending password back
         return res.status(201).json({
-          message: "User registered successfully",
+          message: "Registration successful",
           user: {
-            id: newUser[0].id,
-            username: newUser[0].username,
-            email: newUser[0].email,
-          },
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            profilePicture: user.profilePicture,
+            createdAt: user.createdAt
+          }
         });
       });
     } catch (error) {
       console.error("Registration error:", error);
-      return res.status(500).json({ message: "Registration failed" });
+      return res.status(500).json({ message: "Server error" });
     }
   });
 }

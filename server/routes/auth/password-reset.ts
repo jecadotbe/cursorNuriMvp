@@ -2,20 +2,59 @@ import { Router, Request, Response } from "express";
 import { db } from "@db";
 import { users } from "@db/schema";
 import { eq } from "drizzle-orm";
-import { randomBytes } from "crypto";
+import { randomBytes, scrypt } from "crypto";
 import { promisify } from "util";
 import nodemailer from "nodemailer";
-import { scrypt } from "crypto";
 
 const scryptAsync = promisify(scrypt);
 
+// Store for password reset tokens
 interface PasswordResetToken {
   email: string;
   expires: Date;
 }
 
-// Store tokens in memory (should be moved to database in production)
+// In-memory token store (in production, this should be in a database)
 const passwordResetTokens = new Map<string, PasswordResetToken>();
+
+// Token expiration time (1 hour)
+const TOKEN_EXPIRY = 60 * 60 * 1000;
+
+// Configure nodemailer with a test account (for demonstration)
+// In production, use a real email service
+let transporter: nodemailer.Transporter;
+
+async function setupEmailTransporter() {
+  // Create a test account if not in production
+  if (process.env.NODE_ENV !== 'production') {
+    const testAccount = await nodemailer.createTestAccount();
+    
+    transporter = nodemailer.createTransport({
+      host: 'smtp.ethereal.email',
+      port: 587,
+      secure: false,
+      auth: {
+        user: testAccount.user,
+        pass: testAccount.pass
+      }
+    });
+    
+    console.log('Nodemailer configured with test account:', testAccount.user);
+  } else {
+    // Configure with real email service credentials in production
+    transporter = nodemailer.createTransport({
+      // Configure with actual email service (Gmail, SendGrid, etc.)
+      service: process.env.EMAIL_SERVICE,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD
+      }
+    });
+  }
+}
+
+// Initialize email transporter
+setupEmailTransporter().catch(console.error);
 
 /**
  * Hash a password using scrypt with a random salt
@@ -31,123 +70,133 @@ async function hashPassword(password: string): Promise<string> {
  * @param router Express router to attach routes to
  */
 export function setupPasswordResetRoute(router: Router) {
-  // Request a password reset
+  // Request password reset
   router.post("/forgot-password", async (req: Request, res: Response) => {
     try {
       const { email } = req.body;
+      
       if (!email) {
         return res.status(400).json({ message: "Email is required" });
       }
-
-      // Check if email exists
-      const [user] = await db
+      
+      // Check if user exists
+      const user = await db
         .select()
         .from(users)
         .where(eq(users.email, email))
         .limit(1);
-
-      if (!user) {
-        // For security reasons, still return success even if email not found
-        return res.json({ message: "If your email exists in our system, you will receive a password reset link" });
+      
+      if (!user || user.length === 0) {
+        // Don't reveal if the email exists for security
+        return res.json({ 
+          message: "If that email address is in our database, we will send a password reset link"
+        });
       }
-
-      // Generate a token
-      const token = randomBytes(32).toString("hex");
-      const expires = new Date();
-      expires.setHours(expires.getHours() + 1); // Token valid for 1 hour
-
-      // Store token (in memory for demo, should be in database for production)
+      
+      // Generate a random token
+      const token = randomBytes(20).toString('hex');
+      
+      // Store token with expiry
+      const expires = new Date(Date.now() + TOKEN_EXPIRY);
       passwordResetTokens.set(token, { email, expires });
-
-      // Create reset link
-      const resetLink = `${req.protocol}://${req.get("host")}/reset-password/${token}`;
       
-      // TODO: In production, use a real email service
-      console.log(`Reset link for ${email}: ${resetLink}`);
+      // Reset link (would use frontend URL in production)
+      const resetUrl = `${req.protocol}://${req.get('host')}/reset-password/${token}`;
       
-      // For demo purposes, we'd normally send an actual email
-      const transporter = nodemailer.createTransport({
-        host: "smtp.example.com",
-        port: 587,
-        secure: false,
-        auth: {
-          user: "username",
-          pass: "password",
-        },
-        // In development, prevent actual sending
-        ignoreTLS: true,
-        tls: { rejectUnauthorized: false },
-      });
-
-      // Log the email content instead of sending in development
+      // Email content
       const mailOptions = {
-        from: '"Nuri Support" <support@nuri.example.com>',
+        from: '"Nuri Support" <support@nuri.com>',
         to: email,
-        subject: "Password Reset Request",
-        text: `You requested a password reset. Please click the following link to reset your password: ${resetLink}`,
-        html: `<p>You requested a password reset.</p><p>Please click the following link to reset your password:</p><p><a href="${resetLink}">${resetLink}</a></p>`,
+        subject: 'Password Reset Request',
+        text: `You requested a password reset. Please use the following link to reset your password: ${resetUrl}. This link will expire in 1 hour.`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Password Reset Request</h2>
+            <p>You requested a password reset for your Nuri account.</p>
+            <p>Please click the button below to reset your password:</p>
+            <p style="text-align: center;">
+              <a href="${resetUrl}" 
+                 style="background-color: #4A5568; color: white; padding: 10px 20px; 
+                        text-decoration: none; border-radius: 5px; display: inline-block;">
+                Reset Password
+              </a>
+            </p>
+            <p>This link will expire in 1 hour.</p>
+            <p>If you didn't request a password reset, please ignore this email.</p>
+          </div>
+        `
       };
-
-      console.log("Email would be sent:", mailOptions);
-
-      return res.json({
-        message: "If your email exists in our system, you will receive a password reset link",
+      
+      // Send email
+      if (transporter) {
+        const info = await transporter.sendMail(mailOptions);
+        console.log('Password reset email sent:', info.response);
+        
+        if (process.env.NODE_ENV !== 'production') {
+          // For development, log preview URL for the test email
+          console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+        }
+      } else {
+        console.warn('Email transporter not configured. Would have sent reset email to:', email);
+      }
+      
+      // Don't reveal if the email exists for security
+      return res.json({ 
+        message: "If that email address is in our database, we will send a password reset link"
       });
+      
     } catch (error) {
       console.error("Password reset request error:", error);
-      return res.status(500).json({ message: "Error processing password reset request" });
+      return res.status(500).json({ message: "Server error" });
     }
   });
-
-  // Reset password with token
+  
+  // Process password reset
   router.post("/reset-password/:token", async (req: Request, res: Response) => {
     try {
       const { token } = req.params;
       const { password } = req.body;
-
+      
       if (!password) {
-        return res.status(400).json({ message: "New password is required" });
+        return res.status(400).json({ message: "Password is required" });
       }
-
+      
+      // Validate password strength
+      if (password.length < 8) {
+        return res.status(400).json({ message: "Password must be at least 8 characters long" });
+      }
+      
       // Check if token exists and is valid
-      const resetInfo = passwordResetTokens.get(token);
-      if (!resetInfo) {
-        return res.status(400).json({ message: "Invalid or expired token" });
+      const resetData = passwordResetTokens.get(token);
+      
+      if (!resetData) {
+        return res.status(400).json({ message: "Invalid or expired password reset token" });
       }
-
+      
       // Check if token is expired
-      if (resetInfo.expires < new Date()) {
+      if (new Date() > resetData.expires) {
+        // Remove expired token
         passwordResetTokens.delete(token);
-        return res.status(400).json({ message: "Token has expired" });
+        return res.status(400).json({ message: "Password reset token has expired" });
       }
-
-      // Find user by email
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, resetInfo.email))
-        .limit(1);
-
-      if (!user) {
-        return res.status(400).json({ message: "User not found" });
-      }
-
+      
       // Hash the new password
       const hashedPassword = await hashPassword(password);
-
-      // Update user's password
+      
+      // Update the user's password
       await db
         .update(users)
         .set({ password: hashedPassword })
-        .where(eq(users.id, user.id));
-
-      // Remove used token
+        .where(eq(users.email, resetData.email));
+      
+      // Remove the used token
       passwordResetTokens.delete(token);
-
-      return res.json({ message: "Password has been reset successfully" });
+      
+      return res.json({ message: "Password has been successfully reset" });
+      
     } catch (error) {
       console.error("Password reset error:", error);
-      return res.status(500).json({ message: "Error processing password reset" });
+      return res.status(500).json({ message: "Server error" });
     }
   });
 }

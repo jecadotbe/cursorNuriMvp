@@ -1,21 +1,19 @@
 import { Request, Response, NextFunction } from "express";
 
-// Store for rate limiting by IP address
-// In a production app, this should be moved to Redis or another persistent store
+// Simple in-memory store for rate limiting
+// In production, Redis or a database would be more appropriate
 const loginAttempts = new Map<string, RateLimitStore>();
-
-// Max login attempts before blocking
-const MAX_ATTEMPTS = 5;
-// Lockout period in milliseconds (15 minutes)
-const LOCKOUT_TIME = 15 * 60 * 1000;
-// Time window for counting attempts in milliseconds (1 hour)
-const ATTEMPT_WINDOW = 60 * 60 * 1000;
 
 interface RateLimitStore {
   attempts: number;
   resetTime: number;
   blocked: boolean;
 }
+
+// Rate limiting configuration
+const MAX_ATTEMPTS = 5; // Max failed login attempts
+const WINDOW_MS = 15 * 60 * 1000; // 15 minutes window
+const BLOCK_DURATION_MS = 30 * 60 * 1000; // 30 minutes block
 
 /**
  * Middleware to limit login attempts to prevent brute force attacks
@@ -25,83 +23,77 @@ export const loginRateLimiter = (
   res: Response,
   next: NextFunction
 ) => {
-  // Use IP address as identifier (could be enhanced with additional factors)
-  const ip = req.ip;
-  
-  // Skip if no IP available
-  if (!ip) {
-    return next();
-  }
-  
+  const ip = req.ip || req.socket.remoteAddress || "unknown";
   const now = Date.now();
   
-  // Get current record or create a new one
-  const currentRecord = loginAttempts.get(ip);
+  // Get record for this IP
+  const record = loginAttempts.get(ip);
   
-  // If user is in blocked state
-  if (currentRecord && currentRecord.blocked) {
-    // Check if block period has expired
-    if (now < currentRecord.resetTime) {
-      const minutesLeft = Math.ceil((currentRecord.resetTime - now) / 60000);
-      return res.status(429).json({
-        message: `Too many login attempts. Please try again in ${minutesLeft} minute(s).`
-      });
+  if (record) {
+    // Check if blocked
+    if (record.blocked) {
+      // Check if block has expired
+      if (now > record.resetTime) {
+        // Reset record
+        loginAttempts.delete(ip);
+        next();
+      } else {
+        // Still blocked
+        const remainingTime = Math.ceil((record.resetTime - now) / 1000 / 60);
+        return res.status(429).json({
+          message: `Too many failed login attempts. Please try again in ${remainingTime} minutes.`
+        });
+      }
     } else {
-      // Reset after lockout period
-      const newRecord: RateLimitStore = {
-        attempts: 0,
-        resetTime: now + ATTEMPT_WINDOW,
-        blocked: false
-      };
-      loginAttempts.set(ip, newRecord);
+      // Check if window has expired
+      if (now > record.resetTime) {
+        // Reset window
+        const newRecord: RateLimitStore = {
+          attempts: 0,
+          resetTime: now + WINDOW_MS,
+          blocked: false
+        };
+        loginAttempts.set(ip, newRecord);
+      }
+      
+      // Continue as normal
+      next();
     }
-  } else if (currentRecord) {
-    // If record exists but not blocked
-    // Check if attempt window has expired
-    if (now > currentRecord.resetTime) {
-      // Reset counters for a new period
-      currentRecord.attempts = 0;
-      currentRecord.resetTime = now + ATTEMPT_WINDOW;
-    }
-    
-    loginAttempts.set(ip, currentRecord);
   } else {
-    // No existing record, create a new one
-    loginAttempts.set(ip, {
+    // No record for this IP, create a new one
+    const newRecord: RateLimitStore = {
       attempts: 0,
-      resetTime: now + ATTEMPT_WINDOW,
+      resetTime: now + WINDOW_MS,
       blocked: false
-    });
+    };
+    loginAttempts.set(ip, newRecord);
+    next();
   }
-  
-  next();
 };
 
 /**
  * Update rate limiting store after failed login
  */
 export const incrementLoginAttempts = (ip: string) => {
-  if (!ip) return;
-  
   const record = loginAttempts.get(ip);
-  if (!record) return;
   
-  record.attempts += 1;
-  
-  // Block if too many attempts
-  if (record.attempts >= MAX_ATTEMPTS) {
-    record.blocked = true;
-    record.resetTime = Date.now() + LOCKOUT_TIME;
+  if (record) {
+    // Increment attempts
+    record.attempts += 1;
+    
+    // Check if exceeded max attempts
+    if (record.attempts >= MAX_ATTEMPTS) {
+      record.blocked = true;
+      record.resetTime = Date.now() + BLOCK_DURATION_MS;
+    }
+    
+    loginAttempts.set(ip, record);
   }
-  
-  loginAttempts.set(ip, record);
 };
 
 /**
  * Clear login attempts after successful login
  */
 export const clearLoginAttempts = (ip: string) => {
-  if (ip) {
-    loginAttempts.delete(ip);
-  }
+  loginAttempts.delete(ip);
 };

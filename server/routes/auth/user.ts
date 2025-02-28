@@ -6,10 +6,12 @@ import { Router, Request, Response } from "express";
  */
 export function setupUserRoute(router: Router) {
   router.get("/user", (req: Request, res: Response) => {
-    if (!req.isAuthenticated()) {
+    // Check if user is authenticated
+    if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ message: "Session expired" });
     }
     
+    // Return user information without password
     return res.json({
       user: {
         id: req.user.id,

@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import passport from "passport";
 import { IVerifyOptions } from "passport-local";
 import { User } from "@db/schema";
-import { loginRateLimiter, clearLoginAttempts } from "../../middleware/rate-limit";
+import { incrementLoginAttempts, clearLoginAttempts, loginRateLimiter } from "../../middleware/rate-limit";
 
 /**
  * Setup login route
@@ -11,41 +11,45 @@ import { loginRateLimiter, clearLoginAttempts } from "../../middleware/rate-limi
 export function setupLoginRoute(router: Router) {
   router.post("/login", loginRateLimiter, (req: Request, res: Response) => {
     passport.authenticate("local", (err: any, user: User | false, info: IVerifyOptions) => {
+      // Handle authentication errors
       if (err) {
-        console.error("Authentication error:", err);
-        return res.status(500).json({ message: "Authentication error" });
+        console.error("Login error:", err);
+        return res.status(500).json({ message: "Internal server error" });
       }
-
+      
+      // If authentication failed
       if (!user) {
-        return res.status(401).json({ 
-          message: info?.message || "Invalid username or password" 
-        });
+        // Increment failed login attempts for rate limiting
+        incrementLoginAttempts(req.ip);
+        
+        return res.status(401).json({ message: info.message || "Invalid credentials" });
       }
-
-      req.login(user, (loginErr) => {
-        if (loginErr) {
-          console.error("Login error:", loginErr);
-          return res.status(500).json({ message: "Login error" });
+      
+      // If authentication successful, log in the user
+      req.login(user, (err) => {
+        if (err) {
+          console.error("Session error:", err);
+          return res.status(500).json({ message: "Error establishing session" });
         }
         
-        // Clear rate limiting for this IP after successful login
+        // Clear failed attempts counter for this IP
         clearLoginAttempts(req.ip);
         
-        // Check for optional redirect or next URL
-        const redirectTo = req.query.redirectTo as string;
+        // Initialize suggestion checks
+        if (req.session) {
+          req.session.checkSuggestions = true;
+        }
         
-        // Initialize suggestion check flag
-        req.session.checkSuggestions = true;
-        
+        // Return user info without password
         return res.json({
-          message: "Logged in successfully",
+          message: "Login successful",
           user: {
             id: user.id,
             username: user.username,
             email: user.email,
             profilePicture: user.profilePicture,
-          },
-          redirectTo,
+            createdAt: user.createdAt
+          }
         });
       });
     })(req, res);
