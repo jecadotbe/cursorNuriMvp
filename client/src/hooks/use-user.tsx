@@ -27,6 +27,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   async function fetchUser() {
     try {
       console.log("Fetching current user data");
+      setIsLoading(true);
+      
       const response = await fetch("/api/user", {
         credentials: "include",
         headers: { 
@@ -38,17 +40,54 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       console.log("User fetch response status:", response.status);
 
       if (response.ok) {
-        const userData = await response.json();
-        console.log("User data received:", userData);
-        setUser(userData);
+        try {
+          const userData = await response.json();
+          console.log("User data received:", userData);
+          setUser(userData);
+          return userData; // Return the user data for use in calling functions
+        } catch (parseError) {
+          console.error("Error parsing user data:", parseError);
+          setUser(null);
+          return null;
+        }
       } else {
-        const errorText = await response.text();
-        console.log("User fetch failed:", response.status, errorText);
+        let errorMessage = "Session expired";
+        
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          // Response may not contain JSON
+          try {
+            const errorText = await response.text();
+            if (errorText) {
+              console.log("User fetch error text:", errorText);
+            }
+          } catch (textError) {
+            // Unable to read response body
+          }
+        }
+        
+        console.log("User fetch failed:", response.status, errorMessage);
+        
+        // Clear user state on auth failure
         setUser(null);
+        
+        // Only show toast for unexpected errors, not for normal session expiration
+        if (response.status !== 401) {
+          toast({
+            variant: "destructive",
+            title: "Authentication Error",
+            description: errorMessage
+          });
+        }
+        
+        return null;
       }
     } catch (error) {
       console.error("Error fetching user:", error);
       setUser(null);
+      return null;
     } finally {
       setIsLoading(false);
     }
@@ -62,10 +101,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log("Attempting login", { username, rememberMe });
       
+      // Clear any existing user state before trying to log in
+      setUser(null);
+      setIsLoading(true);
+      
       const response = await fetch("/api/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Pragma": "no-cache"
         },
         body: JSON.stringify({ 
           username, 
@@ -75,48 +120,79 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         credentials: "include", // Important for cookies
       });
 
-      const data = await response.json();
+      // Handle non-JSON responses
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        console.error("Invalid JSON response from login:", e);
+        setIsLoading(false);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Invalid server response"
+        });
+        return false;
+      }
 
       if (response.ok) {
         console.log("Login successful", data.user);
         setUser(data.user); // Update user state with the response data
         
+        // Add a short delay before verification to allow session to stabilize
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
         // Verify session by making another request
-        const sessionCheck = await fetch("/api/user", { 
-          credentials: "include",
-          // Add cache-busting to prevent cached responses
-          headers: { 
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            "Pragma": "no-cache"
+        try {
+          const sessionCheck = await fetch("/api/user", { 
+            credentials: "include",
+            // Add cache-busting to prevent cached responses
+            headers: { 
+              "Cache-Control": "no-cache, no-store, must-revalidate",
+              "Pragma": "no-cache"
+            }
+          });
+          
+          console.log("Session verification status:", sessionCheck.status);
+          
+          if (sessionCheck.ok) {
+            const verifiedUser = await sessionCheck.json();
+            console.log("Session verification successful:", verifiedUser);
+            
+            // Update user state with the latest data from server
+            setUser(verifiedUser);
+          } else {
+            console.warn("Session verification failed after login:", sessionCheck.status);
+            // Keep the user logged in on client side anyway since login succeeded
           }
-        });
-        
-        console.log("Session check status:", sessionCheck.status);
-        
-        if (!sessionCheck.ok) {
-          console.warn("Session check failed after login");
+        } catch (verifyError) {
+          console.error("Session verification error:", verifyError);
         }
         
         toast({
-          title: "Success",
+          title: "Welcome!",
           description: "Login successful",
         });
+        
+        setIsLoading(false);
         return true;
       } else {
         console.error("Login response error:", data.message);
+        setIsLoading(false);
         toast({
           variant: "destructive",
-          title: "Error",
+          title: "Authentication Failed",
           description: data.message || "Login failed",
         });
         return false;
       }
     } catch (error) {
       console.error("Login error:", error);
+      setIsLoading(false);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred",
+        title: "Connection Error",
+        description: "Failed to connect to the server. Please try again."
       });
       return false;
     }

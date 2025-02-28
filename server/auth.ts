@@ -353,27 +353,57 @@ export function setupAuth(app: Express) {
 
   app.get("/api/user", (req, res) => {
     // Debug session information
-    console.log('GET /api/user request received', {
+    const sessionInfo = {
       isAuthenticated: req.isAuthenticated(),
       hasSession: !!req.session,
-      hasUser: !!req.user,
       sessionID: req.sessionID,
+      hasUser: !!req.user,
+      passportExists: !!(req.session && req.session.passport),
       cookies: req.headers.cookie,
-    });
+    };
     
-    if (req.isAuthenticated() && req.user) {
-      // Always return the user if authenticated and user is present
-      console.log('Returning authenticated user:', req.user);
-      return res.json({
-        id: req.user.id,
-        username: req.user.username,
-        email: req.user.email,
-        profilePicture: req.user.profilePicture,
-        createdAt: req.user.createdAt
-      });
+    console.log('GET /api/user request received', sessionInfo);
+    
+    // Check for valid session
+    if (!req.session) {
+      console.log('No session found');
+      return res.status(401).json({ message: "Session expired" });
     }
     
-    res.status(401).json({ message: "Not logged in" });
+    // More detailed authentication check
+    if (!req.isAuthenticated()) {
+      console.log('Session check failed - not authenticated', { 
+        sessionExists: !!req.session,
+        passportExists: !!(req.session && req.session.passport),
+        cookies: req.headers.cookie 
+      });
+      return res.status(401).json({ message: "Session expired" });
+    }
+    
+    // User validation
+    if (!req.user) {
+      console.log('Session exists but no user object');
+      return res.status(401).json({ message: "Authentication error" });
+    }
+    
+    // Set cache control headers to prevent caching of user authentication state
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    
+    // Always return the user if all checks pass
+    console.log('Returning authenticated user:', {
+      id: req.user.id,
+      username: req.user.username
+    });
+    
+    return res.json({
+      id: req.user.id,
+      username: req.user.username,
+      email: req.user.email,
+      profilePicture: req.user.profilePicture,
+      createdAt: req.user.createdAt
+    });
   });
 
   // Setup email transporter

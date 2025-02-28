@@ -81,23 +81,45 @@ function throttleRequests(req: Request, res: Response, next: NextFunction) {
  */
 export function setupUserRoute(router: Router) {
   router.get("/user", throttleRequests, (req: Request, res: Response) => {
-    // Check if user is authenticated
+    // Check if session exists
+    const sessionExists = !!req.session;
+    const passportExists = req.session && req.session.passport;
+    
+    console.log("Path: " + req.path + ", Authenticated: " + req.isAuthenticated() + ", Session: " + (sessionExists ? "exists" : "missing"));
+    
+    // Detailed session validation
     if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ message: "Session expired" });
+      // Log detailed session information for debugging
+      console.log("Session check failed - not authenticated", {
+        sessionExists,
+        passportExists,
+        cookies: req.headers.cookie
+      });
+      
+      // Send a specific error response
+      return res.status(401).json({ 
+        message: "Session expired",
+        authenticated: false,
+        sessionExists: sessionExists
+      });
     }
 
-    // Cache headers to encourage browsers to cache the response
-    res.set('Cache-Control', 'private, max-age=10');  // 10 second cache
+    // Add cache control headers to prevent stale authentication data
+    res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     
-    // Return user information without password
-    return res.json({
-      user: {
-        id: req.user.id,
-        username: req.user.username,
-        email: req.user.email,
-        profilePicture: req.user.profilePicture,
-        createdAt: req.user.createdAt
-      }
-    });
+    // Return user information without sensitive data
+    const userData = {
+      id: req.user.id,
+      username: req.user.username,
+      email: req.user.email,
+      profilePicture: req.user.profilePicture,
+      createdAt: req.user.createdAt
+    };
+    
+    console.log("User authenticated successfully:", userData.username);
+    
+    return res.json(userData);
   });
 }
