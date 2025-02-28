@@ -1,33 +1,21 @@
 import { Router } from "express";
 import { setupAuthRoutes } from "./auth";
-import { setupSuggestionsRouter } from "./suggestions";
-import { setupOnboardingRoutes } from "./onboarding";
-import { setupProfileRouter } from "./profile";
-import { setupVillageRouter } from "./village";
 import { setupChatRouter } from "./chat";
+import { setupProfileRouter } from "./profile";
+import { setupOnboardingRoutes } from "./onboarding";
+import { setupSuggestionsRouter } from "./suggestions";
+import { villageRouter } from "./village";
 
 /**
  * Set up all API routes.
  * @param app Express router to attach routes to
  */
 export function setupRoutes(app: Router) {
-  // Set up auth routes
+  // Core routes
   setupAuthRoutes(app);
-  
-  // Set up suggestion routes
-  setupSuggestionsRouter(app);
-  
-  // Set up onboarding routes
-  setupOnboardingRoutes(app);
-  
-  // Set up profile routes
-  setupProfileRouter(app);
-  
-  // Set up village routes
-  setupVillageRouter(app);
-  
-  // Set up chat routes
   setupChatRouter(app);
-  
-  return app;
+  setupProfileRouter(app);
+  setupOnboardingRoutes(app);
+  setupSuggestionsRouter(app);
+  app.use("/village", villageRouter);
 }

@@ -1,5 +1,5 @@
 import { Request } from "express";
-import { User } from "../../auth";
+import { User } from "../../auth"; 
 
 /**
  * Extended request type including authenticated user
@@ -21,10 +21,10 @@ export type ChildProfile = {
  * Suggestion categories constant
  */
 export const SUGGESTION_CATEGORIES = {
+  LEARNING: "learning",
   VILLAGE: "village",
   CHILD_DEVELOPMENT: "child_development",
-  STRESS: "stress", 
-  LEARNING: "learning",
+  STRESS: "stress",
   PERSONAL_GROWTH: "personal_growth",
 } as const;
 
