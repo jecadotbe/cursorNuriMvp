@@ -46,8 +46,8 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    // Set up routes
-    const server = registerRoutes(app);
+    // Set up routes (async)
+    const server = await registerRoutes(app);
     
     // Set up admin server if needed
     const adminServer = setupAdminServer();

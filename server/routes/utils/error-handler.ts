@@ -1,5 +1,4 @@
 import { Response } from "express";
-import { log } from "../../vite";
 
 /**
  * Centralized error handler for routes.
@@ -10,41 +9,40 @@ import { log } from "../../vite";
  */
 export function handleRouteError(
   res: Response,
-  error: any,
-  contextMessage: string = "An error occurred"
+  error: Error | any,
+  contextMessage: string = "An error occurred while processing your request"
 ): Response {
-  // Log the error for server-side debugging
-  const errorMessage = error?.message || String(error);
-  log(`Error: ${contextMessage} - ${errorMessage}`, "error");
+  console.error("API Error:", contextMessage, error);
   
-  // Check if we've already started sending a response
-  if (res.headersSent) {
-    return res;
+  // Handle database specific errors
+  if (error?.code && error.code.startsWith('P')) {
+    // Prisma/Database error codes typically start with P
+    return res.status(500).json({
+      message: "A database error occurred",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined
+    });
   }
 
-  // Determine status code based on error type or message
-  let statusCode = 500;
-  let userMessage = "Internal server error occurred";
-
-  if (errorMessage.includes("not found") || errorMessage.includes("does not exist")) {
-    statusCode = 404;
-    userMessage = "Requested resource not found";
-  } else if (
-    errorMessage.includes("unauthorized") || 
-    errorMessage.includes("permission") || 
-    errorMessage.includes("access denied")
-  ) {
-    statusCode = 403;
-    userMessage = "You don't have permission to perform this action";
-  } else if (errorMessage.includes("invalid") || errorMessage.includes("validation")) {
-    statusCode = 400;
-    userMessage = "Invalid request data";
+  // Handle authentication errors
+  if (error?.message && error.message.toLowerCase().includes('auth')) {
+    return res.status(401).json({
+      message: "Authentication error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined
+    });
   }
 
-  // Return appropriate error response
-  return res.status(statusCode).json({
-    success: false,
-    message: userMessage,
-    error: process.env.NODE_ENV === "production" ? undefined : errorMessage
+  // Handle validation errors (custom shape used in app)
+  if (error?.validation) {
+    return res.status(400).json({
+      message: "Validation error",
+      validation: error.validation,
+      error: process.env.NODE_ENV === "development" ? error.message : undefined
+    });
+  }
+
+  // Default error response
+  return res.status(500).json({
+    message: contextMessage,
+    error: process.env.NODE_ENV === "development" ? error.message : undefined
   });
 }

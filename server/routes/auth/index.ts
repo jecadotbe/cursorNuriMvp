@@ -10,7 +10,7 @@ import { setupUserRoute } from "./user";
  * @param app Express router to attach routes to
  */
 export function setupAuthRoutes(app: Router) {
-  // Set up all auth-related routes
+  // Set up individual auth-related routes
   setupLoginRoute(app);
   setupLogoutRoute(app);
   setupRegisterRoute(app);

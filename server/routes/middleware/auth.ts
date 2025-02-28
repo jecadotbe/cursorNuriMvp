@@ -8,6 +8,5 @@ export function ensureAuthenticated(req: Request, res: Response, next: NextFunct
     return next();
   }
   
-  // If not authenticated, return 401 Unauthorized response
-  return res.status(401).json({ message: "Authentication required" });
+  res.status(401).json({ message: "Authentication required" });
 }
