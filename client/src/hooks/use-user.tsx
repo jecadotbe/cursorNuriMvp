@@ -48,14 +48,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     fetchUser();
   }, []);
 
-  async function login(username: string, password: string, rememberMe = false) {
+  async function login(username: string, password: string) {
     try {
       const response = await fetch("/api/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, password, rememberMe }),
+        body: JSON.stringify({ username, password }),
         credentials: "include",
       });
 

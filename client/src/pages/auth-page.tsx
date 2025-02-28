@@ -71,25 +71,19 @@ export default function AuthPage() {
   const handleLogin = async (data: LoginFormData) => {
     setIsSubmitting(true);
     try {
-      const result = await login(data);
-      console.log("Login successful:", result);
+      // Use explicit username and password for the login function
+      const success = await login(data.username, data.password, false);
+      console.log("Login attempt result:", success);
       loginForm.reset();
       
-      // Force user data refresh and redirect to home page
-      if (result && result.user) {
-        console.log("Redirecting to home page");
+      if (success) {
+        console.log("Login successful! Redirecting to home page");
         
-        // Use setLocation from wouter for client-side navigation
+        // Small delay to ensure state updates properly
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Use wouter setLocation for client-side navigation
         setLocation("/");
-        
-        // If wouter navigation doesn't work, try direct window location as fallback
-        // after a small delay to give state changes time to propagate
-        setTimeout(() => {
-          if (window.location.pathname.includes('/auth')) {
-            console.log("Fallback redirect to home page");
-            window.location.href = "/";
-          }
-        }, 500);
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -102,12 +96,20 @@ export default function AuthPage() {
   const handleRegister = async (data: RegisterFormData) => {
     setIsSubmitting(true);
     try {
-      const result = await register(data);
-      console.log("Registration successful:", result);
+      // Use explicit username, email, and password for the register function
+      const success = await register(data.username, data.email, data.password);
+      console.log("Registration attempt result:", success);
       registerForm.reset();
       
-      // Navigate to welcome page
-      window.location.replace(window.location.origin + "/welcome");
+      if (success) {
+        console.log("Registration successful! Redirecting to welcome page");
+        
+        // Small delay to ensure state updates properly
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Use wouter setLocation for client-side navigation
+        setLocation("/welcome");
+      }
     } catch (error) {
       console.error("Registration error:", error);
       // Error handling is done in useUser hook via toast
