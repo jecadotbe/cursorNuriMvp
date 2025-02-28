@@ -55,12 +55,20 @@ export default function LoginPage() {
   const onLoginSubmit = async (data: LoginFormData) => {
     setIsSubmitting(true);
     try {
-      const success = await login(data.username, data.password);
+      // Use the loginData object with rememberMe flag
+      const loginData = {
+        username: data.username,
+        password: data.password,
+        rememberMe: data.rememberMe
+      };
+      console.log("Attempting login with remember me:", data.rememberMe);
+      
+      const success = await login(loginData);
       if (success) {
         console.log("Login successful! Redirecting to home page");
         // Small delay to ensure state updates
         await new Promise(resolve => setTimeout(resolve, 100));
-        // Use React Router navigation instead of window.location
+        // Use wouter navigation
         setLocation("/");
       }
     } finally {
@@ -71,12 +79,19 @@ export default function LoginPage() {
   const onRegisterSubmit = async (data: RegisterFormData) => {
     setIsSubmitting(true);
     try {
-      const success = await registerUser(data.username, data.email, data.password);
+      // Create register data object
+      const registerData = {
+        username: data.username,
+        email: data.email,
+        password: data.password
+      };
+      
+      const success = await registerUser(registerData);
       if (success) {
         console.log("Registration successful! Redirecting to home page");
         // Small delay to ensure state updates
         await new Promise(resolve => setTimeout(resolve, 100));
-        // Use React Router navigation instead of window.location
+        // Use wouter navigation
         setLocation("/");
       }
     } finally {
@@ -132,6 +147,28 @@ export default function LoginPage() {
                           <Input type="password" placeholder="Enter your password" {...field} />
                         </FormControl>
                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={loginForm.control}
+                    name="rememberMe"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-2 space-y-0">
+                        <FormControl>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-gray-300 text-[#2F4644] focus:ring-[#2F4644]"
+                              checked={field.value}
+                              onChange={field.onChange}
+                              id="rememberMe"
+                            />
+                            <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-700">
+                              Remember me
+                            </label>
+                          </div>
+                        </FormControl>
                       </FormItem>
                     )}
                   />
