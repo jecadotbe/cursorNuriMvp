@@ -4,6 +4,7 @@ import { users } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { randomBytes, scrypt } from "crypto";
 import { promisify } from "util";
+import { memoryService } from "../../services/memory";
 
 const scryptAsync = promisify(scrypt);
 
@@ -74,6 +75,30 @@ export function setupRegisterRoute(router: Router) {
       }
       
       const user = result[0];
+      
+      // Create user in mem0 with initial memory
+      try {
+        const initialMemory = `User Registration:
+Name: ${username}
+Email: ${email}
+Created: ${new Date().toISOString()}
+`;
+        
+        // Create user in mem0 system as per documentation
+        // We don't await this to avoid blocking the registration process
+        memoryService.createMemory(user.id, initialMemory, {
+          type: "user_registration",
+          category: "user_profile",
+          source: "registration",
+          role: "system"
+        }).catch(memoryError => {
+          console.error("Failed to create initial memory for user:", memoryError);
+          // Non-blocking - continue with registration even if memory creation fails
+        });
+      } catch (memoryError) {
+        console.error("Error preparing user memory:", memoryError);
+        // Non-blocking - continue with registration even if memory setup fails
+      }
       
       // Log in the user automatically after registration
       req.login(user, (err) => {

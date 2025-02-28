@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { handleRouteError } from "../utils/error-handler";
 import { ensureAuthenticated } from "../middleware/auth";
 import { AuthenticatedRequest } from "../types";
+import { memoryService } from "../../services/memory";
 
 export function setupProgressRoutes(router: Router) {
   // Get onboarding progress
@@ -92,6 +93,73 @@ export function setupProgressRoutes(router: Router) {
             });
           }
         }
+      }
+
+      // Store onboarding step data in mem0 after each step
+      try {
+        // Create a formatted string based on the current step data
+        let memoryContent = '';
+        switch (step) {
+          case 0:
+            if (data.basicInfo) {
+              memoryContent = `
+Basic Information (Onboarding Step 1):
+Name: ${data.basicInfo.name || 'Not provided'}
+Parent Type: ${data.basicInfo.parentType || 'Not specified'}
+Experience Level: ${data.basicInfo.experienceLevel || 'Not specified'}
+`;
+            }
+            break;
+          case 1:
+            if (data.stressAssessment) {
+              memoryContent = `
+Stress Assessment (Onboarding Step 2):
+Stress Level: ${data.stressAssessment.stressLevel || 'Not specified'}
+Primary Concerns: ${data.stressAssessment.primaryConcerns?.join(', ') || 'None specified'}
+Support Network: ${data.stressAssessment.supportNetwork?.join(', ') || 'None specified'}
+`;
+            }
+            break;
+          case 2:
+            if (data.childProfiles && Array.isArray(data.childProfiles)) {
+              memoryContent = `
+Child Profiles (Onboarding Step 3):
+${data.childProfiles.map((child: any) => 
+  `- ${child.name} (Age: ${child.age})${
+    child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(', ')}` : ''
+  }`
+).join('\n')}
+`;
+            }
+            break;
+          case 3:
+            if (data.goals) {
+              memoryContent = `
+Parenting Goals (Onboarding Step 4):
+Short-term goals: ${data.goals.shortTerm?.join(', ') || 'None specified'}
+Long-term goals: ${data.goals.longTerm?.join(', ') || 'None specified'}
+Support areas: ${data.goals.supportAreas?.join(', ') || 'None specified'}
+Communication preference: ${data.goals.communicationPreference || 'Not specified'}
+`;
+            }
+            break;
+        }
+
+        if (memoryContent) {
+          // Store this step in mem0 without blocking the response
+          memoryService.createMemory(user.id, memoryContent, {
+            type: "onboarding_step_" + step,
+            category: "user_onboarding",
+            source: "onboarding",
+            step: step,
+          }).catch(memoryError => {
+            console.error(`Memory storage error for onboarding step ${step}:`, memoryError);
+            // Non-blocking - continue even if memory storage fails
+          });
+        }
+      } catch (memoryError) {
+        console.error("Error preparing onboarding step memory:", memoryError);
+        // Non-blocking - continue even if memory preparation fails
       }
 
       // Get existing profile or create new one
