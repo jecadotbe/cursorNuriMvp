@@ -46,7 +46,11 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
+    // Set up routes
     const server = registerRoutes(app);
+    
+    // Set up admin server if needed
+    const adminServer = setupAdminServer();
 
     // Error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

@@ -79,5 +79,10 @@ export const loginRateLimiter = (
 
 export const clearLoginAttempts = (ip: string) => {
   const key = `rateLimit:${ip}`;
-  store.del(key);
+  // Use store.destroy instead of del, which is the correct method for MemoryStore
+  store.destroy(key, (err) => {
+    if (err) {
+      console.error('Error clearing login attempts:', err);
+    }
+  });
 };

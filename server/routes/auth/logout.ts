@@ -1,21 +1,25 @@
 import { Router, Request, Response } from "express";
-import { handleRouteError } from "../utils/error-handler";
 
+/**
+ * Setup logout route
+ * @param router Express router to attach routes to
+ */
 export function setupLogoutRoute(router: Router) {
-  // Logout route
   router.post("/logout", (req: Request, res: Response) => {
-    try {
-      req.logout((err) => {
-        if (err) {
-          console.error("Logout error:", err);
-          return res.status(500).json({ message: "Error during logout" });
+    req.logout((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Error during logout" });
+      }
+      
+      req.session.destroy((sessionErr) => {
+        if (sessionErr) {
+          console.error("Session destruction error:", sessionErr);
+          return res.status(500).json({ message: "Logout error" });
         }
-        res.json({ message: "Logged out successfully" });
+        
+        res.clearCookie("connect.sid");
+        return res.json({ message: "Logged out successfully" });
       });
-    } catch (error) {
-      handleRouteError(res, error, "Logout failed");
-    }
+    });
   });
-
-  return router;
 }

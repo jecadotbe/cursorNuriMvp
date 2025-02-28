@@ -2,71 +2,89 @@ import { Router, Request, Response } from "express";
 import { db } from "@db";
 import { users } from "@db/schema";
 import { eq } from "drizzle-orm";
-import bcrypt from "bcrypt";
-import { handleRouteError } from "../utils/error-handler";
+import { scrypt, randomBytes } from "crypto";
+import { promisify } from "util";
 
+const scryptAsync = promisify(scrypt);
+
+/**
+ * Hash a password using scrypt with a random salt
+ */
+async function hashPassword(password: string): Promise<string> {
+  const salt = randomBytes(16).toString("hex");
+  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+  return `${buf.toString("hex")}.${salt}`;
+}
+
+/**
+ * Setup register route
+ * @param router Express router to attach routes to
+ */
 export function setupRegisterRoute(router: Router) {
-  // Register route
   router.post("/register", async (req: Request, res: Response) => {
     try {
-      const { username, email, password } = req.body;
-      
-      // Validate required fields
-      if (!username || !email || !password) {
-        return res.status(400).json({ message: "All fields are required" });
+      if (!req.body.username || !req.body.password || !req.body.email) {
+        return res.status(400).json({ message: "Username, email, and password are required" });
       }
 
       // Check if username already exists
-      const existingUser = await db.query.users.findFirst({
-        where: eq(users.username, username),
-      });
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, req.body.username))
+        .limit(1);
 
       if (existingUser) {
-        return res.status(409).json({ message: "Username already exists" });
+        return res.status(400).json({ message: "Username already exists" });
       }
 
       // Check if email already exists
-      const existingEmail = await db.query.users.findFirst({
-        where: eq(users.email, email),
-      });
+      const [existingEmail] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, req.body.email))
+        .limit(1);
 
       if (existingEmail) {
-        return res.status(409).json({ message: "Email already registered" });
+        return res.status(400).json({ message: "Email already exists" });
       }
 
       // Hash password
-      const saltRounds = 10;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-      // Create user
+      const hashedPassword = await hashPassword(req.body.password);
+      
+      // Create new user
       const [newUser] = await db
         .insert(users)
         .values({
-          username,
-          email,
+          username: req.body.username,
+          email: req.body.email,
           password: hashedPassword,
           createdAt: new Date(),
         })
         .returning();
 
-      // Login the user
-      req.login(newUser, (err) => {
+      // Log in the user
+      req.login({
+        ...newUser,
+        createdAt: newUser.createdAt || new Date() // Ensure createdAt is not null
+      }, (err) => {
         if (err) {
-          console.error("Auto-login error:", err);
-          return res.status(500).json({ message: "Error logging in after registration" });
+          return res.status(500).json({ message: "Registration error" });
         }
 
-        // Return user info without password
-        const { password, ...userWithoutPassword } = newUser;
-        res.status(201).json({
+        return res.status(201).json({
           message: "Registration successful",
-          user: userWithoutPassword,
+          user: {
+            id: newUser.id,
+            username: newUser.username,
+            email: newUser.email,
+            profilePicture: newUser.profilePicture
+          },
         });
       });
     } catch (error) {
-      handleRouteError(res, error, "Registration failed");
+      console.error("Registration error:", error);
+      return res.status(500).json({ message: "Error during registration" });
     }
   });
-
-  return router;
 }
