@@ -78,19 +78,43 @@ export function useUser() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Use a session storage flag to prevent excessive fetching
+  const sessionFetched = typeof window !== 'undefined' ? sessionStorage.getItem('userFetched') : null;
+  
   const { data: user, error, isLoading } = useQuery<User | null, Error>({
     queryKey: ['user'],
-    queryFn: fetchUser,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000,   // 10 minutes
+    queryFn: async () => {
+      // Only fetch once per session unless explicitly invalidated
+      if (sessionFetched) {
+        const cachedUser = sessionStorage.getItem('cachedUser');
+        if (cachedUser) {
+          return JSON.parse(cachedUser);
+        }
+      }
+      
+      const result = await fetchUser();
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('userFetched', 'true');
+        sessionStorage.setItem('cachedUser', JSON.stringify(result));
+      }
+      return result;
+    },
+    staleTime: Infinity, // Never consider stale automatically
+    gcTime: Infinity,   // Never garbage collect automatically
     refetchOnWindowFocus: false,
     refetchInterval: false,
-    retry: false
+    retry: false,
+    refetchOnMount: false
   });
 
   const loginMutation = useMutation<RequestResult, Error, LoginData>({
     mutationFn: (userData) => handleRequest('/api/login', 'POST', userData),
     onSuccess: (result) => {
+      // Clear session storage on login to force a new fetch
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('userFetched');
+        sessionStorage.removeItem('cachedUser');
+      }
       queryClient.invalidateQueries({ queryKey: ['user'] });
       toast({
         title: "Success",
@@ -110,6 +134,11 @@ export function useUser() {
   const logoutMutation = useMutation<RequestResult, Error>({
     mutationFn: () => handleRequest('/api/logout', 'POST'),
     onSuccess: (result) => {
+      // Clear session storage on logout
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('userFetched');
+        sessionStorage.removeItem('cachedUser');
+      }
       queryClient.clear();
       queryClient.invalidateQueries({ queryKey: ['user'] });
       toast({
