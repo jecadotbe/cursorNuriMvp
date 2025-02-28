@@ -1,16 +1,20 @@
 import { Router } from "express";
 import { setupLoginRoute } from "./login";
-import { setupRegisterRoute } from "./register";
 import { setupLogoutRoute } from "./logout";
+import { setupRegisterRoute } from "./register";
 import { setupUserRoute } from "./user";
+import { setupPasswordResetRoute } from "./password-reset";
 
 export function setupAuthRoutes(app: Router) {
-  const router = Router();
+  const authRouter = Router();
   
-  setupLoginRoute(router);
-  setupRegisterRoute(router);
-  setupLogoutRoute(router);
-  setupUserRoute(router);
+  setupLoginRoute(authRouter);
+  setupLogoutRoute(authRouter);
+  setupRegisterRoute(authRouter);
+  setupUserRoute(authRouter);
+  setupPasswordResetRoute(authRouter);
   
-  return router;
+  app.use("/auth", authRouter);
+  
+  return app;
 }

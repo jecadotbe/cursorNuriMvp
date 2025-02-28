@@ -1,65 +1,72 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import { db } from "@db";
 import { users } from "@db/schema";
 import { eq } from "drizzle-orm";
-import { scrypt, randomBytes } from "crypto";
-import { promisify } from "util";
-
-const scryptAsync = promisify(scrypt);
-
-const crypto = {
-  hash: async (password: string) => {
-    const salt = randomBytes(16).toString("hex");
-    const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-    return `${buf.toString("hex")}.${salt}`;
-  }
-};
+import bcrypt from "bcrypt";
+import { handleRouteError } from "../utils/error-handler";
 
 export function setupRegisterRoute(router: Router) {
-  router.post("/register", async (req, res, next) => {
+  // Register route
+  router.post("/register", async (req: Request, res: Response) => {
     try {
-      if (!req.body.username || !req.body.password || !req.body.email) {
-        return res.status(400).json({ message: "Username, email, and password are required" });
+      const { username, email, password } = req.body;
+      
+      // Validate required fields
+      if (!username || !email || !password) {
+        return res.status(400).json({ message: "All fields are required" });
       }
 
-      const [existingUser] = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, req.body.username))
-        .limit(1);
+      // Check if username already exists
+      const existingUser = await db.query.users.findFirst({
+        where: eq(users.username, username),
+      });
 
       if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
+        return res.status(409).json({ message: "Username already exists" });
       }
 
-      const hashedPassword = await crypto.hash(req.body.password);
+      // Check if email already exists
+      const existingEmail = await db.query.users.findFirst({
+        where: eq(users.email, email),
+      });
+
+      if (existingEmail) {
+        return res.status(409).json({ message: "Email already registered" });
+      }
+
+      // Hash password
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+      // Create user
       const [newUser] = await db
         .insert(users)
         .values({
-          username: req.body.username,
-          email: req.body.email,
+          username,
+          email,
           password: hashedPassword,
           createdAt: new Date(),
         })
         .returning();
 
+      // Login the user
       req.login(newUser, (err) => {
         if (err) {
-          return next(err);
+          console.error("Auto-login error:", err);
+          return res.status(500).json({ message: "Error logging in after registration" });
         }
-        return res.json({
+
+        // Return user info without password
+        const { password, ...userWithoutPassword } = newUser;
+        res.status(201).json({
           message: "Registration successful",
-          user: {
-            id: newUser.id,
-            username: newUser.username,
-            email: newUser.email,
-            profilePicture: newUser.profilePicture
-          },
-          redirect: "/welcome"
+          user: userWithoutPassword,
         });
       });
     } catch (error) {
-      next(error);
+      handleRouteError(res, error, "Registration failed");
     }
   });
+
+  return router;
 }

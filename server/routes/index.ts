@@ -1,25 +1,33 @@
 import { Router } from "express";
-import fileUpload from "express-fileupload";
 import { setupAuthRoutes } from "./auth";
-import { setupChatRouter } from "./chat";
+import { setupSuggestionsRouter } from "./suggestions";
+import { setupOnboardingRoutes } from "./onboarding";
 import { setupProfileRouter } from "./profile";
-import { villageRouter } from "./village";
+import { setupVillageRouter } from "./village";
+import { setupChatRouter } from "./chat";
 
+/**
+ * Set up all API routes.
+ * @param app Express router to attach routes to
+ */
 export function setupRoutes(app: Router) {
-  // Add file upload middleware
-  app.use(
-    fileUpload({
-      limits: { fileSize: 2 * 1024 * 1024 }, // 2MB max file size
-      abortOnLimit: true,
-      createParentPath: true,
-    }),
-  );
-
-  // Mount route modules
-  app.use("/api/auth", setupAuthRoutes(app));
-  app.use("/api/chat", setupChatRouter(app));
-  app.use("/api/profile", setupProfileRouter(app));
-  app.use("/api/village", villageRouter);
-
+  // Set up auth routes
+  setupAuthRoutes(app);
+  
+  // Set up suggestion routes
+  setupSuggestionsRouter(app);
+  
+  // Set up onboarding routes
+  setupOnboardingRoutes(app);
+  
+  // Set up profile routes
+  setupProfileRouter(app);
+  
+  // Set up village routes
+  setupVillageRouter(app);
+  
+  // Set up chat routes
+  setupChatRouter(app);
+  
   return app;
 }

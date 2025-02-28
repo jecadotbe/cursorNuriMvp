@@ -1,45 +1,45 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import passport from "passport";
-import { type IVerifyOptions } from "passport-local";
+import { IVerifyOptions } from "passport-local";
 import { User } from "../../auth";
+import { loginRateLimiter, clearLoginAttempts } from "../../middleware/rate-limit";
+import { handleRouteError } from "../utils/error-handler";
 
 export function setupLoginRoute(router: Router) {
-  router.post("/login", (req, res, next) => {
-    if (!req.body.username || !req.body.password) {
-      return res.status(400).json({ message: "Username and password are required" });
-    }
-
-    passport.authenticate("local", (err: any, user: User | false, info: IVerifyOptions) => {
-      if (err) {
-        return next(err);
-      }
-
-      if (!user) {
-        return res.status(400).json({ message: info.message ?? "Login failed" });
-      }
-
-      // Handle remember me functionality
-      if (req.body.rememberMe) {
-        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-      }
-
-      req.session.checkSuggestions = true;
-
-      req.logIn(user, (err) => {
+  // Login route
+  router.post("/login", loginRateLimiter, (req: Request, res: Response) => {
+    try {
+      passport.authenticate("local", (err: any, user: User | false, info: IVerifyOptions) => {
         if (err) {
-          return next(err);
+          console.error("Authentication error:", err);
+          return res.status(500).json({ message: "Internal authentication error" });
         }
-
-        return res.json({
-          message: "Login successful",
-          user: {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            profilePicture: user.profilePicture
-          },
+        
+        if (!user) {
+          return res.status(401).json({ message: info.message || "Invalid username or password" });
+        }
+        
+        req.login(user, (loginErr) => {
+          if (loginErr) {
+            console.error("Login error:", loginErr);
+            return res.status(500).json({ message: "Error logging in" });
+          }
+          
+          // Clear rate limiting after successful login
+          clearLoginAttempts(req.ip);
+          
+          // Return user info without password
+          const { password, ...userWithoutPassword } = user;
+          return res.json({
+            message: "Login successful",
+            user: userWithoutPassword,
+          });
         });
-      });
-    })(req, res, next);
+      })(req, res);
+    } catch (error) {
+      handleRouteError(res, error, "Login failed");
+    }
   });
+
+  return router;
 }
