@@ -110,7 +110,7 @@ export async function addVillageMembersFromChat(
       circle: member.circle || DEFAULT_MEMBER_VALUES.circle,
       category: member.category || DEFAULT_MEMBER_VALUES.category,
       contactFrequency: member.contactFrequency || DEFAULT_MEMBER_VALUES.contactFrequency,
-      positionAngle: Math.random() * 360, // Random initial position
+      positionAngle: String(Math.random() * 360), // Random initial position as string
     };
     
     try {
