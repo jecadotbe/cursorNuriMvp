@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { db } from "@db/index";
 import { and, eq, isNull, gte, desc, or } from "drizzle-orm";
-import { promptSuggestions, villageMembers as villageMembersTable, chats as chatsTable, parentProfiles as parentProfilesTable } from "@db/schema";
+import { promptSuggestions, villageMembers, chats, parentProfiles } from "@db/schema";
 import type { User } from "@db/schema";
 
 export const memberSuggestionsRouter = Router();
@@ -25,7 +25,7 @@ export const handleMemberSuggestions = async (req: Request, res: Response) => {
 
     // Add type filter if provided
     if (type === 'village') {
-      // Filter for village-related suggestion types using or() from drizzle-orm
+      // Filter for village-related suggestion types using or()
       conditions.push(
         or(
           eq(promptSuggestions.type, 'network_growth'),
@@ -101,18 +101,18 @@ memberSuggestionsRouter.post("/refresh", async (req, res) => {
 
 // Helper function to get village context
 async function getVillageContext(userId: number) {
-  const members = await db.query.villageMembersTable.findMany({
-    where: eq(villageMembersTable.userId, userId),
+  const members = await db.query.villageMembers.findMany({
+    where: eq(villageMembers.userId, userId),
   });
 
-  const recentChats = await db.query.chatsTable.findMany({
-    where: eq(chatsTable.userId, userId),
-    orderBy: desc(chatsTable.updatedAt),
+  const recentChats = await db.query.chats.findMany({
+    where: eq(chats.userId, userId),
+    orderBy: desc(chats.updatedAt),
     limit: 3
   });
 
-  const parentProfile = await db.query.parentProfilesTable.findFirst({
-    where: eq(parentProfilesTable.userId, userId),
+  const parentProfile = await db.query.parentProfiles.findFirst({
+    where: eq(parentProfiles.userId, userId),
   });
 
   const villageContext = {
