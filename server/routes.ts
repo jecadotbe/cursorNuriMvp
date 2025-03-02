@@ -1494,7 +1494,7 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
   // ========================================
   // Member Suggestions Router
   // ========================================
-  import { memberSuggestionsRouter } from "./routes/api/member-suggestions";
+  const { memberSuggestionsRouter } = require("./routes/api/member-suggestions");
   app.use("/api/member-suggestions", memberSuggestionsRouter);
 
   // ========================================
