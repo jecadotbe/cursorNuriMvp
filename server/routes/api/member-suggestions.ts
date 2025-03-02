@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { db } from "@db/index";
-import { and, eq, isNull, gte, desc } from "drizzle-orm";
-import { promptSuggestions } from "@db/schema";
+import { and, eq, isNull, gte, desc, or } from "drizzle-orm";
+import { promptSuggestions, villageMembers as villageMembersTable, chats as chatsTable, parentProfiles as parentProfilesTable } from "@db/schema";
 import type { User } from "@db/schema";
 
 export const memberSuggestionsRouter = Router();
@@ -25,9 +25,9 @@ export const handleMemberSuggestions = async (req: Request, res: Response) => {
 
     // Add type filter if provided
     if (type === 'village') {
-      // Filter for village-related suggestion types
+      // Filter for village-related suggestion types using or() from drizzle-orm
       conditions.push(
-        db.or(
+        or(
           eq(promptSuggestions.type, 'network_growth'),
           eq(promptSuggestions.type, 'network_expansion'),
           eq(promptSuggestions.type, 'village_maintenance')
@@ -61,10 +61,10 @@ memberSuggestionsRouter.post("/refresh", async (req, res) => {
     }
 
     const user = req.user as User;
-    
+
     // Generate new suggestions
     const { members, villageContext } = await getVillageContext(user.id);
-    
+
     const newSuggestions = await generateVillageSuggestions(
       user.id,
       members,
@@ -76,15 +76,15 @@ memberSuggestionsRouter.post("/refresh", async (req, res) => {
     if (newSuggestions.length > 0) {
       const now = new Date();
       const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours from now
-      
+
       const suggestionsToInsert = newSuggestions.map(suggestion => ({
         ...suggestion,
         userId: user.id,
         expiresAt
       }));
-      
+
       await db.insert(promptSuggestions).values(suggestionsToInsert);
-      
+
       console.log(`Generated ${newSuggestions.length} new suggestions for user ${user.id}`);
     }
 
@@ -101,18 +101,18 @@ memberSuggestionsRouter.post("/refresh", async (req, res) => {
 
 // Helper function to get village context
 async function getVillageContext(userId: number) {
-  const members = await db.query.villageMembers.findMany({
-    where: eq(villageMembers.userId, userId),
+  const members = await db.query.villageMembersTable.findMany({
+    where: eq(villageMembersTable.userId, userId),
   });
 
-  const recentChats = await db.query.chats.findMany({
-    where: eq(chats.userId, userId),
-    orderBy: desc(chats.updatedAt),
+  const recentChats = await db.query.chatsTable.findMany({
+    where: eq(chatsTable.userId, userId),
+    orderBy: desc(chatsTable.updatedAt),
     limit: 3
   });
 
-  const parentProfile = await db.query.parentProfiles.findFirst({
-    where: eq(parentProfiles.userId, userId),
+  const parentProfile = await db.query.parentProfilesTable.findFirst({
+    where: eq(parentProfilesTable.userId, userId),
   });
 
   const villageContext = {
@@ -120,7 +120,7 @@ async function getVillageContext(userId: number) {
       ...chat,
       messages: Array.isArray(chat.messages) ? chat.messages : []
     })),
-    parentProfile,
+    parentProfile: parentProfile || null,
     childProfiles: parentProfile?.onboardingData?.childProfiles || [],
     challenges: parentProfile?.onboardingData?.stressAssessment?.primaryConcerns || [],
     memories: []
@@ -129,13 +129,5 @@ async function getVillageContext(userId: number) {
   return { members, villageContext };
 }
 
-// Helper function for OR condition (This is unnecessary given the use of db.or)
-// function or(...conditions: any[]) {
-//   return ({ or: conditions });
-// }
-
 import { memoryService } from "../../services/memory";
 import { generateVillageSuggestions } from "../../lib/suggestion-generator";
-import type { villageMembers } from "@db/schema";
-import type { chats } from "@db/schema";
-import type { parentProfiles } from "@db/schema";
