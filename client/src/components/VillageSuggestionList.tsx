@@ -1,7 +1,9 @@
 
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { X, RefreshCw } from "lucide-react";
+import { X, RotateCcw, RefreshCw } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Suggestion {
   id: number;
@@ -15,7 +17,7 @@ interface VillageSuggestionListProps {
   suggestions: Suggestion[];
   onDismiss: (id: number) => void;
   onNext: () => void;
-  onRefresh?: () => void;
+  onRefresh: () => void;
   isLoading?: boolean;
 }
 
@@ -26,6 +28,37 @@ export function VillageSuggestionList({
   onRefresh,
   isLoading = false,
 }: VillageSuggestionListProps) {
+  const [visibleSuggestions, setVisibleSuggestions] = useState<Suggestion[]>([]);
+  const [showMorePrompt, setShowMorePrompt] = useState(false);
+  const { toast } = useToast();
+
+  // Initialize the visible suggestions from the provided suggestions
+  useEffect(() => {
+    if (suggestions.length > 0) {
+      setVisibleSuggestions(suggestions.slice(0, 3));
+      setShowMorePrompt(false);
+    } else if (visibleSuggestions.length === 0 && !isLoading) {
+      setShowMorePrompt(true);
+    }
+  }, [suggestions, isLoading]);
+
+  // Handle dismissing a suggestion
+  const handleDismiss = (id: number) => {
+    onDismiss(id);
+    setVisibleSuggestions(prev => prev.filter(s => s.id !== id));
+    
+    // If this was the last suggestion, show the "more suggestions" prompt
+    if (visibleSuggestions.length === 1) {
+      setShowMorePrompt(true);
+    }
+  };
+
+  // Handle loading more suggestions
+  const handleMoreSuggestions = () => {
+    onRefresh();
+    setShowMorePrompt(false);
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center p-6 gap-2">
@@ -35,72 +68,84 @@ export function VillageSuggestionList({
     );
   }
 
-  if (!suggestions.length) {
+  if (showMorePrompt) {
+    return (
+      <div className="p-4 bg-white/80 backdrop-blur-sm shadow-sm border border-gray-100 rounded-lg text-center">
+        <p className="mb-4">Geen suggesties meer beschikbaar. Wil je nieuwe suggesties genereren?</p>
+        <Button 
+          onClick={handleMoreSuggestions} 
+          className="inline-flex items-center gap-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          <span>Genereer nieuwe suggesties</span>
+        </Button>
+      </div>
+    );
+  }
+
+  if (visibleSuggestions.length === 0 && !showMorePrompt) {
     return (
       <div className="text-center p-6">
         <p className="text-gray-500">Geen suggesties beschikbaar</p>
-        {onRefresh && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={onRefresh}
-            className="mt-4"
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            <span>Ververs suggesties</span>
-          </Button>
-        )}
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {suggestions.slice(0, 3).map((suggestion) => (
-        <Card 
-          key={suggestion.id} 
-          className="bg-white shadow-sm border border-gray-100 overflow-hidden transition-all hover:shadow-md"
-        >
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className={`w-2 h-2 rounded-full ${getTypeColor(suggestion.type)}`} />
-                  <span className="text-sm font-medium text-gray-600">
-                    {getTypeLabel(suggestion.type)}
-                  </span>
+      {visibleSuggestions.map((suggestion) => (
+        <div key={suggestion.id} className="relative">
+          <Card className="bg-white/80 backdrop-blur-sm shadow-sm border border-gray-100">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className={`w-2 h-2 rounded-full ${getTypeColor(suggestion.type)}`} />
+                    <span className="text-sm font-medium text-gray-600">
+                      {getTypeLabel(suggestion.type)}
+                    </span>
+                  </div>
+                  <p className="text-gray-700 leading-relaxed">
+                    {suggestion.text}
+                  </p>
+                  {suggestion.context && (
+                    <p className="text-sm text-gray-500 mt-2 italic">
+                      {suggestion.context}
+                    </p>
+                  )}
                 </div>
-                <p className="text-gray-700 leading-relaxed mb-2">
-                  {suggestion.text}
-                </p>
-                <p className="text-sm text-gray-500 italic">
-                  {suggestion.context}
-                </p>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleDismiss(suggestion.id)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onDismiss(suggestion.id)}
-                className="text-gray-400 hover:text-gray-600 -mt-1 -mr-2"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       ))}
       
-      <div className="flex justify-center mt-4">
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={onNext}
-          disabled={isLoading}
-          className="text-sm"
-        >
-          Meer suggesties
-        </Button>
-      </div>
+      {/* Button to load more suggestions */}
+      {suggestions.length > visibleSuggestions.length && (
+        <div className="flex justify-center mt-4">
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              // Add 3 more suggestions to the visible list
+              const nextIndex = visibleSuggestions.length;
+              const additional = suggestions.slice(nextIndex, nextIndex + 3);
+              setVisibleSuggestions(prev => [...prev, ...additional]);
+            }}
+            className="inline-flex items-center gap-2"
+          >
+            <span>Meer suggesties</span>
+            <RotateCcw className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

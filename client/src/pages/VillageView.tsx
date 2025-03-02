@@ -929,7 +929,7 @@ export default function VillageView() {
               </div>
             ) : (
               <VillageSuggestionList
-                suggestions={suggestions}
+                suggestions={suggestions || []}
                 onDismiss={dismissSuggestion}
                 onNext={nextSuggestion}
                 onRefresh={refetchSuggestions}
