@@ -91,9 +91,10 @@ export default function HomeView() {
     markAsUsed: markVillageSuggestionAsUsed,
     refetch: refetchVillageSuggestions,
     invalidateSuggestions: invalidateVillageSuggestions,
-    forceVillageRefresh
+    forceRefresh
   } = useVillageSuggestions({
-    autoRefresh: false,
+    autoRefresh: true, // Enable auto-refresh to get new suggestions
+    refreshInterval: 60000, // Check every minute for new suggestions
     maxSuggestions: 5,
     filterByType: ['network_growth', 'network_expansion', 'village_maintenance'] as const
   });
@@ -144,12 +145,12 @@ export default function HomeView() {
   useEffect(() => {
     const refreshAfterChat = () => {
       invalidateVillageSuggestions();
-      forceVillageRefresh();
+      forceRefresh();
     };
 
     window.addEventListener('chatSessionEnd', refreshAfterChat);
     return () => window.removeEventListener('chatSessionEnd', refreshAfterChat);
-  }, [invalidateVillageSuggestions, forceVillageRefresh]);
+  }, [invalidateVillageSuggestions, forceRefresh]);
 
   const shouldShowSkeleton = showSkeleton || suggestionLoading || (!hasSuggestions && !suggestion);
 
@@ -428,7 +429,7 @@ export default function HomeView() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={forceVillageRefresh}
+              onClick={forceRefresh}
               disabled={villageLoading}
               className="hover:bg-white/20"
             >
@@ -445,6 +446,24 @@ export default function HomeView() {
                 <Card className="bg-white">
                   <CardContent className="p-4 text-center text-red-500">
                     Er ging iets mis bij het ophalen van de suggesties
+                  </CardContent>
+                </Card>
+              ) : villageLoading ? (
+                // Show loading skeleton while suggestions are being fetched
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <Card key={i} className="bg-white animate-pulse">
+                      <CardContent className="p-4">
+                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : villageSuggestions?.length === 0 ? (
+                <Card className="bg-white">
+                  <CardContent className="p-4 text-center text-gray-500">
+                    Nieuwe suggesties worden voorbereid...
                   </CardContent>
                 </Card>
               ) : (
