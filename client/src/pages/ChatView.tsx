@@ -21,7 +21,6 @@ import { MicrophoneVisualizer } from "@/components/MicrophoneVisualizer";
 import { CustomerResults } from "@/components/CustomerResults"; // Added import
 
 import { renderMarkdown } from "@/lib/markdown";
-import { VillageActionChips, processVillageActions } from "@/components/VillageActionChips";
 
 const theme = {
   primary: 'bg-[#DEDBCA]',
@@ -36,10 +35,7 @@ const theme = {
 
 
 const formatMessageContent = (content: string) => {
-  // First process any village action tags to extract them for custom rendering
-  const contentWithoutActions = processVillageActions(content);
-  const processedContent = replaceTemplateVariables(contentWithoutActions);
-  
+  const processedContent = replaceTemplateVariables(content);
   return (
     <div
       className="prose prose-sm max-w-none dark:prose-invert"
@@ -222,9 +218,6 @@ export default function ChatView() {
                       ? `${theme.primary} ${theme.text.primary}`
                       : `${theme.secondary} ${theme.text.secondary}`
                   }`}
-                  data-message-content={message.content}
-                  data-message-id={`${chatId}-${index}`}
-                  data-message-role={message.role}
                 >
                   {message.role === 'assistant' ? (
                     <>
@@ -250,14 +243,6 @@ export default function ChatView() {
             {message.role === 'assistant' && message.content.includes('Helan kinderopvang') && (
               <div className="ml-10 mt-4">
                 <CustomerResults trigger="Helan kinderopvang" />
-              </div>
-            )}
-            {message.role === 'assistant' && message.content.includes('<village-action') && (
-              <div className="ml-10 mt-2 mb-3">
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Village acties</h4>
-                  <VillageActionChips content={message.content} />
-                </div>
               </div>
             )}
           </div>

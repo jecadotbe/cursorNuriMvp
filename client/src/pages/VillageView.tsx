@@ -68,7 +68,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { VillageRecommendations } from "@/components/VillageRecommendations";
 import { useVillageMemories } from "@/hooks/use-village-memories";
 import { VillageMemberMemories } from "@/components/VillageMemberMemories";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -842,13 +841,6 @@ export default function VillageView() {
         </div>
       </div>
 
-      {/* Recommendations for circle view */}
-      {!showListView && (
-        <div className="fixed top-24 left-4 right-4 z-10 max-w-md mx-auto lg:ml-0 lg:mx-0">
-          <VillageRecommendations />
-        </div>
-      )}
-
       <div className="fixed top-24 right-4 flex flex-col space-y-2 z-10">
         <button
           onClick={handleZoomIn}
@@ -1265,9 +1257,6 @@ export default function VillageView() {
         >
           <ScrollArea className="h-[calc(100vh-100px)]">
             <div className="space-y-4 mb-20">
-              {/* Show village recommendations at the top of list view */}
-              <VillageRecommendations />
-              
               {[1, 2, 3, 4, 5].map((circle) => (
                 <div key={circle}>
                   <h3 className="text-lg font-semibold mb-2">
@@ -1345,6 +1334,8 @@ export default function VillageView() {
                   <VillageMemberMemories
                     memberId={selectedMember.id}
                     memberName={selectedMember.name}
+                    open={isMemoryDialogOpen}
+                    onOpenChange={setIsMemoryDialogOpen}
                   />
                 )}
               </TabsContent>
