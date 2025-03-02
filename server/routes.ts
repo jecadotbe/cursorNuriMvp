@@ -25,6 +25,9 @@ import { villageRouter } from "./routes/village";
 import { searchBooks } from "./rag";
 import { generateVillageSuggestions } from "./lib/suggestion-generator";
 import { memberSuggestionsRouter } from "./routes/api/member-suggestions";
+import { Router } from "express";
+import { handleMemberSuggestions } from "./routes/api/member-suggestions";
+
 
 // Suggestion categories constant
 const SUGGESTION_CATEGORIES = {
@@ -1503,6 +1506,10 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
   // Register Village Router (only once)
   // ========================================
   app.use("/api/village", villageRouter);
+
+  // Member suggestions endpoint
+  app.get("/api/member-suggestions", ensureAuthenticated, handleMemberSuggestions);
+
 
   // Create and return the HTTP server.
   const server = createServer(app);

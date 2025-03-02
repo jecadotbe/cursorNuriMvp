@@ -1,16 +1,12 @@
-
-import { Router } from "express";
-import { db } from "@db";
-import { eq, desc, and, isNull, gte } from "drizzle-orm";
+import { Router, Request, Response } from "express";
+import { db } from "@db/index";
+import { and, eq, isNull, gte, desc } from "drizzle-orm";
 import { promptSuggestions } from "@db/schema";
-import type { User } from "../../auth";
-import { memoryService } from "../../services/memory";
-import { generateVillageSuggestions } from "../../lib/suggestion-generator";
+import type { User } from "@db/schema";
 
 export const memberSuggestionsRouter = Router();
 
-// Get suggestions from the database
-memberSuggestionsRouter.get("/", async (req, res) => {
+export const handleMemberSuggestions = async (req: Request, res: Response) => {
   try {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Not authenticated" });
@@ -18,45 +14,44 @@ memberSuggestionsRouter.get("/", async (req, res) => {
 
     const user = req.user as User;
     const now = new Date();
-    const type = req.query.type;
+    const type = req.query.type as string;
 
-    // Build the where clause based on the type
-    let whereClause = and(
+    // Filter conditions
+    const conditions = [
       eq(promptSuggestions.userId, user.id),
       isNull(promptSuggestions.usedAt),
-      gte(promptSuggestions.expiresAt, now)
-    );
+      gte(promptSuggestions.expiresAt, now),
+    ];
 
-    if (type === "village") {
-      // Add filter for village-related suggestion types
-      whereClause = and(
-        whereClause,
-        or(
-          eq(promptSuggestions.type, "network_growth"),
-          eq(promptSuggestions.type, "network_expansion"),
-          eq(promptSuggestions.type, "village_maintenance")
+    // Add type filter if provided
+    if (type === 'village') {
+      // Filter for village-related suggestion types
+      conditions.push(
+        db.or(
+          eq(promptSuggestions.type, 'network_growth'),
+          eq(promptSuggestions.type, 'network_expansion'),
+          eq(promptSuggestions.type, 'village_maintenance')
         )
       );
     }
 
-    // Get active suggestions
+    // Get suggestions from the database
     const suggestions = await db.query.promptSuggestions.findMany({
-      where: whereClause,
+      where: and(...conditions),
       orderBy: desc(promptSuggestions.createdAt),
-      limit: 5,
     });
 
-    console.log(`Retrieved ${suggestions.length} suggestions for user ${user.id}`);
-
-    res.json(suggestions);
+    return res.json(suggestions);
   } catch (error) {
-    console.error('Error in GET /member-suggestions:', error);
-    res.status(500).json({ 
+    console.error("Error getting member suggestions:", error);
+    return res.status(500).json({ 
       error: "Internal server error", 
-      message: error instanceof Error ? error.message : "Unknown error"
+      message: error instanceof Error ? error.message : "Unknown error" 
     });
   }
-});
+};
+
+memberSuggestionsRouter.get("/", handleMemberSuggestions);
 
 // Refresh suggestions endpoint
 memberSuggestionsRouter.post("/refresh", async (req, res) => {
@@ -134,7 +129,13 @@ async function getVillageContext(userId: number) {
   return { members, villageContext };
 }
 
-// Helper function for OR condition
-function or(...conditions: any[]) {
-  return ({ or: conditions });
-}
+// Helper function for OR condition (This is unnecessary given the use of db.or)
+// function or(...conditions: any[]) {
+//   return ({ or: conditions });
+// }
+
+import { memoryService } from "../../services/memory";
+import { generateVillageSuggestions } from "../../lib/suggestion-generator";
+import type { villageMembers } from "@db/schema";
+import type { chats } from "@db/schema";
+import type { parentProfiles } from "@db/schema";

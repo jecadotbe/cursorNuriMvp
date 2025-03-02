@@ -46,6 +46,12 @@ export function useVillageSuggestions({
     staleTime: refreshInterval,
     refetchInterval: autoRefresh ? refreshInterval : false,
   });
+  
+  // Force refresh function to invalidate and refetch data
+  const forceRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['village-suggestions'] });
+    return refetch();
+  };
 
   const markAsUsed = async (id: number) => {
     try {
@@ -59,6 +65,29 @@ export function useVillageSuggestions({
       if (!response.ok) {
         throw new Error('Failed to mark suggestion as used');
       }
+      
+      // Invalidate after marking as used
+      queryClient.invalidateQueries({ queryKey: ['village-suggestions'] });
+    } catch (error) {
+      console.error('Error marking suggestion as used:', error);
+      throw error;
+    }
+  };
+  
+  // Function to invalidate suggestions cache
+  const invalidateSuggestions = () => {
+    queryClient.invalidateQueries({ queryKey: ['village-suggestions'] });
+  };
+  
+  return {
+    suggestions: data?.slice(0, maxSuggestions) || [],
+    isLoading,
+    error,
+    refetch,
+    markAsUsed,
+    invalidateSuggestions,
+    forceRefresh
+  };
 
       // Update local state
       queryClient.setQueryData(
