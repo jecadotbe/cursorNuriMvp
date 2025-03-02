@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { setupChatRoutes } from "./messages";
 import { setupSuggestionsRoutes } from "./suggestions";
+import { setupVillageChatIntegration } from "./village-integration";
 
 export function setupChatRouter(app: Router) {
   const router = Router();
@@ -12,6 +13,9 @@ export function setupChatRouter(app: Router) {
   const suggestionRouter = Router();
   setupSuggestionsRoutes(suggestionRouter);
   router.use('/suggestions', suggestionRouter);
+
+  // Register village integration routes
+  setupVillageChatIntegration(router);
 
   return router;
 }
