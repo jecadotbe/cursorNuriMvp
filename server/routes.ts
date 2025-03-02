@@ -24,6 +24,7 @@ import { memoryService } from "./services/memory";
 import { villageRouter } from "./routes/village";
 import { searchBooks } from "./rag";
 import { generateVillageSuggestions } from "./lib/suggestion-generator";
+import { memberSuggestionsRouter } from "./routes/api/member-suggestions";
 
 // Suggestion categories constant
 const SUGGESTION_CATEGORIES = {
@@ -468,7 +469,9 @@ ${finalData.goals.longTerm?.length ? `Long term: ${finalData.goals.longTerm.join
           .status(400)
           .json({ message: "File size must be less than 2MB" });
       }
-      const fileName = `profile-${user.id}-${Date.now()}${path.extname(file.name)}`;
+      const fileName = `profile-${user.id}-${Date.now()}${path.extname(
+        file.name,
+      )}`;
       const uploadDir = path.join(process.cwd(), "public", "uploads");
       const filePath = path.join(uploadDir, fileName);
       await fs.mkdir(uploadDir, { recursive: true });
@@ -587,7 +590,7 @@ CONTEXT:
         category: "chat_history",
         timestamp: new Date().toISOString(),
       });
-      
+
       // Set a flag to check for potential village members in the background
       // This prevents it from delaying the chat response but ensures we process member detection
       req.session.checkVillageMembers = true;
@@ -1494,7 +1497,6 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
   // ========================================
   // Member Suggestions Router
   // ========================================
-  const { memberSuggestionsRouter } = require("./routes/api/member-suggestions");
   app.use("/api/member-suggestions", memberSuggestionsRouter);
 
   // ========================================
@@ -1503,8 +1505,8 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
   app.use("/api/village", villageRouter);
 
   // Create and return the HTTP server.
-  const httpServer = createServer(app);
-  return httpServer;
+  const server = createServer(app);
+  return server;
 }
 
 // ==========================================
