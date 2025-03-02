@@ -26,7 +26,7 @@ export function useVillageSuggestions({
 
   const fetchVillageSuggestions = async (): Promise<Suggestion[]> => {
     try {
-      const response = await fetch('/api/member-suggestions?type=village');
+      const response = await fetch('/api/suggestions/village'); // Updated endpoint
 
       if (!response.ok) {
         throw new Error('Failed to fetch village suggestions');
