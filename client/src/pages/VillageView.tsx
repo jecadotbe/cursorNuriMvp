@@ -900,23 +900,6 @@ export default function VillageView() {
         <SheetContent side="bottom" className="h-[90vh]">
           <SheetHeader>
             <SheetTitle>Dorpsuggesties</SheetTitle>
-            <div className="flex justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => refetchSuggestions()}
-                disabled={isSuggestionsLoading}
-              >
-                {isSuggestionsLoading ? (
-                  <span className="animate-spin">↻</span>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <RotateCcw className="w-4 h-4" />
-                    <span>Ververs suggesties</span>
-                  </div>
-                )}
-              </Button>
-            </div>
           </SheetHeader>
           <div className="p-4">
             {suggestionsError ? (

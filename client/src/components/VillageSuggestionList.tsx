@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { X, RotateCcw, RefreshCw } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 
 interface Suggestion {
   id: number;
@@ -17,7 +16,7 @@ interface VillageSuggestionListProps {
   suggestions: Suggestion[];
   onDismiss: (id: number) => void;
   onNext: () => void;
-  onRefresh: () => void;
+  onRefresh?: () => void;
   isLoading?: boolean;
 }
 
@@ -30,36 +29,44 @@ export function VillageSuggestionList({
 }: VillageSuggestionListProps) {
   const [visibleSuggestions, setVisibleSuggestions] = useState<Suggestion[]>([]);
   const [showMorePrompt, setShowMorePrompt] = useState(false);
-  const { toast } = useToast();
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  // Initialize the visible suggestions from the provided suggestions
   useEffect(() => {
     if (suggestions.length > 0) {
+      // Initialize with first 3 suggestions
       setVisibleSuggestions(suggestions.slice(0, 3));
       setShowMorePrompt(false);
-    } else if (visibleSuggestions.length === 0 && !isLoading) {
-      setShowMorePrompt(true);
+    } else {
+      setVisibleSuggestions([]);
+      setShowMorePrompt(suggestions.length === 0 && !isLoading);
     }
+    setLoadingMore(false);
   }, [suggestions, isLoading]);
 
-  // Handle dismissing a suggestion
   const handleDismiss = (id: number) => {
     onDismiss(id);
     setVisibleSuggestions(prev => prev.filter(s => s.id !== id));
     
-    // If this was the last suggestion, show the "more suggestions" prompt
+    // If all visible suggestions are dismissed, ask for more
     if (visibleSuggestions.length === 1) {
-      setShowMorePrompt(true);
+      if (suggestions.length > visibleSuggestions.length) {
+        // Show more from existing suggestions
+        const nextIndex = visibleSuggestions.length;
+        const additional = suggestions.slice(nextIndex, nextIndex + 3);
+        setVisibleSuggestions(additional);
+      } else {
+        // No more suggestions available, show refresh prompt
+        setShowMorePrompt(true);
+      }
     }
   };
 
-  // Handle loading more suggestions
   const handleMoreSuggestions = () => {
-    onRefresh();
-    setShowMorePrompt(false);
+    setLoadingMore(true);
+    onNext();
   };
 
-  if (isLoading) {
+  if (isLoading && !loadingMore) {
     return (
       <div className="flex flex-col items-center justify-center p-6 gap-2">
         <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
@@ -128,21 +135,32 @@ export function VillageSuggestionList({
         </div>
       ))}
       
-      {/* Button to load more suggestions */}
       {suggestions.length > visibleSuggestions.length && (
         <div className="flex justify-center mt-4">
           <Button 
             variant="outline" 
             onClick={() => {
+              setLoadingMore(true);
               // Add 3 more suggestions to the visible list
               const nextIndex = visibleSuggestions.length;
               const additional = suggestions.slice(nextIndex, nextIndex + 3);
               setVisibleSuggestions(prev => [...prev, ...additional]);
+              setLoadingMore(false);
             }}
             className="inline-flex items-center gap-2"
+            disabled={loadingMore}
           >
-            <span>Meer suggesties</span>
-            <RotateCcw className="w-4 h-4" />
+            {loadingMore ? (
+              <>
+                <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full mr-2" />
+                <span>Laden...</span>
+              </>
+            ) : (
+              <>
+                <span>Meer suggesties</span>
+                <RotateCcw className="w-4 h-4" />
+              </>
+            )}
           </Button>
         </div>
       )}
