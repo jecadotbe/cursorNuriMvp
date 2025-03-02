@@ -98,6 +98,14 @@ export default function HomeView() {
     maxSuggestions: 5,
     filterByType: ['network_growth', 'network_expansion', 'village_maintenance'] as const
   });
+  
+  // Debug logging to check suggestion sources
+  useEffect(() => {
+    console.log('Suggestions comparison:', {
+      chatSuggestion: suggestion,
+      villageSuggestions
+    });
+  }, [suggestion, villageSuggestions]);
 
   // Debug logging
   useEffect(() => {

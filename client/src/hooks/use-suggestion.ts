@@ -5,7 +5,8 @@ import { useState, useRef, useCallback } from "react";
 
 async function fetchSuggestions(): Promise<PromptSuggestion[]> {
   console.log('Fetching suggestions...');
-  const response = await fetch('/api/suggestions', {
+  // Specify chat context to differentiate from village suggestions
+  const response = await fetch('/api/suggestions?context=chat', {
     credentials: 'include',
   });
 
