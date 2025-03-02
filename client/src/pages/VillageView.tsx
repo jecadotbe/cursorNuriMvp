@@ -285,6 +285,7 @@ export default function VillageView() {
     null,
   );
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
+  const [currentSuggestionIndex, setCurrentSuggestionIndex] = useState(0);
   const [selectedMember, setSelectedMember] = useState<VillageMember | null>(
     null,
   );
@@ -777,6 +778,7 @@ export default function VillageView() {
 
   const nextSuggestion = () => {
     refetchSuggestions();
+    setCurrentSuggestionIndex(0);
   };
 
   const handleInsightAction = (id: number) => {
@@ -887,7 +889,10 @@ export default function VillageView() {
           />
         </button>
         <button
-          onClick={() => setIsSuggestionsOpen(true)}
+          onClick={() => {
+            setCurrentSuggestionIndex(0);
+            setIsSuggestionsOpen(true);
+          }}
           className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow hover:bg-gray-50"
         >
           <Lightbulb className="w-5 h-5 text-gray-700" />
@@ -895,28 +900,42 @@ export default function VillageView() {
       </div>
 
       {/* Village suggestions dialog */}
-      <Sheet open={isSuggestionsOpen} onOpenChange={setIsSuggestionsOpen}>
-        <SheetContent side="bottom" className="h-[90vh]">
-          <SheetHeader>
-            <SheetTitle>Dorpsuggesties</SheetTitle>
-            <div className="flex justify-end">
-              <Button
-                variant="outline"
-                size="sm"
+      <dialog
+        open={isSuggestionsOpen}
+        className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setIsSuggestionsOpen(false);
+          }
+        }}
+      >
+        <div className="bg-white rounded-xl max-w-lg w-full max-h-[80vh] overflow-hidden relative animate-in fade-in zoom-in duration-200">
+          <div className="flex justify-between items-center p-5 border-b">
+            <h2 className="text-xl font-medium">Dorpsuggesties</h2>
+            <div className="flex gap-2">
+              <button
+                className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-gray-900"
                 onClick={() => refetchSuggestions()}
                 disabled={isSuggestionsLoading}
               >
                 {isSuggestionsLoading ? (
-                  <span className="animate-spin">↻</span>
+                  <span className="animate-spin mr-1">↻</span>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <RotateCcw className="w-4 h-4" />
-                    <span>Ververs suggesties</span>
-                  </div>
+                  <>
+                    <RotateCcw className="w-4 h-4 mr-1" />
+                  </>
                 )}
-              </Button>
+                Ververs suggesties
+              </button>
+              <button
+                onClick={() => setIsSuggestionsOpen(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-          </SheetHeader>
+          </div>
+          
           <div className="p-4">
             {suggestionsError ? (
               <div className="text-center py-8 px-4">
@@ -926,17 +945,77 @@ export default function VillageView() {
                   Probeer het later opnieuw.
                 </p>
               </div>
+            ) : isSuggestionsLoading ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mb-4"></div>
+                <p className="text-gray-500">Suggesties laden...</p>
+              </div>
+            ) : suggestions && suggestions.length > 0 ? (
+              <>
+                {/* Suggestion carousel */}
+                <div className="relative">
+                  {suggestions.slice(0, 3).map((suggestion, index) => (
+                    <div
+                      key={suggestion.id}
+                      className={`transition-opacity duration-300 ${
+                        index === currentSuggestionIndex ? "block" : "hidden"
+                      }`}
+                    >
+                      <div className="bg-white rounded-lg p-6 relative">
+                        <button
+                          onClick={() => dismissSuggestion(suggestion.id)}
+                          className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                        
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                          <span className="text-sm font-medium">
+                            {suggestion.type === 'network_growth' 
+                              ? 'Versterk je village' 
+                              : suggestion.type === 'network_expansion' 
+                                ? 'Breid je netwerk uit' 
+                                : 'Onderhoud je village'}
+                          </span>
+                        </div>
+                        
+                        <p className="text-gray-800 mb-2">{suggestion.text}</p>
+                        
+                        <div className="text-sm text-gray-500 mt-2">
+                          {suggestion.context || 'village'}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {/* Pagination dots */}
+                  <div className="flex justify-center gap-1 mt-4">
+                    {suggestions.slice(0, 3).map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentSuggestionIndex(index)}
+                        className={`w-2 h-2 rounded-full ${
+                          index === currentSuggestionIndex
+                            ? "bg-gray-800"
+                            : "bg-gray-300"
+                        }`}
+                        aria-label={`Go to suggestion ${index + 1}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </>
             ) : (
-              <VillageSuggestionCards
-                suggestions={suggestions}
-                onDismiss={dismissSuggestion}
-                onNext={nextSuggestion}
-                isLoading={isSuggestionsLoading}
-              />
+              <div className="text-center py-8 px-4">
+                <p className="text-gray-600">
+                  Geen suggesties beschikbaar. Probeer later opnieuw.
+                </p>
+              </div>
             )}
           </div>
-        </SheetContent>
-      </Sheet>
+        </div>
+      </dialog>
 
       <div
         className="flex-1 relative overflow-hidden"
