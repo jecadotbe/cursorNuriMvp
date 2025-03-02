@@ -19,7 +19,7 @@ export function VillageRecommendations() {
   const [adding, setAdding] = useState<Record<string, boolean>>({});
   const [added, setAdded] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
-  const { loadMembers } = useVillage();
+  const { members, addMember, updateMember, deleteMember } = useVillage();
 
   useEffect(() => {
     fetchRecommendations();
@@ -77,8 +77,7 @@ export function VillageRecommendations() {
             variant: 'default',
           });
           
-          // Refresh the village members list
-          loadMembers();
+          // No need to refresh here - handled by react-query in parent component
         } else {
           toast({
             title: 'Let op',
