@@ -158,3 +158,109 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
     forceRefresh
   };
 }
+import { useState, useEffect, useCallback } from "react";
+import { useToast } from "@/hooks/use-toast";
+
+interface Suggestion {
+  id: number;
+  text: string;
+  type: string;
+  title?: string;
+  context?: string;
+}
+
+interface VillageSuggestionOptions {
+  autoRefresh?: boolean;
+  refreshInterval?: number;
+  maxSuggestions?: number;
+  context?: string;
+}
+
+export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
+  const {
+    autoRefresh = false,
+    refreshInterval = 300000, // 5 minutes
+    maxSuggestions = 3,
+    context = "village",
+  } = options;
+
+  const [suggestions, setSuggestions] = useState<Suggestion[]>();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const { toast } = useToast();
+
+  const fetchSuggestions = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await fetch(`/api/suggestions/${context}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch suggestions: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setSuggestions(data.slice(0, maxSuggestions));
+    } catch (err) {
+      console.error("Error fetching village suggestions:", err);
+      setError(err instanceof Error ? err : new Error(String(err)));
+      toast({
+        title: "Error",
+        description: "Failed to load suggestions. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [context, maxSuggestions, toast]);
+
+  const markAsUsed = useCallback(async (id: number) => {
+    try {
+      const response = await fetch(`/api/suggestions/${id}/use`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to mark suggestion as used: ${response.statusText}`);
+      }
+
+      // Remove the used suggestion from the local state
+      setSuggestions((prev) => prev?.filter((s) => s.id !== id));
+      
+      return true;
+    } catch (err) {
+      console.error("Error marking suggestion as used:", err);
+      toast({
+        title: "Error",
+        description: "Failed to process suggestion. Please try again.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  }, [toast]);
+
+  const refetch = useCallback(() => {
+    return fetchSuggestions();
+  }, [fetchSuggestions]);
+
+  useEffect(() => {
+    fetchSuggestions();
+
+    if (autoRefresh) {
+      const interval = setInterval(fetchSuggestions, refreshInterval);
+      return () => clearInterval(interval);
+    }
+  }, [autoRefresh, fetchSuggestions, refreshInterval]);
+
+  return {
+    suggestions,
+    isLoading,
+    error,
+    refetch,
+    markAsUsed,
+  };
+}

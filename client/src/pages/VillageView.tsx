@@ -73,13 +73,25 @@ import { VillageMemberMemories } from "@/components/VillageMemberMemories";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InsightsPanel from "@/components/InsightsPanel";
 import type { VillageMember } from "@db/schema";
-import { VillageSuggestionCards } from "@/components/VillageSuggestionCards"; // Added import
+import { VillageSuggestionCards } from "@/components/VillageSuggestionCards";
 
 const CATEGORY_COLORS = {
   informeel: "#3C9439", // Green
   formeel: "#EE4B92", // Pink
   inspiratie: "#4D3A88", // Purple
 } as const;
+
+// Types for member suggestions
+interface MemberSuggestion {
+  id: number;
+  name: string;
+  type?: "individual" | "group";
+  circle?: number;
+  category?: "informeel" | "formeel" | "inspiratie";
+  contactFrequency?: "S" | "M" | "L" | "XL";
+  text: string;
+  context?: string;
+}
 
 interface NewVillageMember {
   name: string;
@@ -290,6 +302,7 @@ export default function VillageView() {
   );
   const [isMemoryDialogOpen, setIsMemoryDialogOpen] = useState(false);
   const [isInsightsPanelOpen, setIsInsightsPanelOpen] = useState(false);
+  const [isMemberSuggestionsOpen, setIsMemberSuggestionsOpen] = useState(false);
   const [newMemory, setNewMemory] = useState<Omit<Memory, "id">>({
     title: "",
     content: "",
@@ -297,6 +310,8 @@ export default function VillageView() {
     tags: [] as string[],
     date: format(new Date(), "yyyy-MM-dd"),
   });
+  
+  // Regular village suggestions
   const {
     suggestions,
     isLoading: isSuggestionsLoading,
@@ -306,6 +321,19 @@ export default function VillageView() {
   } = useVillageSuggestions({
     autoRefresh: false,
     maxSuggestions: 5,
+  });
+  
+  // Member suggestions (detected from conversations)
+  const {
+    suggestions: memberSuggestions,
+    isLoading: isMemberSuggestionsLoading,
+    refetch: refetchMemberSuggestions,
+    markAsUsed: markMemberSuggestionAsUsed,
+    error: memberSuggestionsError,
+  } = useVillageSuggestions({
+    autoRefresh: false,
+    maxSuggestions: 3,
+    context: "member-suggestions",
   });
 
   const { addMemory } = useVillageMemories(selectedMember?.id || 0);
@@ -786,6 +814,25 @@ export default function VillageView() {
     }
     dismissInsight(id);
   };
+  
+  const handleMemberSuggestion = (suggestion: any) => {
+    // Pre-fill the new member form with data from suggestion
+    if (suggestion && suggestion.name) {
+      setNewMember({
+        name: suggestion.name,
+        type: suggestion.type || "individual",
+        circle: suggestion.circle || 2,
+        category: suggestion.category || "informeel",
+        contactFrequency: suggestion.contactFrequency || "M",
+      });
+      
+      // Open the add member sheet
+      setIsOpen(true);
+      
+      // Mark the suggestion as used
+      markMemberSuggestionAsUsed(suggestion.id);
+    }
+  };
 
   const handleDragStop = (_e: any, data: any, member: VillageMember) => {
     const distance = Math.sqrt(data.x * data.x + data.y * data.y);
@@ -876,6 +923,19 @@ export default function VillageView() {
         >
           <Lightbulb className="w-5 h-5 text-gray-700" />
         </button>
+        
+        {/* Member suggestions button - with notification indicator when suggestions exist */}
+        <button
+          onClick={() => setIsMemberSuggestionsOpen(true)}
+          className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow hover:bg-gray-50 relative"
+        >
+          <User className="w-5 h-5 text-gray-700" />
+          {memberSuggestions && memberSuggestions.length > 0 && (
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-white text-xs">
+              {memberSuggestions.length}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* Village suggestions dialog */}
@@ -916,6 +976,54 @@ export default function VillageView() {
                 onDismiss={dismissSuggestion}
                 onNext={nextSuggestion}
                 isLoading={isSuggestionsLoading}
+              />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+      
+      {/* Member suggestions dialog */}
+      <Sheet open={isMemberSuggestionsOpen} onOpenChange={setIsMemberSuggestionsOpen}>
+        <SheetContent side="bottom" className="h-[90vh]">
+          <SheetHeader>
+            <SheetTitle>Villageleden suggesties</SheetTitle>
+            <SheetDescription>
+              Deze personen zijn gedetecteerd uit je gesprekken en zouden goede toevoegingen aan je village kunnen zijn.
+            </SheetDescription>
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetchMemberSuggestions()}
+                disabled={isMemberSuggestionsLoading}
+              >
+                {isMemberSuggestionsLoading ? (
+                  <span className="animate-spin">↻</span>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <RotateCcw className="w-4 h-4" />
+                    <span>Ververs suggesties</span>
+                  </div>
+                )}
+              </Button>
+            </div>
+          </SheetHeader>
+          <div className="p-4">
+            {memberSuggestionsError ? (
+              <div className="text-center py-8 px-4">
+                <X className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                <p className="text-red-600">
+                  Er is een fout opgetreden bij het ophalen van suggesties.
+                  Probeer het later opnieuw.
+                </p>
+              </div>
+            ) : (
+              <VillageSuggestionCards
+                suggestions={memberSuggestions}
+                onDismiss={markMemberSuggestionAsUsed}
+                onNext={refetchMemberSuggestions}
+                onAction={handleMemberSuggestion}
+                isLoading={isMemberSuggestionsLoading}
               />
             )}
           </div>

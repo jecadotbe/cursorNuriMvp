@@ -587,6 +587,11 @@ CONTEXT:
         category: "chat_history",
         timestamp: new Date().toISOString(),
       });
+      
+      // Set a flag to check for potential village members in the background
+      // This prevents it from delaying the chat response but ensures we process member detection
+      req.session.checkVillageMembers = true;
+      await req.session.save();
       // Save or update chat in database.
       if (req.body.chatId) {
         const chatId = parseChatId(req.body.chatId);
@@ -1485,6 +1490,12 @@ Generate varied suggestions focusing on the user's priorities. For new users or 
       }
     },
   );
+
+  // ========================================
+  // Member Suggestions Router
+  // ========================================
+  import { memberSuggestionsRouter } from "./routes/api/member-suggestions";
+  app.use("/api/member-suggestions", memberSuggestionsRouter);
 
   // ========================================
   // Register Village Router (only once)
