@@ -832,12 +832,28 @@ export default function VillageView() {
               <ChevronLeft className="w-6 h-6 text-gray-800" />
             </div>
           </Link>
-          <button
-            onClick={() => setShowListView(!showListView)}
-            className="bg-white rounded-lg shadow px-3 py-1.5 text-sm font-medium"
-          >
-            {showListView ? "Circle View" : "List View"}
-          </button>
+          <div className="absolute left-1/2 transform -translate-x-1/2 flex bg-white rounded-lg shadow overflow-hidden">
+            <button
+              onClick={() => setShowListView(false)}
+              className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+                !showListView 
+                  ? "bg-[#2F4644] text-white" 
+                  : "bg-white text-gray-800 hover:bg-gray-50"
+              }`}
+            >
+              Village View
+            </button>
+            <button
+              onClick={() => setShowListView(true)}
+              className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+                showListView 
+                  ? "bg-[#2F4644] text-white" 
+                  : "bg-white text-gray-800 hover:bg-gray-50"
+              }`}
+            >
+              List View
+            </button>
+          </div>
         </div>
       </div>
 
