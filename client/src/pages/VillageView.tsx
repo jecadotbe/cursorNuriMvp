@@ -73,7 +73,8 @@ import { VillageMemberMemories } from "@/components/VillageMemberMemories";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InsightsPanel from "@/components/InsightsPanel";
 import type { VillageMember } from "@db/schema";
-import { VillageSuggestionCards } from "@/components/VillageSuggestionCards"; // Added import
+import { VillageSuggestionCards } from "@/components/VillageSuggestionCards"; // Used in HomeView
+import { VillageSuggestionList } from "@/components/VillageSuggestionList"; // New list view for village suggestions
 
 const CATEGORY_COLORS = {
   informeel: "#3C9439", // Green
@@ -927,10 +928,11 @@ export default function VillageView() {
                 </p>
               </div>
             ) : (
-              <VillageSuggestionCards
+              <VillageSuggestionList
                 suggestions={suggestions}
                 onDismiss={dismissSuggestion}
                 onNext={nextSuggestion}
+                onRefresh={refetchSuggestions}
                 isLoading={isSuggestionsLoading}
               />
             )}
