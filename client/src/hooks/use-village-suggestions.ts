@@ -54,7 +54,7 @@ async function fetchVillageSuggestions(chatContext?: string): Promise<PromptSugg
 export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
   const {
     autoRefresh = false,
-    refreshInterval = 300000,
+    refreshInterval = 300000, // 5 minutes default
     maxSuggestions = 5,
     filterByType = []
   } = options;
@@ -80,11 +80,15 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
     select: (data) => {
       let filtered = data;
 
+      // Filter by type if specified
       if (filterByType.length > 0) {
         filtered = data.filter(s => filterByType.includes(s.type as any));
       }
 
+      // Filter out used suggestions
       filtered = filtered.filter(s => !s.usedAt);
+
+      // Limit number of suggestions
       return filtered.slice(0, maxSuggestions);
     },
     retry: 1
@@ -110,10 +114,6 @@ export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
         console.error('Error marking suggestion as used:', error);
         // Continue with UI update even if backend fails
         return;
-      }
-
-      if (!response.ok) {
-        throw new Error('Failed to mark suggestion as used');
       }
 
       // Update cache immediately
