@@ -5,8 +5,8 @@ interface Suggestion {
   id: number;
   text: string;
   type: string;
-  context?: string;
-  relevance?: number;
+  context: string;
+  relevance: number;
 }
 
 interface VillageSuggestionOptions {
@@ -26,7 +26,6 @@ export function useVillageSuggestions({
 
   const fetchVillageSuggestions = async (): Promise<Suggestion[]> => {
     try {
-      // Use the member-suggestions endpoint that retrieves from the database
       const response = await fetch('/api/member-suggestions?type=village');
 
       if (!response.ok) {
@@ -78,9 +77,8 @@ export function useVillageSuggestions({
     }
   };
 
-  const forceRefresh = async () => {
+  const forceRefresh = useCallback(async () => {
     try {
-      // Force refresh should use the appropriate endpoint
       const response = await fetch('/api/member-suggestions/refresh', {
         method: 'POST',
         headers: {
@@ -98,7 +96,7 @@ export function useVillageSuggestions({
       console.error('Error refreshing suggestions:', error);
       throw error;
     }
-  };
+  }, [queryClient, refetch]);
 
   const invalidateSuggestions = () => {
     queryClient.invalidateQueries({ queryKey: ['village-suggestions'] });

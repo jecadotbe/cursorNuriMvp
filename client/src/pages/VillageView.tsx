@@ -304,7 +304,7 @@ export default function VillageView() {
     refetch: refetchSuggestions,
     markAsUsed,
     error: suggestionsError,
-    forceRefresh, // Add this line
+    forceRefresh,
   } = useVillageSuggestions({
     autoRefresh: false,
     maxSuggestions: 5,
@@ -957,7 +957,7 @@ export default function VillageView() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                   transition={{ duration: 0.2 }}
-                  className="absolute z-20 transform -translate-x-1/2 -translate-y-1/2"
+                  className="absolute z-20 transform -translate-x1/2 -translate-y-1/2"
                   style={{ left: x, top: y }}
                 >
                   <div className="relative group">
