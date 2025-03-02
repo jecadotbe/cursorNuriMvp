@@ -61,6 +61,18 @@ export function useVillageSuggestions({
           'Content-Type': 'application/json',
         },
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to mark suggestion as used');
+      }
+      
+      // Invalidate and refetch suggestions after marking one as used
+      queryClient.invalidateQueries({ queryKey: ['village-suggestions'] });
+      return response.json();
+    } catch (error) {
+      console.error('Error marking suggestion as used:', error);
+      throw error;
+    }
 
       if (!response.ok) {
         throw new Error('Failed to mark suggestion as used');
