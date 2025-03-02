@@ -1,56 +1,5 @@
 import { useState, useRef, createRef } from "react";
 import { useVillage } from "@/hooks/use-village";
-
-import { useVillage } from "@/hooks/use-village";
-import { useUser } from "@/hooks/use-user";
-import { useVillageSuggestions } from "@/hooks/use-village-suggestions";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import {
-  ChevronLeft,
-  Plus,
-  ZoomIn,
-  ZoomOut,
-  RotateCcw,
-  Edit2,
-  Trash2,
-  User,
-  Users,
-  ArrowUpCircle,
-  ArrowDownCircle,
-  ArrowLeftCircle,
-  ArrowRightCircle,
-  Lightbulb,
-  BookMarked,
-  Star,
-  Clock,
-  Move,
-  X,
-} from "lucide-react";
-
-// Add CSS for highlight animation
-const highlightPulseStyle = `
-  @keyframes highlightPulse {
-    0% { box-shadow: 0 0 0 0 rgba(98, 151, 133, 0.7); }
-    70% { box-shadow: 0 0 0 15px rgba(98, 151, 133, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(98, 151, 133, 0); }
-  }
-  
-  .highlight-pulse {
-    animation: highlightPulse 1.5s ease-out;
-  }
-  
-  .highlight-animation {
-    animation: highlightPulse 1.5s ease-out;
-  }
-`;
-
-// Inject the style
-if (typeof document !== 'undefined') {
-  const styleEl = document.createElement('style');
-  styleEl.textContent = highlightPulseStyle;
-  document.head.appendChild(styleEl);
-}
-
 import { useUser } from "@/hooks/use-user";
 import { useVillageSuggestions } from "@/hooks/use-village-suggestions";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -317,9 +266,6 @@ export default function VillageView() {
   const memberRefs = useRef(new Map());
   const [isRearrangeMode, setIsRearrangeMode] = useState(false);
   const [showListView, setShowListView] = useState(false); // Add state for list view toggle
-  const [selectedOffscreenMember, setSelectedOffscreenMember] = useState<VillageMember | null>(null);
-  const [showOffscreenDialog, setShowOffscreenDialog] = useState(false);
-  const [showOffscreenCard, setShowOffscreenCard] = useState(false);
 
   const getMemberRef = (memberId: number) => {
     if (!memberRefs.current.has(memberId)) {
@@ -377,96 +323,6 @@ export default function VillageView() {
   const handleReset = () => {
     setScale(1);
     setPosition({ x: 0, y: 0 });
-  };
-
-  const handleOffscreenIndicatorTap = (member: VillageMember) => {
-    // Create popup with member info and navigation options
-    setSelectedOffscreenMember(member);
-    
-    // Calculate if we need to show dialog or mini-card
-    const distanceFromViewport = calculateDistanceFromViewport(member, position, scale);
-    
-    if (distanceFromViewport > 500) {
-      // Far away - show dialog with jump option
-      setShowOffscreenDialog(true);
-    } else {
-      // Nearby - show mini-card with navigation hint
-      setShowOffscreenCard(true);
-      
-      // Auto-hide after 3 seconds
-      setTimeout(() => setShowOffscreenCard(false), 3000);
-    }
-  };
-
-  const calculateDistanceFromViewport = (
-    member: VillageMember, 
-    position: { x: number; y: number }, 
-    scale: number
-  ) => {
-    const pos = getMemberPosition(member);
-    const transformedX = pos.x * scale + position.x;
-    const transformedY = pos.y * scale + position.y;
-    
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const centerX = viewportWidth / 2;
-    const centerY = viewportHeight / 2;
-    
-    return Math.sqrt(
-      Math.pow(transformedX - centerX, 2) + 
-      Math.pow(transformedY - centerY, 2)
-    );
-  };
-
-  const navigateToMember = (member: VillageMember) => {
-    const pos = getMemberPosition(member);
-    
-    // Use spring animation for smooth navigation
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    
-    // Calculate target position to center the member
-    const targetX = -pos.x * scale + viewportWidth / 2;
-    const targetY = -pos.y * scale + viewportHeight / 2;
-    
-    // Close any open dialogs
-    setShowOffscreenDialog(false);
-    setShowOffscreenCard(false);
-    
-    // Animate to the new position
-    const duration = 800; // ms
-    const startTime = Date.now();
-    const startX = position.x;
-    const startY = position.y;
-    const distanceX = targetX - startX;
-    const distanceY = targetY - startY;
-    
-    // Simple spring animation
-    const animatePosition = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const easeProgress = 1 - Math.pow(1 - progress, 3); // Cubic ease-out
-      
-      setPosition({
-        x: startX + distanceX * easeProgress,
-        y: startY + distanceY * easeProgress
-      });
-      
-      if (progress < 1) {
-        requestAnimationFrame(animatePosition);
-      } else {
-        // Highlight the member briefly
-        const memberElement = document.querySelector(`[data-member-id="${member.id}"]`);
-        if (memberElement) {
-          memberElement.classList.add('highlight-pulse');
-          setTimeout(() => {
-            memberElement.classList.remove('highlight-pulse');
-          }, 2000);
-        }
-      }
-    };
-    
-    requestAnimationFrame(animatePosition);
   };
 
   const getCircleRadius = (index: number) => {
@@ -985,73 +841,6 @@ export default function VillageView() {
                 !showListView
                   ? "bg-[#2F4644] text-white"
                   : "bg-white text-gray-800 hover:bg-gray-50"
-
-      {/* Off-viewport member mini-card */}
-      <AnimatePresence>
-        {showOffscreenCard && selectedOffscreenMember && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-lg p-4 w-[80%] z-50"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium">{selectedOffscreenMember.name}</h3>
-                <div className="flex items-center mt-1 text-sm text-gray-600">
-                  <span className="mr-2">Circle {selectedOffscreenMember.circle}</span>
-                  <div 
-                    className="h-2 w-2 rounded-full mr-1" 
-                    style={{ 
-                      backgroundColor: selectedOffscreenMember.category 
-                        ? CATEGORY_COLORS[selectedOffscreenMember.category] 
-                        : "#6b7280" 
-                    }}
-                  ></div>
-                  <span>
-                    {selectedOffscreenMember.category 
-                      ? selectedOffscreenMember.category.charAt(0).toUpperCase() + selectedOffscreenMember.category.slice(1) 
-                      : "Other"}
-                  </span>
-                </div>
-              </div>
-              <Button 
-                size="sm" 
-                onClick={() => navigateToMember(selectedOffscreenMember)}
-                className="bg-primary text-white px-3 py-1 rounded-md"
-              >
-                Go to
-              </Button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Off-viewport member dialog for distant members */}
-      <AlertDialog 
-        open={showOffscreenDialog} 
-        onOpenChange={setShowOffscreenDialog}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Navigate to {selectedOffscreenMember?.name}</AlertDialogTitle>
-            <AlertDialogDescription>
-              This member is far from your current view. Would you like to navigate to them?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowOffscreenDialog(false)}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => selectedOffscreenMember && navigateToMember(selectedOffscreenMember)}
-            >
-              Go to member
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
               }`}
             >
               Village View
@@ -1168,28 +957,28 @@ export default function VillageView() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                   transition={{ duration: 0.2 }}
-                  className="absolute z-20 transform -translate-x-1/2 -translate-y-1/2"
+                  className="absolute z-20 transform -translate-x1/2 -translate-y-1/2"
                   style={{ left: x, top: y }}
-                  onClick={() => handleOffscreenIndicatorTap(member)}
                 >
-                  <div className="relative">
-                    {/* Enlarged touch target with visual feedback */}
-                    <div 
-                      className="w-12 h-12 flex items-center justify-center"
-                      style={{ 
-                        background: `radial-gradient(circle, ${categoryColor}20 0%, transparent 70%)` 
-                      }}
+                  <div className="relative group">
+                    <motion.div
+                      whileHover={{ scale: 1.1}}
+                      whileTap={{ scale: 0.95 }}
+                      className="animate-pulse"
                     >
-                      <motion.div
-                        whileTap={{ scale: 0.85 }}
-                        className="animate-pulse"
-                      >
-                        <Arrow 
-                          className="w-7 h-7" 
-                          style={{ color: categoryColor }} 
-                        />
-                      </motion.div>
-                    </div>
+                      <Arrow
+                        className="w-6 h-6"
+                        style={{ color: categoryColor }}
+                      />
+                    </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      whileHover={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-md px-2 py-1 text-sm shadow-md whitespace-nowrap"
+                    >
+                      {member.name}
+                    </motion.div>
                   </div>
                 </motion.div>
               );
@@ -1268,7 +1057,6 @@ export default function VillageView() {
                 <div
                   key={member.id}
                   className="absolute"
-                  data-member-id={member.id}
                   style={{
                     transform: `translate(${pos.x}px, ${pos.y}px) translate(-50%, -50%)`,
                     left: "50%",
