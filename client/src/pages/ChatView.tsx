@@ -18,8 +18,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
 import { useVoiceInput } from "@/hooks/use-voice-input";
 import { MicrophoneVisualizer } from "@/components/MicrophoneVisualizer";
-import { CustomerResults } from "@/components/CustomerResults";
-import { ChatAvatar } from "@/components/ChatAvatar";
+import { CustomerResults } from "@/components/CustomerResults"; // Added import
+
 import { renderMarkdown } from "@/lib/markdown";
 
 const theme = {
@@ -210,7 +210,7 @@ export default function ChatView() {
                 message.role === 'user' ? 'flex-row-reverse space-x-reverse' : 'flex-row'
               }`}
             >
-              <ChatAvatar sender={message.role} />
+              <Avatar sender={message.role} />
               <div className="flex flex-col">
                 <div
                   className={`px-4 py-3 rounded-2xl max-w-[280px] chat-message ${
@@ -249,7 +249,7 @@ export default function ChatView() {
         ))}
         {isLoading && (
           <div className="flex items-start space-x-2">
-            <ChatAvatar sender="assistant" />
+            <Avatar sender="assistant" />
             <TypingIndicator />
           </div>
         )}
@@ -348,3 +348,20 @@ const TypingIndicator = () => (
     <Circle className="w-2 h-2 animate-bounce delay-200" />
   </div>
 );
+
+const Avatar = ({ sender }: { sender: 'user' | 'assistant' }) => {
+  const { user } = useUser();
+  return (
+    <div className={`w-8 ${sender === 'assistant' ? 'aspect-[9/16]' : 'h-8 rounded-full'} flex items-center justify-center overflow-hidden ${
+      sender === 'assistant' ? '' : 'bg-[#294636]'
+    }`}>
+      {sender === 'assistant' ? (
+        <img src="/images/nuri_chat.png" alt="Nuri" className="w-full h-full object-contain" />
+      ) : (
+        <span className="text-white text-sm">
+          {user?.username[0].toUpperCase()}
+        </span>
+      )}
+    </div>
+  );
+};
