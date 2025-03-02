@@ -1,160 +1,118 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { PromptSuggestion } from "@db/schema";
-import { useToast } from "./use-toast";
-import { useChatHistory } from "./use-chat-history";
+import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+
+interface Suggestion {
+  id: number;
+  text: string;
+  type: string;
+  context?: string;
+  relevance?: number;
+}
 
 interface VillageSuggestionOptions {
   autoRefresh?: boolean;
   refreshInterval?: number;
   maxSuggestions?: number;
-  filterByType?: ReadonlyArray<'network_growth' | 'network_expansion' | 'village_maintenance'>;
+  filterByType?: readonly string[];
 }
 
-async function fetchVillageSuggestions(chatContext?: string): Promise<PromptSuggestion[]> {
-  try {
-    console.log('Fetching village suggestions with context:', chatContext);
-    const url = new URL('/api/suggestions/village', window.location.origin);
-    if (chatContext) {
-      url.searchParams.append('context', chatContext);
-    }
-
-    const response = await fetch(url, {
-      credentials: 'include',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
-      console.error('Village suggestions response not OK:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData
-      });
-      throw new Error(errorData.message || `Failed to fetch suggestions: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('Fetched village suggestions:', data);
-
-    if (!Array.isArray(data)) {
-      console.error('Invalid suggestions data format:', data);
-      throw new Error('Invalid suggestions data format');
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Error fetching village suggestions:', error);
-    throw error;
-  }
-}
-
-export function useVillageSuggestions(options: VillageSuggestionOptions = {}) {
-  const {
-    autoRefresh = false,
-    refreshInterval = 300000, // 5 minutes default
-    maxSuggestions = 5,
-    filterByType = []
-  } = options;
-
-  const { toast } = useToast();
+export function useVillageSuggestions({
+  autoRefresh = false,
+  refreshInterval = 60000,
+  maxSuggestions = 3,
+  filterByType,
+}: VillageSuggestionOptions = {}) {
   const queryClient = useQueryClient();
-  const { chats } = useChatHistory();
 
-  // Get latest chat context
-  const latestChatContext = chats?.[0]?.id ? `chat_${chats[0].id}` : undefined;
+  const fetchVillageSuggestions = async (): Promise<Suggestion[]> => {
+    try {
+      // Use the member-suggestions endpoint that retrieves from the database
+      const response = await fetch('/api/member-suggestions?type=village');
 
-  const {
-    data: suggestions = [],
-    isLoading,
-    error,
-    refetch
-  } = useQuery({
-    queryKey: ['village-suggestions', latestChatContext],
-    queryFn: () => fetchVillageSuggestions(latestChatContext),
-    staleTime: autoRefresh ? refreshInterval : 0,
-    gcTime: refreshInterval * 2,
-    refetchInterval: autoRefresh ? refreshInterval : false,
-    select: (data) => {
-      let filtered = data;
-
-      // Filter by type if specified
-      if (filterByType.length > 0) {
-        filtered = data.filter(s => filterByType.includes(s.type as any));
+      if (!response.ok) {
+        throw new Error('Failed to fetch village suggestions');
       }
 
-      // Filter out used suggestions
-      filtered = filtered.filter(s => !s.usedAt);
+      return response.json();
+    } catch (error) {
+      console.error('Error fetching village suggestions:', error);
+      throw error;
+    }
+  };
 
-      // Limit number of suggestions
-      return filtered.slice(0, maxSuggestions);
-    },
-    retry: 1
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['village-suggestions'],
+    queryFn: fetchVillageSuggestions,
+    staleTime: refreshInterval,
+    refetchInterval: autoRefresh ? refreshInterval : false,
   });
+
+  const markAsUsed = async (id: number) => {
+    try {
+      const response = await fetch(`/api/suggestions/${id}/use`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to mark suggestion as used');
+      }
+
+      // Update local state
+      queryClient.setQueryData(
+        ['village-suggestions'],
+        (oldData: Suggestion[] | undefined) => {
+          if (!oldData) return [];
+          return oldData.filter(suggestion => suggestion.id !== id);
+        }
+      );
+
+      return response.json();
+    } catch (error) {
+      console.error('Error marking suggestion as used:', error);
+      throw error;
+    }
+  };
+
+  const forceRefresh = async () => {
+    try {
+      // Force refresh should use the appropriate endpoint
+      const response = await fetch('/api/member-suggestions/refresh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to refresh suggestions');
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['village-suggestions'] });
+      return refetch();
+    } catch (error) {
+      console.error('Error refreshing suggestions:', error);
+    }
+  };
 
   const invalidateSuggestions = () => {
     queryClient.invalidateQueries({ queryKey: ['village-suggestions'] });
   };
 
-  const markAsUsed = async (suggestionId: number) => {
-    try {
-      const response = await fetch(`/api/suggestions/${suggestionId}/use`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        console.error('Error marking suggestion as used:', error);
-        // Continue with UI update even if backend fails
-        return;
-      }
-
-      // Update cache immediately
-      queryClient.setQueryData(['village-suggestions', latestChatContext], 
-        (old: PromptSuggestion[] | undefined) => 
-          old?.map(s => s.id === suggestionId ? {...s, usedAt: new Date()} : s) || []
-      );
-
-      // Invalidate cache to trigger refresh
-      invalidateSuggestions();
-    } catch (error) {
-      console.error('Error marking suggestion as used:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to mark suggestion as used"
-      });
-    }
-  };
-
-  // Force refresh suggestions
-  const forceRefresh = async () => {
-    try {
-      await refetch();
-    } catch (error) {
-      console.error('Error forcing refresh:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to refresh suggestions"
-      });
-    }
-  };
+  // Filter and limit suggestions
+  const filteredSuggestions = data?.filter(suggestion => 
+    !filterByType || filterByType.includes(suggestion.type)
+  ).slice(0, maxSuggestions);
 
   return {
-    suggestions,
+    suggestions: filteredSuggestions || [],
     isLoading,
     error,
     refetch,
     markAsUsed,
+    forceRefresh,
     invalidateSuggestions,
-    forceRefresh
   };
 }

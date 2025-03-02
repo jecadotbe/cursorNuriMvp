@@ -1,31 +1,140 @@
+
 import { Router } from "express";
 import { db } from "@db";
+import { eq, desc, and, isNull, gte } from "drizzle-orm";
 import { promptSuggestions } from "@db/schema";
-import { desc, eq, and, isNull, gte } from "drizzle-orm";
 import type { User } from "../../auth";
+import { memoryService } from "../../services/memory";
+import { generateVillageSuggestions } from "../../lib/suggestion-generator";
 
 export const memberSuggestionsRouter = Router();
 
-// Get member suggestions
+// Get suggestions from the database
 memberSuggestionsRouter.get("/", async (req, res) => {
   try {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
     const user = req.user as User;
+    const now = new Date();
+    const type = req.query.type;
+
+    // Build the where clause based on the type
+    let whereClause = and(
+      eq(promptSuggestions.userId, user.id),
+      isNull(promptSuggestions.usedAt),
+      gte(promptSuggestions.expiresAt, now)
+    );
+
+    if (type === "village") {
+      // Add filter for village-related suggestion types
+      whereClause = and(
+        whereClause,
+        or(
+          eq(promptSuggestions.type, "network_growth"),
+          eq(promptSuggestions.type, "network_expansion"),
+          eq(promptSuggestions.type, "village_maintenance")
+        )
+      );
+    }
+
+    // Get active suggestions
     const suggestions = await db.query.promptSuggestions.findMany({
-      where: and(
-        eq(promptSuggestions.userId, user.id),
-        isNull(promptSuggestions.usedAt),
-        gte(promptSuggestions.expiresAt, new Date())
-      ),
+      where: whereClause,
       orderBy: desc(promptSuggestions.createdAt),
-      limit: 5
+      limit: 5,
     });
-    
+
+    console.log(`Retrieved ${suggestions.length} suggestions for user ${user.id}`);
+
     res.json(suggestions);
   } catch (error) {
-    console.error("Failed to fetch member suggestions:", error);
+    console.error('Error in GET /member-suggestions:', error);
     res.status(500).json({ 
-      message: "Failed to fetch member suggestions",
-      error: error instanceof Error ? error.message : "Unknown error"
+      error: "Internal server error", 
+      message: error instanceof Error ? error.message : "Unknown error"
     });
   }
 });
+
+// Refresh suggestions endpoint
+memberSuggestionsRouter.post("/refresh", async (req, res) => {
+  try {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const user = req.user as User;
+    
+    // Generate new suggestions
+    const { members, villageContext } = await getVillageContext(user.id);
+    
+    const newSuggestions = await generateVillageSuggestions(
+      user.id,
+      members,
+      villageContext,
+      memoryService
+    );
+
+    // Store new suggestions
+    if (newSuggestions.length > 0) {
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours from now
+      
+      const suggestionsToInsert = newSuggestions.map(suggestion => ({
+        ...suggestion,
+        userId: user.id,
+        expiresAt
+      }));
+      
+      await db.insert(promptSuggestions).values(suggestionsToInsert);
+      
+      console.log(`Generated ${newSuggestions.length} new suggestions for user ${user.id}`);
+    }
+
+    // Return success
+    res.json({ success: true, message: "Suggestions refreshed" });
+  } catch (error) {
+    console.error('Error in POST /member-suggestions/refresh:', error);
+    res.status(500).json({ 
+      error: "Internal server error", 
+      message: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+});
+
+// Helper function to get village context
+async function getVillageContext(userId: number) {
+  const members = await db.query.villageMembers.findMany({
+    where: eq(villageMembers.userId, userId),
+  });
+
+  const recentChats = await db.query.chats.findMany({
+    where: eq(chats.userId, userId),
+    orderBy: desc(chats.updatedAt),
+    limit: 3
+  });
+
+  const parentProfile = await db.query.parentProfiles.findFirst({
+    where: eq(parentProfiles.userId, userId),
+  });
+
+  const villageContext = {
+    recentChats: recentChats.map(chat => ({
+      ...chat,
+      messages: Array.isArray(chat.messages) ? chat.messages : []
+    })),
+    parentProfile,
+    childProfiles: parentProfile?.onboardingData?.childProfiles || [],
+    challenges: parentProfile?.onboardingData?.stressAssessment?.primaryConcerns || [],
+    memories: []
+  };
+
+  return { members, villageContext };
+}
+
+// Helper function for OR condition
+function or(...conditions: any[]) {
+  return ({ or: conditions });
+}
