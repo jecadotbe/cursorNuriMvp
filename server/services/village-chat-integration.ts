@@ -179,3 +179,43 @@ export function generateVillageAdditionConfirmation(
   
   return response;
 }
+
+/**
+ * Generates a prompt message with action buttons for detected village members
+ * This creates a chips-style UI for the user to confirm adding members
+ */
+export function generateVillageMemberPrompt(
+  detectedMembers: DetectedVillageMember[]
+): string {
+  if (detectedMembers.length === 0) {
+    return '';
+  }
+  
+  // Format the member names for display
+  const membersList = detectedMembers.map(m => `**${m.name}**`).join(', ');
+  
+  // Create the message header based on number of members
+  let message = detectedMembers.length === 1
+    ? `Ik zie dat je **${detectedMembers[0].name}** wilt toevoegen aan je Village.`
+    : `Ik zie dat je deze mensen wilt toevoegen aan je Village: ${membersList}.`;
+  
+  // Add action buttons in the special format that will be rendered as chips
+  message += '\n\n<village-actions>\n';
+  
+  // Add button for each member
+  detectedMembers.forEach((member, index) => {
+    message += `<village-action id="add-${index}" name="${member.name}" action="add-to-village">Voeg ${member.name} toe</village-action>\n`;
+  });
+  
+  // Add "Add All" button if there are multiple members
+  if (detectedMembers.length > 1) {
+    message += `<village-action id="add-all" action="add-all-to-village">Voeg alle ${detectedMembers.length} toe</village-action>\n`;
+  }
+  
+  message += '</village-actions>\n\n';
+  
+  // Add extra instructions
+  message += 'Je kunt ook naar de Village pagina gaan en ze daar handmatig toevoegen.';
+  
+  return message;
+}

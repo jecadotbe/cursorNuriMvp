@@ -21,6 +21,7 @@ import { MicrophoneVisualizer } from "@/components/MicrophoneVisualizer";
 import { CustomerResults } from "@/components/CustomerResults"; // Added import
 
 import { renderMarkdown } from "@/lib/markdown";
+import { VillageActionChips, processVillageActions } from "@/components/VillageActionChips";
 
 const theme = {
   primary: 'bg-[#DEDBCA]',
@@ -35,7 +36,10 @@ const theme = {
 
 
 const formatMessageContent = (content: string) => {
-  const processedContent = replaceTemplateVariables(content);
+  // First process any village action tags to extract them for custom rendering
+  const contentWithoutActions = processVillageActions(content);
+  const processedContent = replaceTemplateVariables(contentWithoutActions);
+  
   return (
     <div
       className="prose prose-sm max-w-none dark:prose-invert"
@@ -243,6 +247,11 @@ export default function ChatView() {
             {message.role === 'assistant' && message.content.includes('Helan kinderopvang') && (
               <div className="ml-10 mt-4">
                 <CustomerResults trigger="Helan kinderopvang" />
+              </div>
+            )}
+            {message.role === 'assistant' && message.content.includes('<village-action') && (
+              <div className="ml-10 mt-4">
+                <VillageActionChips content={message.content} />
               </div>
             )}
           </div>

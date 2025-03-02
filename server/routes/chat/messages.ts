@@ -124,26 +124,29 @@ Remember to:
         if (detectedMembers.length > 0) {
           console.log('[Chat Route] Detected potential village members:', detectedMembers);
           
-          // Add the detected members to the user's village
-          const addedMembers = await addVillageMembersFromChat(user.id, detectedMembers);
+          // Get existing members to filter out those already in the village
+          const existingMembers = await db
+            .select()
+            .from(villageMembers)
+            .where(eq(villageMembers.userId, user.id));
           
-          if (addedMembers.length > 0) {
-            // Get all village members for this user (for confirmation message)
-            const allMembers = await db
-              .select()
-              .from(villageMembers)
-              .where(eq(villageMembers.userId, user.id));
+          const existingNames = new Set(existingMembers.map(m => m.name.toLowerCase()));
+          const newMembers = detectedMembers.filter(m => !existingNames.has(m.name.toLowerCase()));
+          
+          if (newMembers.length > 0) {
+            // Generate prompt message with action buttons for new members
+            const promptMessage = generateVillageMemberPrompt(newMembers);
             
-            // Generate confirmation message
-            const confirmationMessage = generateVillageAdditionConfirmation(addedMembers, allMembers);
-            
-            // If members were added, append confirmation to the response
-            if (confirmationMessage) {
-              updatedMessageContent = updatedMessageContent + "\n\n" + confirmationMessage;
+            // Append the prompt to the response if members were detected
+            if (promptMessage) {
+              updatedMessageContent = updatedMessageContent + "\n\n" + promptMessage;
             }
             
-            // Set header to refresh village UI components
-            res.set('X-Event-Refresh-Village', 'true');
+            // Set header to indicate village member detection
+            res.set('X-Village-Members-Detected', 'true');
+          } else if (detectedMembers.length > 0 && newMembers.length === 0) {
+            // All detected members already exist in the village
+            updatedMessageContent = updatedMessageContent + "\n\nDeze personen staan al in je Village!";
           }
         }
       } catch (villageError) {
