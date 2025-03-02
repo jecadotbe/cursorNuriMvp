@@ -1,11 +1,16 @@
 import { Router } from "express";
 import { db } from "@db";
-import { chats, parentProfiles } from "@db/schema";
+import { chats, parentProfiles, villageMembers } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { anthropic } from "../../anthropic";
 import { memoryService } from "../../services/memory";
 import { searchBooks } from "../../rag";
 import type { User } from "../../auth";
+import { 
+  extractVillageMembersFromMessage,
+  addVillageMembersFromChat,
+  generateVillageAdditionConfirmation
+} from "../../services/village-chat-integration";
 
 export function setupChatRoutes(router: Router) {
   // Handle chat messages
@@ -22,7 +27,7 @@ export function setupChatRoutes(router: Router) {
 
       // Get recent context by combining last 2 messages if available
       const contextWindow = messages.slice(-3)
-        .map(m => m.content)
+        .map((m: { content: string }) => m.content)
         .join(" ");
 
       // Get parent profile for context
@@ -53,7 +58,7 @@ User Profile:
 Name: ${profile.name}
 Experience Level: ${profile.experienceLevel}
 Stress Level: ${profile.stressLevel}
-${profile.onboardingData?.childProfiles ? `
+${profile.onboardingData && typeof profile.onboardingData === 'object' && 'childProfiles' in profile.onboardingData && Array.isArray(profile.onboardingData.childProfiles) ? `
 Children:
 ${profile.onboardingData.childProfiles
   .map((child: any) => `- ${child.name} (${child.age} years old)${child.specialNeeds?.length ? `, Special needs: ${child.specialNeeds.join(", ")}` : ""}`)
@@ -110,6 +115,41 @@ Remember to:
       const messageContent =
         response.content[0].type === "text" ? response.content[0].text : "";
 
+      // Process village-related content in the user's last message
+      let updatedMessageContent = messageContent;
+      try {
+        // Check if the user message mentions potential village members
+        const detectedMembers = extractVillageMembersFromMessage(lastMessage);
+        
+        if (detectedMembers.length > 0) {
+          console.log('[Chat Route] Detected potential village members:', detectedMembers);
+          
+          // Add the detected members to the user's village
+          const addedMembers = await addVillageMembersFromChat(user.id, detectedMembers);
+          
+          if (addedMembers.length > 0) {
+            // Get all village members for this user (for confirmation message)
+            const allMembers = await db
+              .select()
+              .from(villageMembers)
+              .where(eq(villageMembers.userId, user.id));
+            
+            // Generate confirmation message
+            const confirmationMessage = generateVillageAdditionConfirmation(addedMembers, allMembers);
+            
+            // If members were added, append confirmation to the response
+            if (confirmationMessage) {
+              updatedMessageContent = updatedMessageContent + "\n\n" + confirmationMessage;
+            }
+            
+            // Set header to refresh village UI components
+            res.set('X-Event-Refresh-Village', 'true');
+          }
+        }
+      } catch (villageError) {
+        console.error("[Chat Route] Error processing village members:", villageError);
+      }
+
       // Store conversation in memory
       try {
         console.log('[Chat Route] Storing user message in memory');
@@ -124,7 +164,7 @@ Remember to:
         });
 
         console.log('[Chat Route] Storing assistant response in memory');
-        await memoryService.createMemory(user.id, messageContent, {
+        await memoryService.createMemory(user.id, updatedMessageContent, {
           role: "assistant",
           messageIndex: req.body.messages.length,
           chatId: chatId || "new",
@@ -141,7 +181,7 @@ Remember to:
         console.error("[Chat Route] Failed to store chat in memory:", memoryError);
       }
 
-      res.json({ content: messageContent });
+      res.json({ content: updatedMessageContent });
     } catch (error) {
       console.error("Chat error:", error);
       res.status(500).json({

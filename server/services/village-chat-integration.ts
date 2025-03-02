@@ -30,27 +30,49 @@ const DEFAULT_MEMBER_VALUES = {
 export function extractVillageMembersFromMessage(message: string): DetectedVillageMember[] {
   const members: DetectedVillageMember[] = [];
   
-  // Handle direct "add X to village" patterns
-  const addToVillageRegex = /voeg\s+([^.,!?]+)(?:\s+toe\s+aan\s+(?:mijn|de|m'n)\s+village)/i;
-  const match = message.match(addToVillageRegex);
+  // Handle direct "add X to village" patterns with more variations
+  const addToVillageRegexPatterns = [
+    // Standard Dutch pattern
+    /voeg\s+([^.,!?]+)(?:\s+toe\s+aan\s+(?:mijn|de|m'n)\s+village)/i,
+    // Handle typos and variations (e.g., "toevoege naan")
+    /toevoege\s+([^.,!?]+)(?:\s+(?:aan|naan)\s+(?:mijn|de|m'n)\s+village)/i,
+    // Simple pattern for direct requests
+    /([^.,!?]+)\s+toevoegen\s+aan\s+(?:mijn|de|m'n)\s+village/i,
+    // Handle questions like "Kan jij X toevoegen aan mijn village"
+    /kan\s+(?:je|jij)\s+([^.,!?]+)\s+(?:toevoegen|toevoege|toe\s*voegen)\s+aan\s+(?:mijn|de|m'n)\s+village/i,
+    // Broader pattern for "add to village" context
+    /voeg\s+([^.,!?]+)\s+toe/i
+  ];
   
-  if (match && match[1]) {
-    // Found an explicit request to add someone to the village
-    const namesText = match[1].trim();
-    const extractedMembers = extractMemberNames(namesText);
-    members.push(...extractedMembers);
-    return members;
+  // Try each pattern until we find a match
+  for (const regex of addToVillageRegexPatterns) {
+    const match = message.match(regex);
+    if (match && match[1]) {
+      // Found an explicit request to add someone to the village
+      const namesText = match[1].trim();
+      const extractedMembers = extractMemberNames(namesText);
+      members.push(...extractedMembers);
+      return members;
+    }
   }
   
-  // Handle lists of names (e.g., "Add John, Mary, and Bob")
-  const addMultipleRegex = /(?:voeg|zet)\s+([^.,!?]+)\s+(?:toe|in|aan)/i;
-  const multiMatch = message.match(addMultipleRegex);
-  
-  if (multiMatch && multiMatch[1]) {
-    const namesText = multiMatch[1].trim();
-    const extractedMembers = extractMemberNames(namesText);
-    members.push(...extractedMembers);
-    return members;
+  // Search for capitalized names in context of "village" mention
+  if (message.toLowerCase().includes("village")) {
+    const potentialNameRegex = /\b[A-Z][a-z]+\b/g;
+    const potentialNames = message.match(potentialNameRegex);
+    
+    if (potentialNames) {
+      // Filter out common words that might be capitalized
+      const commonWords = ["Ik", "Mijn", "De", "Het", "Een", "Dag", "Hoi", "Kan", "Village"];
+      const filteredNames = potentialNames.filter(name => !commonWords.includes(name));
+      
+      if (filteredNames.length > 0 && 
+         (message.toLowerCase().includes("toevoeg") || 
+          message.toLowerCase().includes("add"))) {
+        filteredNames.forEach(name => members.push({ name }));
+        return members;
+      }
+    }
   }
   
   return members;
