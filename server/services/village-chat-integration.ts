@@ -70,19 +70,39 @@ export function extractVillageMembersFromMessage(message: string): DetectedVilla
     }
   }
   
+  // Explicitly check for member role patterns like "X is my neighbor" or "X heet my buurvrouw"
+  const rolePatterns = [
+    // Match "buurvrouw heet Annika" or "mijn buurman heet Jan" 
+    /(?:mijn\s+)?(?:buurvrouw|buurman|buur|neighbor|neighbour)\s+(?:heet|is|heet\s+is|is\s+called)\s+([A-Z][a-z]+)/i,
+    // Match "Annika is mijn buurvrouw" or "Jan is mijn buurman"
+    /([A-Z][a-z]+)\s+(?:is|heet)\s+(?:mijn|onze|de)\s+(?:buurvrouw|buurman|buur|neighbor|neighbour)/i,
+    // Match other role patterns
+    /(?:mijn|onze)\s+(?:vriend(?:in)?|collega|familie|kennis|dokter|huisarts)\s+(?:heet|is)\s+([A-Z][a-z]+)/i,
+    /([A-Z][a-z]+)\s+(?:is|heet)\s+(?:mijn|onze)\s+(?:vriend(?:in)?|collega|familie|kennis|dokter|huisarts)/i
+  ];
+  
+  for (const pattern of rolePatterns) {
+    const match = message.match(pattern);
+    if (match && match[1]) {
+      members.push({ name: match[1].trim() });
+      return members;
+    }
+  }
+
   // Search for capitalized names in context of "village" mention
-  if (message.toLowerCase().includes("village")) {
+  if (message.toLowerCase().includes("village") || 
+      message.toLowerCase().includes("toevoeg") || 
+      message.toLowerCase().includes("add")) {
+    
     const potentialNameRegex = /\b[A-Z][a-z]+\b/g;
     const potentialNames = message.match(potentialNameRegex);
     
     if (potentialNames) {
       // Filter out common words that might be capitalized
-      const commonWords = ["Ik", "Mijn", "De", "Het", "Een", "Dag", "Hoi", "Kan", "Village"];
+      const commonWords = ["Ik", "Mijn", "De", "Het", "Een", "Dag", "Hoi", "Kan", "Village", "Nuri", "Ponyo"];
       const filteredNames = potentialNames.filter(name => !commonWords.includes(name));
       
-      if (filteredNames.length > 0 && 
-         (message.toLowerCase().includes("toevoeg") || 
-          message.toLowerCase().includes("add"))) {
+      if (filteredNames.length > 0) {
         filteredNames.forEach(name => members.push({ name }));
         return members;
       }

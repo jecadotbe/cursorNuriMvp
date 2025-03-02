@@ -68,6 +68,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { VillageRecommendations } from "@/components/VillageRecommendations";
 import { useVillageMemories } from "@/hooks/use-village-memories";
 import { VillageMemberMemories } from "@/components/VillageMemberMemories";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
