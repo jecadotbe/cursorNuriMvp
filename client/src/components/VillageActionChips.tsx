@@ -12,13 +12,8 @@ interface VillageActionProps {
   children: React.ReactNode;
 }
 
-interface VillageMemberData {
-  name: string;
-  type?: string;
-  circle?: number;
-  category?: "informeel" | "formeel" | "inspiratie" | null;
-  contactFrequency?: "S" | "M" | "L" | "XL" | null;
-}
+// We don't need this interface anymore since we're using the schema directly
+// and providing explicit type assertions in the component
 
 /**
  * Component to render an individual village action chip
@@ -42,12 +37,12 @@ export const VillageAction: React.FC<VillageActionProps> = ({
     try {
       if (action === 'add-to-village') {
         // Add a single member to the village
-        const memberData: VillageMemberData = {
+        const memberData = {
           name,
-          type: 'Friend',
-          circle: 2,
-          category: 'informeel',
-          contactFrequency: 'M'
+          type: 'Friend', // Required field
+          circle: 2, // Required field
+          category: 'informeel' as "informeel", // Type assertion to match the enum
+          contactFrequency: 'M' as "M" // Type assertion to match the enum
         };
         
         await addMember(memberData);
@@ -105,7 +100,7 @@ export const VillageAction: React.FC<VillageActionProps> = ({
 export const VillageActionChips: React.FC<{ content: string }> = ({ content }) => {
   // Extract action sections from the message
   const actionSectionRegex = /<village-actions>([\s\S]*?)<\/village-actions>/g;
-  const actionSections = [...content.matchAll(actionSectionRegex)];
+  const actionSections = Array.from(content.matchAll(actionSectionRegex));
   
   if (actionSections.length === 0) {
     return null;
@@ -118,7 +113,7 @@ export const VillageActionChips: React.FC<{ content: string }> = ({ content }) =
     <>
       {actionSections.map((section, sectionIndex) => {
         const sectionContent = section[1];
-        const actions = [...sectionContent.matchAll(actionRegex)];
+        const actions = Array.from(sectionContent.matchAll(actionRegex));
         
         return (
           <div key={`section-${sectionIndex}`} className="flex flex-wrap my-2">
