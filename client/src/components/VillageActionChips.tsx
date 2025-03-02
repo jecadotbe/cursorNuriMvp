@@ -29,7 +29,7 @@ export const VillageAction: React.FC<VillageActionProps> = ({
   action,
   children
 }) => {
-  const { createMember } = useVillage();
+  const { addMember } = useVillage();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
   const [isComplete, setIsComplete] = React.useState(false);
@@ -50,7 +50,7 @@ export const VillageAction: React.FC<VillageActionProps> = ({
           contactFrequency: 'M'
         };
         
-        await createMember(memberData);
+        await addMember(memberData);
         setIsComplete(true);
         
         toast({

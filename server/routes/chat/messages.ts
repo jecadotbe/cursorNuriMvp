@@ -9,7 +9,8 @@ import type { User } from "../../auth";
 import { 
   extractVillageMembersFromMessage,
   addVillageMembersFromChat,
-  generateVillageAdditionConfirmation
+  generateVillageAdditionConfirmation,
+  generateVillageMemberPrompt
 } from "../../services/village-chat-integration";
 
 export function setupChatRoutes(router: Router) {
