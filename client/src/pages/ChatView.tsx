@@ -253,8 +253,11 @@ export default function ChatView() {
               </div>
             )}
             {message.role === 'assistant' && message.content.includes('<village-action') && (
-              <div className="ml-10 mt-4">
-                <VillageActionChips content={message.content} />
+              <div className="ml-10 mt-2 mb-3">
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Village acties</h4>
+                  <VillageActionChips content={message.content} />
+                </div>
               </div>
             )}
           </div>

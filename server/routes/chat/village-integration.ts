@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@db";
 import { villageMembers, chats } from "@db/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import type { User } from "../../auth";
 import { 
   extractVillageMembersFromMessage, 
@@ -191,7 +191,7 @@ export function setupVillageChatIntegration(router: Router) {
             .select()
             .from(chats)
             .where(eq(chats.userId, user.id))
-            .orderBy(chats.createdAt, { direction: 'desc' })
+            .orderBy(desc(chats.createdAt))
             .limit(1)
             .then(results => results[0]);
           

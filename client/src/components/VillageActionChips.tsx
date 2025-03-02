@@ -131,7 +131,11 @@ export const VillageAction: React.FC<VillageActionProps> = ({
       onClick={handleClick}
       size="sm"
       variant={isComplete ? "outline" : "default"} 
-      className={`mr-2 my-1 rounded-full ${isComplete ? "bg-gray-100 text-gray-500" : "bg-[#629785] hover:bg-[#4A7566] text-white"}`}
+      className={`mr-2 my-1 rounded-full ${
+        isComplete 
+          ? "bg-gray-100 text-gray-500 border-gray-200" 
+          : "bg-[#629785] hover:bg-[#4A7566] text-white shadow-sm"
+      } transition-all duration-200 ease-in-out`}
       disabled={isLoading || isComplete}
     >
       {isLoading ? (
@@ -176,7 +180,7 @@ export const VillageActionChips: React.FC<{ content: string }> = ({ content }) =
         const actions = Array.from(sectionContent.matchAll(actionRegex));
         
         return (
-          <div key={`section-${sectionIndex}`} className="flex flex-wrap my-2">
+          <div key={`section-${sectionIndex}`} className="flex flex-wrap gap-2 my-2">
             {actions.map((action, actionIndex) => {
               const [_, id, name, actionType, label] = action;
               
