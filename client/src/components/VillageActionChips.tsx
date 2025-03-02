@@ -53,6 +53,66 @@ export const VillageAction: React.FC<VillageActionProps> = ({
           description: `${name} is toegevoegd aan je Village`,
           variant: 'default',
         });
+      } else if (action === 'add-all-to-village') {
+        // Get the current message content from the DOM
+        // We need to identify which message contains our action
+        let messageText = '';
+        
+        try {
+          // Try to find the closest message content by traversing up the DOM
+          const button = document.activeElement as HTMLElement;
+          const messageContainer = button?.closest('[data-message-content]') as HTMLElement;
+          
+          if (messageContainer) {
+            // Extract only the text content, without the action buttons
+            messageText = messageContainer.getAttribute('data-message-content') || '';
+          } else {
+            // Fallback: try to get the message from the DOM more broadly
+            const allMessages = document.querySelectorAll('[data-message-content]');
+            if (allMessages.length > 0) {
+              // Get the latest message
+              const latestMessage = allMessages[allMessages.length - 1] as HTMLElement;
+              messageText = latestMessage.getAttribute('data-message-content') || '';
+            }
+          }
+        } catch (error) {
+          console.error('Error getting message text:', error);
+        }
+        
+        // This is handled by a separate backend endpoint
+        // We'll make a direct API call since it's a bulk operation
+        try {
+          const response = await fetch('/api/chat/village/add-all', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+              message: messageText // Send the message text to help the backend identify members
+            }),
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to add members');
+          }
+          
+          const result = await response.json();
+          setIsComplete(true);
+          
+          toast({
+            title: 'Toegevoegd aan Village',
+            description: `${result.addedMembers.length} mensen toegevoegd aan je Village`,
+            variant: 'default',
+          });
+        } catch (error) {
+          console.error('Error adding all village members:', error);
+          toast({
+            title: 'Fout',
+            description: 'Er is een fout opgetreden bij het toevoegen aan je Village',
+            variant: 'destructive',
+          });
+        }
       }
     } catch (error) {
       console.error('Error adding village member:', error);
@@ -70,8 +130,8 @@ export const VillageAction: React.FC<VillageActionProps> = ({
     <Button
       onClick={handleClick}
       size="sm"
-      variant={isComplete ? "outline" : "default"}
-      className="mr-2 my-1 rounded-full"
+      variant={isComplete ? "outline" : "default"} 
+      className={`mr-2 my-1 rounded-full ${isComplete ? "bg-gray-100 text-gray-500" : "bg-[#629785] hover:bg-[#4A7566] text-white"}`}
       disabled={isLoading || isComplete}
     >
       {isLoading ? (

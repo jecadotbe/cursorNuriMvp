@@ -161,6 +161,7 @@ export function setupVillageChatIntegration(router: Router) {
   
   /**
    * Endpoint to add multiple village members from chat action
+   * This endpoint uses the latest message from the user to find and add all detected members
    */
   router.post("/village/add-all", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
@@ -169,17 +170,69 @@ export function setupVillageChatIntegration(router: Router) {
     
     try {
       const user = req.user as User;
-      const { members } = req.body;
+      const { message, members } = req.body;
       
-      if (!members || !Array.isArray(members) || members.length === 0) {
+      let membersToAdd: DetectedVillageMember[] = [];
+      
+      // If members are provided directly, use them
+      if (members && Array.isArray(members) && members.length > 0) {
+        membersToAdd = members;
+      } 
+      // Otherwise, use the message to extract members
+      else if (message && typeof message === "string") {
+        membersToAdd = extractVillageMembersFromMessage(message);
+      }
+      // If no message or members provided, return error
+      else {
+        // Attempt to get the most recent chat message
+        try {
+          // Retrieve the most recent chat for this user that has detected members
+          const recentChat = await db.query.chats.findFirst({
+            where: eq(villageMembers.userId, user.id),
+            orderBy: (chats, { desc }) => [desc(chats.createdAt)]
+          });
+          
+          // The messages property is expected to contain an array of message objects
+          if (recentChat?.messages) {
+            const messages = recentChat.messages as Array<{role: string, content: string}>;
+            // Get the most recent user message
+            const userMessage = messages.filter(m => m.role === 'user').pop();
+            if (userMessage && userMessage.content) {
+              membersToAdd = extractVillageMembersFromMessage(userMessage.content);
+            }
+          }
+        } catch (err) {
+          console.error("Error retrieving recent chat:", err);
+        }
+      }
+      
+      if (membersToAdd.length === 0) {
         return res.status(400).json({
           success: false,
-          message: "Members array is required"
+          message: "No members to add were found"
         });
       }
       
-      // Add all members to the user's village
-      const addedMembers = await addVillageMembersFromChat(user.id, members);
+      // Get existing members to filter out those already in the village
+      const existingMembers = await db
+        .select()
+        .from(villageMembers)
+        .where(eq(villageMembers.userId, user.id));
+      
+      const existingNames = new Set(existingMembers.map(m => m.name.toLowerCase()));
+      const newMembers = membersToAdd.filter(m => !existingNames.has(m.name.toLowerCase()));
+      
+      if (newMembers.length === 0) {
+        return res.json({
+          success: true,
+          addedMembers: [],
+          allMembers: existingMembers,
+          message: "All detected members already exist in your village"
+        });
+      }
+      
+      // Add all new members to the user's village
+      const addedMembers = await addVillageMembersFromChat(user.id, newMembers);
       
       // Get all village members to include in response
       const allMembers = await db
