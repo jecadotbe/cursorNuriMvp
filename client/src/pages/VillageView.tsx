@@ -1,5 +1,7 @@
 import { useState, useRef, createRef } from "react";
 import { useVillage } from "@/hooks/use-village";
+
+import { useVillage } from "@/hooks/use-village";
 import { useUser } from "@/hooks/use-user";
 import { useVillageSuggestions } from "@/hooks/use-village-suggestions";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -32,11 +34,11 @@ const highlightPulseStyle = `
     70% { box-shadow: 0 0 0 15px rgba(98, 151, 133, 0); }
     100% { box-shadow: 0 0 0 0 rgba(98, 151, 133, 0); }
   }
-
+  
   .highlight-pulse {
     animation: highlightPulse 1.5s ease-out;
   }
-
+  
   .highlight-animation {
     animation: highlightPulse 1.5s ease-out;
   }
@@ -380,17 +382,17 @@ export default function VillageView() {
   const handleOffscreenIndicatorTap = (member: VillageMember) => {
     // Create popup with member info and navigation options
     setSelectedOffscreenMember(member);
-
+    
     // Calculate if we need to show dialog or mini-card
     const distanceFromViewport = calculateDistanceFromViewport(member, position, scale);
-
+    
     if (distanceFromViewport > 500) {
       // Far away - show dialog with jump option
       setShowOffscreenDialog(true);
     } else {
       // Nearby - show mini-card with navigation hint
       setShowOffscreenCard(true);
-
+      
       // Auto-hide after 3 seconds
       setTimeout(() => setShowOffscreenCard(false), 3000);
     }
@@ -404,12 +406,12 @@ export default function VillageView() {
     const pos = getMemberPosition(member);
     const transformedX = pos.x * scale + position.x;
     const transformedY = pos.y * scale + position.y;
-
+    
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     const centerX = viewportWidth / 2;
     const centerY = viewportHeight / 2;
-
+    
     return Math.sqrt(
       Math.pow(transformedX - centerX, 2) + 
       Math.pow(transformedY - centerY, 2)
@@ -418,19 +420,19 @@ export default function VillageView() {
 
   const navigateToMember = (member: VillageMember) => {
     const pos = getMemberPosition(member);
-
+    
     // Use spring animation for smooth navigation
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-
+    
     // Calculate target position to center the member
     const targetX = -pos.x * scale + viewportWidth / 2;
     const targetY = -pos.y * scale + viewportHeight / 2;
-
+    
     // Close any open dialogs
     setShowOffscreenDialog(false);
     setShowOffscreenCard(false);
-
+    
     // Animate to the new position
     const duration = 800; // ms
     const startTime = Date.now();
@@ -438,18 +440,18 @@ export default function VillageView() {
     const startY = position.y;
     const distanceX = targetX - startX;
     const distanceY = targetY - startY;
-
+    
     // Simple spring animation
     const animatePosition = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
       const easeProgress = 1 - Math.pow(1 - progress, 3); // Cubic ease-out
-
+      
       setPosition({
         x: startX + distanceX * easeProgress,
         y: startY + distanceY * easeProgress
       });
-
+      
       if (progress < 1) {
         requestAnimationFrame(animatePosition);
       } else {
@@ -463,7 +465,7 @@ export default function VillageView() {
         }
       }
     };
-
+    
     requestAnimationFrame(animatePosition);
   };
 
@@ -983,23 +985,6 @@ export default function VillageView() {
                 !showListView
                   ? "bg-[#2F4644] text-white"
                   : "bg-white text-gray-800 hover:bg-gray-50"
-              }`}
-            >
-              Village View
-            </button>
-            <button
-              onClick={() => setShowListView(true)}
-              className={`px-4 py-1.5 text-sm font-medium transition-colors ${
-                showListView
-                  ? "bg-[#2F4644] text-white"
-                  : "bg-white text-gray-800 hover:bg-gray-50"
-              }`}
-            >
-              List View
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* Off-viewport member mini-card */}
       <AnimatePresence>
@@ -1066,6 +1051,24 @@ export default function VillageView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+              }`}
+            >
+              Village View
+            </button>
+            <button
+              onClick={() => setShowListView(true)}
+              className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+                showListView
+                  ? "bg-[#2F4644] text-white"
+                  : "bg-white text-gray-800 hover:bg-gray-50"
+              }`}
+            >
+              List View
+            </button>
+          </div>
+        </div>
+      </div>
 
       <div className="fixed top-24 right-4 flex flex-col space-y-2 z-10">
         <button
