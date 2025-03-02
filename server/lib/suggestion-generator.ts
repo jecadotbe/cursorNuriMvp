@@ -47,7 +47,6 @@ export async function generateVillageSuggestions(
   const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
   try {
-    // throw new Error("This is a test error");
     // 1. Analyze village structure and gaps
     console.log("Analyzing village gaps for members:", members);
     const gaps = analyzeVillageGaps(members);
@@ -91,7 +90,7 @@ Parent Profile:
 - Stress Level: ${context.parentProfile?.stressLevel || "Unknown"}
 - Primary Challenges: ${context.challenges?.map((c) => c.category).join(", ") || "None specified"}
 
-Generate 3 specific, actionable suggestions for strengthening their village network. Each suggestion has to be maximum 2 liner, The output needs to be in a json format as follows:
+Generate 3 specific, actionable suggestions for strengthening their village network. Each suggestion should be maximum 2 sentences, in Dutch. Focus on concrete actions. The output needs to be in a json format as follows:
 
 [
   {
@@ -108,11 +107,10 @@ Generate 3 specific, actionable suggestions for strengthening their village netw
   }
 ]`;
 
-    console.log("Generating suggestions with prompt:\n", prompt);
     console.log("Sending prompt to Claude, length:", prompt.length);
     const response = await anthropic.messages.create({
       messages: [{ role: "user", content: prompt }],
-      model: "claude-3-5-sonnet-20241022",
+      model: "claude-3-sonnet-20240229",
       max_tokens: 1000,
       temperature: 0.7,
     });
@@ -125,8 +123,11 @@ Generate 3 specific, actionable suggestions for strengthening their village netw
 
     const suggestionsText = response.content[0].text;
     console.log("Raw suggestions from Claude:", suggestionsText);
+
     // 5. Parse suggestions from Claude
     const suggestionsData = JSON.parse(suggestionsText);
+    console.log("Parsed suggestions:", suggestionsData);
+
     return [
       {
         userId,
@@ -171,7 +172,7 @@ Generate 3 specific, actionable suggestions for strengthening their village netw
     return [
       {
         userId,
-        text: "Als nieuwe gebruiker gids ik je graag door de opzet van je Village!.",
+        text: "Als nieuwe gebruiker gids ik je graag door de opzet van je Village!",
         type: "village_maintenance",
         context: "village",
         relevance: 5,
