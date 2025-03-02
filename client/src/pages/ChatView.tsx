@@ -222,6 +222,9 @@ export default function ChatView() {
                       ? `${theme.primary} ${theme.text.primary}`
                       : `${theme.secondary} ${theme.text.secondary}`
                   }`}
+                  data-message-content={message.content}
+                  data-message-id={`${chatId}-${index}`}
+                  data-message-role={message.role}
                 >
                   {message.role === 'assistant' ? (
                     <>

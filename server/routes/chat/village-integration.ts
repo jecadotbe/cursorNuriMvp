@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@db";
-import { villageMembers } from "@db/schema";
+import { villageMembers, chats } from "@db/schema";
 import { eq } from "drizzle-orm";
 import type { User } from "../../auth";
 import { 
@@ -187,10 +187,13 @@ export function setupVillageChatIntegration(router: Router) {
         // Attempt to get the most recent chat message
         try {
           // Retrieve the most recent chat for this user that has detected members
-          const recentChat = await db.query.chats.findFirst({
-            where: eq(villageMembers.userId, user.id),
-            orderBy: (chats, { desc }) => [desc(chats.createdAt)]
-          });
+          const recentChat = await db
+            .select()
+            .from(chats)
+            .where(eq(chats.userId, user.id))
+            .orderBy(chats.createdAt, { direction: 'desc' })
+            .limit(1)
+            .then(results => results[0]);
           
           // The messages property is expected to contain an array of message objects
           if (recentChat?.messages) {
