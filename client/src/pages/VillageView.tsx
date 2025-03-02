@@ -1,7 +1,5 @@
 import { useState, useRef, createRef } from "react";
 import { useVillage } from "@/hooks/use-village";
-
-import { useVillage } from "@/hooks/use-village";
 import { useUser } from "@/hooks/use-user";
 import { useVillageSuggestions } from "@/hooks/use-village-suggestions";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
