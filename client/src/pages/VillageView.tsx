@@ -914,7 +914,7 @@ export default function VillageView() {
               <VillageSuggestionList
                 suggestions={suggestions || []}
                 onDismiss={dismissSuggestion}
-                onNext={nextSuggestion}
+                onNext={refetchSuggestions}
                 onRefresh={refetchSuggestions}
                 isLoading={isSuggestionsLoading}
               />
