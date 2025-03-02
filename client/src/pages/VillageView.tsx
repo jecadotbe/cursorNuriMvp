@@ -304,6 +304,7 @@ export default function VillageView() {
     refetch: refetchSuggestions,
     markAsUsed,
     error: suggestionsError,
+    forceRefresh, // Add this line
   } = useVillageSuggestions({
     autoRefresh: false,
     maxSuggestions: 5,
@@ -837,8 +838,8 @@ export default function VillageView() {
             <button
               onClick={() => setShowListView(false)}
               className={`px-4 py-1.5 text-sm font-medium transition-colors ${
-                !showListView 
-                  ? "bg-[#2F4644] text-white" 
+                !showListView
+                  ? "bg-[#2F4644] text-white"
                   : "bg-white text-gray-800 hover:bg-gray-50"
               }`}
             >
@@ -847,8 +848,8 @@ export default function VillageView() {
             <button
               onClick={() => setShowListView(true)}
               className={`px-4 py-1.5 text-sm font-medium transition-colors ${
-                showListView 
-                  ? "bg-[#2F4644] text-white" 
+                showListView
+                  ? "bg-[#2F4644] text-white"
                   : "bg-white text-gray-800 hover:bg-gray-50"
               }`}
             >
