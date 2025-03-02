@@ -32,56 +32,7 @@ export function setupSuggestionsRoutes(router: Router) {
       const user = req.user as User;
       const now = new Date();
 
-      // Get recent chats to use as context
-      const recentChats = await db.query.chats.findMany({
-        where: eq(chats.userId, user.id),
-        orderBy: desc(chats.updatedAt),
-        limit: 3
-      });
-
-      let chatContext = '';
-      if (recentChats.length > 0) {
-        // Combine recent chat messages into context
-        chatContext = recentChats
-          .map(chat => {
-            const messages = Array.isArray(chat.messages) ? chat.messages : [];
-            return messages
-              .map((m: any) => m.content)
-              .join(' ');
-          })
-          .join('\n');
-      }
-
-      console.log('Chat context for suggestions:', chatContext || 'No recent chat context');
-
-      // 1. Get village members with error handling
-      const members = await db.query.villageMembers.findMany({
-        where: eq(villageMembers.userId, user.id),
-      });
-
-      // 2. Get parent profile with error handling
-      const parentProfile = await db.query.parentProfiles.findFirst({
-        where: eq(parentProfiles.userId, user.id),
-      });
-
-      if (!parentProfile) {
-        console.log('No parent profile found for user:', user.id);
-        return res.json([]);
-      }
-
-      // 3. Prepare context object
-      const villageContext = {
-        recentChats: recentChats.map(chat => ({
-          ...chat,
-          messages: Array.isArray(chat.messages) ? chat.messages : []
-        })),
-        parentProfile,
-        childProfiles: parentProfile.onboardingData?.childProfiles || [],
-        challenges: parentProfile.onboardingData?.stressAssessment?.primaryConcerns || [],
-        memories: []
-      };
-
-      // 4. Get existing suggestions
+      // Get existing valid suggestions first
       const existingVillageSuggestions = await db.query.promptSuggestions.findMany({
         where: and(
           eq(promptSuggestions.userId, user.id),
@@ -93,34 +44,66 @@ export function setupSuggestionsRoutes(router: Router) {
 
       console.log(`Found ${existingVillageSuggestions.length} existing village suggestions`);
 
-      if (existingVillageSuggestions.length < 3) {
-        console.log('Generating new village suggestions');
-        try {
-          // Pass the chat context to the suggestion generator
-          const newSuggestions = await generateVillageSuggestions(
-            user.id,
-            members,
-            {
-              ...villageContext,
-              chatContext // Add chat context to village context
-            },
-            memoryService
-          );
+      // If we have enough suggestions, return them
+      if (existingVillageSuggestions.length >= 3) {
+        return res.json(existingVillageSuggestions);
+      }
 
-          if (newSuggestions && newSuggestions.length > 0) {
-            const inserted = await db.insert(promptSuggestions)
-              .values(newSuggestions)
-              .returning();
+      // If background generation hasn't caught up, generate a few suggestions on the fly
+      // Get recent chats to use as context
+      const recentChats = await db.query.chats.findMany({
+        where: eq(chats.userId, user.id),
+        orderBy: desc(chats.updatedAt),
+        limit: 3
+      });
 
-            return res.json([...existingVillageSuggestions, ...inserted]);
-          }
-        } catch (error) {
-          console.error('Error generating/inserting suggestions:', error);
-          return res.status(500).json({ 
-            error: "Failed to generate suggestions",
-            message: error instanceof Error ? error.message : "Unknown error"
-          });
+      // Get parent profile
+      const parentProfile = await db.query.parentProfiles.findFirst({
+        where: eq(parentProfiles.userId, user.id),
+      });
+
+      if (!parentProfile) {
+        console.log('No parent profile found for user:', user.id);
+        return res.json(existingVillageSuggestions); // Return whatever we have
+      }
+
+      // Get village members
+      const members = await db.query.villageMembers.findMany({
+        where: eq(villageMembers.userId, user.id),
+      });
+
+      // Prepare context
+      const villageContext = {
+        recentChats: recentChats.map(chat => ({
+          ...chat,
+          messages: Array.isArray(chat.messages) ? chat.messages : []
+        })),
+        parentProfile,
+        childProfiles: parentProfile.onboardingData?.childProfiles || [],
+        challenges: parentProfile.onboardingData?.stressAssessment?.primaryConcerns || [],
+        memories: []
+      };
+
+      // Generate a few new suggestions if needed
+      try {
+        const newSuggestions = await generateVillageSuggestions(
+          user.id,
+          members,
+          villageContext,
+          memoryService
+        );
+
+        if (newSuggestions && newSuggestions.length > 0) {
+          const inserted = await db.insert(promptSuggestions)
+            .values(newSuggestions)
+            .returning();
+
+          return res.json([...existingVillageSuggestions, ...inserted]);
         }
+      } catch (error) {
+        console.error('Error generating new suggestions:', error);
+        // Return existing suggestions if generation fails
+        return res.json(existingVillageSuggestions);
       }
 
       return res.json(existingVillageSuggestions);

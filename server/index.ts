@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import "./admin"; // Import admin server
+import { backgroundSuggestionGenerator } from "./services/background-suggestion-generator";
 
 const app = express();
 
@@ -64,6 +65,9 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
+    // Start background suggestion generator
+    backgroundSuggestionGenerator.start();
+
     // ALWAYS serve the app on port 5000
     // this serves both the API and the client
     const PORT = 5000;
@@ -71,9 +75,10 @@ app.use((req, res, next) => {
       log(`serving on port ${PORT}`);
     });
 
-    // Cleanup on exit - simplified because memoryService is removed
+    // Cleanup on exit
     process.on('SIGTERM', () => {
       console.log('Shutting down...');
+      backgroundSuggestionGenerator.stop();
       server.close();
       process.exit(0);
     });
