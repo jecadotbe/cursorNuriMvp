@@ -946,16 +946,16 @@ export default function VillageView() {
         animation: "gradient 15s ease infinite"
       }}
     >
-      <div className="fixed top-0 left-0 right-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center justify-between px-4 h-14 border-b">
-          <Link to="/" className="flex items-center space-x-2">
+      <div className="fixed top-0 left-0 right-0 z-30 backdrop-blur-sm supports-[backdrop-filter]:bg-transparent">
+        <div className="flex items-center justify-between px-4 h-14 border-b border-[#629785]/30">
+          <Link to="/" className="flex items-center space-x-2 z-10">
             <ChevronLeft className="w-5 h-5" />
             <span>Back</span>
           </Link>
-          <div className="inline-flex items-center rounded-lg border shadow-sm">
+          <div className="absolute left-1/2 transform -translate-x-1/2 inline-flex items-center rounded-lg border shadow-sm">
             <button
               onClick={() => setShowListView(false)}
-              className={`px-4py-1.5 text-sm font-medium transition-colors ${
+              className={`px-4 py-1.5 text-sm font-medium transition-colors ${
                 !showListView
                   ? "bg-[#2F4644] text-white"
                   : "bg-white text-gray-800 hover:bg-gray-50"
@@ -974,6 +974,7 @@ export default function VillageView() {
               List View
             </button>
           </div>
+          <div className="w-10"></div> {/* Spacer to balance layout */}
         </div>
       </div>
 
@@ -1375,6 +1376,7 @@ export default function VillageView() {
           style={{
             backgroundSize: "400% 400%",
             background: `linear-gradient(135deg, #C9E1D4 0%, #F2F0E5 50%, #F2F0E5 100%)`,
+            marginTop: "0px", // Ensure there's no extra margin
           }}
         >
           <ScrollArea className="h-[calc(100vh-100px)]">
@@ -1684,36 +1686,7 @@ export default function VillageView() {
           </ScrollArea>
         </SheetContent>
       </Sheet>
-      <div className="fixed top-0 left-0 right-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center justify-between px-4 h-14 border-b">
-          <Link to="/" className="flex items-center space-x-2">
-            <ChevronLeft className="w-5 h-5" />
-            <span>Back</span>
-          </Link>
-          <div className="inline-flex items-center rounded-lg border shadow-sm">
-            <button
-              onClick={() => setShowListView(false)}
-              className={`px-4 py-1.5 text-sm font-medium transition-colors ${
-                !showListView
-                  ? "bg-[#2F4644] text-white"
-                  : "bg-white text-gray-800 hover:bg-gray-50"
-              }`}
-            >
-              Village View
-            </button>
-            <button
-              onClick={() => setShowListView(true)}
-              className={`px-4 py-1.5 text-sm font-medium transition-colors ${
-                showListView
-                  ? "bg-[#2F4644] text-white"
-                  : "bg-white text-gray-800 hover:bg-gray-50"
-              }`}
-            >
-              List View
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Top navigation bar is defined at the top of the component */}
       <div className="fixed top-24 right-4 flex flex-col space-y-2 z-10">
         <button
           onClick={handleZoomIn}
