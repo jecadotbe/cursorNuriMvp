@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { Mixpanel } from "@/lib/mixpanel";
 
 interface StarButtonProps {
   filled: boolean;
@@ -66,6 +67,13 @@ export function SuggestionFeedback({ suggestionId, open, onClose }: SuggestionFe
         throw new Error('Failed to submit feedback');
       }
 
+      // Track feedback submission
+      Mixpanel.track('Suggestion Feedback Submitted', {
+        suggestionId,
+        rating: rating,
+        hasComments: !!feedback
+      });
+
       toast({
         title: "Thank you!",
         description: "Your feedback helps improve our suggestions.",
@@ -74,6 +82,13 @@ export function SuggestionFeedback({ suggestionId, open, onClose }: SuggestionFe
       onClose();
     } catch (error) {
       console.error('Error submitting feedback:', error);
+
+      // Track error
+      Mixpanel.track('Suggestion Feedback Error', {
+        suggestionId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+
       toast({
         title: "Error",
         description: "Failed to submit feedback. Please try again.",
