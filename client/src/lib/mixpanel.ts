@@ -1,47 +1,44 @@
-import mixpanel from "mixpanel-browser";
 
-// Replace this with your actual Mixpanel token
-const MIXPANEL_TOKEN = "de5bd625a6e5181440f4a208a8e0d9b4";
+import mixpanel from 'mixpanel-browser';
 
-// Initialize Mixpanel
-mixpanel.init(MIXPANEL_TOKEN, {
-  debug: process.env.NODE_ENV !== "production",
-  track_pageview: true,
-  persistence: "localStorage",
-});
+// Initialize Mixpanel with your project token
+// Replace YOUR_MIXPANEL_TOKEN with your actual token from the Mixpanel dashboard
+mixpanel.init('YOUR_MIXPANEL_TOKEN');
 
-// Create a Mixpanel instance with additional helper methods
+// Set this to false in production
+const DEBUG_MODE = process.env.NODE_ENV !== 'production';
+
+// Helper functions for tracking
 export const Mixpanel = {
   identify: (id: string) => {
     mixpanel.identify(id);
   },
+  
   alias: (id: string) => {
     mixpanel.alias(id);
   },
+  
   track: (name: string, props?: Record<string, any>) => {
+    if (DEBUG_MODE) {
+      console.log('MIXPANEL TRACK:', name, props);
+    }
     mixpanel.track(name, props);
   },
-  trackLinks: (query: string, name: string) => {
-    mixpanel.track_links(query, name);
+  
+  trackLinks: (querySelector: string, name: string) => {
+    mixpanel.track_links(querySelector, name);
   },
+  
   people: {
     set: (props: Record<string, any>) => {
       mixpanel.people.set(props);
     },
-    setOnce: (props: Record<string, any>) => {
-      mixpanel.people.set_once(props);
-    },
-    increment: (prop: string, by?: number) => {
-      mixpanel.people.increment(prop, by);
-    },
   },
-  reset: () => {
-    mixpanel.reset();
-  },
+  
   setUser: (user: { id: number; username: string; email?: string }) => {
     // Set user ID
     mixpanel.identify(user.id.toString());
-
+    
     // Set user properties
     mixpanel.people.set({
       $name: user.username,
@@ -49,6 +46,10 @@ export const Mixpanel = {
       $last_login: new Date().toISOString(),
     });
   },
+  
+  reset: () => {
+    mixpanel.reset();
+  }
 };
 
 export default Mixpanel;
