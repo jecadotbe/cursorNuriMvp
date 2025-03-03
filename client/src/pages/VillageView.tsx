@@ -135,10 +135,16 @@ interface MemberContentProps {
   onEdit: (member: VillageMember) => void;
   onSetMemory: (member: VillageMember) => void;
   onDelete: (member: VillageMember) => void;
+}
+
+interface MemberContentProps {
+  member: VillageMember;
+  position: { x: number; y: number };
+  isRearrangeMode: boolean;
+  onEdit: (member: VillageMember) => void;
+  onSetMemory: (member: VillageMember) => void;
+  onDelete: (member: VillageMember) => void;
   isHighlighted?: boolean;
-  scale: number;
-  setPosition: (pos: { x: number; y: number }) => void;
-  getMemberPosition: (member: VillageMember) => { x: number; y: number };
 }
 
 const MemberContent: React.FC<MemberContentProps> = ({
@@ -149,9 +155,6 @@ const MemberContent: React.FC<MemberContentProps> = ({
   onSetMemory,
   onDelete,
   isHighlighted,
-  scale,
-  setPosition,
-  getMemberPosition,
 }) => (
   <div
     className="member-pill group flex items-center"
@@ -404,6 +407,9 @@ export default function VillageView() {
     setPosition({ x: 0, y: 0 });
   };
 
+  // Indicator-related handler functions removed
+
+  // Navigation function removed
 
   const snapToCircle = (x: number, y: number, circle: number) => {
     const radius = getCircleRadius(circle - 1);
@@ -690,6 +696,8 @@ export default function VillageView() {
     );
   };
 
+  // Indicator position computation function removed
+
   const handleMinimapNavigate = (x: number, y: number) => {
     setPosition({ x, y });
   };
@@ -850,6 +858,8 @@ export default function VillageView() {
         </div>
       </div>
 
+      {/* Off-viewport member indicators and dialogs removed */}
+
       <div
         className="flex-1 relative overflow-hidden"
         onMouseDown={handlePanStart}
@@ -861,6 +871,8 @@ export default function VillageView() {
         onTouchEnd={handleTouchEnd}
         style={{ cursor: isDragging ? "grabbing" : "grab" }}
       >
+        {/* Off-viewport indicators have been removed */}
+
         <div
           className="absolute inset-0"
           style={{
@@ -889,43 +901,45 @@ export default function VillageView() {
               const pos = getMemberPosition(member);
               const nodeRef = getMemberRef(member.id);
 
-              return (isRearrangeMode ? (
-                <Draggable
-                  key={member.id}
-                  nodeRef={nodeRef}
-                  position={pos}
-                  onStop={(e, data) => handleDragStop(e, data, member)}
-                  bounds={{
-                    left: -getCircleRadius(4),
-                    right: getCircleRadius(4),
-                    top: -getCircleRadius(4),
-                    bottom: getCircleRadius(4),
-                  }}
-                >
-                  <div
-                    ref={nodeRef}
-                    className="absolute"
-                    style={{
-                      transform: "translate(-50%, -50%)",
+              if (isRearrangeMode) {
+                return (
+                  <Draggable
+                    key={member.id}
+                    nodeRef={nodeRef}
+                    position={pos}
+                    onStop={(e, data) => handleDragStop(e, data, member)}
+                    bounds={{
+                      left: -getCircleRadius(4),
+                      right: getCircleRadius(4),
+                      top: -getCircleRadius(4),
+                      bottom: getCircleRadius(4),
                     }}
                   >
-                    <MemberContent
-                      member={member}
-                      position={{ x: 0, y: 0 }}
-                      isRearrangeMode={isRearrangeMode}
-                      onEdit={handleEdit}
-                      onSetMemory={(m) => {
-                        setSelectedMember(m);
-                        setIsMemoryDialogOpen(true);
+                    <div
+                      ref={nodeRef}
+                      className="absolute"
+                      style={{
+                        transform: "translate(-50%, -50%)",
                       }}
-                      onDelete={setMemberToDelete}
-                      scale={scale}
-                      setPosition={setPosition}
-                      getMemberPosition={getMemberPosition}
-                    />
-                  </div>
-                </Draggable>
-              ) : (
+                    >
+                      <MemberContent
+                        member={member}
+                        position={{ x: 0, y: 0 }}
+                        isRearrangeMode={isRearrangeMode}
+                        onEdit={handleEdit}
+                        onSetMemory={(m) => {
+                          setSelectedMember(m);
+                          setIsMemoryDialogOpen(true);
+                        }}
+                        onDelete={setMemberToDelete}
+                      />
+                    </div>
+                  </Draggable>
+                );
+              }
+
+              // Regular view - adjusted to match edit mode's coordinate system
+              return (
                 <div
                   key={member.id}
                   className="absolute"
@@ -940,7 +954,7 @@ export default function VillageView() {
                 >
                   <MemberContent
                     member={member}
-                    position={pos}
+                    position={{ x: 0, y: 0 }}
                     isRearrangeMode={isRearrangeMode}
                     onEdit={handleEdit}
                     onSetMemory={(m) => {
@@ -949,12 +963,9 @@ export default function VillageView() {
                     }}
                     onDelete={setMemberToDelete}
                     isHighlighted={lastAddedMember === member.id}
-                    scale={scale}
-                    setPosition={setPosition}
-                    getMemberPosition={getMemberPosition}
                   />
                 </div>
-              ));
+              );
             })}
             <div
               className="absolute w-24 h-24 rounded-full flex items-center justify-center"
