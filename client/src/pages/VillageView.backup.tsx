@@ -34,6 +34,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import MinimapView from "@/components/MinimapView";
 import { useVillageSuggestions } from "@/hooks/use-village-suggestions";
+import VillageControlBar from "@/components/VillageControlBar";
 
 const CATEGORY_COLORS = {
   informeel: "#22c55e", // Green
@@ -68,7 +69,7 @@ export default function VillageView() {
   const [memberToDelete, setMemberToDelete] = useState<typeof members[0] | null>(null);
   const memberRefs = useRef(new Map());
 
-    const {
+  const {
     suggestions,
     isLoading: isSuggestionsLoading,
     refetch: refetchSuggestions,
@@ -382,7 +383,7 @@ export default function VillageView() {
     return { x: indicatorX, y: indicatorY, Arrow };
   };
 
-    const handleMinimapNavigate = (x: number, y: number) => {
+  const handleMinimapNavigate = (x: number, y: number) => {
     setPosition({ x, y });
   };
 
@@ -409,27 +410,15 @@ export default function VillageView() {
         </h1>
       </div>
 
-      {/* Zoom controls */}
-      <div className="fixed top-32 right-4 flex flex-col space-y-2 z-10">
-        <button
-          onClick={handleZoomIn}
-          className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow hover:bg-gray-50"
-        >
-          <ZoomIn className="w-5 h-5 text-gray-700" />
-        </button>
-        <button
-          onClick={handleZoomOut}
-          className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow hover:bg-gray-50"
-        >
-          <ZoomOut className="w-5 h-5 text-gray-700" />
-        </button>
-        <button
-          onClick={handleReset}
-          className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow hover:bg-gray-50"
-        >
-          <RotateCcw className="w-5 h-5 text-gray-700" />
-        </button>
-      </div>
+      {/* New Control Bar */}
+      <VillageControlBar
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onReset={handleReset}
+        onCenter={() => setPosition({ x: 0, y: 0 })}
+        onToggleLight={() => {/* Add light toggle handler */}}
+        className="bottom-24"
+      />
 
       {/* Village visualization */}
       <div
@@ -628,7 +617,7 @@ export default function VillageView() {
                         e.stopPropagation();
                         if (suggestion) {
                           dismissSuggestion(suggestion.id);
-                           nextSuggestion();
+                          nextSuggestion();
                         }
                       }}
                       className="p-1 hover:bg-gray-200 rounded-full"
@@ -728,7 +717,7 @@ export default function VillageView() {
                 </SelectContent>
               </Select>
             </div>
-             <div className="space-y-2">
+            <div className="space-y-2">
               <Label htmlFor="contactFrequency">Contact Frequency</Label>
               <Select
                 value={newMember.contactFrequency || "M"}
@@ -791,11 +780,11 @@ export default function VillageView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-       <MinimapView
+      <MinimapView
         members={members}
         scale={scale}
         position={position}
-         onNavigate={handleMinimapNavigate}
+        onNavigate={handleMinimapNavigate}
       />
     </div>
   );
