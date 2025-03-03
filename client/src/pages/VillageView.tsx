@@ -199,40 +199,71 @@ const MemberContent: React.FC<MemberContentProps> = ({
       <div
         className="cursor-pointer flex-1 min-w-0"
         onTouchEnd={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
           if (!isRearrangeMode) {
-            const submenu = document.querySelector(`#submenu-${member.id}`);
-            if (submenu) {
-              // Close all other menus first
-              document.querySelectorAll('[id^="submenu-"]').forEach((menu) => {
-                if (menu.id !== `submenu-${member.id}`) {
-                  menu.classList.add("hidden");
-                  menu.classList.remove("flex");
-                }
-              });
-              // Toggle current menu
-              submenu.classList.toggle("hidden");
-              submenu.classList.toggle("flex");
-            }
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Center the view on this member for better visibility
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const pos = getMemberPosition(member);
+            const newPosition = {
+              x: -(pos.x * scale) + viewportWidth / 2,
+              y: -(pos.y * scale) + viewportHeight / 2
+            };
+
+            // Update position with animation
+            setPosition(newPosition);
+
+            // Then show the menu after a short delay
+            setTimeout(() => {
+              const submenu = document.querySelector(`#submenu-${member.id}`);
+              if (submenu) {
+                // Close all other menus first
+                document.querySelectorAll('[id^="submenu-"]').forEach((menu) => {
+                  if (menu.id !== `submenu-${member.id}`) {
+                    menu.classList.add("hidden");
+                    menu.classList.remove("flex");
+                  }
+                });
+                // Toggle current menu
+                submenu.classList.toggle("hidden");
+                submenu.classList.toggle("flex");
+              }
+            }, 100);
           }
         }}
         onClick={(e) => {
           e.stopPropagation();
           if (!isRearrangeMode) {
-            const submenu = document.querySelector(`#submenu-${member.id}`);
-            if (submenu) {
-              // Close all other menus first
-              document.querySelectorAll('[id^="submenu-"]').forEach((menu) => {
-                if (menu.id !== `submenu-${member.id}`) {
-                  menu.classList.add("hidden");
-                  menu.classList.remove("flex");
-                }
-              });
-              // Toggle current menu
-              submenu.classList.toggle("hidden");
-              submenu.classList.toggle("flex");
-            }
+            // Center the view on this member for better visibility
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const pos = getMemberPosition(member);
+            const newPosition = {
+              x: -(pos.x * scale) + viewportWidth / 2,
+              y: -(pos.y * scale) + viewportHeight / 2
+            };
+
+            // Update position with animation
+            setPosition(newPosition);
+
+            // Then show the menu after a short delay
+            setTimeout(() => {
+              const submenu = document.querySelector(`#submenu-${member.id}`);
+              if (submenu) {
+                // Close all other menus first
+                document.querySelectorAll('[id^="submenu-"]').forEach((menu) => {
+                  if (menu.id !== `submenu-${member.id}`) {
+                    menu.classList.add("hidden");
+                    menu.classList.remove("flex");
+                  }
+                });
+                // Toggle current menu
+                submenu.classList.toggle("hidden");
+                submenu.classList.toggle("flex");
+              }
+            }, 100);
           }
         }}
       >
@@ -947,8 +978,7 @@ export default function VillageView() {
             >
               <Avatar className="w-full h-full border-2 border-[#629785]">
                 {user?.profilePicture ? (
-                  <AvatarImage
-                    src={user.profilePicture}
+                  <AvatarImage                    src={user.profilePicture}
                     alt="Profile"
                     className="object-cover"
                   />
