@@ -1,4 +1,4 @@
-import { useState, useRef, createRef, useEffect } from "react";
+import { useState, useRef, createRef } from "react";
 import { useVillage } from "@/hooks/use-village";
 import { useUser } from "@/hooks/use-user";
 import { useVillageSuggestions } from "@/hooks/use-village-suggestions";
@@ -126,6 +126,15 @@ interface Insight {
   text: string; // Added text property
   context: string; // Added context property
   relevance: number; // Added relevance property
+}
+
+interface MemberContentProps {
+  member: VillageMember;
+  position: { x: number; y: number };
+  isRearrangeMode: boolean;
+  onEdit: (member: VillageMember) => void;
+  onSetMemory: (member: VillageMember) => void;
+  onDelete: (member: VillageMember) => void;
 }
 
 interface MemberContentProps {
@@ -298,84 +307,6 @@ const MemberContent: React.FC<MemberContentProps> = ({
   </div>
 );
 
-const MEMBER_CHIP_WIDTH = 150; // Maximum width of a member chip
-const MEMBER_CHIP_HEIGHT = 40; // Height of a member chip
-const MIN_SPACING = 20; // Minimum spacing between chips
-
-// Add collision detection helper
-const checkCollision = (pos1: { x: number; y: number }, pos2: { x: number; y: number }) => {
-  const dx = Math.abs(pos1.x - pos2.x);
-  const dy = Math.abs(pos1.y - pos2.y);
-  return dx < (MEMBER_CHIP_WIDTH + MIN_SPACING) && dy < (MEMBER_CHIP_HEIGHT + MIN_SPACING);
-};
-
-const getCircleRadius = (index: number) => {
-  const baseRadius = 120; // Increased from 80 to provide more space
-  return baseRadius * (index + 1);
-};
-
-const getMemberPosition = (member: VillageMember, existingPositions: Array<{ x: number; y: number }> = []) => {
-  const radius = getCircleRadius(member.circle - 1);
-  let angle: number;
-
-  // Get initial angle from member's stored position or generate new one
-  if (typeof member.positionAngle === "string") {
-    angle = parseFloat(member.positionAngle);
-  } else if (typeof member.positionAngle === "number") {
-    angle = member.positionAngle;
-  } else {
-    angle = Math.random() * 2 * Math.PI;
-  }
-
-  // Initial position
-  let position = {
-    x: Math.cos(angle) * radius,
-    y: Math.sin(angle) * radius,
-  };
-
-  // Check for collisions and adjust position if needed
-  if (existingPositions.length > 0) {
-    let attempts = 0;
-    const maxAttempts = 36; // Try different positions around the circle
-    let foundValidPosition = false;
-
-    while (!foundValidPosition && attempts < maxAttempts) {
-      let hasCollision = false;
-
-      // Check collision with all existing positions
-      for (const existingPos of existingPositions) {
-        if (checkCollision(position, existingPos)) {
-          hasCollision = true;
-          break;
-        }
-      }
-
-      if (!hasCollision) {
-        foundValidPosition = true;
-      } else {
-        // Adjust angle and try new position
-        attempts++;
-        angle += (2 * Math.PI) / maxAttempts;
-        position = {
-          x: Math.cos(angle) * radius,
-          y: Math.sin(angle) * radius,
-        };
-      }
-    }
-
-    // If still colliding, try increasing radius slightly
-    if (!foundValidPosition) {
-      const adjustedRadius = radius * 1.1;
-      position = {
-        x: Math.cos(angle) * adjustedRadius,
-        y: Math.sin(angle) * adjustedRadius,
-      };
-    }
-  }
-
-  return position;
-};
-
 export default function VillageView() {
   const { members, addMember, updateMember, deleteMember } = useVillage();
   const { user } = useUser();
@@ -394,6 +325,36 @@ export default function VillageView() {
     return memberRefs.current.get(memberId);
   };
 
+  const getCircleRadius = (index: number) => {
+    const baseRadius = 80;
+    return baseRadius * (index + 1);
+  };
+
+  const getMemberPosition = (member: VillageMember) => {
+    const radius = getCircleRadius(member.circle - 1);
+    const angle =
+      typeof member.positionAngle === "string"
+        ? parseFloat(member.positionAngle)
+        : typeof member.positionAngle === "number"
+          ? member.positionAngle
+          : Math.random() * 2 * Math.PI;
+
+    const position = {
+      x: Math.cos(angle) * radius,
+      y: Math.sin(angle) * radius,
+    };
+
+    console.log("Member Position Calculation:", {
+      memberId: member.id,
+      memberName: member.name,
+      angle,
+      radius,
+      position,
+      originalAngle: member.positionAngle,
+    });
+
+    return position;
+  };
 
   const [newMember, setNewMember] = useState<NewVillageMember>({
     name: "",
@@ -446,6 +407,9 @@ export default function VillageView() {
     setPosition({ x: 0, y: 0 });
   };
 
+  // Indicator-related handler functions removed
+
+  // Navigation function removed
 
   const snapToCircle = (x: number, y: number, circle: number) => {
     const radius = getCircleRadius(circle - 1);
@@ -732,6 +696,7 @@ export default function VillageView() {
     );
   };
 
+  // Indicator position computation function removed
 
   const handleMinimapNavigate = (x: number, y: number) => {
     setPosition({ x, y });
@@ -824,7 +789,7 @@ export default function VillageView() {
 
   const handleDragStop = (_e: any, data: any, member: VillageMember) => {
     const distance = Math.sqrt(data.x * data.x + data.y * data.y);
-    let newCircle = Math.round(distance / 120); // Updated base radius
+    let newCircle = Math.round(distance / 80);
     newCircle = Math.max(1, Math.min(5, newCircle));
 
     const snapped = snapToCircle(data.x, data.y, newCircle);
@@ -851,14 +816,6 @@ export default function VillageView() {
       });
     }
   };
-
-  // Track positions for collision detection
-  const existingPositions = useRef<Array<{ x: number; y: number }>>([]);
-
-  // Clear positions when members change
-  useEffect(() => {
-    existingPositions.current = [];
-  }, [members]);
 
   return (
     <div
@@ -901,6 +858,8 @@ export default function VillageView() {
         </div>
       </div>
 
+      {/* Off-viewport member indicators and dialogs removed */}
+
       <div
         className="flex-1 relative overflow-hidden"
         onMouseDown={handlePanStart}
@@ -912,6 +871,7 @@ export default function VillageView() {
         onTouchEnd={handleTouchEnd}
         style={{ cursor: isDragging ? "grabbing" : "grab" }}
       >
+        {/* Off-viewport indicators have been removed */}
 
         <div
           className="absolute inset-0"
@@ -938,8 +898,7 @@ export default function VillageView() {
             ))}
 
             {members.map((member) => {
-              const pos = getMemberPosition(member, existingPositions.current);
-              existingPositions.current.push(pos); // Track position for collision detection
+              const pos = getMemberPosition(member);
               const nodeRef = getMemberRef(member.id);
 
               if (isRearrangeMode) {
@@ -961,7 +920,6 @@ export default function VillageView() {
                       className="absolute"
                       style={{
                         transform: "translate(-50%, -50%)",
-                        zIndex:20,
                       }}
                     >
                       <MemberContent
@@ -1176,6 +1134,7 @@ export default function VillageView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* List View */}
       {showListView && (
         <div
           className="fixed inset-0 z-20 overflow-auto pt-20 pb-24 px-4 animate-gradient"
@@ -1244,6 +1203,7 @@ export default function VillageView() {
         </div>
       )}
 
+      {/* Memories Dialog */}
       <Sheet open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
         <SheetContent side="bottom" className="h-[90vh] overflow-y-auto pb-20">
           <SheetHeader className="text-left">
@@ -1368,6 +1328,7 @@ export default function VillageView() {
         />
       </div>
 
+      {/* Add/Edit member dialog */}
       <Sheet
         open={isOpen}
         onOpenChange={(open) => {
@@ -1490,6 +1451,7 @@ export default function VillageView() {
           </ScrollArea>
         </SheetContent>
       </Sheet>
+      {/* Top navigation bar is defined at the top of the component */}
       <div className="fixed top-24 right-4 flex flex-col space-y-2 z-10">
         <button
           onClick={handleZoomIn}
@@ -1527,6 +1489,7 @@ export default function VillageView() {
         </button>
       </div>
 
+      {/* Village suggestions dialog */}
       <Sheet open={isSuggestionsOpen} onOpenChange={setIsSuggestionsOpen}>
         <SheetContent side="bottom" className="h-[90vh]">
           <SheetHeader>
