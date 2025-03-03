@@ -1,7 +1,5 @@
 import { useState, useRef, createRef } from "react";
 import { useVillage } from "@/hooks/use-village";
-
-import { useVillage } from "@/hooks/use-village";
 import { useUser } from "@/hooks/use-user";
 import { useVillageSuggestions } from "@/hooks/use-village-suggestions";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -34,11 +32,11 @@ const highlightPulseStyle = `
     70% { box-shadow: 0 0 0 15px rgba(98, 151, 133, 0); }
     100% { box-shadow: 0 0 0 0 rgba(98, 151, 133, 0); }
   }
-  
+
   .highlight-pulse {
     animation: highlightPulse 1.5s ease-out;
   }
-  
+
   .highlight-animation {
     animation: highlightPulse 1.5s ease-out;
   }
@@ -51,30 +49,6 @@ if (typeof document !== 'undefined') {
   document.head.appendChild(styleEl);
 }
 
-import { useUser } from "@/hooks/use-user";
-import { useVillageSuggestions } from "@/hooks/use-village-suggestions";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import {
-  ChevronLeft,
-  Plus,
-  ZoomIn,
-  ZoomOut,
-  RotateCcw,
-  Edit2,
-  Trash2,
-  User,
-  Users,
-  ArrowUpCircle,
-  ArrowDownCircle,
-  ArrowLeftCircle,
-  ArrowRightCircle,
-  Lightbulb,
-  BookMarked,
-  Star,
-  Clock,
-  Move,
-  X,
-} from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -124,8 +98,8 @@ import { VillageMemberMemories } from "@/components/VillageMemberMemories";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InsightsPanel from "@/components/InsightsPanel";
 import type { VillageMember } from "@db/schema";
-import { VillageSuggestionCards } from "@/components/VillageSuggestionCards"; // Used in HomeView
-import { VillageSuggestionList } from "@/components/VillageSuggestionList"; // New list view for village suggestions
+import { VillageSuggestionCards } from "@/components/VillageSuggestionCards";
+import { VillageSuggestionList } from "@/components/VillageSuggestionList";
 
 const CATEGORY_COLORS = {
   informeel: "#3C9439", // Green
@@ -964,27 +938,37 @@ export default function VillageView() {
   };
 
   return (
-    <div
-      className="flex flex-col h-screen relative animate-gradient"
-      style={{
-        backgroundSize: "400% 400%",
-        background: `linear-gradient(135deg, #C9E1D4 0%, #F2F0E5 50%, #F2F0E5 100%)`,
-      }}
-    >
-      <div className="fixed top-0 left-0 right-0 z-50 p-4">
-        <div className="flex justify-between items-center">
-          <Link href="/">
-            <div className="flex items-center space-x-4 cursor-pointer">
-              <ChevronLeft className="w-6 h-6 text-gray-800" />
-            </div>
+    <div className="flex flex-col h-screen relative">
+      <div className="fixed top-0 left-0 right-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex items-center justify-between px-4 h-14 border-b">
+          <Link to="/" className="flex items-center space-x-2">
+            <ChevronLeft className="w-5 h-5" />
+            <span>Back</span>
           </Link>
-          <div className="absolute left-1/2 transform -translate-x-1/2 flex bg-white rounded-lg shadow overflow-hidden">
+          <div className="inline-flex items-center rounded-lg border shadow-sm">
             <button
               onClick={() => setShowListView(false)}
-              className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+              className={`px-4py-1.5 text-sm font-medium transition-colors ${
                 !showListView
                   ? "bg-[#2F4644] text-white"
                   : "bg-white text-gray-800 hover:bg-gray-50"
+              }`}
+            >
+              Village View
+            </button>
+            <button
+              onClick={() => setShowListView(true)}
+              className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+                showListView
+                  ? "bg-[#2F4644] text-white"
+                  : "bg-white text-gray-800 hover:bg-gray-50"
+              }`}
+            >
+              List View
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Off-viewport member mini-card */}
       <AnimatePresence>
@@ -1051,89 +1035,6 @@ export default function VillageView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-              }`}
-            >
-              Village View
-            </button>
-            <button
-              onClick={() => setShowListView(true)}
-              className={`px-4 py-1.5 text-sm font-medium transition-colors ${
-                showListView
-                  ? "bg-[#2F4644] text-white"
-                  : "bg-white text-gray-800 hover:bg-gray-50"
-              }`}
-            >
-              List View
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="fixed top-24 right-4 flex flex-col space-y-2 z-10">
-        <button
-          onClick={handleZoomIn}
-          className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow hover:bg-gray-50"
-        >
-          <ZoomIn className="w-5 h-5 text-gray-700" />
-        </button>
-        <button
-          onClick={handleZoomOut}
-          className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow hover:bg-gray-50"
-        >
-          <ZoomOut className="w-5 h-5 text-gray-700" />
-        </button>
-        <button
-          onClick={handleReset}
-          className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow hover:bg-gray-50"
-        >
-          <RotateCcw className="w-5 h-5 text-gray-700" />
-        </button>
-        <button
-          onClick={() => setIsRearrangeMode(!isRearrangeMode)}
-          className={`w-10 h-10 flex items-center justify-center rounded-lg shadow hover:bg-gray-50 ${
-            isRearrangeMode ? "bg-primary text-white" : "bg-white"
-          }`}
-        >
-          <Move
-            className={`w-5 h-5 ${isRearrangeMode ? "text-white" : "text-gray-700"}`}
-          />
-        </button>
-        <button
-          onClick={() => setIsSuggestionsOpen(true)}
-          className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow hover:bg-gray-50"
-        >
-          <Lightbulb className="w-5 h-5 text-gray-700" />
-        </button>
-      </div>
-
-      {/* Village suggestions dialog */}
-      <Sheet open={isSuggestionsOpen} onOpenChange={setIsSuggestionsOpen}>
-        <SheetContent side="bottom" className="h-[90vh]">
-          <SheetHeader>
-            <SheetTitle>Dorpsuggesties</SheetTitle>
-          </SheetHeader>
-          <div className="p-4">
-            {suggestionsError ? (
-              <div className="text-center py-8 px-4">
-                <X className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                <p className="text-red-600">
-                  Er is een fout opgetreden bij het ophalen van suggesties.
-                  Probeer het later opnieuw.
-                </p>
-              </div>
-            ) : (
-              <VillageSuggestionList
-                suggestions={suggestions || []}
-                onDismiss={dismissSuggestion}
-                onNext={refetchSuggestions}
-                onRefresh={forceRefresh}
-                isLoading={isSuggestionsLoading}
-              />
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
 
       <div
         className="flex-1 relative overflow-hidden"
@@ -1774,6 +1675,100 @@ export default function VillageView() {
               </Button>
             </form>
           </ScrollArea>
+        </SheetContent>
+      </Sheet>
+      <div className="fixed top-0 left-0 right-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex items-center justify-between px-4 h-14 border-b">
+          <Link to="/" className="flex items-center space-x-2">
+            <ChevronLeft className="w-5 h-5" />
+            <span>Back</span>
+          </Link>
+          <div className="inline-flex items-center rounded-lg border shadow-sm">
+            <button
+              onClick={() => setShowListView(false)}
+              className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+                !showListView
+                  ? "bg-[#2F4644] text-white"
+                  : "bg-white text-gray-800 hover:bg-gray-50"
+              }`}
+            >
+              Village View
+            </button>
+            <button
+              onClick={() => setShowListView(true)}
+              className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+                showListView
+                  ? "bg-[#2F4644] text-white"
+                  : "bg-white text-gray-800 hover:bg-gray-50"
+              }`}
+            >
+              List View
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className="fixed top-24 right-4 flex flex-col space-y-2 z-10">
+        <button
+          onClick={handleZoomIn}
+          className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow hover:bg-gray-50"
+        >
+          <ZoomIn className="w-5 h-5 text-gray-700" />
+        </button>
+        <button
+          onClick={handleZoomOut}
+          className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow hover:bg-gray-50"
+        >
+          <ZoomOut className="w-5 h-5 text-gray-700" />
+        </button>
+        <button
+          onClick={handleReset}
+          className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow hover:bg-gray-50"
+        >
+          <RotateCcw className="w-5 h-5 text-gray-700" />
+        </button>
+        <button
+          onClick={() => setIsRearrangeMode(!isRearrangeMode)}
+          className={`w-10 h-10 flex items-center justify-center rounded-lg shadow hover:bg-gray-50 ${
+            isRearrangeMode ? "bg-primary text-white" : "bg-white"
+          }`}
+        >
+          <Move
+            className={`w-5 h-5 ${isRearrangeMode ? "text-white" : "text-gray-700"}`}
+          />
+        </button>
+        <button
+          onClick={() => setIsSuggestionsOpen(true)}
+          className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow hover:bg-gray-50"
+        >
+          <Lightbulb className="w-5 h-5 text-gray-700" />
+        </button>
+      </div>
+
+      {/* Village suggestions dialog */}
+      <Sheet open={isSuggestionsOpen} onOpenChange={setIsSuggestionsOpen}>
+        <SheetContent side="bottom" className="h-[90vh]">
+          <SheetHeader>
+            <SheetTitle>Dorpsuggesties</SheetTitle>
+          </SheetHeader>
+          <div className="p-4">
+            {suggestionsError ? (
+              <div className="text-center py-8 px-4">
+                <X className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                <p className="text-red-600">
+                  Er is een fout opgetreden bij het ophalen van suggesties.
+                  Probeer het later opnieuw.
+                </p>
+              </div>
+            ) : (
+              <VillageSuggestionList
+                suggestions={suggestions || []}
+                onDismiss={dismissSuggestion}
+                onNext={refetchSuggestions}
+                onRefresh={forceRefresh}
+                isLoading={isSuggestionsLoading}
+              />
+            )}
+          </div>
         </SheetContent>
       </Sheet>
     </div>
