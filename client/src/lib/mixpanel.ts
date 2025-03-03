@@ -1,40 +1,43 @@
-
 import mixpanel from 'mixpanel-browser';
 
-// Initialize Mixpanel with your project token
-// Replace YOUR_MIXPANEL_TOKEN with your actual token from the Mixpanel dashboard
-mixpanel.init('YOUR_MIXPANEL_TOKEN');
+// Replace this with your actual Mixpanel token
+const MIXPANEL_TOKEN = 'YOUR_MIXPANEL_PROJECT_TOKEN';
 
-// Set this to false in production
-const DEBUG_MODE = process.env.NODE_ENV !== 'production';
+// Initialize Mixpanel
+mixpanel.init(MIXPANEL_TOKEN, { 
+  debug: process.env.NODE_ENV !== 'production',
+  track_pageview: true,
+  persistence: 'localStorage'
+});
 
-// Helper functions for tracking
+// Create a Mixpanel instance with additional helper methods
 export const Mixpanel = {
   identify: (id: string) => {
     mixpanel.identify(id);
   },
-  
   alias: (id: string) => {
     mixpanel.alias(id);
   },
-  
   track: (name: string, props?: Record<string, any>) => {
-    if (DEBUG_MODE) {
-      console.log('MIXPANEL TRACK:', name, props);
-    }
     mixpanel.track(name, props);
   },
-  
-  trackLinks: (querySelector: string, name: string) => {
-    mixpanel.track_links(querySelector, name);
+  trackLinks: (query: string, name: string) => {
+    mixpanel.track_links(query, name);
   },
-  
   people: {
     set: (props: Record<string, any>) => {
       mixpanel.people.set(props);
     },
+    setOnce: (props: Record<string, any>) => {
+      mixpanel.people.set_once(props);
+    },
+    increment: (prop: string, by?: number) => {
+      mixpanel.people.increment(prop, by);
+    }
   },
-  
+  reset: () => {
+    mixpanel.reset();
+  },
   setUser: (user: { id: number; username: string; email?: string }) => {
     // Set user ID
     mixpanel.identify(user.id.toString());
@@ -45,10 +48,6 @@ export const Mixpanel = {
       $email: user.email,
       $last_login: new Date().toISOString(),
     });
-  },
-  
-  reset: () => {
-    mixpanel.reset();
   }
 };
 
