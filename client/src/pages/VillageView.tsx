@@ -952,10 +952,10 @@ export default function VillageView() {
             <ChevronLeft className="w-5 h-5" />
             <span>Back</span>
           </Link>
-          <div className="absolute left-1/2 transform -translate-x-1/2 inline-flex items-center rounded-lg border shadow-sm">
+          <div className="absolute left-1/2 transform -translate-x-1/2 inline-flex items-center border shadow-sm overflow-hidden">
             <button
               onClick={() => setShowListView(false)}
-              className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+              className={`px-4 py-1.5 text-sm font-medium transition-colors rounded-l-full ${
                 !showListView
                   ? "bg-[#2F4644] text-white"
                   : "bg-white text-gray-800 hover:bg-gray-50"
@@ -965,7 +965,7 @@ export default function VillageView() {
             </button>
             <button
               onClick={() => setShowListView(true)}
-              className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+              className={`px-4 py-1.5 text-sm font-medium transition-colors rounded-r-full ${
                 showListView
                   ? "bg-[#2F4644] text-white"
                   : "bg-white text-gray-800 hover:bg-gray-50"
