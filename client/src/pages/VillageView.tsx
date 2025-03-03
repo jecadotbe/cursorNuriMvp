@@ -196,7 +196,77 @@ const MemberContent: React.FC<MemberContentProps> = ({
     <div
       className={`flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB] max-w-[150px] ${isHighlighted ? "highlight-animation" : ""}`}
     >
-      <div className="cursor-pointer flex-1 min-w-0">
+      <div
+        className="cursor-pointer flex-1 min-w-0"
+        onTouchEnd={(e) => {
+          if (!isRearrangeMode) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Center the view on this member for better visibility
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const pos = getMemberPosition(member);
+            const newPosition = {
+              x: -(pos.x * scale) + viewportWidth / 2,
+              y: -(pos.y * scale) + viewportHeight / 2
+            };
+
+            // Update position with animation
+            setPosition(newPosition);
+
+            // Then show the menu after a short delay
+            setTimeout(() => {
+              const submenu = document.querySelector(`#submenu-${member.id}`);
+              if (submenu) {
+                // Close all other menus first
+                document.querySelectorAll('[id^="submenu-"]').forEach((menu) => {
+                  if (menu.id !== `submenu-${member.id}`) {
+                    menu.classList.add("hidden");
+                    menu.classList.remove("flex");
+                  }
+                });
+                // Toggle current menu
+                submenu.classList.toggle("hidden");
+                submenu.classList.toggle("flex");
+              }
+            }, 100);
+          }
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!isRearrangeMode) {
+            // Center the view on this member for better visibility
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const pos = getMemberPosition(member);
+            const newPosition = {
+              x: -(pos.x * scale) + viewportWidth / 2,
+              y: -(pos.y * scale) + viewportHeight / 2
+            };
+
+            // Update position with animation
+            setPosition(newPosition);
+
+            // Then show the menu after a short delay
+            setTimeout(() => {
+              const submenu = document.querySelector(`#submenu-${member.id}`);
+              if (submenu) {
+                // Close all other menus first
+                document.querySelectorAll('[id^="submenu-"]').forEach((menu) => {
+                  if (menu.id !== `submenu-${member.id}`) {
+                    menu.classList.add("hidden");
+                    menu.classList.remove("flex");
+                  }
+                });
+                // Toggle current menu
+                submenu.classList.toggle("hidden");
+                submenu.classList.toggle("flex");
+              }
+            }, 100);
+          }
+        }}
+      >
         <span className="text-sm font-medium text-gray-800 truncate block">
           {member.name}
         </span>
@@ -260,7 +330,7 @@ export default function VillageView() {
     return baseRadius * (index + 1);
   };
 
-  const calculateMemberPosition = (member: VillageMember) => {
+  const getMemberPosition = (member: VillageMember) => {
     const radius = getCircleRadius(member.circle - 1);
     const angle =
       typeof member.positionAngle === "string"
@@ -269,10 +339,21 @@ export default function VillageView() {
           ? member.positionAngle
           : Math.random() * 2 * Math.PI;
 
-    return {
+    const position = {
       x: Math.cos(angle) * radius,
       y: Math.sin(angle) * radius,
     };
+
+    console.log("Member Position Calculation:", {
+      memberId: member.id,
+      memberName: member.name,
+      angle,
+      radius,
+      position,
+      originalAngle: member.positionAngle,
+    });
+
+    return position;
   };
 
   const [newMember, setNewMember] = useState<NewVillageMember>({
@@ -326,6 +407,9 @@ export default function VillageView() {
     setPosition({ x: 0, y: 0 });
   };
 
+  // Indicator-related handler functions removed
+
+  // Navigation function removed
 
   const snapToCircle = (x: number, y: number, circle: number) => {
     const radius = getCircleRadius(circle - 1);
@@ -612,6 +696,7 @@ export default function VillageView() {
     );
   };
 
+  // Indicator position computation function removed
 
   const handleMinimapNavigate = (x: number, y: number) => {
     setPosition({ x, y });
@@ -773,6 +858,8 @@ export default function VillageView() {
         </div>
       </div>
 
+      {/* Off-viewport member indicators and dialogs removed */}
+
       <div
         className="flex-1 relative overflow-hidden"
         onMouseDown={handlePanStart}
@@ -784,6 +871,7 @@ export default function VillageView() {
         onTouchEnd={handleTouchEnd}
         style={{ cursor: isDragging ? "grabbing" : "grab" }}
       >
+        {/* Off-viewport indicators have been removed */}
 
         <div
           className="absolute inset-0"
@@ -810,7 +898,7 @@ export default function VillageView() {
             ))}
 
             {members.map((member) => {
-              const pos = calculateMemberPosition(member);
+              const pos = getMemberPosition(member);
               const nodeRef = getMemberRef(member.id);
 
               if (isRearrangeMode) {
@@ -836,7 +924,7 @@ export default function VillageView() {
                     >
                       <MemberContent
                         member={member}
-                        position={pos}
+                        position={{ x: 0, y: 0 }}
                         isRearrangeMode={isRearrangeMode}
                         onEdit={handleEdit}
                         onSetMemory={(m) => {
@@ -866,7 +954,7 @@ export default function VillageView() {
                 >
                   <MemberContent
                     member={member}
-                    position={pos}
+                    position={{ x: 0, y: 0 }}
                     isRearrangeMode={isRearrangeMode}
                     onEdit={handleEdit}
                     onSetMemory={(m) => {
