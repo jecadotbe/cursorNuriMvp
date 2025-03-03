@@ -194,8 +194,7 @@ const MemberContent: React.FC<MemberContentProps> = ({
       }}
     />
     <div
-      className={`flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB] max-w-[150px] ${isHighlighted ? "highlight-animation" : ""} whitespace-nowrap`}
-      style={{ minWidth: '40px' }}
+      className={`flex items-center space-x-2 bg-white rounded-full px-3 py-1.5 shadow-sm border border-[#E5E7EB] max-w-[150px] ${isHighlighted ? "highlight-animation" : ""}`}
     >
       <div
         className="cursor-pointer flex-1 min-w-0"
@@ -268,7 +267,7 @@ const MemberContent: React.FC<MemberContentProps> = ({
           }
         }}
       >
-        <span className="text-sm font-medium text-gray-800 truncate block" title={member.name}>
+        <span className="text-sm font-medium text-gray-800 truncate block">
           {member.name}
         </span>
       </div>
@@ -355,96 +354,6 @@ export default function VillageView() {
     });
 
     return position;
-  };
-
-  // Check if two members are overlapping based on their positions
-  const areOverlapping = (pos1: {x: number, y: number}, pos2: {x: number, y: number}, minDistance = 60) => {
-    const dx = pos1.x - pos2.x;
-    const dy = pos1.y - pos2.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    return distance < minDistance;
-  };
-
-  // Adjust positions to avoid overlaps
-  const getAdjustedPositions = () => {
-    const positions: Record<number, {x: number, y: number}> = {};
-    
-    // First, calculate initial positions
-    members.forEach(member => {
-      positions[member.id] = getMemberPosition(member);
-    });
-    
-    // Then adjust positions to avoid overlaps within the same circle
-    const maxIterations = 10;
-    let iterations = 0;
-    let hasOverlap = true;
-    
-    while (hasOverlap && iterations < maxIterations) {
-      hasOverlap = false;
-      iterations++;
-      
-      // Group members by circle
-      const membersByCircle: Record<number, VillageMember[]> = {};
-      members.forEach(member => {
-        if (!membersByCircle[member.circle]) {
-          membersByCircle[member.circle] = [];
-        }
-        membersByCircle[member.circle].push(member);
-      });
-      
-      // Check for overlaps within each circle
-      Object.entries(membersByCircle).forEach(([circle, circleMembers]) => {
-        for (let i = 0; i < circleMembers.length; i++) {
-          for (let j = i + 1; j < circleMembers.length; j++) {
-            const member1 = circleMembers[i];
-            const member2 = circleMembers[j];
-            
-            if (areOverlapping(positions[member1.id], positions[member2.id])) {
-              hasOverlap = true;
-              
-              // Adjust positions by slightly moving members apart
-              const pos1 = positions[member1.id];
-              const pos2 = positions[member2.id];
-              
-              // Calculate angle between the two points
-              const angleToCenter = Math.atan2(pos2.y - pos1.y, pos2.x - pos1.x);
-              
-              // Move them slightly apart
-              const adjustmentDistance = 5;
-              
-              // Update positions
-              const radius = getCircleRadius(Number(circle) - 1);
-              const newAngle1 = Math.atan2(pos1.y, pos1.x) - (adjustmentDistance / radius);
-              const newAngle2 = Math.atan2(pos2.y, pos2.x) + (adjustmentDistance / radius);
-              
-              positions[member1.id] = {
-                x: Math.cos(newAngle1) * radius,
-                y: Math.sin(newAngle1) * radius
-              };
-              
-              positions[member2.id] = {
-                x: Math.cos(newAngle2) * radius,
-                y: Math.sin(newAngle2) * radius
-              };
-              
-              // Update member.positionAngle in the data so it persists
-              if (iterations === maxIterations - 1) {
-                updateMember({
-                  ...member1,
-                  positionAngle: newAngle1.toString()
-                });
-                updateMember({
-                  ...member2,
-                  positionAngle: newAngle2.toString()
-                });
-              }
-            }
-          }
-        }
-      });
-    }
-    
-    return positions;
   };
 
   const [newMember, setNewMember] = useState<NewVillageMember>({
@@ -988,81 +897,76 @@ export default function VillageView() {
               />
             ))}
 
-            {(() => {
-              // Calculate adjusted positions once to avoid overlaps
-              const adjustedPositions = getAdjustedPositions();
-              
-              return members.map((member) => {
-                const pos = adjustedPositions[member.id] || getMemberPosition(member);
-                const nodeRef = getMemberRef(member.id);
+            {members.map((member) => {
+              const pos = getMemberPosition(member);
+              const nodeRef = getMemberRef(member.id);
 
-                if (isRearrangeMode) {
-                  return (
-                    <Draggable
-                      key={member.id}
-                      nodeRef={nodeRef}
-                      position={pos}
-                      onStop={(e, data) => handleDragStop(e, data, member)}
-                      bounds={{
-                        left: -getCircleRadius(4),
-                        right: getCircleRadius(4),
-                        top: -getCircleRadius(4),
-                        bottom: getCircleRadius(4),
-                      }}
-                    >
-                      <div
-                        ref={nodeRef}
-                        className="absolute"
-                        style={{
-                          transform: "translate(-50%, -50%)",
-                        }}
-                      >
-                        <MemberContent
-                          member={member}
-                          position={{ x: 0, y: 0 }}
-                          isRearrangeMode={isRearrangeMode}
-                          onEdit={handleEdit}
-                          onSetMemory={(m) => {
-                            setSelectedMember(m);
-                            setIsMemoryDialogOpen(true);
-                          }}
-                          onDelete={setMemberToDelete}
-                        />
-                      </div>
-                    </Draggable>
-                  );
-                }
-
-                // Regular view - adjusted to match edit mode's coordinate system
+              if (isRearrangeMode) {
                 return (
-                  <div
+                  <Draggable
                     key={member.id}
-                    className="absolute"
-                    data-member-id={member.id}
-                    style={{
-                      transform: `translate(${pos.x}px, ${pos.y}px) translate(-50%, -50%)`,
-                      left: "50%",
-                      top: "50%",
-                      touchAction: "none",
-                      zIndex: 20,
+                    nodeRef={nodeRef}
+                    position={pos}
+                    onStop={(e, data) => handleDragStop(e, data, member)}
+                    bounds={{
+                      left: -getCircleRadius(4),
+                      right: getCircleRadius(4),
+                      top: -getCircleRadius(4),
+                      bottom: getCircleRadius(4),
                     }}
                   >
-                    <MemberContent
-                      member={member}
-                      position={{ x: 0, y: 0 }}
-                      isRearrangeMode={isRearrangeMode}
-                      onEdit={handleEdit}
-                      onSetMemory={(m) => {
-                        setSelectedMember(m);
-                        setIsMemoryDialogOpen(true);
+                    <div
+                      ref={nodeRef}
+                      className="absolute"
+                      style={{
+                        transform: "translate(-50%, -50%)",
                       }}
-                      onDelete={setMemberToDelete}
-                      isHighlighted={lastAddedMember === member.id}
-                    />
-                  </div>
+                    >
+                      <MemberContent
+                        member={member}
+                        position={{ x: 0, y: 0 }}
+                        isRearrangeMode={isRearrangeMode}
+                        onEdit={handleEdit}
+                        onSetMemory={(m) => {
+                          setSelectedMember(m);
+                          setIsMemoryDialogOpen(true);
+                        }}
+                        onDelete={setMemberToDelete}
+                      />
+                    </div>
+                  </Draggable>
                 );
-              });
-            })()}
+              }
+
+              // Regular view - adjusted to match edit mode's coordinate system
+              return (
+                <div
+                  key={member.id}
+                  className="absolute"
+                  data-member-id={member.id}
+                  style={{
+                    transform: `translate(${pos.x}px, ${pos.y}px) translate(-50%, -50%)`,
+                    left: "50%",
+                    top: "50%",
+                    touchAction: "none",
+                    zIndex: 20,
+                  }}
+                >
+                  <MemberContent
+                    member={member}
+                    position={{ x: 0, y: 0 }}
+                    isRearrangeMode={isRearrangeMode}
+                    onEdit={handleEdit}
+                    onSetMemory={(m) => {
+                      setSelectedMember(m);
+                      setIsMemoryDialogOpen(true);
+                    }}
+                    onDelete={setMemberToDelete}
+                    isHighlighted={lastAddedMember === member.id}
+                  />
+                </div>
+              );
+            })}
             <div
               className="absolute w-24 h-24 rounded-full flex items-center justify-center"
               style={{
