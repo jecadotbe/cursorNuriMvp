@@ -422,32 +422,6 @@ export default function VillageView() {
     };
   };
 
-  const getMemberPosition = (member: VillageMember) => {
-    const radius = getCircleRadius(member.circle - 1);
-    const angle =
-      typeof member.positionAngle === "string"
-        ? parseFloat(member.positionAngle)
-        : typeof member.positionAngle === "number"
-          ? member.positionAngle
-          : Math.random() * 2 * Math.PI;
-
-    const position = {
-      x: Math.cos(angle) * radius,
-      y: Math.sin(angle) * radius,
-    };
-
-    console.log("Member Position Calculation:", {
-      memberId: member.id,
-      memberName: member.name,
-      angle,
-      radius,
-      position,
-      originalAngle: member.positionAngle,
-    });
-
-    return position;
-  };
-
   const calculateAngleFromPosition = (x: number, y: number) => {
     return Math.atan2(y, x);
   };
