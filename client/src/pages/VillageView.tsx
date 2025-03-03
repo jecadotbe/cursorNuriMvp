@@ -411,11 +411,6 @@ export default function VillageView() {
 
   // Navigation function removed
 
-  const getCircleRadius = (index: number) => {
-    const baseRadius = 80;
-    return baseRadius * (index + 1);
-  };
-
   const snapToCircle = (x: number, y: number, circle: number) => {
     const radius = getCircleRadius(circle - 1);
     const angle = Math.atan2(y, x);
