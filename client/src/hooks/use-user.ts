@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { User } from "@db/schema";
 import { useToast } from '@/hooks/use-toast';
-import { Mixpanel } from "@/lib/mixpanel"; // Added Mixpanel import
 
 type LoginData = {
   username: string;
@@ -95,14 +94,6 @@ export function useUser() {
         title: "Success",
         description: result.message || "Successfully logged in!",
       });
-      //Track successful login -  Assuming result.user contains necessary data.  Adjust as needed.
-      if (result.user) {
-          Mixpanel.track('User Logged In', {
-              username: result.user.username // Replace with actual username property if different.
-          });
-          Mixpanel.setUser(result.user); //Set user identity
-      }
-
     },
     onError: (error) => {
       toast({
@@ -123,8 +114,6 @@ export function useUser() {
         title: "Success",
         description: result.message || "Successfully logged out!",
       });
-      Mixpanel.track('User Logged Out'); // Track user logout
-      Mixpanel.reset(); // Reset Mixpanel user identity
     },
     onError: (error) => {
       toast({
@@ -144,12 +133,6 @@ export function useUser() {
         title: "Success",
         description: result.message || "Registration successful!",
       });
-      //Track successful registration - Assuming result.user contains necessary data. Adjust as needed.
-      if (result.user) {
-          Mixpanel.track('User Registered', {
-              email: result.user.email // Replace with actual email property if different.
-          });
-      }
     },
     onError: (error) => {
       toast({

@@ -5,7 +5,6 @@ import { ScrollingTicker } from "@/components/ScrollingTicker";
 import { useUser } from "@/hooks/use-user";
 import { useSuggestion } from "@/hooks/use-suggestion";
 import { useVillageSuggestions } from "@/hooks/use-village-suggestions";
-import { Mixpanel } from "@/lib/mixpanel";
 import { MessageSquare, Users, Clock, ChevronRight, Wind, Heart, MessageCircle, X, RefreshCw, Check, Wand } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -185,11 +184,6 @@ export default function HomeView() {
 
   const handleChipClick = async (topic: string) => {
     try {
-      // Track chip click
-      Mixpanel.track('Action Chip Clicked', {
-        topic: topic
-      });
-      
       const response = await fetch('/api/chats', {
         method: 'POST',
         headers: {
@@ -213,13 +207,6 @@ export default function HomeView() {
       navigate(`/chat/${newChat.id}`);
     } catch (error) {
       console.error('Error creating chat:', error);
-      
-      // Track error
-      Mixpanel.track('Action Chip Error', {
-        topic: topic,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-      
       toast({
         variant: "destructive",
         title: "Error",
@@ -234,14 +221,6 @@ export default function HomeView() {
     try {
       await markAsUsed(suggestion.id);
       setCurrentSuggestionId(suggestion.id);
-
-      // Track suggestion usage
-      Mixpanel.track('Suggestion Used', {
-        suggestionId: suggestion.id,
-        suggestionType: suggestion.type,
-        suggestionCategory: suggestion.category,
-        suggestionText: suggestion.text.substring(0, 100) // First 100 chars for brevity
-      });
 
       if (suggestion.context === "existing" && suggestion.relatedChatId) {
         navigate(`/chat/${suggestion.relatedChatId}`);
@@ -272,13 +251,6 @@ export default function HomeView() {
       setShowFeedback(true);
     } catch (error) {
       console.error('Error handling prompt:', error);
-      
-      // Track error
-      Mixpanel.track('Suggestion Error', {
-        suggestionId: suggestion.id,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-      
       toast({
         variant: "destructive",
         title: "Error",
