@@ -96,6 +96,8 @@ import InsightsPanel from "@/components/InsightsPanel";
 import type { VillageMember } from "@db/schema";
 import { VillageSuggestionCards } from "@/components/VillageSuggestionCards";
 import { VillageSuggestionList } from "@/components/VillageSuggestionList";
+import VillageControlBar from "@/components/VillageControlBar"; // Import the control bar component
+
 
 const CATEGORY_COLORS = {
   informeel: "#3C9439", // Green
@@ -407,10 +409,6 @@ export default function VillageView() {
     setPosition({ x: 0, y: 0 });
   };
 
-  // Indicator-related handler functions removed
-
-  // Navigation function removed
-
   const snapToCircle = (x: number, y: number, circle: number) => {
     const radius = getCircleRadius(circle - 1);
     const angle = Math.atan2(y, x);
@@ -696,8 +694,6 @@ export default function VillageView() {
     );
   };
 
-  // Indicator position computation function removed
-
   const handleMinimapNavigate = (x: number, y: number) => {
     setPosition({ x, y });
   };
@@ -858,7 +854,15 @@ export default function VillageView() {
         </div>
       </div>
 
-      {/* Off-viewport member indicators and dialogs removed */}
+      {/* Place VillageControlBar right after the header */}
+      <VillageControlBar
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onReset={handleReset}
+        onCenter={() => setPosition({ x: 0, y: 0 })}
+        onToggleLight={() => {/* To be implemented */}}
+        className="top-20"
+      />
 
       <div
         className="flex-1 relative overflow-hidden"
@@ -871,8 +875,6 @@ export default function VillageView() {
         onTouchEnd={handleTouchEnd}
         style={{ cursor: isDragging ? "grabbing" : "grab" }}
       >
-        {/* Off-viewport indicators have been removed */}
-
         <div
           className="absolute inset-0"
           style={{
@@ -1134,7 +1136,6 @@ export default function VillageView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      {/* List View */}
       {showListView && (
         <div
           className="fixed inset-0 z-20 overflow-auto pt-20 pb-24 px-4 animate-gradient"
@@ -1203,7 +1204,6 @@ export default function VillageView() {
         </div>
       )}
 
-      {/* Memories Dialog */}
       <Sheet open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
         <SheetContent side="bottom" className="h-[90vh] overflow-y-auto pb-20">
           <SheetHeader className="text-left">
@@ -1328,7 +1328,6 @@ export default function VillageView() {
         />
       </div>
 
-      {/* Add/Edit member dialog */}
       <Sheet
         open={isOpen}
         onOpenChange={(open) => {
@@ -1451,7 +1450,6 @@ export default function VillageView() {
           </ScrollArea>
         </SheetContent>
       </Sheet>
-      {/* Top navigation bar is defined at the top of the component */}
       <div className="fixed top-24 right-4 flex flex-col space-y-2 z-10">
         <button
           onClick={handleZoomIn}
@@ -1489,7 +1487,6 @@ export default function VillageView() {
         </button>
       </div>
 
-      {/* Village suggestions dialog */}
       <Sheet open={isSuggestionsOpen} onOpenChange={setIsSuggestionsOpen}>
         <SheetContent side="bottom" className="h-[90vh]">
           <SheetHeader>
