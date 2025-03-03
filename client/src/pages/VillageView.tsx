@@ -938,7 +938,14 @@ export default function VillageView() {
   };
 
   return (
-    <div className="flex flex-col h-screen relative">
+    <div
+      className="flex flex-col h-screen relative animate-gradient"
+      style={{
+        backgroundSize: "400% 400%",
+        background: `linear-gradient(135deg, #C9E1D4 0%, #F2F0E5 50%, #F2F0E5 100%)`,
+        animation: "gradient 15s ease infinite"
+      }}
+    >
       <div className="fixed top-0 left-0 right-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center justify-between px-4 h-14 border-b">
           <Link to="/" className="flex items-center space-x-2">
@@ -973,7 +980,7 @@ export default function VillageView() {
       {/* Off-viewport member mini-card */}
       <AnimatePresence>
         {showOffscreenCard && selectedOffscreenMember && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
@@ -984,23 +991,23 @@ export default function VillageView() {
                 <h3 className="font-medium">{selectedOffscreenMember.name}</h3>
                 <div className="flex items-center mt-1 text-sm text-gray-600">
                   <span className="mr-2">Circle {selectedOffscreenMember.circle}</span>
-                  <div 
-                    className="h-2 w-2 rounded-full mr-1" 
-                    style={{ 
-                      backgroundColor: selectedOffscreenMember.category 
-                        ? CATEGORY_COLORS[selectedOffscreenMember.category] 
-                        : "#6b7280" 
+                  <div
+                    className="h-2 w-2 rounded-full mr-1"
+                    style={{
+                      backgroundColor: selectedOffscreenMember.category
+                        ? CATEGORY_COLORS[selectedOffscreenMember.category]
+                        : "#6b7280"
                     }}
                   ></div>
                   <span>
-                    {selectedOffscreenMember.category 
-                      ? selectedOffscreenMember.category.charAt(0).toUpperCase() + selectedOffscreenMember.category.slice(1) 
+                    {selectedOffscreenMember.category
+                      ? selectedOffscreenMember.category.charAt(0).toUpperCase() + selectedOffscreenMember.category.slice(1)
                       : "Other"}
                   </span>
                 </div>
               </div>
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 onClick={() => navigateToMember(selectedOffscreenMember)}
                 className="bg-primary text-white px-3 py-1 rounded-md"
               >
@@ -1012,8 +1019,8 @@ export default function VillageView() {
       </AnimatePresence>
 
       {/* Off-viewport member dialog for distant members */}
-      <AlertDialog 
-        open={showOffscreenDialog} 
+      <AlertDialog
+        open={showOffscreenDialog}
         onOpenChange={setShowOffscreenDialog}
       >
         <AlertDialogContent>
@@ -1027,7 +1034,7 @@ export default function VillageView() {
             <AlertDialogCancel onClick={() => setShowOffscreenDialog(false)}>
               Cancel
             </AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={() => selectedOffscreenMember && navigateToMember(selectedOffscreenMember)}
             >
               Go to member
@@ -1075,19 +1082,19 @@ export default function VillageView() {
                 >
                   <div className="relative">
                     {/* Enlarged touch target with visual feedback */}
-                    <div 
+                    <div
                       className="w-12 h-12 flex items-center justify-center"
-                      style={{ 
-                        background: `radial-gradient(circle, ${categoryColor}20 0%, transparent 70%)` 
+                      style={{
+                        background: `radial-gradient(circle, ${categoryColor}20 0%, transparent 70%)`
                       }}
                     >
                       <motion.div
                         whileTap={{ scale: 0.85 }}
                         className="animate-pulse"
                       >
-                        <Arrow 
-                          className="w-7 h-7" 
-                          style={{ color: categoryColor }} 
+                        <Arrow
+                          className="w-7 h-7"
+                          style={{ color: categoryColor }}
                         />
                       </motion.div>
                     </div>
