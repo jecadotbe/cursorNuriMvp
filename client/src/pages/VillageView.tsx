@@ -13,10 +13,6 @@ import {
   Trash2,
   User,
   Users,
-  ArrowUpCircle,
-  ArrowDownCircle,
-  ArrowLeftCircle,
-  ArrowRightCircle,
   Lightbulb,
   BookMarked,
   Star,
@@ -291,10 +287,6 @@ export default function VillageView() {
   const memberRefs = useRef(new Map());
   const [isRearrangeMode, setIsRearrangeMode] = useState(false);
   const [showListView, setShowListView] = useState(false); // Add state for list view toggle
-  const [selectedOffscreenMember, setSelectedOffscreenMember] = useState<VillageMember | null>(null);
-  const [showOffscreenDialog, setShowOffscreenDialog] = useState(false);
-  const [showOffscreenCard, setShowOffscreenCard] = useState(false);
-
   const getMemberRef = (memberId: number) => {
     if (!memberRefs.current.has(memberId)) {
       memberRefs.current.set(memberId, createRef());
@@ -353,95 +345,9 @@ export default function VillageView() {
     setPosition({ x: 0, y: 0 });
   };
 
-  const handleOffscreenIndicatorTap = (member: VillageMember) => {
-    // Create popup with member info and navigation options
-    setSelectedOffscreenMember(member);
-    
-    // Calculate if we need to show dialog or mini-card
-    const distanceFromViewport = calculateDistanceFromViewport(member, position, scale);
-    
-    if (distanceFromViewport > 500) {
-      // Far away - show dialog with jump option
-      setShowOffscreenDialog(true);
-    } else {
-      // Nearby - show mini-card with navigation hint
-      setShowOffscreenCard(true);
-      
-      // Auto-hide after 3 seconds
-      setTimeout(() => setShowOffscreenCard(false), 3000);
-    }
-  };
+  // Indicator-related handler functions removed
 
-  const calculateDistanceFromViewport = (
-    member: VillageMember, 
-    position: { x: number; y: number }, 
-    scale: number
-  ) => {
-    const pos = getMemberPosition(member);
-    const transformedX = pos.x * scale + position.x;
-    const transformedY = pos.y * scale + position.y;
-    
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const centerX = viewportWidth / 2;
-    const centerY = viewportHeight / 2;
-    
-    return Math.sqrt(
-      Math.pow(transformedX - centerX, 2) + 
-      Math.pow(transformedY - centerY, 2)
-    );
-  };
-
-  const navigateToMember = (member: VillageMember) => {
-    const pos = getMemberPosition(member);
-    
-    // Use spring animation for smooth navigation
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    
-    // Calculate target position to center the member
-    const targetX = -pos.x * scale + viewportWidth / 2;
-    const targetY = -pos.y * scale + viewportHeight / 2;
-    
-    // Close any open dialogs
-    setShowOffscreenDialog(false);
-    setShowOffscreenCard(false);
-    
-    // Animate to the new position
-    const duration = 800; // ms
-    const startTime = Date.now();
-    const startX = position.x;
-    const startY = position.y;
-    const distanceX = targetX - startX;
-    const distanceY = targetY - startY;
-    
-    // Simple spring animation
-    const animatePosition = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const easeProgress = 1 - Math.pow(1 - progress, 3); // Cubic ease-out
-      
-      setPosition({
-        x: startX + distanceX * easeProgress,
-        y: startY + distanceY * easeProgress
-      });
-      
-      if (progress < 1) {
-        requestAnimationFrame(animatePosition);
-      } else {
-        // Highlight the member briefly
-        const memberElement = document.querySelector(`[data-member-id="${member.id}"]`);
-        if (memberElement) {
-          memberElement.classList.add('highlight-pulse');
-          setTimeout(() => {
-            memberElement.classList.remove('highlight-pulse');
-          }, 2000);
-        }
-      }
-    };
-    
-    requestAnimationFrame(animatePosition);
-  };
+  // Navigation function removed
 
   const getCircleRadius = (index: number) => {
     const baseRadius = 80;
@@ -759,64 +665,7 @@ export default function VillageView() {
     );
   };
 
-  const getIndicatorInfo = (
-    memberX: number,
-    memberY: number,
-    scale: number,
-    position: { x: number; y: number },
-  ) => {
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const padding = 40;
-
-    const transformedX = memberX * scale + position.x;
-    const transformedY = memberY * scale + position.y;
-
-    const centerX = viewportWidth / 2;
-    const centerY = viewportHeight / 2;
-    const angle = Math.atan2(transformedY - centerY, transformedX - centerX);
-
-    let indicatorX = centerX;
-    let indicatorY = centerY;
-    const border = 60;
-
-    if (Math.abs(Math.cos(angle)) > Math.abs(Math.sin(angle))) {
-      indicatorX = transformedX < centerX ? border : viewportWidth - border;
-      indicatorY = centerY + Math.tan(angle) * (indicatorX - centerX);
-
-      indicatorY = Math.max(
-        border,
-        Math.min(viewportHeight - border, indicatorY),
-      );
-    } else {
-      indicatorY = transformedY < centerY ? border : viewportHeight - border;
-      indicatorX = centerX + (indicatorY - centerY) / Math.tan(angle);
-
-      indicatorX = Math.max(
-        border,
-        Math.min(viewportWidth - border, indicatorX),
-      );
-    }
-
-    let Arrow;
-    if (
-      transformedY < centerY &&
-      Math.abs(Math.sin(angle)) > Math.abs(Math.cos(angle))
-    ) {
-      Arrow = ArrowUpCircle;
-    } else if (
-      transformedY > centerY &&
-      Math.abs(Math.sin(angle)) > Math.abs(Math.cos(angle))
-    ) {
-      Arrow = ArrowDownCircle;
-    } else if (transformedX < centerX) {
-      Arrow = ArrowLeftCircle;
-    } else {
-      Arrow = ArrowRightCircle;
-    }
-
-    return { x: indicatorX, y: indicatorY, Arrow };
-  };
+  // Indicator position computation function removed
 
   const handleMinimapNavigate = (x: number, y: number) => {
     setPosition({ x, y });
@@ -978,71 +827,7 @@ export default function VillageView() {
         </div>
       </div>
 
-      {/* Off-viewport member mini-card */}
-      <AnimatePresence>
-        {showOffscreenCard && selectedOffscreenMember && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-lg p-4 w-[80%] z-50"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium">{selectedOffscreenMember.name}</h3>
-                <div className="flex items-center mt-1 text-sm text-gray-600">
-                  <span className="mr-2">Circle {selectedOffscreenMember.circle}</span>
-                  <div
-                    className="h-2 w-2 rounded-full mr-1"
-                    style={{
-                      backgroundColor: selectedOffscreenMember.category
-                        ? CATEGORY_COLORS[selectedOffscreenMember.category]
-                        : "#6b7280"
-                    }}
-                  ></div>
-                  <span>
-                    {selectedOffscreenMember.category
-                      ? selectedOffscreenMember.category.charAt(0).toUpperCase() + selectedOffscreenMember.category.slice(1)
-                      : "Other"}
-                  </span>
-                </div>
-              </div>
-              <Button
-                size="sm"
-                onClick={() => navigateToMember(selectedOffscreenMember)}
-                className="bg-primary text-white px-3 py-1 rounded-md"
-              >
-                Go to
-              </Button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Off-viewport member dialog for distant members */}
-      <AlertDialog
-        open={showOffscreenDialog}
-        onOpenChange={setShowOffscreenDialog}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Navigate to {selectedOffscreenMember?.name}</AlertDialogTitle>
-            <AlertDialogDescription>
-              This member is far from your current view. Would you like to navigate to them?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowOffscreenDialog(false)}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => selectedOffscreenMember && navigateToMember(selectedOffscreenMember)}
-            >
-              Go to member
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Off-viewport member indicators and dialogs removed */}
 
       <div
         className="flex-1 relative overflow-hidden"
@@ -1055,57 +840,7 @@ export default function VillageView() {
         onTouchEnd={handleTouchEnd}
         style={{ cursor: isDragging ? "grabbing" : "grab" }}
       >
-        <AnimatePresence>
-          {members.map((member) => {
-            const pos = getMemberPosition(member);
-
-            if (!isInViewport(pos.x, pos.y, scale, position)) {
-              const { x, y, Arrow } = getIndicatorInfo(
-                pos.x,
-                pos.y,
-                scale,
-                position,
-              );
-              const categoryColor = member.category
-                ? CATEGORY_COLORS[member.category]
-                : "#6b7280";
-
-              return (
-                <motion.div
-                  key={`indicator-${member.id}`}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ duration: 0.2 }}
-                  className="absolute z-20 transform -translate-x-1/2 -translate-y-1/2"
-                  style={{ left: x, top: y }}
-                  onClick={() => handleOffscreenIndicatorTap(member)}
-                >
-                  <div className="relative">
-                    {/* Enlarged touch target with visual feedback */}
-                    <div
-                      className="w-12 h-12 flex items-center justify-center"
-                      style={{
-                        background: `radial-gradient(circle, ${categoryColor}20 0%, transparent 70%)`
-                      }}
-                    >
-                      <motion.div
-                        whileTap={{ scale: 0.85 }}
-                        className="animate-pulse"
-                      >
-                        <Arrow
-                          className="w-7 h-7"
-                          style={{ color: categoryColor }}
-                        />
-                      </motion.div>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            }
-            return null;
-          })}
-        </AnimatePresence>
+        {/* Off-viewport indicators have been removed */}
 
         <div
           className="absolute inset-0"
