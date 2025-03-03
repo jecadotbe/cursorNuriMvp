@@ -1,13 +1,13 @@
-import mixpanel from 'mixpanel-browser';
+import mixpanel from "mixpanel-browser";
 
 // Replace this with your actual Mixpanel token
-const MIXPANEL_TOKEN = 'YOUR_MIXPANEL_PROJECT_TOKEN';
+const MIXPANEL_TOKEN = "de5bd625a6e5181440f4a208a8e0d9b4";
 
 // Initialize Mixpanel
-mixpanel.init(MIXPANEL_TOKEN, { 
-  debug: process.env.NODE_ENV !== 'production',
+mixpanel.init(MIXPANEL_TOKEN, {
+  debug: process.env.NODE_ENV !== "production",
   track_pageview: true,
-  persistence: 'localStorage'
+  persistence: "localStorage",
 });
 
 // Create a Mixpanel instance with additional helper methods
@@ -33,7 +33,7 @@ export const Mixpanel = {
     },
     increment: (prop: string, by?: number) => {
       mixpanel.people.increment(prop, by);
-    }
+    },
   },
   reset: () => {
     mixpanel.reset();
@@ -41,14 +41,14 @@ export const Mixpanel = {
   setUser: (user: { id: number; username: string; email?: string }) => {
     // Set user ID
     mixpanel.identify(user.id.toString());
-    
+
     // Set user properties
     mixpanel.people.set({
       $name: user.username,
       $email: user.email,
       $last_login: new Date().toISOString(),
     });
-  }
+  },
 };
 
 export default Mixpanel;
