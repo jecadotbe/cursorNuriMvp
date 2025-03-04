@@ -33,8 +33,8 @@ export default function VillageControlBar({
       initial={{ y: 20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       className={cn(
-        "bg-white/95 backdrop-blur-md rounded-full shadow-xl px-4 py-2 flex items-center gap-2",
-        "max-w-[90vw] overflow-x-auto scrollbar-hide border border-gray-200",
+        "bg-white/90 backdrop-blur-sm rounded-full shadow-lg px-4 py-2 flex items-center gap-2",
+        "max-w-[95vw] overflow-x-auto scrollbar-hide",
         className
       )}
     >
@@ -44,11 +44,11 @@ export default function VillageControlBar({
             variant="ghost"
             size="sm"
             onClick={onClick}
-            className="h-12 w-12 hover:bg-gray-100 rounded-full flex items-center justify-center"
+            className="h-10 px-3 hover:bg-gray-100 rounded-full flex items-center gap-2"
             title={tooltip}
           >
             <Icon className="w-5 h-5 text-gray-700" />
-            {label && <span className="text-sm text-gray-700 hidden md:inline ml-1">{label}</span>}
+            {label && <span className="text-sm text-gray-700 hidden md:inline">{label}</span>}
           </Button>
         </div>
       ))}
