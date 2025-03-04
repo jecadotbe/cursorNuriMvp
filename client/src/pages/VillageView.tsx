@@ -98,6 +98,7 @@ import type { VillageMember } from "@db/schema";
 import { VillageSuggestionCards } from "@/components/VillageSuggestionCards";
 import { VillageSuggestionList } from "@/components/VillageSuggestionList";
 import VillageControlBar from "@/components/VillageControlBar"; // Import the control bar component
+import { useLocalStorage } from "@/hooks/use-local-storage";
 
 const CATEGORY_COLORS = {
   informeel: "#3C9439", // Green
@@ -317,6 +318,8 @@ interface Position {
 
 const CIRCLE_BASE_RADIUS = 80;
 
+type Theme = 'light' | 'dark';
+
 export default function VillageView() {
   const { members, addMember, updateMember, deleteMember } = useVillage();
   const { user } = useUser();
@@ -328,6 +331,7 @@ export default function VillageView() {
   const memberRefs = useRef(new Map());
   const [isRearrangeMode, setIsRearrangeMode] = useState(false);
   const [showListView, setShowListView] = useState(false); // Add state for list view toggle
+  const [theme, setTheme] = useLocalStorage<Theme>('village-theme', 'light');
   const getMemberRef = (memberId: number) => {
     if (!memberRefs.current.has(memberId)) {
       memberRefs.current.set(memberId, createRef());
@@ -871,17 +875,35 @@ export default function VillageView() {
     }
   };
 
+  const handleThemeToggle = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+
+    // Show feedback toast
+    toast({
+      title: `${theme === 'light' ? 'Dark' : 'Light'} mode enabled`,
+      description: "Your preference will be saved for next time",
+    });
+  };
+
   return (
     <div
-      className="flex flex-col h-screen relative animate-gradient"
+      className={`flex flex-col h-screen relative animate-gradient ${
+        theme === 'dark' ? 'bg-[#1c2833] text-white' : ''
+      }`}
       style={{
         backgroundSize: "400% 400%",
-        background: `linear-gradient(135deg, #C9E1D4 0%, #F2F0E5 50%, #F2F0E5 100%)`,
+        background: theme === 'light'
+          ? `linear-gradient(135deg, #C9E1D4 0%, #F2F0E5 50%, #F2F0E5 100%)`
+          : `linear-gradient(135deg, #1c2833 0%, #2c3e50 50%, #1c2833 100%)`,
         animation: "gradient 15s ease infinite"
       }}
     >
-      <div className="fixed top-0 left-0 right-0 z-30 backdrop-blur-sm supports-[backdrop-filter]:bg-transparent">
-        <div className="flex items-center justify-between px-4 h-14 border-b border-[#629785]/30">
+      <div className={`fixed top-0 left-0 right-0 z-30 backdrop-blur-sm supports-[backdrop-filter]:bg-transparent ${
+        theme === 'dark' ? 'border-gray-800' : 'border-[#629785]/30'
+      }`}>
+        <div className={`flex items-center justify-between px-4 h-14 border-b ${
+          theme === 'dark' ? 'border-gray-800' : 'border-[#629785]/30'
+        }`}>
           <Link to="/" className="flex items-center space-x-2 z-10">
             <ChevronLeft className="w-5 h-5" />
             <span>Back</span>
@@ -912,14 +934,13 @@ export default function VillageView() {
         </div>
       </div>
 
-      {/* Place VillageControlBar right after the header */}
       <VillageControlBar
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
         onReset={handleReset}
         onCenter={() => setPosition({ x: 0, y: 0 })}
         onReorganize={reorganizeMembers}
-        onToggleLight={() => {/* To be implemented */}}
+        onToggleLight={handleThemeToggle}
         className="top-20"
       />
 
@@ -936,8 +957,7 @@ export default function VillageView() {
       >
         <div
           className="absolute inset-0"
-          style={{
-            transform: `scale(${scale}) translate(${position.x}px, ${position.y}px)`,
+          style={{            transform: `scale(${scale}) translate(${position.x}px, ${position.y}px)`,
             transformOrigin: "center center",
             transition: isDragging ? "none" : "transform 0.1s ease-out",
           }}
