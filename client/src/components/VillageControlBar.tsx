@@ -33,8 +33,8 @@ export default function VillageControlBar({
       initial={{ y: 20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       className={cn(
-        "bg-white/90 backdrop-blur-sm rounded-full shadow-lg px-4 py-2 flex items-center gap-2",
-        "max-w-[95vw] overflow-x-auto scrollbar-hide",
+        "bg-white/95 backdrop-blur-md rounded-full shadow-xl px-4 py-2 flex items-center gap-2",
+        "max-w-[90vw] overflow-x-auto scrollbar-hide border border-gray-200",
         className
       )}
     >

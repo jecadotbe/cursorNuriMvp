@@ -913,14 +913,16 @@ export default function VillageView() {
       </div>
 
       {/* Place VillageControlBar above app navigation */}
-      <VillageControlBar
-        onZoomIn={handleZoomIn}
-        onZoomOut={handleZoomOut}
-        onReset={handleReset}
-        onCenter={() => setPosition({ x: 0, y: 0 })}
-        onReorganize={reorganizeMembers}
-        className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50 mx-auto"
-      />
+      <div className="fixed bottom-0 left-0 right-0 flex justify-center items-center pb-24 z-50 pointer-events-none">
+        <VillageControlBar
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onReset={handleReset}
+          onCenter={() => setPosition({ x: 0, y: 0 })}
+          onReorganize={reorganizeMembers}
+          className="pointer-events-auto"
+        />
+      </div>
 
       <div
         className="flex-1 relative overflow-hidden"
