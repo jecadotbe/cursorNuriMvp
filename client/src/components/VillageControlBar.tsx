@@ -30,10 +30,10 @@ export default function VillageControlBar({
 
   return (
     <motion.div
-      initial={{ y: -20, opacity: 0 }}
+      initial={{ y: 20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       className={cn(
-        "fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 bg-white/90 backdrop-blur-sm rounded-full shadow-lg px-4 py-2 flex items-center gap-2",
+        "bg-white/90 backdrop-blur-sm rounded-full shadow-lg px-4 py-2 flex items-center gap-2",
         "max-w-[95vw] overflow-x-auto scrollbar-hide",
         className
       )}
