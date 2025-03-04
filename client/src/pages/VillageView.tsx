@@ -335,6 +335,7 @@ export default function VillageView() {
   const memberRefs = useRef(new Map());
   const [isRearrangeMode, setIsRearrangeMode] = useState(false);
   const [showListView, setShowListView] = useState(false); // Add state for list view toggle
+  const [showControlBar, setShowControlBar] = useState(true); // Add state for control bar visibility
   const getMemberRef = (memberId: number) => {
     if (!memberRefs.current.has(memberId)) {
       memberRefs.current.set(memberId, createRef());
@@ -935,29 +936,37 @@ export default function VillageView() {
       </div>
 
       {/* Place VillageControlBar above app navigation */}
-      <div className="fixed bottom-0 left-0 right-0 flex justify-center items-center pb-24 z-50 pointer-events-none">
-        <VillageControlBar
-          onZoomIn={handleZoomIn}
-          onZoomOut={handleZoomOut}
-          onReset={handleReset}
-          className="pointer-events-auto"
-          customControls={[
-            {
-              icon: Lightbulb,
-              label: "Suggestions",
-              onClick: () => setIsSuggestionsOpen(true),
-              tooltip: "View Village Suggestions",
-            },
-            {
-              icon: Move,
-              label: "Arrange",
-              onClick: () => setIsRearrangeMode(!isRearrangeMode),
-              tooltip: isRearrangeMode
-                ? "Exit Arrange Mode"
-                : "Enter Arrange Mode",
-            },
-          ]}
-        />
+      <div className="fixed bottom-0 left-0 right-0 flex justify-center items-center pb-24 z-50">
+        {showControlBar && (
+          <VillageControlBar
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+            onReset={handleReset}
+            className="pointer-events-auto"
+            customControls={[
+              {
+                icon: Lightbulb,
+                label: "Suggestions",
+                onClick: () => setIsSuggestionsOpen(true),
+                tooltip: "View Village Suggestions",
+              },
+              {
+                icon: Move,
+                label: "Arrange",
+                onClick: () => setIsRearrangeMode(!isRearrangeMode),
+                tooltip: isRearrangeMode
+                  ? "Exit Arrange Mode"
+                  : "Enter Arrange Mode",
+              },
+              {
+                icon: X,
+                label: "Close",
+                onClick: () => setShowControlBar(false),
+                tooltip: "Close controls",
+              },
+            ]}
+          />
+        )}
       </div>
 
       <div
@@ -980,7 +989,7 @@ export default function VillageView() {
           }}
         >
           <div className="absolute inset-0 flex items-center justify-center">
-            {[1, 2, 3, 4, 5].map((circle) => (
+            {[1, 2,3, 4, 5].map((circle) => (
               <div
                 key={circle}
                 className="absolute border border-[#629785] rounded-full"
@@ -1092,9 +1101,17 @@ export default function VillageView() {
         </div>
       </div>
 
-      <Sheet
-        open={isOpen}
-        onOpenChange={(open) => {
+      {!showControlBar && (
+        <button 
+          onClick={() => setShowControlBar(true)}
+          className="fixed bottom-24 left-4 w-10 h-10 bg-[#2F4644] rounded-full flex items-center justify-center shadow-lg hover:bg-[#3a5452] z-50"
+          title="Show controls"
+        >
+          <ZoomIn className="w-5 h-5 text-white" />
+        </button>
+      )}
+
+      <Sheet open={isOpen} onOpenChange={(open) => {
           setIsOpen(open);
           if (!open) {
             setMemberToEdit(null);
@@ -1109,7 +1126,7 @@ export default function VillageView() {
         }}
       >
         <SheetTrigger asChild>
-          <button className="fixed bottom-20 right-4 w-12 h-12 bg-[#2F4644] rounded-full flex items-center justify-center shadow-lg hover:bg-[#3a5452]">
+          <button className="fixed bottom-20 right-4 w-12 h-12 bg-[#2F4644] rounded-full flex items-center justify-center shadow-lg hover:bg-[#3a5452] z-50">
             <Plus className="w-6 h-6 text-white" />
           </button>
         </SheetTrigger>
@@ -1427,9 +1444,7 @@ export default function VillageView() {
         />
       </div>
 
-      <Sheet
-        open={isOpen}
-        onOpenChange={(open) => {
+      <Sheet open={isOpen} onOpenChange={(open) => {
           setIsOpen(open);
           if (!open) {
             setMemberToEdit(null);

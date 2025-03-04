@@ -7,6 +7,7 @@ interface VillageControlBarProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onReset: () => void;
+  onClose?: () => void;
   className?: string;
   customControls?: Array<{
     icon: React.ComponentType<{ className?: string }>;
@@ -20,6 +21,7 @@ export default function VillageControlBar({
   onZoomIn,
   onZoomOut,
   onReset,
+  onClose,
   className,
   customControls = []
 }: VillageControlBarProps) {
@@ -56,6 +58,20 @@ export default function VillageControlBar({
           </Button>
         </div>
       ))}
+      
+      {onClose && (
+        <div className="relative group flex-shrink-0 ml-1 border-l border-gray-200 pl-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="h-10 px-3 hover:bg-gray-100 rounded-full flex items-center"
+            title="Close"
+          >
+            <X className="w-5 h-5 text-gray-700" />
+          </Button>
+        </div>
+      )}
     </motion.div>
   );
 }
