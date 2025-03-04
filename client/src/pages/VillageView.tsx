@@ -967,8 +967,7 @@ export default function VillageView() {
                     key={member.id}
                     nodeRef={nodeRef}
                     position={pos}
-                    onStop={(e, data) => handleDragStop(e, data, member)}
-                    bounds={{
+                    onStop={(e, data) => handleDragStop(e, data, member)}                    bounds={{
                       left: -getCircleRadius(4),
                       right: getCircleRadius(4),
                       top: -getCircleRadius(4),
