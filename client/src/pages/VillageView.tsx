@@ -937,7 +937,7 @@ export default function VillageView() {
 
       {/* Place VillageControlBar above app navigation */}
       <div className="fixed bottom-0 left-0 right-0 flex justify-center items-center pb-24 z-50">
-        {showControlBar && (
+        {showControlBar && !showListView && (
           <VillageControlBar
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
@@ -1101,7 +1101,7 @@ export default function VillageView() {
         </div>
       </div>
 
-      {!showControlBar && (
+      {!showControlBar && !showListView && (
         <button 
           onClick={() => setShowControlBar(true)}
           className="fixed bottom-24 left-4 h-10 px-4 bg-white rounded-full flex items-center gap-2 shadow-lg hover:bg-gray-50 z-50"
