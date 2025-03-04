@@ -10,12 +10,6 @@ interface VillageControlBarProps {
   onCenter: () => void;
   onReorganize: () => void;
   className?: string;
-  customControls?: Array<{
-    icon: React.ComponentType<{ className?: string }>;
-    label: string;
-    onClick: () => void;
-    tooltip?: string;
-  }>;
 }
 
 export default function VillageControlBar({
@@ -24,19 +18,15 @@ export default function VillageControlBar({
   onReset,
   onCenter,
   onReorganize,
-  className,
-  customControls = []
+  className
 }: VillageControlBarProps) {
-  const defaultControls = [
+  const controls = [
     { icon: ZoomIn, label: "", onClick: onZoomIn, tooltip: "Zoom In" },
     { icon: ZoomOut, label: "", onClick: onZoomOut, tooltip: "Zoom Out" },
     { icon: RotateCcw, label: "Reset", onClick: onReset },
     { icon: Target, label: "Center", onClick: onCenter },
     { icon: RefreshCw, label: "Reorganize", onClick: onReorganize },
   ];
-  
-  // Combine default and custom controls
-  const controls = [...defaultControls, ...customControls];
 
   return (
     <motion.div
