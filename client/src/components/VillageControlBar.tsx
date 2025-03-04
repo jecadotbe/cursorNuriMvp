@@ -1,4 +1,4 @@
-import { ZoomIn, ZoomOut, RotateCcw, Target, Sun, RefreshCw } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw, Target, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -9,7 +9,6 @@ interface VillageControlBarProps {
   onReset: () => void;
   onCenter: () => void;
   onReorganize: () => void;
-  onToggleLight: () => void;
   className?: string;
 }
 
@@ -19,16 +18,14 @@ export default function VillageControlBar({
   onReset,
   onCenter,
   onReorganize,
-  onToggleLight,
   className
 }: VillageControlBarProps) {
   const controls = [
-    { icon: ZoomIn, label: "Zoom In", onClick: onZoomIn },
-    { icon: ZoomOut, label: "Zoom Out", onClick: onZoomOut },
+    { icon: ZoomIn, label: "", onClick: onZoomIn, tooltip: "Zoom In" },
+    { icon: ZoomOut, label: "", onClick: onZoomOut, tooltip: "Zoom Out" },
     { icon: RotateCcw, label: "Reset", onClick: onReset },
     { icon: Target, label: "Center", onClick: onCenter },
     { icon: RefreshCw, label: "Reorganize", onClick: onReorganize },
-    { icon: Sun, label: "Light", onClick: onToggleLight },
   ];
 
   return (
@@ -36,20 +33,22 @@ export default function VillageControlBar({
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       className={cn(
-        "fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-white/90 backdrop-blur-sm rounded-full shadow-lg px-4 py-2 flex items-center gap-2",
+        "fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 bg-white/90 backdrop-blur-sm rounded-full shadow-lg px-4 py-2 flex items-center gap-2",
+        "max-w-[95vw] overflow-x-auto scrollbar-hide",
         className
       )}
     >
-      {controls.map(({ icon: Icon, label, onClick }, index) => (
-        <div key={label} className="relative group">
+      {controls.map(({ icon: Icon, label, onClick, tooltip }, index) => (
+        <div key={label || index} className="relative group flex-shrink-0">
           <Button
             variant="ghost"
             size="sm"
             onClick={onClick}
             className="h-10 px-3 hover:bg-gray-100 rounded-full flex items-center gap-2"
+            title={tooltip}
           >
             <Icon className="w-5 h-5 text-gray-700" />
-            <span className="text-sm text-gray-700">{label}</span>
+            {label && <span className="text-sm text-gray-700 hidden md:inline">{label}</span>}
           </Button>
         </div>
       ))}

@@ -910,18 +910,17 @@ export default function VillageView() {
           </div>
           <div className="w-10"></div> {/* Spacer to balance layout */}
         </div>
+        {/* Place VillageControlBar above app navigation */}
+        <VillageControlBar
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onReset={handleReset}
+          onCenter={() => setPosition({ x: 0, y: 0 })}
+          onReorganize={reorganizeMembers}
+          onToggleLight={() => {/* To be implemented */}}
+          className="bottom-20"
+        />
       </div>
-
-      {/* Place VillageControlBar right after the header */}
-      <VillageControlBar
-        onZoomIn={handleZoomIn}
-        onZoomOut={handleZoomOut}
-        onReset={handleReset}
-        onCenter={() => setPosition({ x: 0, y: 0 })}
-        onReorganize={reorganizeMembers}
-        onToggleLight={() => {/* To be implemented */}}
-        className="top-20"
-      />
 
       <div
         className="flex-1 relative overflow-hidden"
