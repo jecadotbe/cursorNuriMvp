@@ -919,7 +919,7 @@ export default function VillageView() {
         onReset={handleReset}
         onCenter={() => setPosition({ x: 0, y: 0 })}
         onReorganize={reorganizeMembers}
-        className="fixed bottom-[88px] left-1/2 transform -translate-x-1/2 z-50"
+        className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50 mx-auto"
       />
 
       <div
