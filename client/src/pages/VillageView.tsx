@@ -912,14 +912,14 @@ export default function VillageView() {
         </div>
       </div>
 
-      {/* Place VillageControlBar right after the header */}
+      {/* Place VillageControlBar above app navigation */}
       <VillageControlBar
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
         onReset={handleReset}
         onCenter={() => setPosition({ x: 0, y: 0 })}
         onReorganize={reorganizeMembers}
-        className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50"
+        className="fixed bottom-[88px] left-1/2 transform -translate-x-1/2 z-50"
       />
 
       <div
@@ -952,7 +952,8 @@ export default function VillageView() {
                   left: "50%",
                   top: "50%",
                   transform: "translate(-50%, -50%)",
-                  boxShadow: "0 0 30px rgba(254, 176, 25, 0.2)",                }}
+                  boxShadow: "0 0 30px rgba(254, 176, 25, 0.2)",
+                                }}
               />
             ))}
 
@@ -963,7 +964,8 @@ export default function VillageView() {
               if (isRearrangeMode) {
                 return (
                   <Draggable
-                    key={member.id}                    nodeRef={nodeRef}
+                    key={member.id}
+                    nodeRef={nodeRef}
                     position={pos}
                     onStop={(e, data) => handleDragStop(e, data, member)}
                     bounds={{
@@ -1036,7 +1038,8 @@ export default function VillageView() {
             >
               <Avatar className="w-full h-full border-2 border-[#629785]">
                 {user?.profilePicture ? (
-                  <AvatarImage                    src={user.profilePicture}
+                  <AvatarImage
+                    src={user.profilePicture}
                     alt="Profile"
                     className="object-cover"
                   />
