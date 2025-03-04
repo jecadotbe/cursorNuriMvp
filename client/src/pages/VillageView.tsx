@@ -921,6 +921,20 @@ export default function VillageView() {
           onCenter={() => setPosition({ x: 0, y: 0 })}
           onReorganize={reorganizeMembers}
           className="pointer-events-auto"
+          customControls={[
+            { 
+              icon: Lightbulb, 
+              label: "Suggestions", 
+              onClick: () => setIsSuggestionsOpen(true),
+              tooltip: "View Village Suggestions"
+            },
+            { 
+              icon: Move, 
+              label: "Arrange", 
+              onClick: () => setIsRearrangeMode(!isRearrangeMode),
+              tooltip: isRearrangeMode ? "Exit Arrange Mode" : "Enter Arrange Mode"
+            }
+          ]}
         />
       </div>
 
