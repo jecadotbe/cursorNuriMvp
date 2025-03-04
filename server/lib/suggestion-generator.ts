@@ -112,7 +112,7 @@ Generate 3 specific, actionable suggestions for strengthening their village netw
       messages: [{ role: "user", content: prompt }],
       model: "claude-3-sonnet-20240229",
       max_tokens: 1000,
-      temperature: 0.7,
+      temperature: 0.4,
     });
     console.log("Received response from Claude");
 

@@ -907,7 +907,6 @@ export default function VillageView() {
         <div className="flex items-center justify-between px-4 h-14 border-b border-[#629785]/30">
           <Link to="/" className="flex items-center space-x-2 z-10">
             <ChevronLeft className="w-5 h-5" />
-            <span>Back</span>
           </Link>
           <div className="absolute left-1/2 transform -translate-x-1/2 inline-flex items-center border shadow-sm overflow-hidden">
             <button
@@ -918,7 +917,7 @@ export default function VillageView() {
                   : "bg-white text-gray-800 hover:bg-gray-50"
               }`}
             >
-              Village View
+              Village
             </button>
             <button
               onClick={() => setShowListView(true)}
@@ -928,7 +927,7 @@ export default function VillageView() {
                   : "bg-white text-gray-800 hover:bg-gray-50"
               }`}
             >
-              List View
+              Lijst
             </button>
           </div>
           <div className="w-10"></div> {/* Spacer to balance layout */}
@@ -989,7 +988,7 @@ export default function VillageView() {
           }}
         >
           <div className="absolute inset-0 flex items-center justify-center">
-            {[1, 2,3, 4, 5].map((circle) => (
+            {[1, 2, 3, 4, 5].map((circle) => (
               <div
                 key={circle}
                 className="absolute border border-[#629785] rounded-full"
@@ -1103,7 +1102,7 @@ export default function VillageView() {
 
       {!showControlBar && !showListView && (
         <div className="fixed bottom-0 left-0 right-0 flex justify-center items-center z-50 pb-24">
-          <button 
+          <button
             onClick={() => setShowControlBar(true)}
             className="h-10 px-4 bg-white rounded-full flex items-center gap-2 shadow-lg hover:bg-gray-50"
             title="Show controls"
@@ -1114,7 +1113,9 @@ export default function VillageView() {
         </div>
       )}
 
-      <Sheet open={isOpen} onOpenChange={(open) => {
+      <Sheet
+        open={isOpen}
+        onOpenChange={(open) => {
           setIsOpen(open);
           if (!open) {
             setMemberToEdit(null);
@@ -1447,7 +1448,9 @@ export default function VillageView() {
         />
       </div>
 
-      <Sheet open={isOpen} onOpenChange={(open) => {
+      <Sheet
+        open={isOpen}
+        onOpenChange={(open) => {
           setIsOpen(open);
           if (!open) {
             setMemberToEdit(null);
