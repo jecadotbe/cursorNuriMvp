@@ -1104,10 +1104,11 @@ export default function VillageView() {
       {!showControlBar && (
         <button 
           onClick={() => setShowControlBar(true)}
-          className="fixed bottom-24 left-4 w-10 h-10 bg-[#2F4644] rounded-full flex items-center justify-center shadow-lg hover:bg-[#3a5452] z-50"
+          className="fixed bottom-24 left-4 h-10 px-4 bg-white rounded-full flex items-center gap-2 shadow-lg hover:bg-gray-50 z-50"
           title="Show controls"
         >
-          <ZoomIn className="w-5 h-5 text-white" />
+          <ZoomIn className="w-5 h-5 text-gray-700" />
+          <span className="text-sm text-gray-700">Village Tools +</span>
         </button>
       )}
 
