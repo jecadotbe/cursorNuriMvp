@@ -1551,42 +1551,7 @@ export default function VillageView() {
           </ScrollArea>
         </SheetContent>
       </Sheet>
-      <div className="fixed top-24 right-4 flex flex-col space-y-2 z-10">
-        <button
-          onClick={handleZoomIn}
-          className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow hover:bg-gray-50"
-        >
-          <ZoomIn className="w-5 h-5 text-gray-700" />
-        </button>
-        <button
-          onClick={handleZoomOut}
-          className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow hover:bg-gray-50"
-        >
-          <ZoomOut className="w-5 h-5 text-gray-700" />
-        </button>
-        <button
-          onClick={handleReset}
-          className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow hover:bg-gray-50"
-        >
-          <RotateCcw className="w-5 h-5 text-gray-700" />
-        </button>
-        <button
-          onClick={() => setIsRearrangeMode(!isRearrangeMode)}
-          className={`w-10 h-10 flex items-center justify-center rounded-lg shadow hover:bg-gray-50 ${
-            isRearrangeMode ? "bg-primary text-white" : "bg-white"
-          }`}
-        >
-          <Move
-            className={`w-5 h-5 ${isRearrangeMode ? "text-white" : "text-gray-700"}`}
-          />
-        </button>
-        <button
-          onClick={() => setIsSuggestionsOpen(true)}
-          className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow hover:bg-gray-50"
-        >
-          <Lightbulb className="w-5 h-5 text-gray-700" />
-        </button>
-      </div>
+      {/* Removed duplicate control buttons - now using VillageControlBar */}
 
       <Sheet open={isSuggestionsOpen} onOpenChange={setIsSuggestionsOpen}>
         <SheetContent side="bottom" className="h-[90vh]">
