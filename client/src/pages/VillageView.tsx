@@ -20,7 +20,10 @@ import {
   Move,
   X,
 } from "lucide-react";
-import { distributeMembers, findOptimalPosition } from "@/lib/villageDistribution";
+import {
+  distributeMembers,
+  findOptimalPosition,
+} from "@/lib/villageDistribution";
 
 // Add CSS for highlight animation
 const highlightPulseStyle = `
@@ -40,8 +43,8 @@ const highlightPulseStyle = `
 `;
 
 // Inject the style
-if (typeof document !== 'undefined') {
-  const styleEl = document.createElement('style');
+if (typeof document !== "undefined") {
+  const styleEl = document.createElement("style");
   styleEl.textContent = highlightPulseStyle;
   document.head.appendChild(styleEl);
 }
@@ -211,7 +214,7 @@ const MemberContent: React.FC<MemberContentProps> = ({
             const pos = getMemberPosition(member);
             const newPosition = {
               x: -(pos.x * scale) + viewportWidth / 2,
-              y: -(pos.y * scale) + viewportHeight / 2
+              y: -(pos.y * scale) + viewportHeight / 2,
             };
 
             // Update position with animation
@@ -222,12 +225,14 @@ const MemberContent: React.FC<MemberContentProps> = ({
               const submenu = document.querySelector(`#submenu-${member.id}`);
               if (submenu) {
                 // Close all other menus first
-                document.querySelectorAll('[id^="submenu-"]').forEach((menu) => {
-                  if (menu.id !== `submenu-${member.id}`) {
-                    menu.classList.add("hidden");
-                    menu.classList.remove("flex");
-                  }
-                });
+                document
+                  .querySelectorAll('[id^="submenu-"]')
+                  .forEach((menu) => {
+                    if (menu.id !== `submenu-${member.id}`) {
+                      menu.classList.add("hidden");
+                      menu.classList.remove("flex");
+                    }
+                  });
                 // Toggle current menu
                 submenu.classList.toggle("hidden");
                 submenu.classList.toggle("flex");
@@ -244,7 +249,7 @@ const MemberContent: React.FC<MemberContentProps> = ({
             const pos = getMemberPosition(member);
             const newPosition = {
               x: -(pos.x * scale) + viewportWidth / 2,
-              y: -(pos.y * scale) + viewportHeight / 2
+              y: -(pos.y * scale) + viewportHeight / 2,
             };
 
             // Update position with animation
@@ -255,12 +260,14 @@ const MemberContent: React.FC<MemberContentProps> = ({
               const submenu = document.querySelector(`#submenu-${member.id}`);
               if (submenu) {
                 // Close all other menus first
-                document.querySelectorAll('[id^="submenu-"]').forEach((menu) => {
-                  if (menu.id !== `submenu-${member.id}`) {
-                    menu.classList.add("hidden");
-                    menu.classList.remove("flex");
-                  }
-                });
+                document
+                  .querySelectorAll('[id^="submenu-"]')
+                  .forEach((menu) => {
+                    if (menu.id !== `submenu-${member.id}`) {
+                      menu.classList.add("hidden");
+                      menu.classList.remove("flex");
+                    }
+                  });
                 // Toggle current menu
                 submenu.classList.toggle("hidden");
                 submenu.classList.toggle("flex");
@@ -339,18 +346,22 @@ export default function VillageView() {
     return CIRCLE_BASE_RADIUS * (index + 1);
   };
 
-  const getMemberPosition = (member: VillageMember, distributedPositions?: Map<number, Position>) => {
+  const getMemberPosition = (
+    member: VillageMember,
+    distributedPositions?: Map<number, Position>,
+  ) => {
     if (distributedPositions?.has(member.id)) {
       const pos = distributedPositions.get(member.id)!;
       return { x: pos.x, y: pos.y };
     }
 
     const radius = getCircleRadius(member.circle - 1);
-    const angle = typeof member.positionAngle === "string"
-      ? parseFloat(member.positionAngle)
-      : typeof member.positionAngle === "number"
-      ? member.positionAngle
-      : Math.random() * 2 * Math.PI;
+    const angle =
+      typeof member.positionAngle === "string"
+        ? parseFloat(member.positionAngle)
+        : typeof member.positionAngle === "number"
+          ? member.positionAngle
+          : Math.random() * 2 * Math.PI;
 
     return {
       x: Math.cos(angle) * radius,
@@ -374,15 +385,20 @@ export default function VillageView() {
       // Update all members with their new positions
       const updates = members.map(async (member) => {
         const newPos = positions.get(member.id);
-        if (newPos && Math.abs(parseFloat(member.positionAngle?.toString() || "0") - newPos.angle) > 0.1) {
+        if (
+          newPos &&
+          Math.abs(
+            parseFloat(member.positionAngle?.toString() || "0") - newPos.angle,
+          ) > 0.1
+        ) {
           console.log(`Updating member ${member.name} position:`, {
             old: member.positionAngle,
-            new: newPos.angle
+            new: newPos.angle,
           });
 
           return updateMember({
             ...member,
-            positionAngle: newPos.angle.toString()
+            positionAngle: newPos.angle.toString(),
           });
         }
         return member;
@@ -398,7 +414,6 @@ export default function VillageView() {
         title: "Success",
         description: "Members reorganized successfully",
       });
-
     } catch (error) {
       console.error("Error during reorganization:", error);
       toast({
@@ -648,17 +663,24 @@ export default function VillageView() {
         setLastAddedMember(updated.id);
       } else {
         // Calculate optimal position for new member
-        const existingPositions = members.map(m => ({
-          x: Math.cos(parseFloat(m.positionAngle?.toString() || "0")) * getCircleRadius(m.circle - 1),
-          y: Math.sin(parseFloat(m.positionAngle?.toString() || "0")) * getCircleRadius(m.circle - 1),
-          angle: parseFloat(m.positionAngle?.toString() || "0")
+        const existingPositions = members.map((m) => ({
+          x:
+            Math.cos(parseFloat(m.positionAngle?.toString() || "0")) *
+            getCircleRadius(m.circle - 1),
+          y:
+            Math.sin(parseFloat(m.positionAngle?.toString() || "0")) *
+            getCircleRadius(m.circle - 1),
+          angle: parseFloat(m.positionAngle?.toString() || "0"),
         }));
 
-        const optimalPosition = findOptimalPosition(newMember.circle, existingPositions);
+        const optimalPosition = findOptimalPosition(
+          newMember.circle,
+          existingPositions,
+        );
 
         const added = await addMember({
           ...newMember,
-          positionAngle: optimalPosition.angle.toString()
+          positionAngle: optimalPosition.angle.toString(),
         });
         setLastAddedMember(added.id);
 
@@ -877,7 +899,7 @@ export default function VillageView() {
       style={{
         backgroundSize: "400% 400%",
         background: `linear-gradient(135deg, #C9E1D4 0%, #F2F0E5 50%, #F2F0E5 100%)`,
-        animation: "gradient 15s ease infinite"
+        animation: "gradient 15s ease infinite",
       }}
     >
       <div className="fixed top-0 left-0 right-0 z-30 backdrop-blur-sm supports-[backdrop-filter]:bg-transparent">
@@ -922,18 +944,20 @@ export default function VillageView() {
           onReorganize={reorganizeMembers}
           className="pointer-events-auto"
           customControls={[
-            { 
-              icon: Lightbulb, 
-              label: "Suggestions", 
+            {
+              icon: Lightbulb,
+              label: "Suggestions",
               onClick: () => setIsSuggestionsOpen(true),
-              tooltip: "View Village Suggestions"
+              tooltip: "View Village Suggestions",
             },
-            { 
-              icon: Move, 
-              label: "Arrange", 
+            {
+              icon: Move,
+              label: "Arrange",
               onClick: () => setIsRearrangeMode(!isRearrangeMode),
-              tooltip: isRearrangeMode ? "Exit Arrange Mode" : "Enter Arrange Mode"
-            }
+              tooltip: isRearrangeMode
+                ? "Exit Arrange Mode"
+                : "Enter Arrange Mode",
+            },
           ]}
         />
       </div>
@@ -969,7 +993,7 @@ export default function VillageView() {
                   top: "50%",
                   transform: "translate(-50%, -50%)",
                   boxShadow: "0 0 30px rgba(254, 176, 25, 0.2)",
-                                }}
+                }}
               />
             ))}
 
@@ -1282,7 +1306,9 @@ export default function VillageView() {
       <Sheet open={isMemoryDialogOpen} onOpenChange={setIsMemoryDialogOpen}>
         <SheetContent side="bottom" className="h-[90vh] overflow-y-auto pb-20">
           <SheetHeader className="text-left">
-            <SheetTitle className="font-baskerville">Herinneringen met {selectedMember?.name}</SheetTitle>
+            <SheetTitle className="font-baskerville">
+              Herinneringen met {selectedMember?.name}
+            </SheetTitle>
             <span className="text-sm text-muted-foreground">
               Bekijk of voeg herinneringen toe
             </span>
@@ -1565,7 +1591,7 @@ export default function VillageView() {
       <Sheet open={isSuggestionsOpen} onOpenChange={setIsSuggestionsOpen}>
         <SheetContent side="bottom" className="h-[90vh]">
           <SheetHeader>
-            <SheetTitle>Dorpsuggesties</SheetTitle>
+            <SheetTitle>Village suggesties</SheetTitle>
           </SheetHeader>
           <div className="p-4">
             {suggestionsError ? (
