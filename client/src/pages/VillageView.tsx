@@ -1102,7 +1102,7 @@ export default function VillageView() {
       </div>
 
       {!showControlBar && !showListView && (
-        <div className="fixed bottom-24 left-0 right-0 flex justify-center items-center z-50">
+        <div className="fixed bottom-0 left-0 right-0 flex justify-center items-center z-50 pb-24">
           <button 
             onClick={() => setShowControlBar(true)}
             className="h-10 px-4 bg-white rounded-full flex items-center gap-2 shadow-lg hover:bg-gray-50"
