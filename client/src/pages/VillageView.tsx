@@ -1102,14 +1102,16 @@ export default function VillageView() {
       </div>
 
       {!showControlBar && !showListView && (
-        <button 
-          onClick={() => setShowControlBar(true)}
-          className="fixed bottom-24 left-4 h-10 px-4 bg-white rounded-full flex items-center gap-2 shadow-lg hover:bg-gray-50 z-50"
-          title="Show controls"
-        >
-          <ZoomIn className="w-5 h-5 text-gray-700" />
-          <span className="text-sm text-gray-700">Village Tools +</span>
-        </button>
+        <div className="fixed bottom-24 left-0 right-0 flex justify-center items-center z-50">
+          <button 
+            onClick={() => setShowControlBar(true)}
+            className="h-10 px-4 bg-white rounded-full flex items-center gap-2 shadow-lg hover:bg-gray-50"
+            title="Show controls"
+          >
+            <ZoomIn className="w-5 h-5 text-gray-700" />
+            <span className="text-sm text-gray-700">Village Tools +</span>
+          </button>
+        </div>
       )}
 
       <Sheet open={isOpen} onOpenChange={(open) => {
