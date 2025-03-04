@@ -34,15 +34,40 @@ export function distributeMembers(members: VillageMember[]): Map<number, Positio
       return angleA - angleB;
     });
 
+    // Calculate minimum angle distance based on member size
+    const getMinAngleForMember = (member: VillageMember) => {
+      const baseDist = MIN_ANGLE_DISTANCE;
+      const sizeFactor = member.contactFrequency === 'XL' ? 2 :
+                        member.contactFrequency === 'L' ? 1.5 :
+                        member.contactFrequency === 'M' ? 1.25 : 1;
+      return baseDist * sizeFactor;
+    };
+
     // Distribute members evenly
     circleMembers.forEach((member, index) => {
+      let finalAngle: number;
       const currentAngle = parseFloat(member.positionAngle?.toString() || "0");
       const targetAngle = index * angleStep;
-      
-      // Use the current angle if it's not too close to others, otherwise use target
-      const finalAngle = isAngleAvailable(currentAngle, positions, baseRadius) 
-        ? currentAngle 
-        : targetAngle;
+
+      // Try to keep current angle if possible
+      if (isAngleAvailable(currentAngle, positions, baseRadius, member)) {
+        finalAngle = currentAngle;
+      } else {
+        // Find the best available angle near the target
+        let bestAngle = targetAngle;
+        let minConflict = Infinity;
+
+        // Check angles around target to find best fit
+        for (let offset = -Math.PI; offset <= Math.PI; offset += MIN_ANGLE_DISTANCE / 2) {
+          const testAngle = targetAngle + offset;
+          const conflict = getConflictScore(testAngle, positions, baseRadius, member);
+          if (conflict < minConflict) {
+            minConflict = conflict;
+            bestAngle = testAngle;
+          }
+        }
+        finalAngle = bestAngle;
+      }
 
       positions.set(member.id, {
         x: Math.cos(finalAngle) * baseRadius,
@@ -55,13 +80,54 @@ export function distributeMembers(members: VillageMember[]): Map<number, Positio
   return positions;
 }
 
-function isAngleAvailable(angle: number, positions: Map<number, Position>, radius: number): boolean {
+function isAngleAvailable(
+  angle: number, 
+  positions: Map<number, Position>, 
+  radius: number,
+  member: VillageMember
+): boolean {
+  const minDist = getMemberSize(member) * 30; // Base size * pixel multiplier
+
   for (const pos of positions.values()) {
-    if (Math.abs(pos.angle - angle) < MIN_ANGLE_DISTANCE && Math.abs(radius - Math.hypot(pos.x, pos.y)) < 40) {
+    const dist = Math.hypot(
+      radius * Math.cos(angle) - pos.x,
+      radius * Math.sin(angle) - pos.y
+    );
+    if (dist < minDist) {
       return false;
     }
   }
   return true;
+}
+
+function getMemberSize(member: VillageMember): number {
+  switch (member.contactFrequency) {
+    case 'XL': return 1.75;
+    case 'L': return 1.25;
+    case 'M': return 0.875;
+    case 'S': return 0.5;
+    default: return 0.5;
+  }
+}
+
+function getConflictScore(
+  angle: number, 
+  positions: Map<number, Position>, 
+  radius: number,
+  member: VillageMember
+): number {
+  let score = 0;
+  const x = Math.cos(angle) * radius;
+  const y = Math.sin(angle) * radius;
+  const minDist = getMemberSize(member) * 30;
+
+  for (const pos of positions.values()) {
+    const dist = Math.hypot(x - pos.x, y - pos.y);
+    if (dist < minDist) {
+      score += (minDist - dist) / minDist;
+    }
+  }
+  return score;
 }
 
 export function findOptimalPosition(
