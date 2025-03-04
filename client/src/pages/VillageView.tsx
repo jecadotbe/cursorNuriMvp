@@ -359,17 +359,53 @@ export default function VillageView() {
   };
 
   const reorganizeMembers = async () => {
-    const positions = distributeMembers(members);
+    try {
+      console.log("Starting reorganization of members:", members);
 
-    // Update all members with their new positions
-    for (const member of members) {
-      const newPos = positions.get(member.id);
-      if (newPos && Math.abs(parseFloat(member.positionAngle?.toString() || "0") - newPos.angle) > 0.1) {
-        await updateMember({
-          ...member,
-          positionAngle: newPos.angle.toString()
-        });
-      }
+      // Show loading toast
+      toast({
+        title: "Reorganizing",
+        description: "Updating member positions...",
+      });
+
+      const positions = distributeMembers(members);
+      console.log("Calculated new positions:", positions);
+
+      // Update all members with their new positions
+      const updates = members.map(async (member) => {
+        const newPos = positions.get(member.id);
+        if (newPos && Math.abs(parseFloat(member.positionAngle?.toString() || "0") - newPos.angle) > 0.1) {
+          console.log(`Updating member ${member.name} position:`, {
+            old: member.positionAngle,
+            new: newPos.angle
+          });
+
+          return updateMember({
+            ...member,
+            positionAngle: newPos.angle.toString()
+          });
+        }
+        return member;
+      });
+
+      // Wait for all updates to complete
+      await Promise.all(updates);
+
+      // Reset view to center after reorganization
+      setPosition({ x: 0, y: 0 });
+
+      toast({
+        title: "Success",
+        description: "Members reorganized successfully",
+      });
+
+    } catch (error) {
+      console.error("Error during reorganization:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to reorganize members. Please try again.",
+      });
     }
   };
 
@@ -929,8 +965,7 @@ export default function VillageView() {
               if (isRearrangeMode) {
                 return (
                   <Draggable
-                    key={member.id}
-                    nodeRef={nodeRef}
+                    key={member.id}                    nodeRef={nodeRef}
                     position={pos}
                     onStop={(e, data) => handleDragStop(e, data, member)}
                     bounds={{
