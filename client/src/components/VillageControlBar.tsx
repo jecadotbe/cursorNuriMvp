@@ -1,4 +1,4 @@
-import { ZoomIn, ZoomOut, RotateCcw, Target, RefreshCw } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -7,8 +7,6 @@ interface VillageControlBarProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onReset: () => void;
-  onCenter: () => void;
-  onReorganize: () => void;
   className?: string;
   customControls?: Array<{
     icon: React.ComponentType<{ className?: string }>;
@@ -22,8 +20,6 @@ export default function VillageControlBar({
   onZoomIn,
   onZoomOut,
   onReset,
-  onCenter,
-  onReorganize,
   className,
   customControls = []
 }: VillageControlBarProps) {
@@ -31,8 +27,6 @@ export default function VillageControlBar({
     { icon: ZoomIn, label: "", onClick: onZoomIn, tooltip: "Zoom In" },
     { icon: ZoomOut, label: "", onClick: onZoomOut, tooltip: "Zoom Out" },
     { icon: RotateCcw, label: "Reset", onClick: onReset },
-    { icon: Target, label: "Center", onClick: onCenter },
-    { icon: RefreshCw, label: "Reorganize", onClick: onReorganize },
   ];
   
   // Combine default and custom controls

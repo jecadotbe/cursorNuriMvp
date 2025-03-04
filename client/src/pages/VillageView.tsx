@@ -940,8 +940,6 @@ export default function VillageView() {
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}
           onReset={handleReset}
-          onCenter={() => setPosition({ x: 0, y: 0 })}
-          onReorganize={reorganizeMembers}
           className="pointer-events-auto"
           customControls={[
             {
