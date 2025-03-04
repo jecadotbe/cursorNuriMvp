@@ -1,4 +1,4 @@
-import { ZoomIn, ZoomOut, RotateCcw, Target, Sun } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw, Target, Sun, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ interface VillageControlBarProps {
   onZoomOut: () => void;
   onReset: () => void;
   onCenter: () => void;
+  onReorganize: () => void;
   onToggleLight: () => void;
   className?: string;
 }
@@ -17,6 +18,7 @@ export default function VillageControlBar({
   onZoomOut,
   onReset,
   onCenter,
+  onReorganize,
   onToggleLight,
   className
 }: VillageControlBarProps) {
@@ -25,6 +27,7 @@ export default function VillageControlBar({
     { icon: ZoomOut, label: "Zoom Out", onClick: onZoomOut },
     { icon: RotateCcw, label: "Reset", onClick: onReset },
     { icon: Target, label: "Center", onClick: onCenter },
+    { icon: RefreshCw, label: "Reorganize", onClick: onReorganize },
     { icon: Sun, label: "Light", onClick: onToggleLight },
   ];
 

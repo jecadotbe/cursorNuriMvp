@@ -20,6 +20,7 @@ import {
   Move,
   X,
 } from "lucide-react";
+import { distributeMembers, findOptimalPosition } from "@/lib/villageDistribution";
 
 // Add CSS for highlight animation
 const highlightPulseStyle = `
@@ -97,7 +98,6 @@ import type { VillageMember } from "@db/schema";
 import { VillageSuggestionCards } from "@/components/VillageSuggestionCards";
 import { VillageSuggestionList } from "@/components/VillageSuggestionList";
 import VillageControlBar from "@/components/VillageControlBar"; // Import the control bar component
-
 
 const CATEGORY_COLORS = {
   informeel: "#3C9439", // Green
@@ -309,6 +309,14 @@ const MemberContent: React.FC<MemberContentProps> = ({
   </div>
 );
 
+interface Position {
+  x: number;
+  y: number;
+  angle: number;
+}
+
+const CIRCLE_BASE_RADIUS = 80;
+
 export default function VillageView() {
   const { members, addMember, updateMember, deleteMember } = useVillage();
   const { user } = useUser();
@@ -328,34 +336,41 @@ export default function VillageView() {
   };
 
   const getCircleRadius = (index: number) => {
-    const baseRadius = 80;
-    return baseRadius * (index + 1);
+    return CIRCLE_BASE_RADIUS * (index + 1);
   };
 
-  const getMemberPosition = (member: VillageMember) => {
-    const radius = getCircleRadius(member.circle - 1);
-    const angle =
-      typeof member.positionAngle === "string"
-        ? parseFloat(member.positionAngle)
-        : typeof member.positionAngle === "number"
-          ? member.positionAngle
-          : Math.random() * 2 * Math.PI;
+  const getMemberPosition = (member: VillageMember, distributedPositions?: Map<number, Position>) => {
+    if (distributedPositions?.has(member.id)) {
+      const pos = distributedPositions.get(member.id)!;
+      return { x: pos.x, y: pos.y };
+    }
 
-    const position = {
+    const radius = getCircleRadius(member.circle - 1);
+    const angle = typeof member.positionAngle === "string"
+      ? parseFloat(member.positionAngle)
+      : typeof member.positionAngle === "number"
+      ? member.positionAngle
+      : Math.random() * 2 * Math.PI;
+
+    return {
       x: Math.cos(angle) * radius,
       y: Math.sin(angle) * radius,
     };
+  };
 
-    console.log("Member Position Calculation:", {
-      memberId: member.id,
-      memberName: member.name,
-      angle,
-      radius,
-      position,
-      originalAngle: member.positionAngle,
-    });
+  const reorganizeMembers = async () => {
+    const positions = distributeMembers(members);
 
-    return position;
+    // Update all members with their new positions
+    for (const member of members) {
+      const newPos = positions.get(member.id);
+      if (newPos && Math.abs(parseFloat(member.positionAngle?.toString() || "0") - newPos.angle) > 0.1) {
+        await updateMember({
+          ...member,
+          positionAngle: newPos.angle.toString()
+        });
+      }
+    }
   };
 
   const [newMember, setNewMember] = useState<NewVillageMember>({
@@ -596,18 +611,25 @@ export default function VillageView() {
         setMemberToEdit(null);
         setLastAddedMember(updated.id);
       } else {
-        const added = await addMember(newMember);
+        // Calculate optimal position for new member
+        const existingPositions = members.map(m => ({
+          x: Math.cos(parseFloat(m.positionAngle?.toString() || "0")) * getCircleRadius(m.circle - 1),
+          y: Math.sin(parseFloat(m.positionAngle?.toString() || "0")) * getCircleRadius(m.circle - 1),
+          angle: parseFloat(m.positionAngle?.toString() || "0")
+        }));
+
+        const optimalPosition = findOptimalPosition(newMember.circle, existingPositions);
+
+        const added = await addMember({
+          ...newMember,
+          positionAngle: optimalPosition.angle.toString()
+        });
         setLastAddedMember(added.id);
 
-        // Reset position and scale to see the new member
-        const radius = getCircleRadius(newMember.circle - 1);
-        const angle = Math.random() * 2 * Math.PI;
-        const x = Math.cos(angle) * radius;
-        const y = Math.sin(angle) * radius;
-
+        // Update position and scale to see the new member
         setPosition({
-          x: -x * scale,
-          y: -y * scale,
+          x: -optimalPosition.x * scale,
+          y: -optimalPosition.y * scale,
         });
       }
       setIsOpen(false);
@@ -860,6 +882,7 @@ export default function VillageView() {
         onZoomOut={handleZoomOut}
         onReset={handleReset}
         onCenter={() => setPosition({ x: 0, y: 0 })}
+        onReorganize={reorganizeMembers}
         onToggleLight={() => {/* To be implemented */}}
         className="top-20"
       />
