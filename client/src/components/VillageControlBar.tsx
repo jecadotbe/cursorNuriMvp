@@ -1,4 +1,4 @@
-import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -65,10 +65,11 @@ export default function VillageControlBar({
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="h-10 px-3 hover:bg-gray-100 rounded-full flex items-center"
+            className="h-10 px-3 hover:bg-gray-100 rounded-full flex items-center gap-2"
             title="Close"
           >
             <X className="w-5 h-5 text-gray-700" />
+            <span className="text-sm text-gray-700 hidden md:inline">Village Tools +</span>
           </Button>
         </div>
       )}
