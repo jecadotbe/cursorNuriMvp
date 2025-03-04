@@ -1,0 +1,69 @@
+Comprehensive Fix for VillageControlBar Positioning
+The issue with your VillageControlBar not displaying properly centered is due to several factors in your code. Here's a comprehensive solution:
+1. Remove Duplicate Code
+First, you have the VillageControlBar component declared twice in your code. Remove the second instance (around line 1010-1020).
+2. Proper Positioning
+jsxCopy<VillageControlBar
+  onZoomIn={handleZoomIn}
+  onZoomOut={handleZoomOut}
+  onReset={handleReset}
+  onCenter={() => setPosition({ x: 0, y: 0 })}
+  onReorganize={reorganizeMembers}
+  className="fixed bottom-[80px] left-1/2 transform -translate-x-1/2 z-[150] mx-auto shadow-xl"
+/>
+The bottom-[80px] provides enough clearance from the bottom navigation bar without being too high up the screen.
+3. Enhance Visibility
+Update the VillageControlBar component styles:
+jsxCopy// In VillageControlBar.tsx
+return (
+  <motion.div
+    initial={{ y: 20, opacity: 0 }}
+    animate={{ y: 0, opacity: 1 }}
+    className={cn(
+      "bg-white/95 backdrop-blur-md rounded-full shadow-xl px-4 py-2 flex items-center gap-2",
+      "max-w-[90vw] overflow-x-auto scrollbar-hide border border-gray-200",
+      className
+    )}
+  >
+    {/* Rest of the component */}
+  </motion.div>
+);
+4. Consolidate Controls
+Consider removing the duplicate control buttons in the top-right corner, since you now have the VillageControlBar:
+jsxCopy{/* Remove or comment out this section */}
+<div className="fixed top-24 right-4 flex flex-col space-y-2 z-10">
+  {/* ... buttons for zoom in, zoom out, etc. */}
+</div>
+5. Add Mobile-Friendly Touch Areas
+Increase button sizes for better touch targets:
+jsxCopy// In VillageControlBar.tsx
+<Button
+  variant="ghost"
+  size="sm"
+  onClick={onClick}
+  className="h-12 w-12 hover:bg-gray-100 rounded-full flex items-center justify-center"
+  title={tooltip}
+>
+  <Icon className="w-5 h-5 text-gray-700" />
+  {label && <span className="text-sm text-gray-700 hidden md:inline ml-1">{label}</span>}
+</Button>
+6. Debug Visibility Issues
+If the bar still doesn't appear, add a temporary distinctive background to debug:
+jsxCopyclassName="fixed bottom-[80px] left-1/2 transform -translate-x-1/2 z-[150] mx-auto bg-red-500"
+This will make it obvious if it's rendering but being hidden by something else.
+7. Handle Bottom Navigation Conflicts
+Make sure it works with your bottom navigation by adding media queries:
+jsxCopy// In your CSS or tailwind.config.js
+@media (max-height: 700px) {
+  .control-bar-position {
+    bottom: 70px;
+  }
+}
+
+// Then use that class
+className="fixed control-bar-position left-1/2 transform -translate-x-1/2 z-[150] mx-auto"
+8. Ensure No Overflow Clipping
+Check if any parent containers have overflow: hidden which might be clipping the bar. Add these to debugging:
+jsxCopy// Add this to your main container
+style={{ overflow: 'visible' }}
+These comprehensive changes should resolve your positioning issue and improve the overall UI of your application. Would you like me to provide any additional details or specific code changes to tackle this problem?
