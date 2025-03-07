@@ -5,6 +5,16 @@ import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
+export type ToasterToast = {
+  id: string
+  title?: React.ReactNode
+  description?: React.ReactNode
+  action?: ToastActionElement
+  variant?: 'default' | 'destructive'
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}
+
 const ToastProvider = ToastPrimitives.Provider
 
 const ToastViewport = React.forwardRef<
