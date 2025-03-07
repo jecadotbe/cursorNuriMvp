@@ -1,72 +1,112 @@
 const CACHE_NAME = 'nuri-app-v1';
-const URLS_TO_CACHE = [
+const STATIC_CACHE_NAME = 'nuri-static-v1';
+const DYNAMIC_CACHE_NAME = 'nuri-dynamic-v1';
+const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  // Add other assets to cache
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
+  '/icons/badge-96x96.png',
+  // Add CSS and JS assets
+  // These will be determined by your build process 
+  // but would typically include main CSS and JS files
 ];
 
-// Service Worker Installation
+// Service Worker Installation - Cache Static Assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
+    caches.open(STATIC_CACHE_NAME)
       .then((cache) => {
-        console.log('Cache opened');
-        return cache.addAll(URLS_TO_CACHE);
+        console.log('Caching static assets');
+        return cache.addAll(STATIC_ASSETS);
       })
+      .then(() => self.skipWaiting())
   );
 });
 
-// Cache and network strategy
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
-        return fetch(event.request).then(
-          (response) => {
-            // Don't cache if not a valid response
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-
-            // Clone the response
-            const responseToCache = response.clone();
-
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-
-            return response;
-          }
-        );
-      })
-  );
-});
-
-// Handle service worker updates
+// Activate event - Clean up old caches
 self.addEventListener('activate', (event) => {
-  const cacheWhitelist = [CACHE_NAME];
+  const cacheWhitelist = [STATIC_CACHE_NAME, DYNAMIC_CACHE_NAME];
+  
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheWhitelist.indexOf(cacheName) === -1) {
+            console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
+});
+
+// Advanced fetch strategy - Stale-while-revalidate
+self.addEventListener('fetch', (event) => {
+  // Skip cross-origin requests
+  if (!event.request.url.startsWith(self.location.origin)) {
+    return;
+  }
+  
+  // Skip API requests (handled differently)
+  if (event.request.url.includes('/api/')) {
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request)
+      .then(cachedResponse => {
+        // Return cached response if available
+        const fetchPromise = fetch(event.request)
+          .then(networkResponse => {
+            // Don't cache if not a valid response
+            if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+              return networkResponse;
+            }
+            
+            // Clone the response
+            const responseToCache = networkResponse.clone();
+            
+            // Store in dynamic cache
+            caches.open(DYNAMIC_CACHE_NAME)
+              .then(cache => {
+                cache.put(event.request, responseToCache);
+              });
+              
+            return networkResponse;
+          })
+          .catch(() => {
+            // Offline fallback for HTML navigation
+            if (event.request.headers.get('accept').includes('text/html')) {
+              return caches.match('/');
+            }
+          });
+          
+        return cachedResponse || fetchPromise;
+      })
+  );
+});
+
+// API fetch strategy with network-first approach
+self.addEventListener('fetch', (event) => {
+  if (event.request.url.includes('/api/')) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          return response;
+        })
+        .catch(() => {
+          return caches.match(event.request);
+        })
+    );
+  }
 });
 
 // Push notification event listener
 self.addEventListener('push', (event) => {
-  const data = event.data.json();
+  const data = event.data ? event.data.json() : { title: 'Nuri App', body: 'New notification!' };
   
   const options = {
     body: data.body,
@@ -87,6 +127,18 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   
   event.waitUntil(
-    clients.openWindow(event.notification.data.url)
+    clients.matchAll({type: 'window'})
+      .then(clientList => {
+        // Check if there's already a window/tab open with the target URL
+        for (const client of clientList) {
+          if (client.url === event.notification.data.url && 'focus' in client) {
+            return client.focus();
+          }
+        }
+        // If not, open a new window/tab
+        if (clients.openWindow) {
+          return clients.openWindow(event.notification.data.url);
+        }
+      })
   );
 }); 

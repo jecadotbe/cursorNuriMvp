@@ -28,6 +28,8 @@ export default defineConfig({
         main: path.resolve(__dirname, "client/index.html"),
       },
     },
+    assetsInlineLimit: 4096,
+    copyPublicDir: true,
   },
   server: {
     proxy: {
