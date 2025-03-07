@@ -1,0 +1,24 @@
+[1mdiff --git a/vite.config.ts b/vite.config.ts[m
+[1mindex 5d3bcd5..3bcb93f 100644[m
+[1m--- a/vite.config.ts[m
+[1m+++ b/vite.config.ts[m
+[36m@@ -1,8 +1,6 @@[m
+ import { defineConfig } from "vite";[m
+ import react from "@vitejs/plugin-react";[m
+[31m-import themePlugin from "@replit/vite-plugin-shadcn-theme-json";[m
+ import path, { dirname } from "path";[m
+[31m-import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";[m
+ import { fileURLToPath } from "url";[m
+ [m
+ const __filename = fileURLToPath(import.meta.url);[m
+[36m@@ -13,9 +11,7 @@[m [mexport default defineConfig({[m
+     react({[m
+       jsxRuntime: 'automatic',[m
+       jsxImportSource: 'react',[m
+[31m-    }), [m
+[31m-    runtimeErrorOverlay(), [m
+[31m-    themePlugin()[m
+[32m+[m[32m    }),[m
+   ],[m
+   resolve: {[m
+     alias: {[m
