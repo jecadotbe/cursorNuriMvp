@@ -6,28 +6,22 @@
       "use": "@vercel/node"
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/service-worker.js",
-      "headers": {
-        "cache-control": "public, max-age=0, must-revalidate"
-      },
-      "dest": "dist/public/service-worker.js"
+      "source": "/service-worker.js",
+      "destination": "dist/public/service-worker.js"
     },
     {
-      "src": "/manifest.json",
-      "headers": {
-        "cache-control": "public, max-age=0, must-revalidate"
-      },
-      "dest": "dist/public/manifest.json"
+      "source": "/manifest.json",
+      "destination": "dist/public/manifest.json"
     },
     {
-      "src": "/api/(.*)",
-      "dest": "dist/index.js"
+      "source": "/api/:path*",
+      "destination": "dist/index.js"
     },
     {
-      "src": "/(.*)",
-      "dest": "dist/public/$1"
+      "source": "/:path*",
+      "destination": "dist/public/:path*"
     }
   ],
   "headers": [
@@ -63,6 +57,24 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/service-worker.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/manifest.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
         }
       ]
     }
