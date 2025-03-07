@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../hooks/useAuth';
+import { useUser } from '../hooks/use-user';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
@@ -40,7 +40,7 @@ interface NotificationPreferences {
 }
 
 export default function NotificationPreferences() {
-  const { user } = useAuth();
+  const { user } = useUser();
   const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
