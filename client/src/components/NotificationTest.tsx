@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from './ui/button';
-import { toast } from './ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 const NotificationTest = () => {
   const [loading, setLoading] = useState(false);
