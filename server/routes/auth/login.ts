@@ -1,45 +1,50 @@
-import { Router } from "express";
-import passport from "passport";
-import { type IVerifyOptions } from "passport-local";
-import { User } from "../../auth";
+import { Request, Response, NextFunction } from 'express';
+import passport from 'passport';
+import { clearRateLimit } from '../../middleware/rate-limit';
+import { UnauthorizedError } from '../../lib/error-handler';
 
-export function setupLoginRoute(router: Router) {
-  router.post("/login", (req, res, next) => {
-    if (!req.body.username || !req.body.password) {
-      return res.status(400).json({ message: "Username and password are required" });
+/**
+ * Login controller
+ */
+export const loginController = (req: Request, res: Response, next: NextFunction) => {
+  passport.authenticate('local', (err: Error, user: any, info: any) => {
+    if (err) {
+      return next(err);
     }
-
-    passport.authenticate("local", (err: any, user: User | false, info: IVerifyOptions) => {
-      if (err) {
-        return next(err);
+    
+    if (!user) {
+      return next(new UnauthorizedError(info?.message || 'Invalid credentials'));
+    }
+    
+    req.login(user, (loginErr) => {
+      if (loginErr) {
+        return next(loginErr);
       }
-
-      if (!user) {
-        return res.status(400).json({ message: info.message ?? "Login failed" });
-      }
-
-      // Handle remember me functionality
-      if (req.body.rememberMe) {
-        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-      }
-
-      req.session.checkSuggestions = true;
-
-      req.logIn(user, (err) => {
-        if (err) {
-          return next(err);
+      
+      // Clear rate limit on successful login
+      clearRateLimit(req.ip, 'login');
+      
+      return res.json({
+        success: true,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          profilePicture: user.profilePicture
         }
-
-        return res.json({
-          message: "Login successful",
-          user: {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            profilePicture: user.profilePicture
-          },
-        });
       });
-    })(req, res, next);
+    });
+  })(req, res, next);
+};
+
+/**
+ * Logout controller
+ */
+export const logoutController = (req: Request, res: Response) => {
+  req.logout((err) => {
+    if (err) {
+      throw err;
+    }
+    res.json({ success: true, message: 'Logged out successfully' });
   });
-}
+};

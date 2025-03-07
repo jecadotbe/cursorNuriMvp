@@ -2,7 +2,6 @@ import passport from "passport";
 import { IVerifyOptions, Strategy as LocalStrategy } from "passport-local";
 import { type Express } from "express";
 import session from "express-session";
-import createMemoryStore from "memorystore";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { users } from "@db/schema";
@@ -10,6 +9,7 @@ import { db } from "@db";
 import { eq } from "drizzle-orm";
 import { loginRateLimiter, clearLoginAttempts } from "./middleware/rate-limit";
 import nodemailer from "nodemailer";
+import { configureSession } from "./lib/session";
 
 
 const scryptAsync = promisify(scrypt);
@@ -53,8 +53,6 @@ declare global {
 }
 
 export function setupAuth(app: Express) {
-  const MemoryStore = createMemoryStore(session);
-
   // Add security headers
   app.use((req, res, next) => {
     res.set({
@@ -64,36 +62,16 @@ export function setupAuth(app: Express) {
       'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
       'Pragma': 'no-cache',
       'Expires': '0',
-      'Surrogate-Control': 'no-store'
+      'Surrogate-Control': 'no-store',
+      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'",
+      'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
     });
     next();
   });
 
-  const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || randomBytes(32).toString('hex'),
-    resave: false,
-    saveUninitialized: false,
-    name: 'nuri.session',
-    rolling: true,
-    cookie: {
-      secure: app.get("env") === "production",
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000,
-      sameSite: 'lax',
-      path: '/'
-    },
-    store: new MemoryStore({
-      checkPeriod: 86400000,
-      ttl: 24 * 60 * 60 * 1000
-    }),
-  };
-
-  if (app.get("env") === "production") {
-    app.set("trust proxy", 1);
-    sessionSettings.cookie!.secure = true;
-  }
-
-  app.use(session(sessionSettings));
+  // Configure session with Redis store
+  const sessionConfig = configureSession(app);
+  app.use(session(sessionConfig));
   app.use(passport.initialize());
   app.use(passport.session());
 

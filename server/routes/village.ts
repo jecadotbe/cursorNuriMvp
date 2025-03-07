@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from "express";
 import { db } from "@db";
 import { villageMembers, type User } from "@db/schema";
 import { eq, and } from "drizzle-orm";
+import { notificationService } from "../services/notification";
 
 // Create and export the router
 export const villageRouter = Router();
@@ -54,10 +55,22 @@ villageRouter.post("/", async (req: AuthenticatedRequest, res: Response) => {
         circle,
         category,
         contactFrequency,
-        positionAngle,
         metadata,
+        positionAngle
       })
       .returning();
+
+    // Send notification about new village member
+    try {
+      await notificationService.sendVillageUpdateNotification(
+        userId,
+        'new_member',
+        name
+      );
+    } catch (notificationError) {
+      console.error("Failed to send village notification:", notificationError);
+      // Non-critical error, continue execution
+    }
 
     res.status(201).json(member);
   } catch (error) {

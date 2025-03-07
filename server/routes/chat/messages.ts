@@ -4,6 +4,8 @@ import { chats, parentProfiles } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { anthropic } from "../../anthropic";
 import { memoryService } from "../../services/memory";
+import { notificationService } from "../../services/notification";
+import { reminderService } from "../../services/reminder";
 import { searchBooks } from "../../rag";
 import type { User } from "../../auth";
 
@@ -133,6 +135,39 @@ Remember to:
           category: "chat_history",
           timestamp: new Date().toISOString(),
         });
+
+        // Check if the user's message contains reminder keywords
+        // and create a reminder if needed
+        try {
+          console.log('[Chat Route] Checking for reminder keywords');
+          const reminderId = await reminderService.createReminderFromMessage(
+            user.id,
+            lastMessage
+          );
+          
+          if (reminderId) {
+            console.log(`[Chat Route] Created reminder ${reminderId} from message`);
+          }
+        } catch (reminderError) {
+          console.error("[Chat Route] Failed to create reminder:", reminderError);
+          // Non-critical error, continue execution
+        }
+
+        // Send notification if the user is not currently active in this chat
+        // This would typically be determined by checking if the user is online
+        // For simplicity, we'll always send a notification
+        try {
+          console.log('[Chat Route] Sending chat notification');
+          await notificationService.sendChatNotification(
+            user.id,
+            "Nuri",
+            messageContent,
+            chatId || "new"
+          );
+        } catch (notificationError) {
+          console.error("[Chat Route] Failed to send notification:", notificationError);
+          // Non-critical error, continue execution
+        }
 
         // Dispatch event to refresh suggestions
         res.set('X-Event-Refresh-Suggestions', 'true');

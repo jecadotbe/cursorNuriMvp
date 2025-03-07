@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Loader2, X, Plus } from "lucide-react";
+import NotificationPreferences from "@/components/NotificationPreferences";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type OnboardingData = {
   basicInfo: {
@@ -357,372 +359,385 @@ export default function EditProfileView() {
       </div>
 
       <form onSubmit={handleSubmit} className="p-4 space-y-6 max-w-2xl mx-auto">
-        <Card>
-          <CardHeader>
-            <CardTitle>Basis Informatie</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Naam</Label>
-              <Input
-                id="name"
-                value={formData.basicInfo.name}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    basicInfo: {
-                      ...formData.basicInfo,
-                      name: e.target.value,
-                    },
-                  })
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="parentType">Ouderrol</Label>
-              <Select
-                value={formData.basicInfo.parentType}
-                onValueChange={(value: "mom" | "dad" | "other") =>
-                  setFormData({
-                    ...formData,
-                    basicInfo: {
-                      ...formData.basicInfo,
-                      parentType: value,
-                    },
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecteer je ouderrol" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mom">Moeder</SelectItem>
-                  <SelectItem value="dad">Vader</SelectItem>
-                  <SelectItem value="other">Anders</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="experienceLevel">Ervaring niveau</Label>
-              <Select
-                value={formData.basicInfo.experienceLevel}
-                onValueChange={(value: "first_time" | "experienced" | "multiple_children") =>
-                  setFormData({
-                    ...formData,
-                    basicInfo: {
-                      ...formData.basicInfo,
-                      experienceLevel: value,
-                    },
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecteer ervaring niveau" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="first_time">Eerste kind</SelectItem>
-                  <SelectItem value="experienced">Ervaren</SelectItem>
-                  <SelectItem value="multiple_children">Meerdere kinderen</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Stress & Ondersteuning</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="stressLevel">Stress niveau</Label>
-              <Select
-                value={formData.stressAssessment.stressLevel}
-                onValueChange={(value: "low" | "moderate" | "high" | "very_high") =>
-                  setFormData({
-                    ...formData,
-                    stressAssessment: {
-                      ...formData.stressAssessment,
-                      stressLevel: value,
-                    },
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecteer stress niveau" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Laag</SelectItem>
-                  <SelectItem value="moderate">Gemiddeld</SelectItem>
-                  <SelectItem value="high">Hoog</SelectItem>
-                  <SelectItem value="very_high">Zeer hoog</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Zorgen</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={newConcern}
-                  onChange={(e) => setNewConcern(e.target.value)}
-                  placeholder="Voeg een zorg toe"
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addConcern();
+        <Tabs defaultValue="profile" className="w-full">
+          <TabsList className="grid grid-cols-2 mb-4">
+            <TabsTrigger value="profile">Profiel Informatie</TabsTrigger>
+            <TabsTrigger value="notifications">Notificaties</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="profile" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Basis Informatie</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Naam</Label>
+                  <Input
+                    id="name"
+                    value={formData.basicInfo.name}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        basicInfo: {
+                          ...formData.basicInfo,
+                          name: e.target.value,
+                        },
+                      })
                     }
-                  }}
-                />
-                <Button type="button" onClick={addConcern}>
-                  Toevoegen
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.stressAssessment.primaryConcerns.map((concern, index) => (
-                  <Badge key={index} variant="secondary">
-                    {concern}
-                    <button
-                      type="button"
-                      onClick={() => removeConcern(index)}
-                      className="ml-2"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            </div>
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label>Ondersteuningsnetwerk</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={newSupport}
-                  onChange={(e) => setNewSupport(e.target.value)}
-                  placeholder="Voeg ondersteuning toe"
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addSupport();
+                <div className="space-y-2">
+                  <Label htmlFor="parentType">Ouderrol</Label>
+                  <Select
+                    value={formData.basicInfo.parentType}
+                    onValueChange={(value: "mom" | "dad" | "other") =>
+                      setFormData({
+                        ...formData,
+                        basicInfo: {
+                          ...formData.basicInfo,
+                          parentType: value,
+                        },
+                      })
                     }
-                  }}
-                />
-                <Button type="button" onClick={addSupport}>
-                  Toevoegen
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.stressAssessment.supportNetwork.map((support, index) => (
-                  <Badge key={index} variant="secondary">
-                    {support}
-                    <button
-                      type="button"
-                      onClick={() => removeSupport(index)}
-                      className="ml-2"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecteer je ouderrol" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mom">Moeder</SelectItem>
+                      <SelectItem value="dad">Vader</SelectItem>
+                      <SelectItem value="other">Anders</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Kinderen</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button type="button" onClick={addChild} className="w-full">
-              <Plus className="h-4 w-4 mr-2" />
-              Kind toevoegen
-            </Button>
+                <div className="space-y-2">
+                  <Label htmlFor="experienceLevel">Ervaring niveau</Label>
+                  <Select
+                    value={formData.basicInfo.experienceLevel}
+                    onValueChange={(value: "first_time" | "experienced" | "multiple_children") =>
+                      setFormData({
+                        ...formData,
+                        basicInfo: {
+                          ...formData.basicInfo,
+                          experienceLevel: value,
+                        },
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecteer ervaring niveau" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="first_time">Eerste kind</SelectItem>
+                      <SelectItem value="experienced">Ervaren</SelectItem>
+                      <SelectItem value="multiple_children">Meerdere kinderen</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
 
-            {formData.childProfiles.map((child, index) => (
-              <Card key={index}>
-                <CardContent className="pt-6 space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-semibold">Kind {index + 1}</h3>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={() => removeChild(index)}
-                    >
-                      <X className="h-4 w-4" />
+            <Card>
+              <CardHeader>
+                <CardTitle>Stress & Ondersteuning</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="stressLevel">Stress niveau</Label>
+                  <Select
+                    value={formData.stressAssessment.stressLevel}
+                    onValueChange={(value: "low" | "moderate" | "high" | "very_high") =>
+                      setFormData({
+                        ...formData,
+                        stressAssessment: {
+                          ...formData.stressAssessment,
+                          stressLevel: value,
+                        },
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecteer stress niveau" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Laag</SelectItem>
+                      <SelectItem value="moderate">Gemiddeld</SelectItem>
+                      <SelectItem value="high">Hoog</SelectItem>
+                      <SelectItem value="very_high">Zeer hoog</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Zorgen</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={newConcern}
+                      onChange={(e) => setNewConcern(e.target.value)}
+                      placeholder="Voeg een zorg toe"
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addConcern();
+                        }
+                      }}
+                    />
+                    <Button type="button" onClick={addConcern}>
+                      Toevoegen
                     </Button>
                   </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.stressAssessment.primaryConcerns.map((concern, index) => (
+                      <Badge key={index} variant="secondary">
+                        {concern}
+                        <button
+                          type="button"
+                          onClick={() => removeConcern(index)}
+                          className="ml-2"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label>Naam</Label>
+                <div className="space-y-2">
+                  <Label>Ondersteuningsnetwerk</Label>
+                  <div className="flex gap-2">
                     <Input
-                      value={child.name}
-                      onChange={(e) => updateChild(index, 'name', e.target.value)}
-                      placeholder="Naam van het kind"
+                      value={newSupport}
+                      onChange={(e) => setNewSupport(e.target.value)}
+                      placeholder="Voeg ondersteuning toe"
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addSupport();
+                        }
+                      }}
                     />
+                    <Button type="button" onClick={addSupport}>
+                      Toevoegen
+                    </Button>
                   </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.stressAssessment.supportNetwork.map((support, index) => (
+                      <Badge key={index} variant="secondary">
+                        {support}
+                        <button
+                          type="button"
+                          onClick={() => removeSupport(index)}
+                          className="ml-2"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-                  <div className="space-y-2">
-                    <Label>Leeftijd</Label>
+            <Card>
+              <CardHeader>
+                <CardTitle>Kinderen</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button type="button" onClick={addChild} className="w-full">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Kind toevoegen
+                </Button>
+
+                {formData.childProfiles.map((child, index) => (
+                  <Card key={index}>
+                    <CardContent className="pt-6 space-y-4">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-lg font-semibold">Kind {index + 1}</h3>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => removeChild(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Naam</Label>
+                        <Input
+                          value={child.name}
+                          onChange={(e) => updateChild(index, 'name', e.target.value)}
+                          placeholder="Naam van het kind"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Leeftijd</Label>
+                        <Input
+                          type="number"
+                          value={child.age}
+                          onChange={(e) => updateChild(index, 'age', parseInt(e.target.value) || 0)}
+                          min={0}
+                          max={18}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Speciale behoeften</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={newSpecialNeed}
+                            onChange={(e) => setNewSpecialNeed(e.target.value)}
+                            placeholder="Voeg speciale behoefte toe"
+                            onKeyPress={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                addSpecialNeed(index);
+                              }
+                            }}
+                          />
+                          <Button type="button" onClick={() => addSpecialNeed(index)}>
+                            Toevoegen
+                          </Button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {child.specialNeeds.map((need, needIndex) => (
+                            <Badge key={needIndex} variant="secondary">
+                              {need}
+                              <button
+                                type="button"
+                                onClick={() => removeSpecialNeed(index, needIndex)}
+                                className="ml-2"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Doelen</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Korte termijn doelen</Label>
+                  <div className="flex gap-2">
                     <Input
-                      type="number"
-                      value={child.age}
-                      onChange={(e) => updateChild(index, 'age', parseInt(e.target.value) || 0)}
-                      min={0}
-                      max={18}
+                      value={newShortTerm}
+                      onChange={(e) => setNewShortTerm(e.target.value)}
+                      placeholder="Voeg korte termijn doel toe"
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addGoal('shortTerm');
+                        }
+                      }}
                     />
+                    <Button type="button" onClick={() => addGoal('shortTerm')}>
+                      Toevoegen
+                    </Button>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label>Speciale behoeften</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={newSpecialNeed}
-                        onChange={(e) => setNewSpecialNeed(e.target.value)}
-                        placeholder="Voeg speciale behoefte toe"
-                        onKeyPress={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            addSpecialNeed(index);
-                          }
-                        }}
-                      />
-                      <Button type="button" onClick={() => addSpecialNeed(index)}>
-                        Toevoegen
-                      </Button>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {child.specialNeeds.map((need, needIndex) => (
-                        <Badge key={needIndex} variant="secondary">
-                          {need}
-                          <button
-                            type="button"
-                            onClick={() => removeSpecialNeed(index, needIndex)}
-                            className="ml-2"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.goals.shortTerm.map((goal, index) => (
+                      <Badge key={index} variant="secondary">
+                        {goal}
+                        <button
+                          type="button"
+                          onClick={() => removeGoal('shortTerm', index)}
+                          className="ml-2"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </CardContent>
-        </Card>
+                </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Doelen</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Korte termijn doelen</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={newShortTerm}
-                  onChange={(e) => setNewShortTerm(e.target.value)}
-                  placeholder="Voeg korte termijn doel toe"
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addGoal('shortTerm');
-                    }
-                  }}
-                />
-                <Button type="button" onClick={() => addGoal('shortTerm')}>
-                  Toevoegen
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.goals.shortTerm.map((goal, index) => (
-                  <Badge key={index} variant="secondary">
-                    {goal}
-                    <button
-                      type="button"
-                      onClick={() => removeGoal('shortTerm', index)}
-                      className="ml-2"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            </div>
+                <div className="space-y-2">
+                  <Label>Lange termijn doelen</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={newLongTerm}
+                      onChange={(e) => setNewLongTerm(e.target.value)}
+                      placeholder="Voeg lange termijn doel toe"
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addGoal('longTerm');
+                        }
+                      }}
+                    />
+                    <Button type="button" onClick={() => addGoal('longTerm')}>
+                      Toevoegen
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.goals.longTerm.map((goal, index) => (
+                      <Badge key={index} variant="secondary">
+                        {goal}
+                        <button
+                          type="button"
+                          onClick={() => removeGoal('longTerm', index)}
+                          className="ml-2"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
 
-            <div className="space-y-2">
-              <Label>Lange termijn doelen</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={newLongTerm}
-                  onChange={(e) => setNewLongTerm(e.target.value)}
-                  placeholder="Voeg lange termijn doel toe"
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addGoal('longTerm');
-                    }
-                  }}
-                />
-                <Button type="button" onClick={() => addGoal('longTerm')}>
-                  Toevoegen
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.goals.longTerm.map((goal, index) => (
-                  <Badge key={index} variant="secondary">
-                    {goal}
-                    <button
-                      type="button"
-                      onClick={() => removeGoal('longTerm', index)}
-                      className="ml-2"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Ondersteuningsgebieden</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={newSupportArea}
-                  onChange={(e) => setNewSupportArea(e.target.value)}
-                  placeholder="Voeg ondersteuningsgebied toe"
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addGoal('supportAreas');
-                    }
-                  }}
-                />
-                <Button type="button" onClick={() => addGoal('supportAreas')}>
-                  Toevoegen
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.goals.supportAreas.map((area, index) => (
-                  <Badge key={index} variant="secondary">
-                    {area}
-                    <button
-                      type="button"
-                      onClick={() => removeGoal('supportAreas', index)}
-                      className="ml-2"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                <div className="space-y-2">
+                  <Label>Ondersteuningsgebieden</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={newSupportArea}
+                      onChange={(e) => setNewSupportArea(e.target.value)}
+                      placeholder="Voeg ondersteuningsgebied toe"
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addGoal('supportAreas');
+                        }
+                      }}
+                    />
+                    <Button type="button" onClick={() => addGoal('supportAreas')}>
+                      Toevoegen
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.goals.supportAreas.map((area, index) => (
+                      <Badge key={index} variant="secondary">
+                        {area}
+                        <button
+                          type="button"
+                          onClick={() => removeGoal('supportAreas', index)}
+                          className="ml-2"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="notifications">
+            <NotificationPreferences />
+          </TabsContent>
+        </Tabs>
 
         <div className="flex justify-end gap-4">
           <Button

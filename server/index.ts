@@ -1,9 +1,11 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
+import { registerRoutes } from "./routes/index";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import "./admin"; // Import admin server
 import { backgroundSuggestionGenerator } from "./services/background-suggestion-generator";
+import { errorHandler } from "./lib/error-handler";
+import { apiRateLimiter } from "./middleware/rate-limit";
 
 const app = express();
 
@@ -45,18 +47,15 @@ app.use((req, res, next) => {
   next();
 });
 
+// Apply rate limiting to all API routes
+app.use('/api', apiRateLimiter);
+
 (async () => {
   try {
     const server = registerRoutes(app);
 
-    // Error handling middleware
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      console.error("Error:", err);
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-
-      res.status(status).json({ message });
-    });
+    // Global error handling middleware - must be after routes
+    app.use(errorHandler);
 
     // Setup Vite or serve static files
     if (app.get("env") === "development") {

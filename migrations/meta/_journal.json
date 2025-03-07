@@ -8,6 +8,13 @@
       "when": 1738262104140,
       "tag": "0000_military_juggernaut",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1738262104141,
+      "tag": "0001_notification_preferences",
+      "breakpoints": true
     }
   ]
 }

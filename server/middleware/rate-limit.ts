@@ -1,84 +1,95 @@
 import { Request, Response, NextFunction } from "express";
-import createMemoryStore from "memorystore";
-import session from "express-session";
+import { redisClient } from "../lib/session";
 
-interface RateLimitStore {
-  attempts: number;
-  resetTime: number;
-  blocked: boolean;
-}
+// Rate limit configuration by endpoint type
+const RATE_LIMITS = {
+  login: { maxAttempts: 5, blockDuration: 15 * 60, resetDuration: 60 * 60 }, // 5 attempts, 15 min block, 1 hour reset
+  api: { maxAttempts: 100, blockDuration: 5 * 60, resetDuration: 60 * 60 }, // 100 attempts, 5 min block, 1 hour reset
+  sensitive: { maxAttempts: 20, blockDuration: 10 * 60, resetDuration: 60 * 60 }, // 20 attempts, 10 min block, 1 hour reset
+  default: { maxAttempts: 200, blockDuration: 5 * 60, resetDuration: 60 * 60 } // 200 attempts, 5 min block, 1 hour reset
+};
 
-const MemoryStore = createMemoryStore(session);
-const store = new MemoryStore<RateLimitStore>();
+// Helper to get rate limit key
+const getRateLimitKey = (req: Request, type: string): string => {
+  // For user-specific rate limits, include user ID if authenticated
+  const userPart = req.user ? `:user:${req.user.id}` : '';
+  return `rateLimit:${type}:${req.ip}${userPart}`;
+};
 
-const MAX_ATTEMPTS = 5;
-const BLOCK_DURATION = 15 * 60 * 1000; // 15 minutes in milliseconds
-const RESET_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
-
-export const loginRateLimiter = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const ip = req.ip;
-  const key = `rateLimit:${ip}`;
-
-  store.get(key, (err, record) => {
-    if (err) {
-      console.error("Rate limit store error:", err);
-      return next();
-    }
-
-    const now = Date.now();
-    let newRecord: RateLimitStore;
-
-    if (!record) {
-      newRecord = {
-        attempts: 1,
-        resetTime: now + RESET_DURATION,
-        blocked: false,
-      };
-    } else {
-      // Check if block duration has passed
-      if (record.blocked && now > record.resetTime) {
-        newRecord = {
-          attempts: 1,
-          resetTime: now + RESET_DURATION,
-          blocked: false,
-        };
-      } else {
-        // Update existing record
-        newRecord = {
-          attempts: record.attempts + 1,
-          resetTime: record.resetTime,
-          blocked: record.attempts + 1 >= MAX_ATTEMPTS,
-        };
+// Generic rate limiter factory
+export const createRateLimiter = (type: keyof typeof RATE_LIMITS = 'default') => {
+  const config = RATE_LIMITS[type];
+  
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const key = getRateLimitKey(req, type);
+    
+    try {
+      // Get current count from Redis
+      const currentValue = await redisClient.get(key);
+      const attempts = currentValue ? parseInt(currentValue, 10) : 0;
+      
+      // Check if blocked
+      const blockKey = `${key}:blocked`;
+      const isBlocked = await redisClient.get(blockKey);
+      
+      if (isBlocked) {
+        const ttl = await redisClient.ttl(blockKey);
+        const waitTime = Math.ceil(ttl / 60);
+        return res.status(429).json({
+          message: `Too many requests. Please try again in ${waitTime} minutes.`,
+          retryAfter: ttl
+        });
       }
-    }
-
-    // Store the updated record
-    store.set(key, newRecord);
-
-    // Check if user is blocked
-    if (newRecord.blocked) {
-      const waitTime = Math.ceil((record?.resetTime - now) / 1000 / 60);
-      return res.status(429).json({
-        message: `Too many login attempts. Please try again in ${waitTime} minutes.`,
+      
+      // Increment counter
+      const newValue = attempts + 1;
+      await redisClient.set(key, newValue);
+      
+      // Set expiration if first request
+      if (newValue === 1) {
+        await redisClient.expire(key, config.resetDuration);
+      }
+      
+      // Check if over limit
+      if (newValue > config.maxAttempts) {
+        await redisClient.set(blockKey, '1');
+        await redisClient.expire(blockKey, config.blockDuration);
+        return res.status(429).json({
+          message: `Rate limit exceeded. Please try again in ${Math.ceil(config.blockDuration / 60)} minutes.`,
+          retryAfter: config.blockDuration
+        });
+      }
+      
+      // Add rate limit headers
+      res.set({
+        'X-RateLimit-Limit': config.maxAttempts.toString(),
+        'X-RateLimit-Remaining': (config.maxAttempts - newValue).toString(),
+        'X-RateLimit-Reset': (Math.floor(Date.now() / 1000) + await redisClient.ttl(key)).toString()
       });
+      
+      next();
+    } catch (error) {
+      console.error('Rate limiting error:', error);
+      // Fail open to avoid blocking legitimate requests
+      next();
     }
-
-    // Attach attempt info to request for logging
-    (req as any).rateLimitInfo = {
-      attempts: newRecord.attempts,
-      remaining: MAX_ATTEMPTS - newRecord.attempts,
-    };
-
-    next();
-  });
+  };
 };
 
-export const clearLoginAttempts = (ip: string) => {
-  const key = `rateLimit:${ip}`;
-  // Using store.set with null to effectively clear the entry
-  store.set(key, null);
+// Specific rate limiters
+export const loginRateLimiter = createRateLimiter('login');
+export const apiRateLimiter = createRateLimiter('api');
+export const sensitiveRateLimiter = createRateLimiter('sensitive');
+export const defaultRateLimiter = createRateLimiter('default');
+
+// Clear rate limit for a specific IP and type
+export const clearRateLimit = async (ip: string, type: keyof typeof RATE_LIMITS = 'login') => {
+  const key = `rateLimit:${type}:${ip}`;
+  const blockKey = `${key}:blocked`;
+  
+  await redisClient.del(key);
+  await redisClient.del(blockKey);
 };
+
+// For backward compatibility
+export const clearLoginAttempts = (ip: string) => clearRateLimit(ip, 'login');

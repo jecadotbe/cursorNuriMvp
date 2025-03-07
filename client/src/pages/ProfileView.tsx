@@ -9,9 +9,11 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronRight, Edit2 } from "lucide-react";
+import { ChevronRight, Edit2, Bell } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import NotificationPermission from "@/components/NotificationPermission";
+import NotificationPreferences from "@/components/NotificationPreferences";
 
 type OnboardingData = {
   basicInfo?: {
@@ -170,7 +172,26 @@ export default function ProfileView() {
         </div>
       </div>
 
-      
+      {/* Notification Settings */}
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex items-center">
+            <Bell className="mr-2 h-5 w-5 text-primary" />
+            <CardTitle>Notification Settings</CardTitle>
+          </div>
+          <CardDescription>
+            Manage how and when you receive notifications
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <NotificationPermission />
+          
+          {/* Only show preferences if notifications are enabled */}
+          {'Notification' in window && Notification.permission === 'granted' && (
+            <NotificationPreferences />
+          )}
+        </CardContent>
+      </Card>
 
       {sections.map((section) => (
         <Card key={section.title} className="mx-4">

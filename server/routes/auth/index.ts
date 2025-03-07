@@ -1,16 +1,48 @@
 import { Router } from "express";
-import { setupLoginRoute } from "./login";
-import { setupRegisterRoute } from "./register";
-import { setupLogoutRoute } from "./logout";
-import { setupUserRoute } from "./user";
+import passport from 'passport';
+import { validateLogin, validateRegister } from '../../middleware/validate';
+import { loginRateLimiter, clearRateLimit } from '../../middleware/rate-limit';
+import { asyncHandler } from '../../lib/error-handler';
+import { registerController } from './register';
+import { loginController, logoutController } from './login';
+import { resetPasswordController, forgotPasswordController } from './password-reset';
 
-export function setupAuthRoutes(app: Router) {
-  const router = Router();
-  
-  setupLoginRoute(router);
-  setupRegisterRoute(router);
-  setupLogoutRoute(router);
-  setupUserRoute(router);
-  
-  return router;
-}
+const router = Router();
+
+// Login route with rate limiting and validation
+router.post('/login', 
+  loginRateLimiter,
+  validateLogin,
+  asyncHandler(loginController)
+);
+
+// Register route with validation
+router.post('/register', 
+  validateRegister, 
+  asyncHandler(registerController)
+);
+
+// Logout route
+router.post('/logout', asyncHandler(logoutController));
+
+// Password reset routes
+router.post('/forgot-password', asyncHandler(forgotPasswordController));
+router.post('/reset-password/:token', asyncHandler(resetPasswordController));
+
+// Check authentication status
+router.get('/status', (req, res) => {
+  if (req.isAuthenticated()) {
+    return res.json({
+      authenticated: true,
+      user: {
+        id: req.user.id,
+        username: req.user.username,
+        email: req.user.email,
+        profilePicture: req.user.profilePicture
+      }
+    });
+  }
+  return res.json({ authenticated: false });
+});
+
+export const authRouter = router;

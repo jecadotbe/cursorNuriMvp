@@ -1,5 +1,5 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, pgEnum, numeric, unique, index, real } from "drizzle-orm/pg-core";
-import { relations, sql } from "drizzle-orm";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, pgEnum, numeric, unique, index, real, Table } from "drizzle-orm/pg-core";
+import { relations, sql, InferModel, RelationBuilder } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -40,6 +40,20 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  token: text("token").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  used: boolean("used").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table: Table) => {
+  return {
+    tokenIdx: index("password_reset_tokens_token_idx").on(table.token),
+    userIdIdx: index("password_reset_tokens_user_id_idx").on(table.userId),
+  };
+});
+
 export const parentProfiles = pgTable("parent_profiles", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
@@ -52,6 +66,9 @@ export const parentProfiles = pgTable("parent_profiles", {
   bio: text("bio"),
   preferredLanguage: text("preferred_language").default('nl'),
   communicationPreference: text("communication_preference"),
+  // Notification fields
+  pushSubscriptions: text("push_subscriptions"),
+  notificationPreferences: text("notification_preferences"),
   // Onboarding specific fields
   completedOnboarding: boolean("completed_onboarding").default(false),
   currentOnboardingStep: integer("current_onboarding_step").default(1),
@@ -62,7 +79,7 @@ export const parentProfiles = pgTable("parent_profiles", {
   // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => {
+}, (table: Table) => {
   return {
     userIdIdx: unique("parent_profiles_user_id_idx").on(table.userId),
     emailIdx: index("parent_profiles_email_idx").on(table.email),
@@ -186,7 +203,7 @@ export const chats = pgTable("chats", {
   contentEmbedding: text("content_embedding").default('[]'),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => {
+}, (table: Table) => {
   return {
     contentEmbeddingIdx: index("chats_content_embedding_idx").on(table.contentEmbedding),
   };
@@ -224,37 +241,40 @@ export const suggestionFeedback = pgTable("suggestion_feedback", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Define relations using the imported relations function
-export const villageMembersRelations = relations(villageMembers, ({ many }) => ({
+type Relations = {
+  one: RelationBuilder['one'];
+  many: RelationBuilder['many'];
+};
+
+export const villageMembersRelations = relations(villageMembers, ({ many }: Relations) => ({
   memories: many(villageMemberMemories),
 }));
 
-export const villageMemberMemoriesRelations = relations(villageMemberMemories, ({ one }) => ({
+export const villageMemberMemoriesRelations = relations(villageMemberMemories, ({ one }: Relations) => ({
   member: one(villageMembers, {
     fields: [villageMemberMemories.villageMemberId],
     references: [villageMembers.id],
   }),
 }));
 
-export const parentProfilesRelations = relations(parentProfiles, ({ many }) => ({
+export const parentProfilesRelations = relations(parentProfiles, ({ many }: Relations) => ({
   childProfiles: many(childProfiles),
   parentingGoals: many(parentingGoals),
 }));
 
-export const childProfilesRelations = relations(childProfiles, ({ one }) => ({
+export const childProfilesRelations = relations(childProfiles, ({ one }: Relations) => ({
   parentProfile: one(parentProfiles, {
     fields: [childProfiles.parentProfileId],
     references: [parentProfiles.id],
   }),
 }));
 
-export const parentingGoalsRelations = relations(parentingGoals, ({ one }) => ({
+export const parentingGoalsRelations = relations(parentingGoals, ({ one }: Relations) => ({
   parentProfile: one(parentProfiles, {
     fields: [parentingGoals.parentProfileId],
     references: [parentProfiles.id],
   }),
 }));
-
 
 // Schema types
 export const insertParentProfileSchema = createInsertSchema(parentProfiles);
