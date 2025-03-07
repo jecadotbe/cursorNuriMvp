@@ -1,10 +1,19 @@
-import { useState, useEffect } from 'react';
-import { Button } from './ui/button';
-import { toast } from './ui/use-toast';
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
-const NotificationPermission = () => {
+interface PushSubscriptionData {
+  subscription: PushSubscription;
+}
+
+interface VapidKeyResponse {
+  publicKey: string;
+}
+
+const NotificationPermission: React.FC = () => {
+  const { toast } = useToast();
   const [permission, setPermission] = useState<NotificationPermission | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
     // Check if notifications are supported
@@ -17,7 +26,7 @@ const NotificationPermission = () => {
     setPermission(Notification.permission);
   }, []);
 
-  const requestPermission = async () => {
+  const requestPermission = async (): Promise<void> => {
     setLoading(true);
     try {
       const permission = await Notification.requestPermission();
@@ -42,14 +51,14 @@ const NotificationPermission = () => {
     }
   };
 
-  const subscribeToPushNotifications = async () => {
+  const subscribeToPushNotifications = async (): Promise<void> => {
     try {
       // Check if service worker is registered
       const registration = await navigator.serviceWorker.ready;
       
       // Get VAPID public key from server
       const response = await fetch('/api/notifications/vapid-public-key');
-      const { publicKey } = await response.json();
+      const { publicKey }: VapidKeyResponse = await response.json();
       
       // Subscribe to push notifications
       const subscription = await registration.pushManager.subscribe({
@@ -63,7 +72,7 @@ const NotificationPermission = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ subscription }),
+        body: JSON.stringify({ subscription } satisfies PushSubscriptionData),
       });
       
       console.log('Push notification subscription successful');
@@ -74,7 +83,7 @@ const NotificationPermission = () => {
   };
 
   // Helper function to convert base64 to Uint8Array
-  const urlBase64ToUint8Array = (base64String: string) => {
+  const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
     const base64 = (base64String + padding)
       .replace(/-/g, '+')

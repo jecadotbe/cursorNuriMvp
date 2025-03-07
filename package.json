@@ -107,15 +107,13 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
-    "@tailwindcss/typography": "^0.5.15",
+    "@types/node": "^20.11.24",
+    "@types/react": "^18.2.61",
+    "@types/react-dom": "^18.2.19",
     "@types/express": "4.17.21",
     "@types/express-session": "^1.18.0",
-    "@types/node": "20.16.11",
     "@types/passport": "^1.0.16",
     "@types/passport-local": "^1.0.38",
-    "@types/react": "^18.3.11",
-    "@types/react-dom": "^18.3.1",
     "@types/ws": "^8.5.13",
     "@types/connect-redis": "^0.0.23",
     "@types/nodemailer": "^6.4.14",
@@ -126,7 +124,7 @@
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.14",
     "tsx": "^4.19.1",
-    "typescript": "5.6.3",
+    "typescript": "5.3.3",
     "vite": "^5.4.9"
   },
   "optionalDependencies": {
